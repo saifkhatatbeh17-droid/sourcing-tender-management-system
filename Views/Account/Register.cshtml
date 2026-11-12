@@ -1,0 +1,17 @@
+@model RegisterViewModel
+@{ ViewData["Title"] = "Supplier Registration"; }
+<h1>Supplier Registration</h1>
+<form method="post" class="account-form">
+@Html.AntiForgeryToken()
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+<div class="field"><label asp-for="CompanyName">Company Name</label><input asp-for="CompanyName" class="form-control" /><span asp-validation-for="CompanyName" class="text-danger"></span></div>
+<div class="field"><label asp-for="RegistrationNumber">Company Registration Number</label><input asp-for="RegistrationNumber" class="form-control" /><span asp-validation-for="RegistrationNumber" class="text-danger"></span></div>
+<div class="field"><label asp-for="TaxNumber">Tax Number</label><input asp-for="TaxNumber" class="form-control" /><span asp-validation-for="TaxNumber" class="text-danger"></span></div>
+<div class="field"><label asp-for="ContactName">Contact Name</label><input asp-for="ContactName" class="form-control" /><span asp-validation-for="ContactName" class="text-danger"></span></div>
+<div class="field"><label asp-for="Address">Address</label><input asp-for="Address" class="form-control" /><span asp-validation-for="Address" class="text-danger"></span></div>
+<div class="field"><label asp-for="Email">Email</label><input asp-for="Email" class="form-control" /><span asp-validation-for="Email" class="text-danger"></span></div>
+<div class="field"><label asp-for="Password">Password</label><input asp-for="Password" class="form-control" /><span asp-validation-for="Password" class="text-danger"></span></div>
+<button class="btn btn-primary" type="submit">Submit Registration</button>
+<!-- TEAM TODO: Add validated legal-document uploads before considering supplier verification complete. -->
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

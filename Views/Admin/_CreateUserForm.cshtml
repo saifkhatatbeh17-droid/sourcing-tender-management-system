@@ -1,0 +1,22 @@
+@model CreateUserViewModel
+<form asp-controller="Admin" asp-action="CreateUser" method="post" id="create-user-form">
+<div class="modal-body">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <div class="field"><label asp-for="FullName">Full Name</label><input asp-for="FullName" class="form-control" /><span asp-validation-for="FullName" class="text-danger"></span></div>
+    <div class="field"><label asp-for="Email">Email</label><input asp-for="Email" class="form-control" autocomplete="off" /><span asp-validation-for="Email" class="text-danger"></span></div>
+    <div class="field"><label asp-for="Password">Password</label><input asp-for="Password" class="form-control" autocomplete="new-password" /><span asp-validation-for="Password" class="text-danger"></span></div>
+    <div class="field"><label asp-for="Role">Role</label><select asp-for="Role" class="form-select">
+        <option value="">Choose a role</option>
+        @foreach (var role in SourcingTenderManagement.Data.RoleNames.Primary.Where(r => r != "Supplier")) { <option value="@role">@role</option> }
+    </select><span asp-validation-for="Role" class="text-danger"></span></div>
+    <div class="field"><label asp-for="CommitteeRole">Committee Position</label><select asp-for="CommitteeRole" class="form-select">
+        <option value="">Not a committee member</option>
+        @foreach (var role in SourcingTenderManagement.Data.RoleNames.EvaluationPositions.Concat(SourcingTenderManagement.Data.RoleNames.TopPositions)) { <option value="@role">@role</option> }
+    </select><span asp-validation-for="CommitteeRole" class="text-danger"></span></div>
+    <div class="field"><label asp-for="DepartmentId">Department</label><select asp-for="DepartmentId" class="form-select"><option value="">No department</option>
+        @foreach (SourcingTenderManagement.Models.Entities.Department department in ViewBag.Departments)
+        { if (department.IsActive) { <option value="@department.DepartmentId">@department.Name</option> } }
+    </select><span asp-validation-for="DepartmentId" class="text-danger"></span></div>
+</div>
+<div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit">Create Account</button></div>
+</form>

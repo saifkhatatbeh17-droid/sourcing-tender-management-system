@@ -1,0 +1,61 @@
+@using SourcingTenderManagement.Data
+@using SourcingTenderManagement.Models
+@{ var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home"; }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — Sourcing &amp; Tender Management</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="border-bottom bg-white">
+    <nav class="container-fluid p-3 d-flex flex-wrap align-items-center gap-3" aria-label="Main navigation">
+        <a class="fw-bold text-decoration-none text-dark me-auto" asp-controller="Home" asp-action="Index">Sourcing &amp; Tender Management</a>
+        <a asp-controller="Home" asp-action="Index">Home</a>
+        <a asp-controller="Home" asp-action="About">About</a>
+        <a asp-controller="Home" asp-action="HowItWorks">How It Works</a>
+        <a asp-controller="Home" asp-action="Contact">Contact</a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a asp-controller="Account" asp-action="GoToDashboard">My Dashboard</a>
+            @await Component.InvokeAsync("NotificationBell")
+            <form asp-controller="Account" asp-action="Logout" method="post"><button class="btn btn-sm btn-outline-secondary">Sign Out</button></form>
+        }
+        else
+        {
+            <a asp-controller="Account" asp-action="Login">Login</a>
+            <a asp-controller="Account" asp-action="Register">Supplier Registration</a>
+        }
+    </nav>
+</header>
+<div class="app-shell">
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <aside class="sidebar p-3 border-end" aria-label="Workspace navigation">
+        @foreach (var role in RoleNames.Primary.Where(User.IsInRole))
+        {
+            <a class="workspace-link" asp-controller="@role" asp-action="Dashboard">@role workspace</a>
+        }
+        @if (PageNavigation.Menus.TryGetValue(currentController, out var menu) && User.IsInRole(currentController))
+        {
+            <hr />
+            @foreach (var item in menu)
+            {
+                var active = (ViewData["ActivePage"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString()) == item.Action;
+                <a class="page-link-item @(active ? "active" : "")" asp-controller="@currentController" asp-action="@item.Action" aria-current="@(active ? "page" : null)">@item.Title</a>
+            }
+        }
+    </aside>
+}
+<main id="main" class="main-content p-4" tabindex="-1">@RenderBody()</main>
+</div>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

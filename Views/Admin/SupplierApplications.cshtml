@@ -1,0 +1,18 @@
+@model List<SourcingTenderManagement.Models.Entities.SupplierProfile>
+@{ ViewData["Title"] = "Supplier Applications"; }
+<h1>Supplier Applications</h1>
+@foreach (var supplier in Model)
+{
+    <section class="border p-3 mb-3">
+    <h2>@supplier.CompanyName</h2><p>@supplier.RegistrationNumber · @supplier.Status</p>
+    <form asp-action="ReviewSupplier" method="post">
+        <input type="hidden" name="id" value="@supplier.SupplierProfileId" />
+        <label for="notes-@supplier.SupplierProfileId">Review Notes</label>
+        <textarea id="notes-@supplier.SupplierProfileId" name="notes" class="form-control mb-2" maxlength="2000"></textarea>
+        <button name="status" value="Approved" class="btn btn-success">Approve</button>
+        <button name="status" value="ChangesRequested" class="btn btn-outline-primary">Request Changes</button>
+        <button name="status" value="Rejected" class="btn btn-outline-danger">Reject</button>
+    </form>
+    <!-- TEAM TODO: Display supplier legal documents and complete the verification checks. -->
+    </section>
+}
