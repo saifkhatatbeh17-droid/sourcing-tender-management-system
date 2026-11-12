@@ -19,4 +19,4 @@ dotnet run --project src/SourcingTender.Web --launch-profile http
 
 ## طريقة المساهمة
 
-اقرأ [دليل Git وطلبات الدمج للفريق](CONTRIBUTING.md). تطبيق MVC موجود تحت `src/SourcingTender.Web`، ونتائج الفحص التلقائي تظهر في تبويب **Actions** وعلى طلب الدمج.
+اتبع [دليل الفريق خطوة بخطوة](CONTRIBUTING.md) لقبول الدعوة، وتنزيل مجلد المشروع، ورفع أول مهمة عبر Pull Request. تطبيق MVC موجود تحت `src/SourcingTender.Web`، ونتائج الفحص التلقائي تظهر على طلب الدمج وفي تبويب **Actions**.
