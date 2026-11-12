@@ -1,0 +1,12 @@
+@{ ViewData["Title"] = "Decisions"; }
+<h1>Decisions</h1>
+<!-- TEAM TODO: After all four members approve the selected offer, return that choice/report to the manager for final report approval. Preserve the committee selection when the manager approves its report. -->
+<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Decisions">
+<button class="nav-link active" id="decisions-0-tab" data-bs-toggle="tab" data-bs-target="#decisions-0" type="button" role="tab" aria-controls="decisions-0" aria-selected="true">Pending Decisions</button>
+<button class="nav-link " id="decisions-1-tab" data-bs-toggle="tab" data-bs-target="#decisions-1" type="button" role="tab" aria-controls="decisions-1" aria-selected="false">Tender & Report</button>
+<button class="nav-link " id="decisions-2-tab" data-bs-toggle="tab" data-bs-target="#decisions-2" type="button" role="tab" aria-controls="decisions-2" aria-selected="false">Approval Forms</button>
+<button class="nav-link " id="decisions-3-tab" data-bs-toggle="tab" data-bs-target="#decisions-3" type="button" role="tab" aria-controls="decisions-3" aria-selected="false">AI Analysis</button></div>
+<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="decisions-0" role="tabpanel" aria-labelledby="decisions-0-tab" tabindex="0"><section class="workspace-section"><h2>Pending Decisions</h2><!-- TEAM TODO: Load tenders awaiting this committee's final decision. Selecting one opens its Tender & Report tab. --></section></div>
+<div class="tab-pane fade " id="decisions-1" role="tabpanel" aria-labelledby="decisions-1-tab" tabindex="0"><section class="workspace-section"><h2>Tender, Offers & Recommendation</h2><!-- TEAM TODO: Display the request, tender, offers, evaluation report, and manager recommendation for the selected tender. --></section></div>
+<div class="tab-pane fade " id="decisions-2" role="tabpanel" aria-labelledby="decisions-2-tab" tabindex="0"><partial name="_MemberForms" /></div>
+<div class="tab-pane fade " id="decisions-3" role="tabpanel" aria-labelledby="decisions-3-tab" tabindex="0"><partial name="_AiAnalysis" /></div></div>

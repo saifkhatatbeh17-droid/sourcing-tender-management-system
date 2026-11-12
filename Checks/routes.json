@@ -1,0 +1,54 @@
+{
+  "Admin": [
+    "Dashboard",
+    "Users",
+    "Departments",
+    "SupplierApplications",
+    "Suppliers"
+  ],
+  "Department": [
+    "Dashboard",
+    "Requests",
+    "Clarifications"
+  ],
+  "SourcingOfficer": [
+    "Dashboard",
+    "Requests",
+    "Tenders",
+    "Invitations",
+    "Offers",
+    "Compliance",
+    "Comparison",
+    "Evaluations",
+    "Clarifications",
+    "Reports"
+  ],
+  "EvaluationCommittee": [
+    "Dashboard",
+    "Evaluations",
+    "Reports",
+    "Clarifications"
+  ],
+  "SourcingManager": [
+    "Dashboard",
+    "Submissions",
+    "ChosenOffers",
+    "Reports",
+    "Clarifications"
+  ],
+  "TopCommittee": [
+    "Dashboard",
+    "Decisions",
+    "History",
+    "Reports",
+    "Clarifications"
+  ],
+  "Supplier": [
+    "Dashboard",
+    "Profile",
+    "Invitations",
+    "Offers",
+    "Clarifications",
+    "History"
+  ]
+}

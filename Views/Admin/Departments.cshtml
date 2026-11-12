@@ -1,0 +1,26 @@
+@model List<SourcingTenderManagement.Models.Entities.Department>
+@{ ViewData["Title"] = "Departments"; }
+<h1>Departments</h1>
+<form asp-action="CreateDepartment" method="post" class="account-form mb-4">
+    <label for="department-name">Department Name</label>
+    <input id="department-name" name="name" required maxlength="100" class="form-control mb-2" />
+    <button class="btn btn-primary">Create Department</button>
+</form>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Department</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>@foreach (var department in Model)
+{
+    <tr><td>@department.Name</td><td>@(department.IsActive ? "Active" : "Inactive")</td><td><button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#edit-department-@department.DepartmentId" aria-label="Edit @department.Name">Edit</button></td></tr>
+}</tbody></table></div>
+@foreach (var department in Model)
+{
+    <div class="modal fade" id="edit-department-@department.DepartmentId" tabindex="-1" aria-labelledby="department-title-@department.DepartmentId" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content"><form asp-action="EditDepartment" method="post">
+        <div class="modal-header"><h2 class="modal-title fs-5" id="department-title-@department.DepartmentId">Edit Department</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-body">
+            <input type="hidden" name="DepartmentId" value="@department.DepartmentId" />
+            <div class="field"><label for="department-edit-name-@department.DepartmentId">Department Name</label><input id="department-edit-name-@department.DepartmentId" name="Name" value="@department.Name" required maxlength="100" class="form-control" /></div>
+            <div class="form-check"><input id="department-active-@department.DepartmentId" name="IsActive" type="checkbox" value="true" checked="@department.IsActive" class="form-check-input" /><label for="department-active-@department.DepartmentId" class="form-check-label">Active department</label><input type="hidden" name="IsActive" value="false" /></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save Changes</button></div>
+    </form></div></div></div>
+}

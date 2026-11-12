@@ -1,0 +1,43 @@
+@model LoginViewModel
+@{ ViewData["Title"] = "Sign In"; }
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+}
+
+<div class="login-page">
+    <section class="login-panel" aria-labelledby="login-heading">
+        <h1 id="login-heading">Sign in</h1>
+        <p class="login-intro">Access your sourcing and tender workspace.</p>
+
+        <form asp-controller="Account" asp-action="Login" method="post" class="login-form">
+            <div asp-validation-summary="ModelOnly" class="login-error" role="alert"></div>
+
+            <div class="field">
+                <label asp-for="Email">Email address</label>
+                <input asp-for="Email" class="form-control" autocomplete="username" autocapitalize="none"
+                       spellcheck="false" aria-describedby="email-error" required />
+                <span asp-validation-for="Email" id="email-error" class="field-error"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Password">Password</label>
+                <input asp-for="Password" class="form-control" autocomplete="current-password"
+                       aria-describedby="password-error" required />
+                <span asp-validation-for="Password" id="password-error" class="field-error"></span>
+            </div>
+
+            <button class="btn login-submit" type="submit">Sign in</button>
+        </form>
+
+        <p class="login-help">Employee accounts are provided by your administrator.</p>
+        <div class="login-registration">
+            <span>New supplier?</span>
+            <a asp-controller="Account" asp-action="Register">Register your company</a>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,34 @@
+@{ ViewData["Title"] = "Committee Submissions"; }
+<h1>Committee Submissions</h1>
+<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Committee Submissions">
+    <button class="nav-link active" id="submissions-pending-tab" data-bs-toggle="tab" data-bs-target="#submissions-pending" type="button" role="tab" aria-controls="submissions-pending" aria-selected="true">Awaiting Manager Review</button>
+    <button class="nav-link" id="submissions-summary-tab" data-bs-toggle="tab" data-bs-target="#submissions-summary" type="button" role="tab" aria-controls="submissions-summary" aria-selected="false">Review &amp; Manager Summary</button>
+    <button class="nav-link" id="submissions-ai-tab" data-bs-toggle="tab" data-bs-target="#submissions-ai" type="button" role="tab" aria-controls="submissions-ai" aria-selected="false">AI Analysis</button>
+</div>
+<div class="tab-content workspace-content">
+    <div class="tab-pane fade show active" id="submissions-pending" role="tabpanel" aria-labelledby="submissions-pending-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Officer Recommendations</h2>
+            <!-- TEAM TODO: List evaluation reports and summaries submitted by the Sourcing Officer. Selecting one opens Review & Manager Summary. -->
+        </section>
+    </div>
+    <div class="tab-pane fade" id="submissions-summary" role="tabpanel" aria-labelledby="submissions-summary-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Evaluation &amp; Officer Summary</h2>
+            <!-- TEAM TODO: Display the selected tender, offers, committee scores, officer summary, and recommendation. -->
+        </section>
+        <section class="workspace-section">
+            <h2>Manager Summary for the Top Committee</h2>
+            <!-- TEAM TODO: Add a separate manager-authored summary field and supporting notes. Preserve the officer's summary. Save the summary before forwarding. -->
+        </section>
+        <div class="workspace-toolbar">
+            <button type="button" class="btn btn-outline-secondary" disabled>Return for Changes</button>
+            <button type="button" class="btn btn-outline-danger" disabled>Reject Recommendation</button>
+            <button type="button" class="btn btn-primary" disabled>Approve &amp; Send Summary to Top Committee</button>
+        </div>
+        <!-- TEAM TODO: Save the manager's approval stage/status and summary on the shared report, then send the summary plus evaluation materials to the Top Committee. Each role reads this same transaction's status. -->
+    </div>
+    <div class="tab-pane fade" id="submissions-ai" role="tabpanel" aria-labelledby="submissions-ai-tab" tabindex="0">
+        <partial name="_AiAnalysis" />
+    </div>
+</div>

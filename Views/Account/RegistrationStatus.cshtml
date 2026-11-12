@@ -1,0 +1,10 @@
+@model SourcingTenderManagement.Models.Entities.SupplierProfile
+@{ ViewData["Title"] = "Registration Status"; }
+<h1>Registration Status</h1>
+@if (Model != null)
+{
+    <p>Status: <strong>@Model.Status</strong></p>
+    <p>@Model.ReviewNotes</p>
+    @if (Model.Status == "ChangesRequested") { <a asp-action="EditRegistration">Update Company Details</a> }
+    @if (Model.Status == "Approved") { <a asp-controller="Supplier" asp-action="Dashboard">Open Supplier Dashboard</a> }
+}

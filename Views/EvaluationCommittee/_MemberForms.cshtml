@@ -1,0 +1,67 @@
+<div class="committee-grid">
+<section class="committee-section" aria-label="Sourcing Manager">
+    <h3>Sourcing Manager</h3>
+    @if (User.IsInRole("EvaluationSourcingManager"))
+    {
+        <p class="text-success">Your form</p>
+        <!-- TEAM TODO: Add the assigned member's form here. Validate the tender assignment server-side. -->
+        <button type="button" class="btn btn-primary" disabled>Save</button>
+        <button type="button" class="btn btn-success" disabled>Approve</button>
+        <button type="button" class="btn btn-outline-danger" title="Design only">Reject</button>
+    }
+    else
+    {
+        <p class="text-secondary">Read-only</p>
+        <!-- TEAM TODO: Display this member's saved evaluation here, without editable inputs. -->
+    }
+</section>
+<section class="committee-section" aria-label="Department Representative">
+    <h3>Department Representative</h3>
+    @if (User.IsInRole("EvaluationDepartment"))
+    {
+        <p class="text-success">Your form</p>
+        <!-- TEAM TODO: Add the assigned member's form here. Validate the tender assignment server-side. -->
+        <button type="button" class="btn btn-primary" disabled>Save</button>
+        <button type="button" class="btn btn-success" disabled>Approve</button>
+        <button type="button" class="btn btn-outline-danger" title="Design only">Reject</button>
+    }
+    else
+    {
+        <p class="text-secondary">Read-only</p>
+        <!-- TEAM TODO: Display this member's saved evaluation here, without editable inputs. -->
+    }
+</section>
+<section class="committee-section" aria-label="Financial Representative">
+    <h3>Financial Representative</h3>
+    @if (User.IsInRole("EvaluationFinancial"))
+    {
+        <p class="text-success">Your form</p>
+        <!-- TEAM TODO: Add the assigned member's form here. Validate the tender assignment server-side. -->
+        <button type="button" class="btn btn-primary" disabled>Save</button>
+        <button type="button" class="btn btn-success" disabled>Approve</button>
+        <button type="button" class="btn btn-outline-danger" title="Design only">Reject</button>
+    }
+    else
+    {
+        <p class="text-secondary">Read-only</p>
+        <!-- TEAM TODO: Display this member's saved evaluation here, without editable inputs. -->
+    }
+</section>
+<section class="committee-section" aria-label="Technical Representative">
+    <h3>Technical Representative</h3>
+    @if (User.IsInRole("EvaluationTechnical"))
+    {
+        <p class="text-success">Your form</p>
+        <!-- TEAM TODO: Add the assigned member's form here. Validate the tender assignment server-side. -->
+        <button type="button" class="btn btn-primary" disabled>Save</button>
+        <button type="button" class="btn btn-success" disabled>Approve</button>
+        <button type="button" class="btn btn-outline-danger" title="Design only">Reject</button>
+    }
+    else
+    {
+        <p class="text-secondary">Read-only</p>
+        <!-- TEAM TODO: Display this member's saved evaluation here, without editable inputs. -->
+    }
+</section>
+</div>
+<!-- Advance only after four distinct assigned members approve. -->

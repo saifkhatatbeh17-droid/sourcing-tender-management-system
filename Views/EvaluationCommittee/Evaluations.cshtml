@@ -1,0 +1,9 @@
+@{ ViewData["Title"] = "Evaluations"; }
+<h1>Evaluations</h1>
+<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Evaluations">
+<button class="nav-link active" id="committee-0-tab" data-bs-toggle="tab" data-bs-target="#committee-0" type="button" role="tab" aria-controls="committee-0" aria-selected="true">Assigned Evaluations</button>
+<button class="nav-link " id="committee-1-tab" data-bs-toggle="tab" data-bs-target="#committee-1" type="button" role="tab" aria-controls="committee-1" aria-selected="false">Evaluation Forms</button>
+<button class="nav-link " id="committee-2-tab" data-bs-toggle="tab" data-bs-target="#committee-2" type="button" role="tab" aria-controls="committee-2" aria-selected="false">AI Analysis</button></div>
+<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="committee-0" role="tabpanel" aria-labelledby="committee-0-tab" tabindex="0"><section class="workspace-section"><h2>Assigned Evaluations</h2><!-- TEAM TODO: Load only tenders assigned to the signed-in committee member. A selection opens the Evaluation Forms tab. --></section></div>
+<div class="tab-pane fade " id="committee-1" role="tabpanel" aria-labelledby="committee-1-tab" tabindex="0"><partial name="_MemberForms" /></div>
+<div class="tab-pane fade " id="committee-2" role="tabpanel" aria-labelledby="committee-2-tab" tabindex="0"><partial name="_AiAnalysis" /></div></div>

@@ -1,0 +1,47 @@
+@model UsersPageViewModel
+@{
+    ViewData["Title"] = "Users";
+    var editInput = ViewData["EditInput"] as EditUserViewModel;
+    var openEditId = ViewData["OpenEditUser"] as string;
+}
+<div class="workspace-heading"><h1>Users</h1><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#create-user-modal">Create User</button></div>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>@foreach (var account in Model.Users)
+{
+    <tr><td>@account.FullName</td><td>@account.Email</td><td>@(account.IsActive ? "Active" : "Inactive")</td>
+    <td><button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#edit-user-@account.Id" aria-label="Edit @account.FullName">Edit</button></td></tr>
+}</tbody></table></div>
+
+<div class="modal fade" id="create-user-modal" tabindex="-1" aria-labelledby="create-user-title" aria-hidden="true">
+<div class="modal-dialog modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header"><h2 class="modal-title fs-5" id="create-user-title">Create User</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <partial name="_CreateUserForm" model="Model.CreateUser" />
+</div></div></div>
+
+@foreach (var account in Model.Users)
+{
+    var input = editInput?.Id == account.Id ? editInput : new EditUserViewModel { Id = account.Id, FullName = account.FullName, IsActive = account.IsActive, DepartmentId = account.DepartmentId };
+    <div class="modal fade" id="edit-user-@account.Id" tabindex="-1" aria-labelledby="edit-user-title-@account.Id" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content"><form asp-action="EditUser" method="post">
+        <div class="modal-header"><h2 class="modal-title fs-5" id="edit-user-title-@account.Id">Edit User</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-body">
+            @if (openEditId == account.Id) { <div asp-validation-summary="All" class="text-danger" role="alert"></div> }
+            <input type="hidden" name="Id" value="@account.Id" />
+            <p>@account.Email</p>
+            <div class="field"><label for="edit-name-@account.Id">Full Name</label><input id="edit-name-@account.Id" name="FullName" value="@input.FullName" class="form-control" required maxlength="150" /></div>
+            <div class="field"><label for="edit-department-@account.Id">Department</label><select id="edit-department-@account.Id" name="DepartmentId" class="form-select"><option value="">No department</option>
+            @foreach (SourcingTenderManagement.Models.Entities.Department department in ViewBag.Departments)
+            { <option value="@department.DepartmentId" selected="@(input.DepartmentId == department.DepartmentId)">@department.Name</option> }
+            </select></div>
+            <div class="form-check"><input id="edit-active-@account.Id" name="IsActive" type="checkbox" value="true" checked="@input.IsActive" class="form-check-input" /><label for="edit-active-@account.Id" class="form-check-label">Active account</label><input type="hidden" name="IsActive" value="false" /></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>
+    </form></div></div></div>
+}
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @if (ViewData["OpenCreateUser"] is true)
+    { <script>bootstrap.Modal.getOrCreateInstance(document.getElementById('create-user-modal')).show();</script> }
+    @if (openEditId != null)
+    { <script>bootstrap.Modal.getOrCreateInstance(document.getElementById(@Html.Raw(System.Text.Json.JsonSerializer.Serialize("edit-user-" + openEditId)))).show();</script> }
+}

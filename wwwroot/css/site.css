@@ -1,0 +1,35 @@
+:root { --ink: #172b3a; --muted: #566775; --line: #dce3e9; --surface: #f4f7f9; --accent: #145da0; --focus: #a35b00; }
+body { color: var(--ink); background: white; font-family: "Segoe UI", Arial, sans-serif; font-size: 1rem; }
+a { color: var(--accent); }
+h1 { font-size: 1.8rem; margin-bottom: 1.5rem; } h2 { font-size: 1.15rem; }
+.app-shell { display: flex; min-height: calc(100vh - 80px); }
+.sidebar { width: 255px; flex-shrink: 0; background: var(--surface); }
+.workspace-link, .page-link-item { display: block; padding: .5rem; border-radius: 4px; text-decoration: none; }
+.workspace-link { font-weight: 600; overflow-wrap: anywhere; }
+.page-link-item.active { background: var(--line); color: var(--ink); }
+.main-content { flex: 1; min-width: 0; }
+.committee-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1rem; }
+.committee-section { border: 1px solid var(--line); border-radius: 4px; padding: 1rem; min-height: 210px; }
+.committee-section .btn { margin: .25rem 0; }
+.account-form { max-width: 480px; }
+.field { margin-bottom: 1rem; } .field label { display: block; margin-bottom: .35rem; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.skip-link { position: absolute; left: 1rem; top: -80px; background: white; padding: .5rem; z-index: 10; }
+.skip-link:focus { top: .5rem; }
+.workspace-heading, .workspace-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-bottom: 1.5rem; }
+.workspace-heading { justify-content: space-between; }
+.workspace-heading h1 { margin-bottom: 0; }
+.workspace-tabs { gap: .25rem; }
+.workspace-tabs .nav-link { color: var(--accent); }
+.workspace-content { padding-top: 1.5rem; }
+.workspace-section { padding: 1.25rem; border: 1px solid var(--line); border-radius: 4px; margin-bottom: 1rem; overflow-wrap: anywhere; }
+.workspace-section h2 { margin-bottom: 1rem; }
+.workspace-columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,2fr); gap: 1rem; }
+.committee-section h3 { font-size: 1.1rem; }
+.notification-bell { display: inline-flex; align-items: center; gap: .3rem; min-height: 40px; }
+.notification-dropdown { width: min(340px, calc(100vw - 3rem)); max-height: 420px; overflow-y: auto; }
+.notification-item { padding: .65rem .5rem; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.supplier-details summary { cursor: pointer; }
+@media(max-width:650px) { .workspace-columns { grid-template-columns: 1fr; } .workspace-tabs .nav-link { padding: .6rem; } }
+@media(max-width:1000px) { .committee-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:650px) { .app-shell { flex-direction: column; } .sidebar { width: 100%; border-bottom: 1px solid var(--line); } .committee-grid { grid-template-columns: 1fr; } }

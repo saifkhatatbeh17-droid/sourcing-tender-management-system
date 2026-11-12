@@ -1,0 +1,35 @@
+.login-page {
+    min-height: 70vh;
+    display: grid;
+    place-items: center;
+    padding: 2rem 0;
+}
+
+.login-panel {
+    width: 100%;
+    max-width: 440px;
+    padding: 2.25rem;
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--accent);
+    border-radius: 6px;
+}
+
+.login-panel h1 { margin-bottom: .5rem; font-size: 2rem; font-weight: 650; }
+.login-intro { color: var(--muted); margin-bottom: 2rem; line-height: 1.5; }
+.login-form label { font-weight: 600; }
+.login-form .form-control { min-height: 46px; }
+.login-form .field { margin-bottom: 1.25rem; }
+.login-form .input-validation-error { border-color: #a12622; }
+.login-form .field-error { color: #a12622; display: block; font-size: .875rem; margin-top: .35rem; }
+.login-error { background: #fff2f0; border: 1px solid #dcaba5; color: #84211d; padding: .8rem; margin-bottom: 1.25rem; }
+.login-error ul { padding-left: 1.2rem; margin: 0; }
+.login-form .validation-summary-valid { display: none; }
+.login-submit { width: 100%; background: var(--accent); color: white; min-height: 46px; font-weight: 600; }
+.login-submit:hover, .login-submit:focus-visible { background: #104b82; color: white; }
+.login-help { color: var(--muted); font-size: .875rem; line-height: 1.5; margin: 1.25rem 0; }
+.login-registration { display: flex; flex-wrap: wrap; gap: .35rem; border-top: 1px solid var(--line); padding-top: 1.25rem; font-size: .9375rem; }
+
+@media (max-width: 480px) {
+    .login-page { min-height: auto; padding: 1rem 0; }
+    .login-panel { padding: 1.5rem; }
+}

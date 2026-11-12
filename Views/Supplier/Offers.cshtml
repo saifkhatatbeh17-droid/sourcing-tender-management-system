@@ -1,0 +1,17 @@
+@{ ViewData["Title"] = "My Offers"; }
+<h1>My Offers</h1>
+<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="My Offers">
+<button class="nav-link active" id="supplier-offers-0-tab" data-bs-toggle="tab" data-bs-target="#supplier-offers-0" type="button" role="tab" aria-controls="supplier-offers-0" aria-selected="true">My Offers</button>
+<button class="nav-link " id="supplier-offers-1-tab" data-bs-toggle="tab" data-bs-target="#supplier-offers-1" type="button" role="tab" aria-controls="supplier-offers-1" aria-selected="false">Offer Details</button></div>
+<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="supplier-offers-0" role="tabpanel" aria-labelledby="supplier-offers-0-tab" tabindex="0"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#offer-submit">Submit Offer</button><section class="workspace-section"><h2>My Offers</h2><!-- TEAM TODO: Load only this supplier's own offers; selecting one opens Offer Details. --></section></div>
+<div class="tab-pane fade " id="supplier-offers-1" role="tabpanel" aria-labelledby="supplier-offers-1-tab" tabindex="0"><section class="workspace-section"><h2>Offer Details</h2><!-- TEAM TODO: Display this supplier's selected offer, item prices, terms, attachments, and status. --></section><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#offer-edit">Edit Offer</button></div></div><div class="modal fade" id="offer-submit" tabindex="-1" aria-labelledby="offer-submit-title" aria-hidden="true">
+<div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+<div class="modal-header"><h2 class="modal-title fs-5" id="offer-submit-title">Submit Offer</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+<div class="modal-body"><!-- TEAM TODO: Add the offer form for an accepted invitation; include item pricing, terms, and documents. --></div>
+<div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" disabled>Submit Offer</button></div>
+</div></div></div><div class="modal fade" id="offer-edit" tabindex="-1" aria-labelledby="offer-edit-title" aria-hidden="true">
+<div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+<div class="modal-header"><h2 class="modal-title fs-5" id="offer-edit-title">Edit Offer</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+<div class="modal-body"><!-- TEAM TODO: Reuse the offer form with this supplier's selected offer. Enforce ownership, status, and tender deadline. --></div>
+<div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" disabled>Save Changes</button></div>
+</div></div></div>
