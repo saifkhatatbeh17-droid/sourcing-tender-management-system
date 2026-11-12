@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and smoke test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      DOTNET_NOLOGO: 'true'
+      DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Restore
+        run: dotnet restore SourcingTender.sln
+      - name: Build
+        run: dotnet build SourcingTender.sln --configuration Release --no-restore
+      - name: Run tests
+        run: dotnet test SourcingTender.sln --configuration Release --no-build
+      - name: Check the MVC home route
+        shell: bash
+        run: |
+          dotnet run --project src/SourcingTender.Web --configuration Release --no-build --launch-profile http > "$RUNNER_TEMP/mvc.log" 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          if ! curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 1 \
+              http://localhost:5129/ --output "$RUNNER_TEMP/mvc-home.html"; then
+            cat "$RUNNER_TEMP/mvc.log"
+            exit 1
+          fi
+          grep -Fq 'Sourcing &amp; Tender Management System' "$RUNNER_TEMP/mvc-home.html"
