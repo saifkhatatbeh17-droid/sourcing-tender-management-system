@@ -22,10 +22,33 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         if (user != null && user.IsActive)
         {
             var result = await signIn.PasswordSignInAsync(user, model.Password, false, lockoutOnFailure: true);
-            if (result.Succeeded) return RedirectToAction(nameof(GoToDashboard));
+            if (result.Succeeded)
+            {
+                Response.Cookies.Delete(SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieName,
+                    SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieOptions(Request));
+                return RedirectToAction(nameof(GoToDashboard));
+            }
         }
         ModelState.AddModelError("", "Unable to sign in. Check your email and password, or try again later.");
         return View(model);
+    }
+
+    // Password authentication is the existing Login action; the face check is optional and post-login.
+    [HttpPost, ValidateAntiForgeryToken,
+     Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("FaceLogin"), RequestSizeLimit(16_000)]
+    public async Task<IActionResult> LoginWithFaceId(LoginViewModel model)
+    {
+        var inline = Request.Headers.Accept.ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase);
+        var result = await Login(model);
+        if (result is RedirectToActionResult { ActionName: nameof(GoToDashboard) })
+        {
+            if (inline) return Ok(new { modalUrl = Url.Action("Modal", "FaceSetup") });
+            return RedirectToAction("Index", "FaceLogin");
+        }
+        if (inline) return BadRequest(new { message = "Unable to sign in. Check your email and password, or try again later." });
+        // Preserve the current Login validation and generic errors under the original view name.
+        if (result is ViewResult view) view.ViewName = nameof(Login);
+        return result;
     }
 
     [Authorize]
@@ -37,6 +60,8 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             if (!await db.SupplierProfiles.AnyAsync(s => s.UserId == userId && s.Status == "Approved"))
                 return RedirectToAction(nameof(RegistrationStatus));
         }
+        if (await SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.ShouldPromptAsync(db, User, Request))
+            return RedirectToAction("Index", "FaceSetup");
         foreach (var role in RoleNames.Primary)
             if (User.IsInRole(role)) return RedirectToAction("Dashboard", role);
         return RedirectToAction(nameof(AccessDenied));
@@ -118,6 +143,8 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     public async Task<IActionResult> Logout()
     {
         await signIn.SignOutAsync();
+        Response.Cookies.Delete(SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieName,
+            SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieOptions(Request));
         return RedirectToAction("Index", "Home");
     }
 

@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Services.TopCommittee;
+using SourcingTenderManagement.Services.FaceEnrollment;
+using SourcingTenderManagement.Services.FaceVerification;
+using SourcingTenderManagement.Services.FaceLogin;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddEnvironmentVariables();
@@ -10,6 +13,9 @@ var connection = builder.Configuration.GetConnectionString("DefaultConnection")
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
 builder.Services.AddTopCommitteeFoundation();
+builder.Services.AddFaceEnrollment();
+builder.Services.AddFaceVerification(builder.Configuration);
+builder.Services.AddFaceLogin();
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
 {
     o.User.RequireUniqueEmail = true;
@@ -91,6 +97,7 @@ if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Home/Error");
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
 app.Run();

@@ -28,10 +28,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Tender> Tenders { get; set; }
     public DbSet<TenderApproval> TenderApprovals { get; set; }
     public DbSet<TenderDocument> TenderDocuments { get; set; }
+    public DbSet<UserFaceCredential> UserFaceCredentials { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfiguration(new Configurations.UserFaceCredentialConfiguration());
         modelBuilder.Entity<ApplicationUser>(entity =>
         {
             entity.Property(u => u.FullName).HasMaxLength(150).IsRequired();
