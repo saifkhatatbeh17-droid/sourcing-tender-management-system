@@ -12,7 +12,18 @@ public partial class SourcingManagerController
     [HttpGet]
     public IActionResult Clarifications(int? tenderId, int? id)
     {
-        var conversations = _context.Clarifications.AsNoTracking()
+        Clarification? selected = null;
+        if (id.HasValue)
+        {
+            selected = _context.Clarifications.Find(id.Value);
+
+            if (selected == null || (selected.SenderUserId != ManagerId && selected.RecipientUserId != ManagerId))
+            {
+                return NotFound();
+            }
+        }
+
+        var conversations = _context.Clarifications
             .Where(c => c.SenderUserId == ManagerId || c.RecipientUserId == ManagerId)
             .Include(c => c.SenderUser)
             .Include(c => c.RecipientUser)
@@ -22,24 +33,45 @@ public partial class SourcingManagerController
             .Include(c => c.ClarificationResponses.OrderBy(r => r.CreatedAt))
                 .ThenInclude(r => r.RespondedByUser)
             .OrderByDescending(c => c.CreatedAt).ToList();
-        var selected = conversations.FirstOrDefault(c => c.ClarificationId == id);
-        if (id.HasValue && selected is null)
+        if (selected != null && !conversations.Contains(selected))
         {
             return NotFound();
         }
 
-        var assignments = EligibleClarificationRecipients().AsNoTracking()
-            .Include(a => a.Tender).Include(a => a.User)
-            .OrderBy(a => a.Tender.Title).ThenBy(a => a.Position).ToList();
-        var tenders = assignments.Select(a => a.Tender).DistinctBy(t => t.TenderId).ToList();
-        var selectedTenderId = tenderId ?? tenders.FirstOrDefault()?.TenderId;
-        var recipients = assignments.Where(a => a.TenderId == selectedTenderId).ToList();
-        var conversationTenderId = selected?.TenderId ?? selected?.Bid?.TenderId;
-        var canReply = selected is not null && selected.RecipientUserId == ManagerId &&
-            selected.Status == "Pending" && assignments.Any(a =>
-                a.TenderId == conversationTenderId && a.UserId == selected.SenderUserId);
+        var committeeAssignments = EligibleClarificationRecipients()
+            .AsNoTracking()
+            .Include(assignment => assignment.Tender)
+            .Include(assignment => assignment.User)
+            .OrderBy(assignment => assignment.Tender.Title)
+            .ThenBy(assignment => assignment.Position)
+            .ToList();
 
-        return View(new ManagerClarificationPage(tenders, selectedTenderId, recipients, conversations, selected, ManagerId, canReply));
+        var tenders = committeeAssignments
+            .Select(assignment => assignment.Tender)
+            .DistinctBy(tender => tender.TenderId)
+            .ToList();
+
+        var selectedTenderId = tenderId;
+        if (!selectedTenderId.HasValue && tenders.Count > 0)
+        {
+            selectedTenderId = tenders[0].TenderId;
+        }
+
+        var recipients = committeeAssignments
+            .Where(assignment => assignment.TenderId == selectedTenderId)
+            .ToList();
+
+        var canReply = false;
+        if (selected != null && selected.RecipientUserId == ManagerId && selected.Status == "Pending")
+        {
+            var conversationTenderId = selected.TenderId ?? selected.Bid?.TenderId;
+            canReply = committeeAssignments.Any(assignment =>
+                assignment.TenderId == conversationTenderId && assignment.UserId == selected.SenderUserId);
+        }
+
+        var page = new ManagerClarificationPage(
+            tenders, selectedTenderId, recipients, conversations, selected, ManagerId, canReply);
+        return View(page);
     }
 
     [HttpPost]
@@ -51,9 +83,9 @@ public partial class SourcingManagerController
         }
 
         using var transaction = _context.Database.BeginTransaction(IsolationLevel.RepeatableRead);
-        var assignment = EligibleClarificationRecipients().SingleOrDefault(a =>
-            a.TenderId == input.TenderId && a.UserId == input.RecipientId);
-        if (assignment is null)
+        var recipientAssignment = EligibleClarificationRecipients().SingleOrDefault(assignment =>
+            assignment.TenderId == input.TenderId && assignment.UserId == input.RecipientId);
+        if (recipientAssignment == null)
         {
             return ClarificationMessage("The recipient is no longer eligible for this tender.", input.TenderId);
         }
@@ -69,7 +101,8 @@ public partial class SourcingManagerController
             CreatedAt = DateTime.UtcNow
         };
         _context.Clarifications.Add(clarification);
-        NotifyCommittee(assignment, "New clarification", input.TenderId);
+        NotifyCommittee(recipientAssignment, "New clarification", input.TenderId);
+
         _context.SaveChanges();
         transaction.Commit();
 
@@ -85,17 +118,23 @@ public partial class SourcingManagerController
         }
 
         using var transaction = _context.Database.BeginTransaction(IsolationLevel.Serializable);
-        var clarification = _context.Clarifications.Include(clarification => clarification.Bid)
-            .SingleOrDefault(c => c.ClarificationId == input.Id && c.RecipientUserId == ManagerId);
-        if (clarification is null)
+        var clarification = _context.Clarifications.Find(input.Id);
+
+        if (clarification == null || clarification.RecipientUserId != ManagerId)
         {
             return NotFound();
         }
 
-        var tenderId = clarification.TenderId ?? clarification.Bid?.TenderId;
-        var assignment = EligibleClarificationRecipients().SingleOrDefault(a =>
-            a.TenderId == tenderId && a.UserId == clarification.SenderUserId);
-        if (assignment is null)
+        var tenderId = clarification.TenderId;
+        if (clarification.BidId.HasValue)
+        {
+            var bid = _context.Bids.Find(clarification.BidId.Value);
+            tenderId = bid?.TenderId;
+        }
+
+        var senderAssignment = EligibleClarificationRecipients().SingleOrDefault(assignment =>
+            assignment.TenderId == tenderId && assignment.UserId == clarification.SenderUserId);
+        if (senderAssignment == null)
         {
             return ClarificationMessage("This tender is no longer in a stage that allows a reply to this sender.", id: input.Id);
         }
@@ -107,15 +146,17 @@ public partial class SourcingManagerController
 
         clarification.Status = "Answered";
 
-
-        _context.ClarificationResponses.Add(new ClarificationResponse
+        var response = new ClarificationResponse
         {
-            ClarificationId = input.Id,
+            ClarificationId = clarification.ClarificationId,
             RespondedByUserId = ManagerId,
             Message = input.Message.Trim(),
             CreatedAt = DateTime.UtcNow
-        });
-        NotifyCommittee(assignment, "Clarification answered", assignment.TenderId);
+        };
+
+        _context.ClarificationResponses.Add(response);
+        NotifyCommittee(senderAssignment, "Clarification answered", senderAssignment.TenderId);
+
         _context.SaveChanges();
         transaction.Commit();
 
@@ -127,41 +168,60 @@ public partial class SourcingManagerController
     {
         using var transaction = _context.Database.BeginTransaction(IsolationLevel.Serializable);
 
-        var clarification = _context.Clarifications.SingleOrDefault(question =>
-            question.ClarificationId == id && question.SenderUserId == ManagerId && question.Status == "Answered");
-        if (clarification is null)
+        var clarification = _context.Clarifications.Find(id);
+
+        if (clarification == null || clarification.SenderUserId != ManagerId || clarification.Status != "Answered")
         {
             return NotFound();
         }
 
         clarification.Status = "Resolved";
         clarification.ResolvedAt = DateTime.UtcNow;
+
         _context.SaveChanges();
         transaction.Commit();
-
 
         return ClarificationMessage("Clarification resolved.", id: id);
     }
 
     private IQueryable<CommitteeAssignment> EligibleClarificationRecipients()
     {
-        return _context.CommitteeAssignments.Where(a => a.UserId != ManagerId && a.User.IsActive &&
-            ((a.CommitteeType == "Evaluation" &&
-                (a.Tender.Status == "UnderEvaluation" || a.Tender.Status == AwaitingManagerReview)) ||
-             (a.CommitteeType == "Top" && a.Tender.Status == AwaitingCommitteeDecision)) &&
-            (from membership in _context.UserRoles
-             join role in _context.Roles on membership.RoleId equals role.Id
-             where membership.UserId == a.UserId &&
-                ((a.CommitteeType == "Evaluation" &&
-                    (role.Name == RoleNames.EvaluationCommittee || RoleNames.EvaluationPositions.Contains(role.Name!))) ||
-                 (a.CommitteeType == "Top" &&
-                    (role.Name == RoleNames.TopCommittee || RoleNames.TopPositions.Contains(role.Name!))))
-             select membership).Any());
+        var committeeRoles =
+            from membership in _context.UserRoles
+            join role in _context.Roles on membership.RoleId equals role.Id
+            select new { membership.UserId, RoleName = role.Name };
+
+        var evaluationMemberIds = committeeRoles
+            .Where(member => member.RoleName == RoleNames.EvaluationCommittee ||
+                RoleNames.EvaluationPositions.Contains(member.RoleName!))
+            .Select(member => member.UserId);
+
+        var topCommitteeMemberIds = committeeRoles
+            .Where(member => member.RoleName == RoleNames.TopCommittee ||
+                RoleNames.TopPositions.Contains(member.RoleName!))
+            .Select(member => member.UserId);
+
+        var otherActiveMembers = _context.CommitteeAssignments
+            .Where(assignment => assignment.UserId != ManagerId && assignment.User.IsActive);
+
+        return otherActiveMembers.Where(assignment =>
+            (assignment.CommitteeType == "Evaluation" &&
+                (assignment.Tender.Status == "UnderEvaluation" ||
+                 assignment.Tender.Status == AwaitingManagerReview) &&
+                evaluationMemberIds.Contains(assignment.UserId)) ||
+            (assignment.CommitteeType == "Top" &&
+                assignment.Tender.Status == AwaitingCommitteeDecision &&
+                topCommitteeMemberIds.Contains(assignment.UserId)));
     }
 
     private void NotifyCommittee(CommitteeAssignment assignment, string title, int tenderId)
     {
-        var controller = assignment.CommitteeType == "Top" ? "TopCommittee" : "EvaluationCommittee";
+        var controller = "EvaluationCommittee";
+        if (assignment.CommitteeType == "Top")
+        {
+            controller = "TopCommittee";
+        }
+
         Notify(assignment.UserId, title, $"A clarification for tender #{tenderId} was updated.", controller, "Clarifications");
     }
 
