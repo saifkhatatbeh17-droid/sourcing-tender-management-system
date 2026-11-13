@@ -1,0 +1,37 @@
+@model SourcingTenderManagement.Models.Entities.PurchaseRequest
+<h2>@Model.Title</h2>
+<dl>
+    <dt>Department</dt><dd>@Model.Department.Name</dd>
+    <dt>Requested by</dt><dd>@Model.RequestedByUser.FullName</dd>
+    <dt>Reason</dt><dd class="text-break" style="white-space: pre-wrap">@Model.Reason</dd>
+    <dt>Priority</dt><dd>@Model.Priority</dd>
+    <dt>Target date</dt><dd>@Model.TargetDate.ToString("yyyy-MM-dd")</dd>
+    <dt>Status</dt><dd>@Model.Status</dd>
+    <dt>Created</dt><dd>@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+    @if (Model.SubmittedAt is DateTime submitted)
+    {
+        <dt>Last submitted</dt><dd>@submitted.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+    }
+    @if (Model.ReviewedByUser != null)
+    {
+        <dt>Reviewer</dt><dd>@Model.ReviewedByUser.FullName</dd>
+    }
+    @if (Model.ReviewedAt is DateTime reviewed)
+    {
+        <dt>Last reviewed</dt><dd>@reviewed.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+    }
+    <dt>Latest review notes</dt><dd class="text-break" style="white-space: pre-wrap">@(Model.ReviewNotes ?? "No review notes.")</dd>
+</dl>
+<h3>Items</h3>
+<div class="table-responsive">
+    <table class="table">
+        <thead><tr><th>Name</th><th>Quantity</th><th>Unit</th><th>Specifications</th></tr></thead>
+        <tbody>
+        @foreach (var item in Model.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId))
+        {
+            <tr><td>@item.ItemName</td><td>@item.Quantity.ToString("0.###")</td><td>@item.Unit</td>
+                <td class="text-break" style="white-space: pre-wrap">@item.Specifications</td></tr>
+        }
+        </tbody>
+    </table>
+</div>

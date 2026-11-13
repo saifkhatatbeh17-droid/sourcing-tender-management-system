@@ -1,3 +1,8 @@
+@model IReadOnlyList<SourcingTenderManagement.Models.Entities.PurchaseRequest>
 @{ ViewData["Title"] = "Dashboard"; }
 <h1>Dashboard</h1>
-<!-- TEAM TODO: Implement Department / Dashboard here. -->
+<p><a asp-action="Create" class="btn btn-primary">Create Request</a></p>
+<section class="workspace-section">
+    <h2>Department Requests</h2>
+    <partial name="_PurchaseRequestList" model="Model" />
+</section>

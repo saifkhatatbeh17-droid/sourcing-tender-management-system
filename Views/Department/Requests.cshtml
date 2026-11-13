@@ -1,17 +1,14 @@
+@model IReadOnlyList<SourcingTenderManagement.Models.Entities.PurchaseRequest>
 @{ ViewData["Title"] = "Purchase Requests"; }
 <h1>Purchase Requests</h1>
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Purchase Requests">
-<button class="nav-link active" id="requests-0-tab" data-bs-toggle="tab" data-bs-target="#requests-0" type="button" role="tab" aria-controls="requests-0" aria-selected="true">My Requests</button>
-<button class="nav-link " id="requests-1-tab" data-bs-toggle="tab" data-bs-target="#requests-1" type="button" role="tab" aria-controls="requests-1" aria-selected="false">Request Details</button></div>
-<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="requests-0" role="tabpanel" aria-labelledby="requests-0-tab" tabindex="0"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#request-create">Create Request</button><section class="workspace-section"><h2>My Purchase Requests</h2><!-- TEAM TODO: Load the signed-in department's requests; selecting a row opens the details tab. --></section></div>
-<div class="tab-pane fade " id="requests-1" role="tabpanel" aria-labelledby="requests-1-tab" tabindex="0"><section class="workspace-section"><h2>Request Details</h2><!-- TEAM TODO: Display the selected request, items, specifications, review notes, and status. --></section><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#request-edit">Edit Request</button></div></div><div class="modal fade" id="request-create" tabindex="-1" aria-labelledby="request-create-title" aria-hidden="true">
-<div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
-<div class="modal-header"><h2 class="modal-title fs-5" id="request-create-title">Create Purchase Request</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-<div class="modal-body"><!-- TEAM TODO: Add the purchase request form and item rows here. --></div>
-<div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" disabled>Save Request</button></div>
-</div></div></div><div class="modal fade" id="request-edit" tabindex="-1" aria-labelledby="request-edit-title" aria-hidden="true">
-<div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
-<div class="modal-header"><h2 class="modal-title fs-5" id="request-edit-title">Edit Purchase Request</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-<div class="modal-body"><!-- TEAM TODO: Reuse the request form with the selected request. Only allow edits in permitted states. --></div>
-<div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" disabled>Save Changes</button></div>
-</div></div></div>
+<div class="nav nav-tabs workspace-tabs" aria-label="Purchase Requests">
+    <a class="nav-link active" asp-action="Requests" aria-current="page">My Requests</a>
+    <span class="nav-link disabled">Request Details</span>
+</div>
+<div class="workspace-content">
+    <p><a asp-action="Create" class="btn btn-primary">Create Request</a></p>
+    <section class="workspace-section">
+        <h2>My Purchase Requests</h2>
+        <partial name="_PurchaseRequestList" model="Model" />
+    </section>
+</div>
