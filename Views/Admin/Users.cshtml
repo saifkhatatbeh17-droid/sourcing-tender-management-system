@@ -14,16 +14,17 @@
 
 @if (TempData["UsersFeedback"] is string feedback)
 {
-    <div class="alert alert-success" role="status">@feedback</div>
+    <div class="admin-feedback" data-admin-feedback role="status">@feedback</div>
 }
 
-<form asp-action="Users" method="get" class="row g-3 align-items-end mb-4" aria-label="Filter users">
+<section class="admin-records" aria-label="User records">
+<form asp-action="Users" method="get" class="admin-record-filters row g-3 align-items-end" aria-label="Filter users" data-auto-filter>
     <div class="col-12 col-lg">
-        <label for="user-search" class="form-label">Name or email</label>
-        <input id="user-search" name="search" type="search" value="@Model.Search" class="form-control" />
+        <label for="user-search" class="visually-hidden">Name or email</label>
+        <input id="user-search" name="search" type="search" placeholder="Search by name or email" value="@Model.Search" class="form-control" />
     </div>
     <div class="col-6 col-lg">
-        <label for="user-role" class="form-label">Role</label>
+        <label for="user-role" class="visually-hidden">Role</label>
         <select id="user-role" name="role" class="form-select">
             <option value="">All roles</option>
             @foreach (var role in RoleNames.Primary)
@@ -33,7 +34,7 @@
         </select>
     </div>
     <div class="col-6 col-lg">
-        <label for="user-status" class="form-label">Status</label>
+        <label for="user-status" class="visually-hidden">Status</label>
         <select id="user-status" name="isActive" class="form-select">
             <option value="">All statuses</option>
             <option value="true" selected="@(Model.IsActive == true)">Active</option>
@@ -41,23 +42,21 @@
         </select>
     </div>
     <div class="col-auto d-flex align-items-center gap-2">
-        <button class="btn btn-outline-primary" type="submit">Apply filters</button>
-        @if (hasFilters)
-        {
-            <a asp-action="Users" class="btn btn-link">Clear</a>
-        }
+
+        <a asp-action="Users" class="btn btn-link">Clear</a>
     </div>
 </form>
 
+<div id="user-results">
 @if (Model.Users.Count == 0)
 {
-    <p class="workspace-section">@(hasFilters ? "No users match these filters." : "No user accounts yet.")</p>
+    <p class="admin-record-empty">@(hasFilters ? "No users match these filters." : "No user accounts yet.")</p>
 }
 else
 {
     <div class="table-responsive" tabindex="0" role="region" aria-label="User accounts">
-        <table class="table align-middle">
-            <caption class="caption-top">@Model.Users.Count @(Model.Users.Count == 1 ? "account" : "accounts")</caption>
+        <table class="table align-middle admin-record-table">
+
             <thead>
                 <tr>
                     <th scope="col">Name</th>
@@ -71,13 +70,16 @@ else
             <tbody>
                 @foreach (var account in Model.Users)
                 {
-                    <tr>
-                        <th scope="row">@account.FullName</th>
+                    <tr data-admin-row>
+                        <th scope="row"><div class="admin-record-identity">
+                            <span class="admin-record-avatar" aria-hidden="true">@account.FullName.Trim().FirstOrDefault()</span>
+                            <span>@account.FullName</span>
+                        </div></th>
                         <td class="text-break">@(account.Email ?? "—")</td>
                         <td>@(account.Roles.Count == 0 ? "Unassigned" : string.Join(", ", account.Roles))</td>
                         <td>@(account.DepartmentName ?? "—")</td>
                         <td>
-                            <span class="badge @(account.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                            <span class="badge rounded-pill @(account.IsActive ? "text-bg-success" : "text-bg-secondary")">
                                 @(account.IsActive ? "Active" : "Inactive")
                             </span>
                         </td>
@@ -92,8 +94,12 @@ else
     </div>
 }
 
+<partial name="_AdminPager" />
+</div>
+</section>
+
 <div class="modal fade" id="create-user-modal" tabindex="-1" aria-labelledby="create-user-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title fs-5" id="create-user-title">Create User</h2>
@@ -104,6 +110,7 @@ else
     </div>
 </div>
 
+<div id="user-edit-dialogs">
 @foreach (var account in Model.Users)
 {
     var input = editInput?.Id == account.Id ? editInput : new EditUserViewModel
@@ -116,7 +123,7 @@ else
     var isCurrentUser = account.Id == Model.CurrentUserId;
 
     <div class="modal fade" id="edit-user-@account.Id" tabindex="-1" aria-labelledby="edit-user-title-@account.Id" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <form asp-action="EditUser" method="post" class="modal-content" data-account-name="@account.FullName"
                   data-confirm-disable="@(account.IsActive && !isCurrentUser ? "true" : "false")">
                 <div class="modal-header">
@@ -170,16 +177,20 @@ else
     </div>
 }
 
+
+
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        document.querySelectorAll('form[data-confirm-disable="true"]').forEach(form => {
-            form.addEventListener('submit', event => {
-                if (!form.querySelector('input[type="checkbox"][name="IsActive"]').checked
-                    && !window.confirm('Disable the account for ' + form.dataset.accountName + '?')) {
-                    event.preventDefault();
-                }
-            });
+        document.addEventListener('submit', event => {
+            const form = event.target;
+            if (form.matches('form[data-confirm-disable="true"]')
+                && !form.querySelector('input[type="checkbox"][name="IsActive"]').checked
+                && !window.confirm('Disable the account for ' + form.dataset.accountName + '?')) {
+                event.preventDefault();
+            }
         });
 
         const createForm = document.getElementById('create-user-form');

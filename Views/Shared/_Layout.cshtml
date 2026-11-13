@@ -1,30 +1,52 @@
 @using SourcingTenderManagement.Data
 @using SourcingTenderManagement.Models
-@{ var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home"; }
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
+    var showAdminSidebar = currentController == "Admin" && User.IsInRole(RoleNames.Admin);
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
+    <script src="~/js/site-theme.js" asp-append-version="true"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] — Sourcing &amp; Tender Management</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @if (showAdminSidebar)
+    {
+        <link rel="stylesheet" href="~/css/admin-sidebar.css" asp-append-version="true" />
+    }
     @await RenderSectionAsync("Styles", required: false)
+    <link rel="stylesheet" href="~/css/site-theme.css" asp-append-version="true" />
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
+@if (showAdminSidebar)
+{
+    <partial name="_AdminNavbar" />
+}
+else
+{
 <header class="border-bottom bg-white">
     <nav class="container-fluid p-3 d-flex flex-wrap align-items-center gap-3" aria-label="Main navigation">
-        <a class="fw-bold text-decoration-none text-dark me-auto" asp-controller="Home" asp-action="Index">Sourcing &amp; Tender Management</a>
+        @if (!showAdminSidebar)
+        {
+            <a class="fw-bold text-decoration-none text-dark me-auto" asp-controller="Home" asp-action="Index">Sourcing &amp; Tender Management</a>
+        }
         <a asp-controller="Home" asp-action="Index">Home</a>
         <a asp-controller="Home" asp-action="About">About</a>
         <a asp-controller="Home" asp-action="HowItWorks">How It Works</a>
         <a asp-controller="Home" asp-action="Contact">Contact</a>
+        <partial name="_ThemeToggle" />
         @if (User.Identity?.IsAuthenticated == true)
         {
             <a asp-controller="Account" asp-action="GoToDashboard">My Dashboard</a>
             @await Component.InvokeAsync("NotificationBell")
-            <form asp-controller="Account" asp-action="Logout" method="post"><button class="btn btn-sm btn-outline-secondary">Sign Out</button></form>
+            @if (!showAdminSidebar)
+            {
+                <form asp-controller="Account" asp-action="Logout" method="post"><button class="btn btn-sm btn-outline-secondary">Sign Out</button></form>
+            }
         }
         else
         {
@@ -33,8 +55,13 @@
         }
     </nav>
 </header>
-<div class="app-shell">
-@if (User.Identity?.IsAuthenticated == true)
+}
+<div class="app-shell @(showAdminSidebar ? "admin-shell" : null)">
+@if (showAdminSidebar)
+{
+    <partial name="_AdminSidebar" />
+}
+else if (User.Identity?.IsAuthenticated == true)
 {
     <aside class="sidebar p-3 border-end" aria-label="Workspace navigation">
         @foreach (var role in RoleNames.Primary.Where(User.IsInRole))
@@ -56,6 +83,10 @@
 </div>
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+@if (showAdminSidebar)
+{
+    <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
+}
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

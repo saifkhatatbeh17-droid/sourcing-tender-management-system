@@ -1,0 +1,119 @@
+@model SupplierDetailsViewModel
+@{
+    var supplier = Model.Supplier;
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+}
+
+<div data-review-flow>
+<section class="workspace-section" data-review-step="Company" aria-labelledby="company-details">
+    <h2 id="company-details">Company details</h2>
+    <dl class="row mb-0">
+        <dt class="col-sm-4">Registration number</dt><dd class="col-sm-8">@supplier.RegistrationNumber</dd>
+        <dt class="col-sm-4">Tax number</dt><dd class="col-sm-8">@(supplier.TaxNumber ?? "Not provided")</dd>
+        <dt class="col-sm-4">Contact</dt><dd class="col-sm-8">@supplier.ContactName</dd>
+        <dt class="col-sm-4">Email</dt><dd class="col-sm-8">@supplier.User.Email</dd>
+        <dt class="col-sm-4">Address</dt><dd class="col-sm-8">@(supplier.Address ?? "Not provided")</dd>
+        <dt class="col-sm-4">Submitted (UTC)</dt><dd class="col-sm-8">@supplier.CreatedAt.ToString("dd MMM yyyy")</dd>
+    </dl>
+</section>
+
+<div data-review-step="Documents">
+<section class="workspace-section" aria-labelledby="supplier-documents">
+    <h2 id="supplier-documents">Legal documents</h2>
+    @if (supplier.SupplierDocuments.Count == 0)
+    {
+        <p class="mb-0">No documents have been uploaded for this supplier.</p>
+    }
+    else
+    {
+        @if (!Model.DocumentsConfigured)
+        {
+            <p class="text-secondary">File access is unavailable. Document details are listed below.</p>
+        }
+        <div class="table-responsive" role="region" aria-labelledby="supplier-documents" tabindex="0">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr><th scope="col">Type</th><th scope="col">File</th><th scope="col">Expiry (UTC)</th><th scope="col">Actions</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var document in supplier.SupplierDocuments.OrderBy(item => item.DocumentType))
+                    {
+                        <tr>
+                            <th scope="row">@document.DocumentType</th>
+                            <td>@document.OriginalFileName</td>
+                            <td>
+                                @(document.ExpiresOn?.ToString("dd MMM yyyy") ?? "Not provided")
+                                @if (document.ExpiresOn < today)
+                                {
+                                    <span class="badge text-bg-danger">Expired</span>
+                                }
+                            </td>
+                            <td>
+                                @if (Model.DocumentsConfigured)
+                                {
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @if (document.ContentType is "application/pdf" or "image/png" or "image/jpeg")
+                                        {
+                                            <a asp-action="SupplierDocument" asp-route-id="@document.SupplierDocumentId" asp-route-preview="true"
+                                               target="_blank" rel="noopener" aria-label="Preview @document.OriginalFileName (new tab)">Preview</a>
+                                        }
+                                        <a asp-action="SupplierDocument" asp-route-id="@document.SupplierDocumentId"
+                                           aria-label="Download @document.OriginalFileName">Download</a>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-secondary">Unavailable</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@if (supplier.ReviewedAt is DateTime reviewedAt)
+{
+    <section class="workspace-section" aria-labelledby="last-review">
+        <h2 id="last-review">Latest review</h2>
+        <p>@reviewedAt.ToString("dd MMM yyyy, HH:mm") UTC · @(supplier.ReviewedByUser?.FullName ?? "Reviewer unavailable")</p>
+        <p class="mb-0">@(supplier.ReviewNotes ?? "No reason recorded.")</p>
+    </section>
+}
+
+</div>
+
+<section class="workspace-section" data-review-step="Decision" aria-labelledby="review-heading">
+    <h2 id="review-heading">Record a decision</h2>
+    <form asp-action="ReviewSupplier" method="post">
+        <input asp-for="Review.Id" type="hidden" />
+        <input asp-for="Review.PreviousStatus" type="hidden" />
+        <input asp-for="Review.ReviewedAtTicks" type="hidden" />
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <div class="field">
+            <label asp-for="Review.Status">Decision</label>
+            <select asp-for="Review.Status" class="form-select" required>
+                <option value="">Choose a decision</option>
+                @foreach (var decision in SupplierListViewModel.Decisions)
+                {
+                    <option value="@decision">@SupplierListViewModel.StatusLabel(decision)</option>
+                }
+            </select>
+            <span asp-validation-for="Review.Status" class="text-danger" role="alert"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Review.Notes">Reason</label>
+            <textarea asp-for="Review.Notes" class="form-control" rows="4" maxlength="2000" required aria-describedby="review-reason-help"></textarea>
+            <p id="review-reason-help" class="form-text mb-0">The supplier can see this reason.</p>
+            <span asp-validation-for="Review.Notes" class="text-danger" role="alert"></span>
+        </div>
+        <div class="admin-review-controls" data-decision-actions><button type="submit" class="btn btn-primary">Save decision</button></div>
+    </form>
+</section>
+
+
+
+
+</div>

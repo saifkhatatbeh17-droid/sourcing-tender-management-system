@@ -11,48 +11,55 @@
 
 @if (TempData["DepartmentsFeedback"] is string feedback)
 {
-    <div class="alert alert-success" role="status">@feedback</div>
+    <div class="admin-feedback" data-admin-feedback role="status">@feedback</div>
 }
 
+<div class="admin-filter-bar">
+    <form asp-action="Departments" method="get" class="admin-record-filters row g-3" data-local-filter data-results="department-results" data-dialogs="department-edit-dialogs" aria-label="Filter departments">
+        <div class="col-12 col-sm">
+            <input class="form-control" type="search" name="search" value="@ViewBag.FilterSearch" placeholder="Search departments" aria-label="Search departments" />
+        </div>
+        <div class="col">
+            <select class="form-select" name="isActive" aria-label="Department status">
+                <option value="">All statuses</option>
+                <option value="true" selected="@(ViewBag.FilterActive is true)">Active</option>
+                <option value="false" selected="@(ViewBag.FilterActive is false)">Inactive</option>
+            </select>
+        </div>
+        <div class="col-auto"><a asp-action="Departments" class="btn btn-link">Clear</a></div>
+    </form>
+</div>
+
+<div id="department-results" class="admin-department-results">
 @if (Model.Departments.Count == 0)
 {
-    <p class="workspace-section">No departments yet. Create a department to assign it to employee accounts.</p>
+    <p class="workspace-section">No departments match this view.</p>
 }
 else
 {
-    <div class="table-responsive" role="region" aria-label="Departments" tabindex="0">
-        <table class="table align-middle">
-            <thead>
-                <tr>
-                    <th scope="col">Department</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var department in Model.Departments)
-                {
-                    <tr>
-                        <th scope="row" class="text-break">@department.Name</th>
-                        <td>
-                            <span class="badge @(department.IsActive ? "text-bg-success" : "text-bg-secondary")">
-                                @(department.IsActive ? "Active" : "Inactive")
-                            </span>
-                        </td>
-                        <td>
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
-                                    data-bs-target="#edit-department-@department.DepartmentId"
-                                    aria-label="Edit @department.Name">Edit</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <div class="admin-card-grid">
+        @foreach (var department in Model.Departments)
+        {
+            <article class="admin-record" data-admin-row data-search="@department.Name" data-status="@department.IsActive.ToString().ToLowerInvariant()">
+                <div class="admin-record-top">
+                    <span class="admin-record-icon"><partial name="_AdminSidebarIcon" model='@("Departments")' /></span>
+                    <span class="badge rounded-pill @(department.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                        @(department.IsActive ? "Active" : "Inactive")
+                    </span>
+                </div>
+                <h2 class="text-break">@department.Name</h2>
+                <button type="button" class="btn btn-sm btn-outline-primary align-self-start" data-bs-toggle="modal"
+                        data-bs-target="#edit-department-@department.DepartmentId">Edit department</button>
+            </article>
+        }
     </div>
+    <partial name="_AdminPager" />
 }
 
+</div>
+
 <div class="modal fade" id="create-department" tabindex="-1" aria-labelledby="create-department-title" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <form asp-action="CreateDepartment" method="post" class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title fs-5" id="create-department-title">Create Department</h2>
@@ -77,6 +84,7 @@ else
     </div>
 </div>
 
+<div id="department-edit-dialogs">
 @foreach (var department in Model.Departments)
 {
     var input = Model.EditInput?.DepartmentId == department.DepartmentId ? Model.EditInput : null;
@@ -84,7 +92,7 @@ else
 
     <div class="modal fade" id="edit-department-@department.DepartmentId" tabindex="-1"
          aria-labelledby="edit-department-title-@department.DepartmentId" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <form asp-action="EditDepartment" method="post" class="modal-content">
                 <div class="modal-header">
                     <h2 class="modal-title fs-5" id="edit-department-title-@department.DepartmentId">Edit Department</h2>
@@ -122,12 +130,12 @@ else
     </div>
 }
 
+</div>
+
 @section Scripts {
     <script>
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('shown.bs.modal', () => {
-                modal.querySelector('input[name="name"], input[name="Name"]')?.focus();
-            });
+        document.addEventListener('shown.bs.modal', event => {
+            event.target.querySelector('input[name="name"], input[name="Name"]')?.focus();
         });
 
         @if (Model.OpenCreate || Model.EditInput != null)
