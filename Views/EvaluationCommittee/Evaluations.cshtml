@@ -1,9 +1,104 @@
-@{ ViewData["Title"] = "Evaluations"; }
+@model CommitteeEvaluationPage
+@using SourcingTenderManagement.Controllers
+@{ ViewData["Title"] = "Evaluations"; var tender = Model.Tender; }
 <h1>Evaluations</h1>
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Evaluations">
-<button class="nav-link active" id="committee-0-tab" data-bs-toggle="tab" data-bs-target="#committee-0" type="button" role="tab" aria-controls="committee-0" aria-selected="true">Assigned Evaluations</button>
-<button class="nav-link " id="committee-1-tab" data-bs-toggle="tab" data-bs-target="#committee-1" type="button" role="tab" aria-controls="committee-1" aria-selected="false">Evaluation Forms</button>
-<button class="nav-link " id="committee-2-tab" data-bs-toggle="tab" data-bs-target="#committee-2" type="button" role="tab" aria-controls="committee-2" aria-selected="false">AI Analysis</button></div>
-<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="committee-0" role="tabpanel" aria-labelledby="committee-0-tab" tabindex="0"><section class="workspace-section"><h2>Assigned Evaluations</h2><!-- TEAM TODO: Load only tenders assigned to the signed-in committee member. A selection opens the Evaluation Forms tab. --></section></div>
-<div class="tab-pane fade " id="committee-1" role="tabpanel" aria-labelledby="committee-1-tab" tabindex="0"><partial name="_MemberForms" /></div>
-<div class="tab-pane fade " id="committee-2" role="tabpanel" aria-labelledby="committee-2-tab" tabindex="0"><partial name="_AiAnalysis" /></div></div>
+@if (TempData["CommitteeError"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
+@if (TempData["CommitteeSuccess"] is string success) { <div class="alert alert-success" role="status">@success</div> }
+<form method="get" class="mb-4 d-flex gap-2 align-items-end">
+    <div><label for="tender" class="form-label">Tender</label><select id="tender" name="id" class="form-select">
+        @foreach (var item in Model.Tenders) { <option value="@item.TenderId" selected="@(item.TenderId == tender?.TenderId)">@item.Title — @item.Status</option> }
+    </select></div>
+    <button class="btn btn-outline-primary">Open tender</button>
+</form>
+@if (tender == null)
+{
+    <p>No tenders have been sent for evaluation yet.</p>
+}
+else
+{
+    <h2>@tender.Title</h2>
+    <p><strong>Status:</strong> @tender.Status · <strong>Committee approvals:</strong> @Model.Approvals.Count / 4</p>
+    @if (Model.Members.Count == 0 && tender.Status == "UnderEvaluation")
+    {
+        <form asp-action="Start" method="post" class="mb-3">
+            <input type="hidden" name="id" value="@tender.TenderId" />
+            <p>Start links the four existing committee accounts to this tender. Default weights are 40% Financial and 60% Requirements; the committee manager can change them before scoring.</p>
+            <button class="btn btn-primary">Start evaluation</button>
+        </form>
+    }
+    @if (Model.Approvals.Count > 0 && Model.Members.Count > 0) { <p class="alert alert-info">Approved member forms are read-only. Other members can still fill in and approve their own forms.</p> }
+    <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Evaluation sections">
+        <button class="nav-link active" id="offers-tab" data-bs-toggle="tab" data-bs-target="#offers" role="tab" aria-controls="offers" aria-selected="true">Tender &amp; Offers</button>
+        <button class="nav-link" id="forms-tab" data-bs-toggle="tab" data-bs-target="#forms" role="tab" aria-controls="forms" aria-selected="false">Evaluation Forms</button>
+        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" role="tab" aria-controls="report" aria-selected="false">Comparison &amp; Report</button>
+        <button class="nav-link" id="ai-tab" data-bs-toggle="tab" data-bs-target="#ai" role="tab" aria-controls="ai" aria-selected="false">AI Analysis</button>
+    </div>
+    <div class="tab-content workspace-content">
+        <div class="tab-pane fade show active" id="offers" role="tabpanel" aria-labelledby="offers-tab" tabindex="0">
+            <p>@tender.Description</p>
+            <h3>Requested items</h3>
+            @foreach (var item in tender.PurchaseRequest.PurchaseRequestItems)
+            { <p><strong>@item.ItemName:</strong> @item.Quantity @item.Unit — @item.Specifications</p> }
+            <h3>Compliant offers</h3>
+            @if (Model.Offers.Count == 0) { <p>No compliant offers are available for this tender.</p> }
+            @foreach (var offer in Model.Offers)
+            {
+                <section class="workspace-section">
+                    <h4>Offer #@offer.BidId — @offer.Invitation.SupplierProfile.CompanyName</h4>
+                    <p><strong>Total:</strong> @CommitteeEvaluationPage.Total(offer).ToString("N2") @offer.Currency (includes tax and additional costs)</p>
+                    <p><strong>Delivery:</strong> @offer.DeliveryDays days · <strong>Payment:</strong> @offer.PaymentTerms</p>
+                    <p><strong>Technical details:</strong> @offer.TechnicalDetails</p>
+                    @foreach (var item in offer.BidItems)
+                    { <p>@item.Quantity × @item.UnitPrice.ToString("N2") @offer.Currency — @item.OfferedSpecifications</p> }
+                </section>
+            }
+            @if (Model.Members.Count > 0)
+            {
+                <h3>Criteria and weights</h3>
+                <p>Weights must total 100%. Criteria lock after the first saved form. Finance scores financial criteria; the other three members score requirements.</p>
+                @if (!Model.Locked && Model.Evaluations.Count == 0 && Model.Members.Any(m => m.UserId == Model.UserId && m.Position == 1))
+                {
+                    <form asp-action="SaveCriteria" method="post" id="criteria-form">
+                        <input type="hidden" name="id" value="@tender.TenderId" />
+                        <div id="criteria-rows">
+                        @for (var i = 0; i < Model.Criteria.Count; i++)
+                        {
+                            <div class="d-flex flex-wrap gap-2 mb-2 criterion-row">
+                                <label>Name <input name="criteria[@i].Name" value="@Model.Criteria[i].Name" maxlength="150" required class="form-control" /></label>
+                                <label>Category <select name="criteria[@i].Category" class="form-select"><option selected="@(Model.Criteria[i].Category == "Financial")">Financial</option><option selected="@(Model.Criteria[i].Category == "Requirements")">Requirements</option></select></label>
+                                <label>Weight % <input name="criteria[@i].Weight" value="@Model.Criteria[i].Weight.ToString(System.Globalization.CultureInfo.InvariantCulture)" type="number" min="0.01" max="100" step="0.01" required class="form-control" /></label>
+                                <button type="button" class="btn btn-outline-danger remove-criterion">Remove</button>
+                            </div>
+                        }
+                        </div>
+                        <button type="button" id="add-criterion" class="btn btn-outline-secondary">Add criterion</button>
+                        <button class="btn btn-primary">Save criteria</button>
+                    </form>
+                }
+                else
+                {
+                    @foreach (var criterion in Model.Criteria) { <p>@criterion.Name — @criterion.Category — @criterion.Weight%</p> }
+                }
+            }
+        </div>
+        <div class="tab-pane fade" id="forms" role="tabpanel" aria-labelledby="forms-tab" tabindex="0"><partial name="_MemberForms" model="Model" /></div>
+        <div class="tab-pane fade" id="report" role="tabpanel" aria-labelledby="report-tab" tabindex="0"><partial name="_CombinedReport" model="Model" /></div>
+        <div class="tab-pane fade" id="ai" role="tabpanel" aria-labelledby="ai-tab" tabindex="0"><partial name="_CommitteeAi" model="Model" /></div>
+    </div>
+}
+@section Scripts {
+<script>
+const rows = document.getElementById('criteria-rows');
+if (rows) {
+    function renumber() { rows.querySelectorAll('.criterion-row').forEach((row, i) => row.querySelectorAll('[name]').forEach(input => input.name = input.name.replace(/criteria\[\d+\]/, `criteria[${i}]`))); }
+    document.getElementById('add-criterion').addEventListener('click', () => {
+        const row = rows.firstElementChild.cloneNode(true);
+        row.querySelectorAll('input').forEach(input => input.value = '');
+        rows.appendChild(row); renumber();
+    });
+    rows.addEventListener('click', event => {
+        if (event.target.classList.contains('remove-criterion') && rows.children.length > 1) { event.target.closest('.criterion-row').remove(); renumber(); }
+    });
+}
+</script>
+}

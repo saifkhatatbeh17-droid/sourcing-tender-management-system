@@ -1,0 +1,37 @@
+@model CommitteeEvaluationPage
+@using System.Text.Json
+@using SourcingTenderManagement.Controllers
+<h3>AI analysis</h3>
+<p>Three advisory comparisons use the saved committee scores. Ollama explains each ranking; the committee chooses the recommended offer.</p>
+@if (Model.Members.Any(m => m.UserId == Model.UserId))
+{
+    <form asp-action="Analyze" method="post" class="mb-3">
+        <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
+        <button class="btn btn-primary" disabled="@(!Model.Ready)">Generate three AI recommendations</button>
+        <span class="small">Requires Ollama and qwen2.5:0.5b locally. May take a few minutes.</span>
+    </form>
+}
+@if (!Model.Ready) { <p>All four forms need saved or approved scores before analysis can run.</p> }
+@foreach (var weight in new[] { 60, 100, 0 })
+{
+    var analysis = Model.Tender!.AiAnalyses.Where(a => a.FinancialWeight == weight).OrderByDescending(a => a.CreatedAt).ThenByDescending(a => a.AiAnalysisId).FirstOrDefault();
+    <section class="workspace-section">
+        <h4>@weight% Financial / @(100 - weight)% Requirements</h4>
+        @if (Model.Ready)
+        {
+            <ol>@foreach (var row in Model.Rank(weight)) { <li>Offer #@row.BidId — @row.Supplier: @row.Score.ToString("0.##") / 100</li> }</ol>
+            <p class="small">Equal scores are tied.</p>
+        }
+        @if (analysis != null)
+        {
+            using var document = JsonDocument.Parse(analysis.ResultJson);
+            if (document.RootElement.TryGetProperty("Snapshot", out var snapshot) && snapshot.GetString() == EvaluationCommitteeController.AnalysisSnapshot(Model))
+            {
+                <p>@document.RootElement.GetProperty("Explanation").GetString()</p>
+                <p class="small">Model: @analysis.ModelName · Generated: @analysis.CreatedAt.ToString("u")</p>
+            }
+            else { <p>Saved analysis is outdated. Generate it again using the current scores.</p> }
+        }
+        else { <p>No AI explanation has been generated.</p> }
+    </section>
+}

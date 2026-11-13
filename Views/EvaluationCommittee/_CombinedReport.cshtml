@@ -1,0 +1,42 @@
+@model CommitteeEvaluationPage
+@{ var report = Model.Tender?.EvaluationReport; }
+<h3>Offer comparison</h3>
+@if (!Model.Ready)
+{
+    <p>Save or approve all four member forms to calculate rankings. All offers must use the same currency.</p>
+}
+else
+{
+    <p>Financial criteria use the finance member's scores. Requirements use the average of the other three members. Criterion weights determine the combined result.</p>
+    <div class="table-responsive"><table class="table">
+        <caption>Committee scores out of 100. Equal scores are tied.</caption>
+        <thead><tr><th scope="col">Offer</th><th scope="col">Supplier</th><th scope="col">Total</th><th scope="col">Financial</th><th scope="col">Requirements</th><th scope="col">Weighted score</th></tr></thead>
+        <tbody>@foreach (var row in Model.Rank())
+        { <tr><td>#@row.BidId</td><td>@row.Supplier</td><td>@row.Total.ToString("N2") @row.Currency</td><td>@row.Financial.ToString("0.##")</td><td>@row.Requirements.ToString("0.##")</td><td>@row.Score.ToString("0.##")</td></tr> }</tbody>
+    </table></div>
+}
+<h3>Combined committee report</h3>
+<p>Preparing this report is optional before approval. The fourth approval automatically completes the summary and recommends the highest-scoring offer if none was selected. Tied leaders are listed without selecting a winner.</p>
+@if (!Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId && m.Position == 1))
+{
+    <form asp-action="SaveReport" method="post">
+        <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
+        <label for="recommended-offer" class="form-label">Recommended offer</label>
+        <select id="recommended-offer" name="recommendedBidId" required class="form-select mb-3">
+            <option value="">Choose an offer</option>
+            @foreach (var offer in Model.Offers) { <option value="@offer.BidId" selected="@(offer.BidId == report?.RecommendedBidId)">#@offer.BidId — @offer.Invitation.SupplierProfile.CompanyName</option> }
+        </select>
+        <label for="committee-summary" class="form-label">Summary and recommendation reason</label>
+        <textarea id="committee-summary" name="summary" required maxlength="4000" class="form-control mb-3">@report?.CommitteeSummary</textarea>
+        <button class="btn btn-primary">Save combined report</button>
+    </form>
+}
+else
+{
+    <p><strong>Recommended offer:</strong> @(report?.RecommendedBidId is int bid ? "#" + bid : "Not selected")</p>
+    <p><strong>Committee summary:</strong> @(report?.CommitteeSummary ?? "Not prepared yet.")</p>
+}
+<p class="mt-3"><strong>Report status:</strong> @(report?.Status ?? "Not started") · <strong>Approvals:</strong> @Model.Approvals.Count / 4</p>
+@foreach (var approval in Model.Approvals)
+{ <p>@CommitteeEvaluationPage.MemberName(Model.Members.Single(m => m.UserId == approval.UserId).Position) — Approved</p> }
+@if (report?.Status == "CommitteeApproved") { <p class="alert alert-success">The committee report has been sent to the sourcing officer. Tender status: @Model.Tender!.Status.</p> }
