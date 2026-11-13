@@ -1,3 +1,20 @@
 @{ ViewData["Title"] = "About"; }
-<h1>About</h1>
-<!-- TEAM TODO: Add the public About content here. -->
+
+<section class="pharma-about pharma-about-page" aria-labelledby="about-title">
+    <div class="pharma-about-inner">
+        <header class="pharma-about-heading">
+            <div>
+                <h1 id="about-title">About Apex Pharma</h1>
+                <p>We manufacture pharmaceuticals and work with qualified suppliers to meet the purchasing needs of our production teams.</p>
+            </div>
+            <a asp-action="Contact">Contact the sourcing team <span aria-hidden="true">↗</span></a>
+        </header>
+        <partial name="_CompanyOverview" />
+        <h2 class="pharma-about-process-title">How we work with suppliers</h2>
+        <partial name="_AboutCards" />
+    </div>
+</section>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+}

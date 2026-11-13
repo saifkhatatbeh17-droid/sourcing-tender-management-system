@@ -13,6 +13,7 @@
             ? RoleNames.Supplier
             : RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     }
+    var isHomeLanding = ViewData["HomeLanding"] is true;
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -26,28 +27,42 @@
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<header class="border-bottom bg-white">
-    <nav class="container-fluid p-3 d-flex flex-wrap align-items-center gap-3" aria-label="Main navigation">
-        <a class="fw-bold text-decoration-none text-dark me-auto" asp-controller="Home" asp-action="Index">Sourcing &amp; Tender Management</a>
-        <a asp-controller="Home" asp-action="Index">Home</a>
-        <a asp-controller="Home" asp-action="About">About</a>
-        <a asp-controller="Home" asp-action="HowItWorks">How It Works</a>
-        <a asp-controller="Home" asp-action="Contact">Contact</a>
+<header class="@(isHomeLanding ? "landing-header" : "border-bottom bg-white")">
+    <nav class="container-fluid d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-nav" : "p-3")" aria-label="Main navigation">
+        @if (isHomeLanding)
+        {
+            <a class="pharma-brand landing-brand" asp-controller="Home" asp-action="Index"><partial name="_PharmaBrand" /></a>
+        }
+        else
+        {
+            <a class="pharma-brand text-decoration-none text-dark me-auto" asp-controller="Home" asp-action="Index"><partial name="_PharmaBrand" /></a>
+        }
+        <div class="d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-links" : "")">
+            <a asp-controller="Home" asp-action="Index" aria-current="@(isHomeLanding ? "page" : null)">Home</a>
+            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "About")" asp-fragment="@(isHomeLanding ? "about" : null)">About</a>
+            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "HowItWorks")" asp-fragment="@(isHomeLanding ? "how-it-works" : null)">How It Works</a>
+            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "Contact")" asp-fragment="@(isHomeLanding ? "contact" : null)">Contact</a>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-account" : "")">
         @if (User.Identity?.IsAuthenticated == true)
         {
-            <a asp-controller="Account" asp-action="GoToDashboard">My Dashboard</a>
+            @if (!isHomeLanding)
+            {
+                <a asp-controller="Account" asp-action="GoToDashboard">My Dashboard</a>
+            }
             @await Component.InvokeAsync("NotificationBell")
             <form asp-controller="Account" asp-action="Logout" method="post"><button class="btn btn-sm btn-outline-secondary">Sign Out</button></form>
         }
         else
         {
             <a asp-controller="Account" asp-action="Login">Login</a>
-            <a asp-controller="Account" asp-action="Register">Supplier Registration</a>
+            <a class="@(isHomeLanding ? "landing-register" : "")" asp-controller="Account" asp-action="Register">Supplier Registration</a>
         }
+        </div>
     </nav>
 </header>
 <div class="app-shell">
-@if (User.Identity?.IsAuthenticated == true)
+@if (!isHomeLanding && ViewData["HideWorkspaceSidebar"] is not true && User.Identity?.IsAuthenticated == true)
 {
     <aside class="sidebar p-3 border-end" aria-label="Workspace navigation">
         @foreach (var role in RoleNames.Primary.Where(User.IsInRole))
@@ -67,8 +82,9 @@
         <a class="page-link-item @(profileIsActive ? "active" : "")" asp-controller="@profileController" asp-action="Profile" aria-current="@(profileIsActive ? "page" : null)">My Profile</a>
     </aside>
 }
-<main id="main" class="main-content p-4" tabindex="-1">@RenderBody()</main>
+<main id="main" class="main-content @(isHomeLanding ? "landing-main" : "p-4")" tabindex="-1">@RenderBody()</main>
 </div>
+@await RenderSectionAsync("Footer", required: false)
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 @await RenderSectionAsync("Scripts", required: false)

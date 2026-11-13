@@ -30,6 +30,9 @@ h1 { font-size: 1.8rem; margin-bottom: 1.5rem; } h2 { font-size: 1.15rem; }
 .notification-dropdown { width: min(340px, calc(100vw - 3rem)); max-height: 420px; overflow-y: auto; }
 .notification-item { padding: .65rem .5rem; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
 .supplier-details summary { cursor: pointer; }
+.pharma-brand { display: inline-flex; align-items: center; gap: .65rem; font-size: 1.25rem; font-weight: 800; letter-spacing: -.025em; }
+.pharma-brand-icon { display: grid; flex: 0 0 2.65rem; place-items: center; width: 2.65rem; height: 2.65rem; border: 1px solid #b7dbd3; border-radius: .75rem; background: #eef9f6; }
+.pharma-brand-icon img { display: block; width: 2.25rem; height: 2.25rem; }
 @media(max-width:650px) { .workspace-columns { grid-template-columns: 1fr; } .workspace-tabs .nav-link { padding: .6rem; } }
 @media(max-width:1000px) { .committee-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:650px) { .app-shell { flex-direction: column; } .sidebar { width: 100%; border-bottom: 1px solid var(--line); } .committee-grid { grid-template-columns: 1fr; } }

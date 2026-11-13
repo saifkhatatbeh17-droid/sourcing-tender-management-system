@@ -1,0 +1,198 @@
+.landing-header {
+    --nav-fade: 420ms cubic-bezier(.22, .61, .36, 1);
+    position: fixed;
+    z-index: 1030;
+    inset: 0 0 auto;
+    width: 100%;
+    margin-inline: auto;
+    color: #edf6f5;
+    background-color: rgb(19 46 60 / 0%);
+    box-shadow: inset 0 -1px rgb(218 245 240 / 0%);
+    backdrop-filter: blur(0) saturate(100%);
+    transition: background-color var(--nav-fade), box-shadow var(--nav-fade), backdrop-filter var(--nav-fade),
+                width var(--nav-fade), top var(--nav-fade), border-radius var(--nav-fade);
+}
+
+.landing-header.is-scrolled {
+    background-color: rgb(19 46 60 / 78%);
+    box-shadow: inset 0 -1px rgb(218 245 240 / 16%);
+    backdrop-filter: blur(16px) saturate(115%);
+}
+
+.landing-header.is-past-hero {
+    top: .75rem;
+    width: min(68rem, calc(100% - 1.5rem));
+    border-radius: 1.25rem;
+    box-shadow: inset 0 0 0 1px rgb(218 245 240 / 16%), 0 .5rem 1.5rem rgb(12 33 45 / 18%);
+}
+
+body:has(.landing-main) .skip-link { position: fixed; z-index: 1040; }
+
+.landing-nav { max-width: 86rem; justify-content: space-between; min-height: 5rem; padding: 1rem; transition: min-height var(--nav-fade), padding var(--nav-fade); }
+.is-past-hero .landing-nav { min-height: 4.25rem; padding-block: .625rem; }
+.landing-nav a { color: inherit; text-decoration: none; }
+.landing-nav a:hover { text-decoration: underline; text-underline-offset: .3em; }
+.landing-nav .notification-bell, .landing-nav form .btn { color: inherit; border-color: currentColor; }
+.landing-nav .notification-dropdown { color: #12304a; }
+.landing-links, .landing-account { font-size: .9rem; font-weight: 650; }
+.landing-links [aria-current="page"] { text-decoration: underline; text-underline-offset: .4em; text-decoration-color: #5eead4; transition: text-decoration-color var(--nav-fade); }
+.landing-nav .landing-register { padding: .55rem .85rem; border: 1px solid currentColor; border-radius: 999px; }
+
+.landing-hero {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: 8rem 1.25rem 6rem;
+    overflow: hidden;
+    background: radial-gradient(ellipse at 80% 28%, #176b65, transparent 70%), #102d43;
+    color: #fff;
+    text-align: left;
+}
+
+.landing-video, .landing-hero::before { position: absolute; inset: 0; width: 100%; height: 100%; }
+.landing-video { z-index: -2; object-fit: cover; }
+.landing-hero::before {
+    content: "";
+    z-index: -1;
+    background: linear-gradient(180deg, #081b29cc, transparent 28%, transparent 70%, #081b2980),
+                linear-gradient(90deg, #081b29ed, #102c40b8 42%, #102c4040 100%);
+}
+
+.landing-hero-content { width: min(100%, 84rem); }
+.landing-eyebrow { color: #adf5e8; font-size: .8rem; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+.landing-hero h1 { max-width: 18ch; margin: .8rem 0; font-size: clamp(2rem, 3.8vw, 3.5rem); font-weight: 750; line-height: 1.1; letter-spacing: -.035em; text-wrap: balance; }
+.landing-intro { max-width: 48ch; margin: 0 0 1.5rem; color: #ecf5f7; font-size: clamp(.94rem, 1.35vw, 1.05rem); line-height: 1.6; }
+.landing-hero-actions { display: flex; flex-wrap: wrap; gap: .7rem; }
+.landing-hero-actions a { padding: .8rem 1.25rem; border: 1px solid; border-radius: 999px; font-weight: 700; text-decoration: none; }
+.landing-hero-actions .landing-primary { background: #a1f2e0; color: #0c3331; border-color: #a1f2e0; }
+.landing-hero-actions .landing-primary:hover { background: #c5f9ee; }
+.landing-secondary { color: #fff; background: #081b2940; }
+.landing-secondary:hover { color: #fff; background: #ffffff20; }
+.landing-video-toggle { position: absolute; right: 1rem; bottom: 1rem; padding: .4rem .75rem; border: 1px solid #ffffff80; border-radius: 999px; background: #081b29cc; color: #fff; font-size: .8rem; }
+
+.pharma-about {
+    padding: clamp(3rem, 7vw, 6rem) clamp(1.25rem, 5vw, 4rem);
+    scroll-margin-top: 10rem;
+    background: #eaf2f1;
+    color: #12304a;
+}
+
+.pharma-about-page { border-radius: 1.25rem; }
+.pharma-about-inner { max-width: 74rem; margin-inline: auto; }
+.pharma-about-heading { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem 2rem; margin-bottom: 2rem; }
+.pharma-about-heading :is(h1, h2) { margin: 0 0 .65rem; font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 750; letter-spacing: -.04em; }
+.pharma-about-heading p { max-width: 58ch; margin: 0; color: #506779; line-height: 1.65; }
+.pharma-about-heading a { color: #0f766e; font-weight: 700; text-underline-offset: .25em; }
+.pharma-company { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.15rem; }
+.pharma-company-story, .pharma-company-priorities { margin: 0; padding: clamp(1.4rem, 3vw, 2.3rem); border: 1px solid #d7e6e9; border-radius: 1rem; }
+.pharma-company-story { background: #f5f9f8; }
+.pharma-company-story h3 { margin: 0 0 1rem; max-width: 24ch; font-size: clamp(1.35rem, 2.7vw, 2rem); font-weight: 750; line-height: 1.2; }
+.pharma-company-story p { max-width: 62ch; margin: 0; color: #506779; line-height: 1.7; }
+.pharma-company-story p + p { margin-top: 1rem; }
+.pharma-company-priorities { background: #dfeeea; }
+.pharma-company-priorities dt { color: #0e5d56; font-weight: 750; }
+.pharma-company-priorities dd { margin: .35rem 0 0; color: #325366; line-height: 1.55; }
+.pharma-company-priorities div + div { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #bdd8d1; }
+.pharma-about-process-title { margin: 2.5rem 0 1rem; font-size: clamp(1.3rem, 2.5vw, 1.8rem); font-weight: 750; }
+.pharma-about-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; }
+.pharma-about-card {
+    padding: clamp(1.3rem, 3vw, 2rem);
+    border: 1px solid #d7e6e9;
+    border-top: 3px solid #0f766e;
+    border-radius: 1rem;
+    background: #f5f9f8;
+    box-shadow: 0 .5rem 1.5rem #12304a0a;
+}
+.pharma-about-icon { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; margin-bottom: 1.2rem; border-radius: .8rem; background: #e3f4ef; color: #0f766e; }
+.pharma-about-icon svg { width: 1.35rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.pharma-about-card h3 { margin: 0 0 .65rem; font-size: 1.15rem; font-weight: 750; }
+.pharma-about-card p { margin: 0; color: #506779; line-height: 1.65; }
+.pharma-about-card ul { margin: 1.2rem 0 0; padding: .95rem 0 0 1.15rem; border-top: 1px solid #dce9eb; color: #325366; font-size: .92rem; line-height: 1.5; }
+.pharma-about-card li + li { margin-top: .4rem; }
+.pharma-about-card li::marker { color: #0f766e; }
+.pharma-about-next { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.35rem; padding: clamp(1.25rem, 3vw, 2rem); border-radius: 1rem; background: #12304a; color: #fff; }
+.pharma-about-next h3 { margin: 0 0 .35rem; font-size: 1.2rem; font-weight: 750; }
+.pharma-about-next p { margin: 0; color: #d9eaf0; }
+.pharma-about-next a { padding: .65rem 1rem; border-radius: 999px; background: #a1f2e0; color: #0c3331; font-weight: 700; text-decoration: none; }
+.pharma-about-next a:hover { background: #c5f9ee; text-decoration: underline; }
+
+.pharma-public-section {
+    padding: clamp(3rem, 7vw, 6rem) clamp(1.25rem, 5vw, 4rem);
+    scroll-margin-top: 10rem;
+    color: #12304a;
+}
+
+.pharma-public-inner { max-width: 74rem; margin-inline: auto; }
+.pharma-public-heading { margin-bottom: 2rem; }
+.pharma-public-heading h2 { margin: 0 0 .65rem; font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 750; letter-spacing: -.04em; }
+.pharma-public-heading p { max-width: 62ch; margin: 0; color: #506779; line-height: 1.65; }
+.pharma-process { background: #f4f8f7; }
+.pharma-process-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; counter-reset: pharma-step; }
+.pharma-process-grid li, .pharma-contact-grid article { padding: clamp(1.25rem, 2.6vw, 1.8rem); border: 1px solid #d3e3e0; border-radius: 1rem; background: #fbfdfc; }
+.pharma-process-grid li { counter-increment: pharma-step; }
+.pharma-process-grid li::before { content: counter(pharma-step, decimal-leading-zero); display: inline-block; margin-bottom: 1rem; color: #0b675e; font-weight: 750; font-variant-numeric: tabular-nums; }
+.pharma-public-section h3 { margin: 0 0 .6rem; font-size: 1.15rem; font-weight: 750; }
+.pharma-public-section article p, .pharma-process-grid p { margin: 0; color: #506779; line-height: 1.65; }
+.pharma-contact { background: #dfeeea; }
+.pharma-contact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.pharma-contact-grid a { display: inline-block; margin-top: 1rem; color: #0b675e; font-weight: 700; text-underline-offset: .25em; }
+.pharma-footer {
+    padding: clamp(2rem, 3.5vw, 3rem) clamp(1.25rem, 5vw, 4rem) 1rem;
+    border-top: 3px solid #44877e;
+    background: radial-gradient(ellipse at 100% 0, #1e4b51, transparent 52%), #102d43;
+    color: #e1eeef;
+}
+.pharma-footer a { color: inherit; text-decoration: none; }
+.pharma-footer a:hover { text-decoration: underline; text-underline-offset: .25em; }
+.pharma-footer-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 12rem); align-items: start; gap: clamp(1.25rem, 4vw, 3rem); }
+.pharma-footer-content { display: grid; grid-template-columns: 1fr .8fr 1.15fr; align-items: start; gap: clamp(1.15rem, 3vw, 2.5rem); }
+.pharma-footer-content > * { min-width: 0; }
+.pharma-footer h2 { margin: 0 0 .85rem; font-size: 1rem; font-weight: 750; }
+.pharma-footer p { max-width: 32ch; margin: 0 0 .75rem; color: #c0d6dc; font-size: .92rem; line-height: 1.55; }
+.pharma-footer-brand p { margin: .75rem 0 0; }
+.pharma-footer ul { display: grid; gap: .65rem; margin: 0; padding: 0; list-style: none; }
+.pharma-footer .pharma-footer-contact-link { display: inline-flex; gap: .5rem; padding: .55rem .8rem; border: 1px solid #9ed8ce66; border-radius: .7rem; color: #baf1e6; }
+.pharma-footer-location { width: 100%; max-width: 12rem; justify-self: end; padding: .5rem; border: 1px solid #ffffff30; border-radius: .75rem; background: #ffffff0a; }
+.pharma-footer-location-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .4rem; padding: .1rem .15rem .55rem; }
+.pharma-footer-location-heading h2 { margin: 0; }
+.pharma-footer-map { display: block; width: 100%; height: 7rem; border: 1px solid #ffffff38; border-radius: .5rem; background: #eaf2f1; }
+.pharma-footer-location a { color: #baf1e6; font-size: .9rem; }
+.pharma-footer-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem; margin-top: 1.5rem; padding-top: .85rem; border-top: 1px solid #ffffff30; }
+.pharma-footer :focus-visible { outline-color: #44d7bd; }
+
+@media (max-width: 980px) {
+    .pharma-process-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pharma-footer-content { grid-template-columns: 1fr 1fr; }
+    .pharma-footer-brand { grid-column: 1 / -1; }
+}
+
+@media (max-width: 720px) {
+    .pharma-company, .pharma-about-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+    .pharma-process-grid, .pharma-contact-grid, .pharma-footer-grid { grid-template-columns: 1fr; }
+    .pharma-footer-content { grid-template-columns: 1fr; }
+    .pharma-footer-location { justify-self: start; }
+}
+.landing-main :focus-visible, .landing-header :focus-visible { outline-color: #44d7bd; }
+
+@media (max-width: 850px) {
+    .landing-links { order: 3; width: 100%; justify-content: center; }
+    .landing-hero { padding-top: 11rem; }
+}
+
+@media (max-width: 490px) {
+    .landing-nav { justify-content: center; }
+    .landing-brand, .landing-account { justify-content: center; width: 100%; }
+    .landing-hero { padding-top: 13rem; }
+    .landing-hero::before { background: linear-gradient(180deg, #081b29e0, #102c40b8 55%, #081b29cc); }
+    .landing-hero-actions a { padding-inline: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .landing-header { --nav-fade: 0ms; }
+}

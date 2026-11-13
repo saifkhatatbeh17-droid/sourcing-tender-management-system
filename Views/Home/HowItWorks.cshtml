@@ -1,3 +1,11 @@
 @{ ViewData["Title"] = "How It Works"; }
-<h1>How It Works</h1>
-<!-- TEAM TODO: Add the public HowItWorks content here. -->
+
+<partial name="_HowItWorksSection" />
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/public-guide.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="~/js/sourcing-journey.js" asp-append-version="true"></script>
+}
