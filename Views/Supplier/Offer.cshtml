@@ -1,0 +1,40 @@
+@model SourcingTenderManagement.Models.Entities.Bid
+@{
+    var tender = Model.Invitation.Tender;
+    var total = Model.BidItems.Sum(i => i.Quantity * i.UnitPrice);
+    var reportStatus = tender.EvaluationReport?.Status;
+    var stage = Model.Status == "Draft" ? 0
+        : reportStatus is "TopApproved" || Model.Status is "Accepted" or "Rejected" ? 7
+        : reportStatus == "ManagerApproved" ? 6
+        : reportStatus == "OfficerSubmitted" ? 5
+        : reportStatus is "CommitteeApproved" or "ReturnedForReview" ? 4
+        : tender.Status == "UnderEvaluation" ? 3
+        : Model.ComplianceStatus == "Compliant" || Model.Status == "Compliant" ? 3
+        : Model.Status == "Submitted" || Model.Status == "UnderReview" || Model.Status == "NonCompliant" ? 2 : 1;
+    var progressMessage = Model.Status == "Accepted" ? "Your offer was selected by the Top Committee."
+        : Model.Status == "Rejected" ? "The final decision is complete. This offer was not selected."
+        : reportStatus == "ManagerApproved" ? "The Sourcing Manager approved the recommendation; the Top Committee is recording its final decision."
+        : reportStatus == "OfficerSubmitted" ? "The Sourcing Officer approved the consolidated report; it is now with the Sourcing Manager."
+        : reportStatus is "CommitteeApproved" or "ReturnedForReview" ? "The four-member evaluation report is with the Sourcing Officer for review and approval."
+        : tender.Status == "UnderEvaluation" ? "The Sourcing Officer approved this offer for evaluation. The four committee members are scoring it independently."
+        : Model.ComplianceStatus == "Compliant" || Model.Status == "Compliant" ? "The Sourcing Officer approved the requirements. Committee evaluation begins after the tender closes."
+        : Model.ComplianceStatus == "NonCompliant" || Model.Status == "NonCompliant" ? "The Sourcing Officer marked this offer non-compliant. Check the officer's findings or clarifications."
+        : Model.Status == "Submitted" ? "Your offer was sent to the Sourcing Officer for requirements and document review."
+        : "This offer is a draft and has not entered the review workflow.";
+    ViewData["Title"] = "Offer details";
+}
+<p class="eyebrow">SUPPLIER OFFER · BID-@Model.BidId.ToString("D6")</p><div class="supplier-page-heading"><div><h1>Offer details</h1><p>@tender.Title · TND-@tender.TenderId.ToString("D6")</p></div><span class="status-badge status-@Model.Status.ToLowerInvariant()">@Model.Status</span></div>
+@if (TempData["Success"] is string success) { <div class="alert alert-success" role="status">@success</div> }
+@if (TempData["Error"] is string error) { <div class="alert alert-warning" role="alert">@error</div> }
+<section class="supplier-card offer-progress-card"><div class="offer-progress-heading"><div><span class="eyebrow">OFFER REVIEW TRACKER</span><h2>Where your offer is</h2></div><span class="offer-stage-count">@(stage == 0 ? "Draft · not submitted" : stage == 7 ? "Final stage" : $"Stage {stage} of 7")</span></div><div class="offer-progress-steps" aria-label="Offer workflow progress">
+    @foreach (var item in new[] { (1, "Offer submitted"), (2, "Officer review"), (3, "4-member committee"), (4, "Officer approval"), (5, "Source manager"), (6, "Top committee"), (7, "Final decision") })
+    {
+        <div class="offer-progress-step @(item.Item1 == stage ? "current" : item.Item1 < stage ? "complete" : "")"><span>@(item.Item1 < stage ? "✓" : item.Item1.ToString("00"))</span><small>@item.Item2</small></div>
+    }
+</div><p class="offer-progress-message">@progressMessage</p></section>
+<section class="supplier-card"><div class="supplier-summary-grid"><div><small>Supplier</small><strong>@Model.Invitation.SupplierProfile.CompanyName</strong></div><div><small>Submission date</small><strong>@(Model.SubmittedAt?.ToLocalTime().ToString("dd MMM yyyy, HH:mm") ?? "Draft")</strong></div><div><small>Delivery time</small><strong>@Model.DeliveryDays days</strong></div><div><small>Offer valid until</small><strong>@(Model.ValidUntil?.ToString("dd MMM yyyy") ?? "Not specified")</strong></div></div></section>
+<section class="supplier-card mt-3"><div class="supplier-card-heading"><h2>Itemized pricing</h2><a class="btn btn-sm btn-outline-primary" asp-action="DownloadSummary" asp-route-id="@Model.BidId">Download personal summary (PDF)</a></div><div class="table-responsive"><table class="table supplier-table"><thead><tr><th>Item</th><th>Quantity</th><th>Unit price</th><th>Line total</th><th>Technical response</th></tr></thead><tbody>@foreach (var item in Model.BidItems) { <tr><td><strong>@item.PurchaseRequestItem.ItemName</strong></td><td>@item.Quantity.ToString("N3") @item.PurchaseRequestItem.Unit</td><td>@item.UnitPrice.ToString("N2") @Model.Currency</td><td>@((item.Quantity * item.UnitPrice).ToString("N2")) @Model.Currency</td><td>@item.OfferedSpecifications</td></tr> }</tbody><tfoot><tr><th colspan="3" class="text-end">Total amount</th><th colspan="2">@total.ToString("N2") @Model.Currency</th></tr></tfoot></table></div></section>
+<div class="supplier-detail-grid mt-3"><section class="supplier-card"><h2>Commercial terms</h2><dl class="detail-list"><dt>Payment terms</dt><dd>@(Model.PaymentTerms ?? "Not specified")</dd><dt>Additional technical notes</dt><dd>@(Model.TechnicalDetails ?? "Not provided")</dd></dl></section><section class="supplier-card"><h2>Supporting documents</h2>@if (!Model.BidDocuments.Any()) { <p class="text-muted">No supporting documents uploaded.</p> } else { <ul class="document-list">@foreach (var document in Model.BidDocuments) { <li><a asp-action="DownloadDocument" asp-route-id="@document.BidDocumentId">@document.OriginalFileName</a><small>@((document.FileSizeBytes / 1024d).ToString("N0")) KB · @document.UploadedAt.ToLocalTime().ToString("dd MMM yyyy")</small></li> }</ul> }</section></div>
+<div class="supplier-action-bar"><a asp-action="Offers" class="btn btn-outline-secondary">Back to my offers</a>@if (Model.Status == "Draft") { <a asp-action="CreateOffer" asp-route-invitationId="@Model.InvitationId" asp-route-bidId="@Model.BidId" class="btn btn-primary">Continue draft</a> }</div>
+
+@section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }

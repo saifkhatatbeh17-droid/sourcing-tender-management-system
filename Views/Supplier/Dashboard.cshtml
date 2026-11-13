@@ -1,3 +1,23 @@
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<!-- TEAM TODO: Implement Supplier / Dashboard here. -->
+@model SourcingTenderManagement.Models.SupplierDashboardViewModel
+@{ ViewData["Title"] = "Supplier dashboard"; }
+<div class="supplier-hero"><div><p class="eyebrow">PHARMACARE SUPPLIER PORTAL</p><h1>Welcome, @Model.CompanyName</h1><p>Manage tender invitations, prepare offers, and keep your company information current.</p></div><a asp-action="Invitations" class="btn btn-light">View invitations <span aria-hidden="true">→</span></a></div>
+@if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> }
+@if (TempData["Error"] is string error) { <div class="alert alert-danger">@error</div> }
+<section class="supplier-stats" aria-label="Supplier activity">
+    <div class="supplier-stat"><span>Total invitations</span><strong>@Model.TotalInvitations</strong><small>All invitations received</small></div>
+    <div class="supplier-stat"><span>Awaiting response</span><strong>@Model.PendingInvitations</strong><small>Open invitations</small></div>
+    <div class="supplier-stat"><span>Accepted invitations</span><strong>@Model.AcceptedInvitations</strong><small>Participation confirmed</small></div>
+    <div class="supplier-stat"><span>Submitted offers</span><strong>@Model.SubmittedOffers</strong><small>Drafts excluded</small></div>
+    <div class="supplier-stat"><span>Awarded offers</span><strong>@Model.AcceptedOffers</strong><small>Successful outcomes</small></div>
+</section>
+<section class="verification-panel"><div><span class="eyebrow">ACCOUNT VERIFICATION</span><h2><span class="status-badge status-@Model.VerificationStatus.ToLowerInvariant()">@Model.VerificationStatus</span></h2><p>@(Model.VerificationStatus == "Approved" ? "Your account is approved. You can submit offers for accepted, open invitations." : "Your account is under review. You can review invitations and update requested details, but offer submission is available after approval.")</p>@if (!string.IsNullOrWhiteSpace(Model.ReviewNotes)) { <p><strong>Admin note:</strong> @Model.ReviewNotes</p> }</div><a asp-action="Profile" class="btn btn-outline-primary">Company profile</a></section>
+<div class="supplier-columns">
+<section class="supplier-card"><div class="supplier-card-heading"><h2>Recent invitations</h2><a asp-action="Invitations">All invitations</a></div>
+@if (Model.RecentInvitations.Count == 0) { <div class="empty-state"><strong>No invitations yet</strong><p>New tender invitations will appear here.</p></div> } else { <div class="table-responsive"><table class="table supplier-table"><thead><tr><th>Tender</th><th>Closing</th><th>Status</th><th></th></tr></thead><tbody>@foreach (var invitation in Model.RecentInvitations) { <tr><td><strong>@invitation.Tender.Title</strong><small class="d-block text-muted">TND-@invitation.TenderId.ToString("D6")</small></td><td>@invitation.Tender.ClosesAt.ToLocalTime().ToString("dd MMM yyyy")</td><td><span class="status-badge status-@invitation.Status.ToLowerInvariant()">@invitation.Status</span></td><td><a asp-action="Invitation" asp-route-id="@invitation.InvitationId">Open</a></td></tr> }</tbody></table></div> }
+</section>
+<section class="supplier-card"><div class="supplier-card-heading"><h2>Recent offers</h2><a asp-action="Offers">All offers</a></div>
+@if (Model.RecentOffers.Count == 0) { <div class="empty-state"><strong>No offers yet</strong><p>Once you accept an invitation, you can prepare an offer for that tender.</p></div> } else { <div class="supplier-activity">@foreach (var bid in Model.RecentOffers) { var total = bid.BidItems.Sum(x => x.Quantity * x.UnitPrice); <a class="activity-row" asp-action="Offer" asp-route-id="@bid.BidId"><span class="activity-icon">↗</span><span><strong>@bid.Invitation.Tender.Title</strong><small>BID-@bid.BidId.ToString("D6") · @((bid.SubmittedAt ?? bid.CreatedAt).ToLocalTime().ToString("dd MMM yyyy"))</small></span><span class="text-end"><strong>@total.ToString("N2") @bid.Currency</strong><small class="status-badge status-@bid.Status.ToLowerInvariant()">@bid.Status</small></span></a> }</div> }
+</section></div>
+@if (Model.Notifications.Count > 0) { <section class="supplier-card mt-3"><div class="supplier-card-heading"><h2>Recent notifications</h2><a asp-action="Notifications">View all</a></div>@foreach (var notification in Model.Notifications) { <div class="notification-row"><strong>@notification.Title</strong><span>@notification.Message</span><small>@notification.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</small></div> }</section> }
+
+@section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }

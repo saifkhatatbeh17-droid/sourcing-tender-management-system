@@ -51,15 +51,19 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
 
     public IActionResult Register() => View(new RegisterViewModel());
 
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(RegisterViewModel model)
+    [HttpPost, ValidateAntiForgeryToken, RequestSizeLimit(30_000_000)]
+    public async Task<IActionResult> Register(RegisterViewModel model, List<IFormFile>? officialDocuments)
     {
         if (User.Identity?.IsAuthenticated == true) return BadRequest("Sign out before registering a supplier.");
         if (await db.SupplierProfiles.AnyAsync(s => s.RegistrationNumber == model.RegistrationNumber))
             ModelState.AddModelError(nameof(model.RegistrationNumber), "This registration number is already registered.");
+        if (officialDocuments == null || officialDocuments.Count == 0)
+            ModelState.AddModelError(nameof(officialDocuments), "Upload at least one official company document.");
+        if (officialDocuments?.Any(f => f.Length == 0 || f.Length > 10_000_000 || !new[] { ".pdf", ".docx", ".jpg", ".jpeg", ".png" }.Contains(Path.GetExtension(f.FileName).ToLowerInvariant())) == true)
+            ModelState.AddModelError(nameof(officialDocuments), "Documents must be PDF, DOCX, JPG, or PNG and no larger than 10 MB each.");
         if (!ModelState.IsValid) return View(model);
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.ContactName };
+        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, PhoneNumber = model.PhoneNumber, FullName = model.ContactName };
         var result = await users.CreateAsync(user, model.Password);
         if (result.Succeeded) result = await users.AddToRoleAsync(user, RoleNames.Supplier);
         if (!result.Succeeded)
@@ -67,9 +71,22 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
             return View(model);
         }
-        db.SupplierProfiles.Add(new SupplierProfile { UserId = user.Id, CompanyName = model.CompanyName,
+        var profile = new SupplierProfile { UserId = user.Id, CompanyName = model.CompanyName,
             RegistrationNumber = model.RegistrationNumber, TaxNumber = model.TaxNumber,
-            ContactName = model.ContactName, Address = model.Address, Status = "Pending", CreatedAt = DateTime.UtcNow });
+            ContactName = model.ContactName, Address = model.Address, Status = "Pending", CreatedAt = DateTime.UtcNow };
+        db.SupplierProfiles.Add(profile);
+        await db.SaveChangesAsync();
+        var folder = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "private-files", "suppliers"); Directory.CreateDirectory(folder);
+        foreach (var file in officialDocuments!)
+        {
+            var stored = Guid.NewGuid().ToString("N") + Path.GetExtension(file.FileName).ToLowerInvariant();
+            await using var stream = System.IO.File.Create(Path.Combine(folder, stored)); await file.CopyToAsync(stream);
+            db.SupplierDocuments.Add(new SupplierDocument { SupplierProfileId = profile.SupplierProfileId,
+                DocumentType = "Official company document", OriginalFileName = Path.GetFileName(file.FileName), StoredFileName = stored,
+                ContentType = file.ContentType, FileSizeBytes = file.Length, UploadedAt = DateTime.UtcNow });
+        }
+        foreach (var admin in (await users.GetUsersInRoleAsync(RoleNames.Admin)).Where(u => u.IsActive))
+            db.Notifications.Add(new Notification { UserId = admin.Id, Title = "Supplier application received", Message = $"{profile.CompanyName} submitted a supplier registration and official documents for review.", RelativeUrl = "/Admin/SupplierApplications", CreatedAt = DateTime.UtcNow });
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         await signIn.SignInAsync(user, false);
@@ -105,7 +122,10 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             return BadRequest("This registration number is already registered.");
         profile.CompanyName = input.CompanyName; profile.RegistrationNumber = input.RegistrationNumber;
         profile.TaxNumber = input.TaxNumber; profile.ContactName = input.ContactName; profile.Address = input.Address;
-        profile.Status = "Pending";
+        profile.Status = "Pending"; profile.ReviewNotes = null;
+        await db.SaveChangesAsync();
+        foreach (var admin in (await users.GetUsersInRoleAsync(RoleNames.Admin)).Where(u => u.IsActive))
+            db.Notifications.Add(new Notification { UserId = admin.Id, Title = "Supplier application resubmitted", Message = $"{profile.CompanyName} updated its company details and resubmitted the application for review.", RelativeUrl = "/Admin/SupplierApplications", CreatedAt = DateTime.UtcNow });
         await db.SaveChangesAsync();
         return RedirectToAction(nameof(RegistrationStatus));
     }
