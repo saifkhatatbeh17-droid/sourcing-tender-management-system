@@ -190,7 +190,9 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
     private string? SupplierDocumentRoot()
     {
         var configured = configuration["SupplierDocuments:RootPath"];
-        if (string.IsNullOrWhiteSpace(configured) || !Path.IsPathFullyQualified(configured)) return null;
+        if (string.IsNullOrWhiteSpace(configured))
+            configured = Path.Combine(environment.ContentRootPath, "App_Data", "private-files", "suppliers");
+        if (!Path.IsPathFullyQualified(configured)) return null;
 
         var root = Path.GetFullPath(configured);
         var relativeToWebRoot = Path.GetRelativePath(environment.WebRootPath, root);
@@ -257,6 +259,14 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         ViewData["OpenCreateUser"] = true;
         return View("Users", await LoadUsersPage(model));
     }
+
+    private Task<string?> ActivePositionHolder(string position, string? exceptUserId = null) =>
+        (from user in db.Users
+         join assignment in db.UserRoles on user.Id equals assignment.UserId
+         join role in db.Roles on assignment.RoleId equals role.Id
+         where user.IsActive && user.Id != exceptUserId && role.Name == position
+         select user.FullName).FirstOrDefaultAsync();
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateDepartment(string? name)
     {
@@ -291,7 +301,12 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         if (model.CommitteeRole != null && model.Role != RoleNames.TopCommittee && model.Role != RoleNames.EvaluationCommittee && model.Role != RoleNames.SourcingManager)
             ModelState.AddModelError(nameof(model.CommitteeRole), "This account is not a committee member.");
         if (!ModelState.IsValid) return await InvalidCreateUser(model);
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        if (model.CommitteeRole != null && await ActivePositionHolder(model.CommitteeRole) is string holder)
+        {
+            ModelState.AddModelError(nameof(model.CommitteeRole), $"{model.CommitteeRole} already has an active account ({holder}). Deactivate it before assigning this position.");
+            return await InvalidCreateUser(model);
+        }
         var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, DepartmentId = model.DepartmentId, EmailConfirmed = true };
         var result = await users.CreateAsync(user, model.Password);
         if (result.Succeeded)
@@ -353,6 +368,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
     {
         var user = await users.FindByIdAsync(model.Id);
         if (user == null) return NotFound();
+        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         if (await users.IsInRoleAsync(user, RoleNames.Department) && model.DepartmentId == null)
             ModelState.AddModelError(nameof(model.DepartmentId), "A department account needs a department.");
         if (model.DepartmentId.HasValue && model.DepartmentId != user.DepartmentId &&
@@ -360,6 +376,14 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
             ModelState.AddModelError(nameof(model.DepartmentId), "Choose an active department.");
         if (model.Id == users.GetUserId(User) && !model.IsActive)
             ModelState.AddModelError(nameof(model.IsActive), "Your own administrator account must stay active.");
+        if (model.IsActive && !user.IsActive)
+        {
+            var positions = (await users.GetRolesAsync(user))
+                .Intersect(RoleNames.EvaluationPositions.Concat(RoleNames.TopPositions));
+            foreach (var position in positions)
+                if (await ActivePositionHolder(position, user.Id) is string holder)
+                    ModelState.AddModelError(nameof(model.IsActive), $"{position} already has an active account ({holder}). Deactivate it before activating this account.");
+        }
         if (ModelState.IsValid)
         {
             user.FullName = model.FullName;
@@ -368,6 +392,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
             var result = await users.UpdateAsync(user);
             if (result.Succeeded)
             {
+                await transaction.CommitAsync();
                 TempData["UsersFeedback"] = "Account updated.";
                 return RedirectToAction(nameof(Users));
             }
