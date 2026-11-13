@@ -1,5 +1,5 @@
 :root { --ink: #172b3a; --muted: #566775; --line: #dce3e9; --surface: #f4f7f9; --accent: #145da0; --focus: #a35b00; }
-body { color: var(--ink); background: white; font-family: "Segoe UI", Arial, sans-serif; font-size: 1rem; }
+body { color: var(--ink); background: white; font-family: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif; font-size: 1rem; }
 a { color: var(--accent); }
 h1 { font-size: 1.8rem; margin-bottom: 1.5rem; } h2 { font-size: 1.15rem; }
 .app-shell { display: flex; min-height: calc(100vh - 80px); }
@@ -27,7 +27,30 @@ h1 { font-size: 1.8rem; margin-bottom: 1.5rem; } h2 { font-size: 1.15rem; }
 .workspace-columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,2fr); gap: 1rem; }
 .committee-section h3 { font-size: 1.1rem; }
 .notification-bell { display: inline-flex; align-items: center; gap: .3rem; min-height: 40px; }
-.notification-dropdown { width: min(340px, calc(100vw - 3rem)); max-height: 420px; overflow-y: auto; }
+.notification-dropdown {
+    width: min(360px, calc(100vw - 2rem));
+    max-height: min(420px, 70vh);
+    overflow-y: auto;
+    border: 1px solid #fff9;
+    border-radius: 20px;
+    background: linear-gradient(145deg, #ffffffeb, #e6effbd9);
+    box-shadow: 0 16px 42px #172f5036, inset 0 1px 0 #fff9;
+    backdrop-filter: blur(18px) saturate(145%);
+}
+.notification-dropdown h2 { font-weight: 700; letter-spacing: -.02em; }
+.notification-dropdown .notification-item {
+    margin: .35rem;
+    padding: .8rem .9rem;
+    border: 0;
+    border-radius: 13px;
+    background: #ffffff65;
+}
+.notification-dropdown .notification-item a {
+    display: inline-block;
+    margin-top: .25rem;
+    font-weight: 650;
+    text-underline-offset: .18em;
+}
 .notification-item { padding: .65rem .5rem; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
 .supplier-details summary { cursor: pointer; }
 .pharma-brand { display: inline-flex; align-items: center; gap: .65rem; font-size: 1.25rem; font-weight: 800; letter-spacing: -.025em; }

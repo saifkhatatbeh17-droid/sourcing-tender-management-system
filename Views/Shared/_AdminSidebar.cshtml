@@ -1,0 +1,38 @@
+@using SourcingTenderManagement.Models
+@{
+    var currentAction = ViewData["ActivePage"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString();
+    var activeAction = currentAction == "SupplierDetails" ? "Suppliers" : currentAction;
+}
+<aside class="admin-sidebar" aria-label="Admin navigation">
+    <div class="admin-sidebar-top">
+        <div class="admin-sidebar-header">
+            <div class="admin-sidebar-role">Admin</div>
+            <button type="button" class="admin-sidebar-toggle" aria-label="Toggle sidebar menu" aria-controls="admin-sidebar-menu" aria-expanded="true" title="Toggle sidebar menu">
+                <partial name="_AdminSidebarIcon" model='@("Menu")' />
+            </button>
+        </div>
+        <nav id="admin-sidebar-menu" class="admin-sidebar-nav" aria-label="Administration">
+            @foreach (var item in PageNavigation.Menus["Admin"])
+            {
+                var isActive = activeAction == item.Action;
+                <a class="admin-sidebar-item @(isActive ? "is-active" : null)" asp-controller="Admin" asp-action="@item.Action"
+                   aria-current="@(isActive ? "page" : null)" aria-label="@item.Title" title="@item.Title">
+                    <partial name="_AdminSidebarIcon" model="item.Action" />
+                    <span>@item.Title</span>
+                </a>
+            }
+        </nav>
+    </div>
+    <div class="admin-sidebar-bottom">
+        <button type="button" class="admin-sidebar-item" data-theme-toggle aria-pressed="false" aria-label="Dark mode" title="Dark mode">
+            <partial name="_AdminSidebarIcon" model='@("Theme")' />
+            <span data-theme-label>Dark Mode</span>
+        </button>
+        <form asp-controller="Account" asp-action="Logout" method="post">
+            <button type="submit" class="admin-sidebar-item" aria-label="Logout" title="Logout">
+                <partial name="_AdminSidebarIcon" model='@("Logout")' />
+                <span>Logout</span>
+            </button>
+        </form>
+    </div>
+</aside>

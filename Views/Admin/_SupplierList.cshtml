@@ -1,69 +1,86 @@
 @model SupplierListViewModel
 @{
     var title = Model.ApplicationsOnly ? "Supplier Applications" : "Suppliers";
-    var action = Model.ApplicationsOnly ? "SupplierApplications" : "Suppliers";
+
 }
 
 <div class="workspace-heading">
     <h1>@title</h1>
     @if (!Model.ApplicationsOnly)
     {
-        <a asp-action="ExportSuppliers" asp-route-status="@Model.SelectedStatus" class="btn btn-outline-primary">
-            Download supplier report (CSV)
+        <a id="supplier-export" asp-action="ExportSuppliers" asp-route-search="@ViewBag.FilterSearch" asp-route-status="@Model.SelectedStatus" class="btn btn-outline-primary">
+            <span aria-hidden="true">↓</span> Export CSV
         </a>
     }
 </div>
 
-<form asp-action="@action" method="get" class="workspace-toolbar align-items-end" aria-label="Filter suppliers">
-    <div>
-        <label for="supplier-status" class="form-label">Status</label>
-        <select id="supplier-status" name="status" class="form-select">
-            <option value="">All statuses</option>
-            @foreach (var status in Model.AvailableStatuses)
-            {
-                <option value="@status" selected="@(status == Model.SelectedStatus)">@SupplierListViewModel.StatusLabel(status)</option>
-            }
-        </select>
-    </div>
-    <button class="btn btn-outline-primary" type="submit">Apply filter</button>
-    @if (Model.SelectedStatus != null)
-    {
-        <a asp-action="@action" class="btn btn-link">Clear</a>
-    }
-</form>
+@if (TempData["SupplierReviewFeedback"] is string feedback)
+{
+    <p class="admin-feedback admin-review-feedback" data-admin-feedback role="status">@feedback</p>
+}
+@if (TempData["SupplierReviewConflict"] is string conflict)
+{
+    <p class="alert alert-warning" role="alert">@conflict</p>
+}
 
+
+@if (!Model.ApplicationsOnly)
+{
+    <div class="admin-filter-bar">
+    <form asp-action="Suppliers" method="get" class="admin-record-filters row g-3" data-local-filter data-results="supplier-results" aria-label="Filter suppliers">
+        <div class="col-12 col-sm">
+            <input class="form-control" type="search" name="search" value="@ViewBag.FilterSearch" placeholder="Search by company, registration or email" aria-label="Search suppliers" />
+        </div>
+        <div class="col">
+            <select class="form-select" name="status" aria-label="Supplier status">
+                <option value="">All statuses</option>
+                @foreach (var status in Model.AvailableStatuses)
+                {
+                    <option value="@status" selected="@(status == Model.SelectedStatus)">@SupplierListViewModel.StatusLabel(status)</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto"><a asp-action="Suppliers" class="btn btn-link">Clear</a></div>
+    </form>
+    </div>
+}
+<section class="admin-records" aria-label="@title records">
+<div id="supplier-results">
 @if (Model.Suppliers.Count == 0)
 {
-    <p class="workspace-section">No @(Model.ApplicationsOnly ? "applications" : "suppliers") match this view.</p>
+    <p class="admin-record-empty">No @(Model.ApplicationsOnly ? "applications" : "suppliers") match this view.</p>
 }
 else
 {
-    <div class="table-responsive" role="region" aria-label="@title" tabindex="0">
-        <table class="table align-middle">
+    <div class="table-responsive" tabindex="0" role="region" aria-label="@title">
+        <table class="table align-middle admin-record-table">
             <thead>
                 <tr>
                     <th scope="col">Company</th>
-                    <th scope="col">Registration number</th>
+                    <th scope="col">Registration</th>
+                    <th scope="col">Submitted</th>
                     <th scope="col">Status</th>
-                    <th scope="col">Submitted (UTC)</th>
-                    <th scope="col">Action</th>
+                    <th scope="col">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var supplier in Model.Suppliers)
                 {
-                    <tr id="supplier-@supplier.SupplierProfileId">
-                        <th scope="row" class="text-break">
-                            @supplier.CompanyName
-                            <div class="small fw-normal text-secondary">@supplier.User.Email</div>
+                    <tr data-admin-row data-search="@supplier.CompanyName @supplier.RegistrationNumber @supplier.User.Email" data-status="@supplier.Status">
+                        <th scope="row">
+                            <div class="admin-record-identity">
+                                <span class="admin-record-avatar" aria-hidden="true">@supplier.CompanyName.Trim().FirstOrDefault()</span>
+                                <div class="text-break">@supplier.CompanyName
+                                    <div class="text-secondary fw-normal small">@supplier.User.Email</div>
+                                </div>
+                            </div>
                         </th>
                         <td>@supplier.RegistrationNumber</td>
+                        <td>@supplier.CreatedAt.ToString("dd MMM yyyy")</td>
+                        <td><span class="badge rounded-pill @SupplierListViewModel.StatusStyle(supplier.Status)">@SupplierListViewModel.StatusLabel(supplier.Status)</span></td>
                         <td>
-                            <span class="badge @SupplierListViewModel.StatusStyle(supplier.Status)">@SupplierListViewModel.StatusLabel(supplier.Status)</span>
-                        </td>
-                        <td><time datetime="@supplier.CreatedAt.ToString("yyyy-MM-dd")">@supplier.CreatedAt.ToString("dd MMM yyyy")</time></td>
-                        <td>
-                            <a asp-action="SupplierDetails" asp-route-id="@supplier.SupplierProfileId"
+                            <a class="btn btn-sm btn-outline-primary text-nowrap" asp-action="SupplierDetails" asp-route-id="@supplier.SupplierProfileId"
+                               asp-route-reviewApplication="@Model.ApplicationsOnly.ToString().ToLowerInvariant()" data-supplier-dialog data-company="@supplier.CompanyName"
                                aria-label="Open @supplier.CompanyName">@(Model.ApplicationsOnly ? "Review" : "View details")</a>
                         </td>
                     </tr>
@@ -71,4 +88,10 @@ else
             </tbody>
         </table>
     </div>
+    <partial name="_AdminPager" />
 }
+
+</div>
+</section>
+
+<partial name="_SupplierReviewDialog" />

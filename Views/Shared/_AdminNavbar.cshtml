@@ -1,0 +1,10 @@
+<header class="admin-navbar">
+    <nav class="container-fluid p-3 d-flex align-items-center justify-content-end gap-3" aria-label="Admin toolbar">
+        <a asp-controller="Home" asp-action="Index" aria-label="Home" title="Home">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9" />
+            </svg>
+        </a>
+        @await Component.InvokeAsync("NotificationBell")
+    </nav>
+</header>
