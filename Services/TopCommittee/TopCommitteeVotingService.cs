@@ -36,16 +36,15 @@ internal sealed class TopCommitteeVotingService(ITopCommitteeVotingStore store) 
                 if (context.Nomination!.BidId != input.ExpectedNominatedBidId)
                     throw new CommitteeStateConflictException("The Manager nomination changed. Reload the tender and review it before voting.");
                 await session.AssertNotPausedAsync(ct);
-                // Fail closed for BOTH decisions until the separately approved constraint update is applied.
+                // Validate the existing database constraint before recording an approval.
                 if (!await session.IsDatabaseReadyAsync(ct)) throw new CommitteeStateConflictException(TopCommitteeVotingDatabase.Unavailable);
                 var previous = tender.TenderApprovals.Where(v => v.Stage == "Top").ToList();
                 var now = DateTime.UtcNow;
                 session.Add(new TenderApproval { TenderId = tender.TenderId, UserId = memberId,
                     CommitteeAssignmentId = assignment.AssignmentId, Stage = "Top", Decision = input.Decision,
                     Notes = notes, DecidedAt = now });
-                var award = input.Decision == "Approved" && previous.Count == 3 && previous.All(v => v.Decision == "Approved");
-                if (input.Decision == "Rejected") tender.Status = "AwaitingManagerReview";
-                else if (award)
+                var award = previous.Count == 3 && previous.All(v => v.Decision == "Approved");
+                if (award)
                 {
                     tender.Status = "Awarded";
                     tender.AwardedBidId = context.Nomination.BidId;

@@ -89,9 +89,16 @@ try:
     """).split())
     clients = [session('evaluation.' + name + '@tender.local', password) for name, password in zip(
         ['manager', 'department', 'financial', 'technical'], passwords)]
-    assert '215.00 JOD' in page(clients[0], tender), 'Offer total was not rendered.'
+    rendered_text = re.sub(r'\s+', ' ', re.sub(r'<[^>]*>', '', page(clients[0], tender)))
+    assert '215.00 JOD' in rendered_text, 'Offer total was not rendered.'
+    assert 'id="ai-tab"' not in page(clients[0], tender), 'Removed AI tab is still rendered.'
+    assert post(clients[0], 'Analyze', tender)[0] == 404, 'Removed AI endpoint is still accessible.'
     assert post(clients[0], 'Start', tender, csrf=False)[0] == 400, 'Missing CSRF token accepted.'
     assert post(clients[0], 'Start', tender)[0] == 200
+    detail_html = clients[0].open(base + '/EvaluationCommittee/Evaluations/' + str(tender)).read().decode()
+    assert 'action="/EvaluationCommittee/Evaluations"' in detail_html, 'Tender picker retained the previous route ID.'
+    assert detail_html.count('ev-member-form ev-my-form') == 1, 'Current member form was not uniquely identified.'
+    assert 'formaction="/EvaluationCommittee/Approve' in detail_html, 'Approve button does not submit the member form.'
     assert sql(f"SELECT COUNT(*) FROM CommitteeAssignments WHERE TenderId={tender}") == '4'
     assert post(clients[0], 'Approve', tender)[0] == 200
     assert sql(f"SELECT COUNT(*) FROM TenderApprovals WHERE TenderId={tender}") == '0', 'Incomplete evaluation approved.'
@@ -133,11 +140,8 @@ try:
     assert sql(f"SELECT COUNT(*) FROM EvaluationReports WHERE TenderId={tender} AND CommitteeSummary IS NOT NULL") == '1'
     assert sql(f"SELECT COUNT(*) FROM TenderApprovals WHERE TenderId={tender}") == '4'
     assert sql(f"SELECT COUNT(*) FROM Evaluations WHERE TenderId={tender} AND Status='Approved'") == '4'
-    if '--ai' in sys.argv:
-        assert post(clients[0], 'Analyze', tender)[0] == 200
-        assert sql(f"SELECT COUNT(*) FROM AiAnalyses WHERE TenderId={tender}") == '3', 'AI analysis did not save all three ratios.'
     assert post(clients[3], 'SaveScores', tender, scores(requirements, 0))[0] == 400
-    print('PASS: direct approval without prior saves/report, optional save, independent member forms, score ownership/ranges, approved-form locking, duplicate prevention, automatic report and recommendation, four-member handoff' + (', three real Ollama analyses after approval.' if '--ai' in sys.argv else '.'))
+    print('PASS: direct approval without prior saves/report, optional save, independent member forms, score ownership/ranges, approved-form locking, duplicate prevention, automatic report and recommendation, four-member handoff' + '.')
 finally:
     sql(cleanup)
     print('Temporary fixtures removed. Existing demo data preserved.')

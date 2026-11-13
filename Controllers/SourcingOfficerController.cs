@@ -469,68 +469,56 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateInvitation(int tenderId, int supplierProfileId)
+    public async Task<IActionResult> CreateInvitation(int tenderId, List<int> supplierProfileIds, bool allSuppliers = false)
     {
-        if (tenderId <= 0 || supplierProfileId <= 0)
+        if (!ModelState.IsValid || tenderId <= 0 || (!allSuppliers && supplierProfileIds.Count == 0))
         {
-            TempData["InvitationError"] = "Select a tender and an approved supplier.";
+            TempData["InvitationError"] = "Select a tender and at least one approved supplier.";
             return RedirectToAction(nameof(Invitations));
         }
-
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var tender = await db.Tenders.SingleOrDefaultAsync(t =>
-            t.TenderId == tenderId && t.CreatedByUserId == userId);
-
+        var tender = await db.Tenders.AsNoTracking().SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
         if (tender.Status != "Published")
         {
             TempData["InvitationError"] = "Invitations can only be created for your Published tenders.";
             return RedirectToAction(nameof(Invitations));
         }
-
-        var supplier = await db.SupplierProfiles.SingleOrDefaultAsync(s =>
-            s.SupplierProfileId == supplierProfileId && s.Status == "Approved");
-        if (supplier == null)
+        var selectedIds = supplierProfileIds.Distinct().ToList();
+        var approvedIds = await db.SupplierProfiles.Where(s => s.Status == "Approved"
+            && (allSuppliers || selectedIds.Contains(s.SupplierProfileId))).Select(s => s.SupplierProfileId).ToListAsync();
+        if (approvedIds.Count == 0 || (!allSuppliers && approvedIds.Count != selectedIds.Count))
         {
-            TempData["InvitationError"] = "The selected supplier was not found or is not approved.";
+            TempData["InvitationError"] = "Select valid, approved suppliers only.";
             return RedirectToAction(nameof(Invitations));
         }
-
-        if (await db.Invitations.AnyAsync(i =>
-                i.TenderId == tenderId && i.SupplierProfileId == supplierProfileId))
+        var existingIds = await db.Invitations.Where(i => i.TenderId == tenderId)
+            .Select(i => i.SupplierProfileId).ToListAsync();
+        var invitations = approvedIds.Except(existingIds).Select(supplierId => new Invitation
         {
-            TempData["InvitationError"] = "This supplier has already been invited to this tender.";
+            TenderId = tenderId, SupplierProfileId = supplierId, InvitedByUserId = userId!,
+            Status = "Pending", SentAt = DateTime.UtcNow
+        }).ToList();
+        if (invitations.Count == 0)
+        {
+            TempData["InvitationSuccess"] = "All selected suppliers have already been invited. No duplicate invitations were created.";
             return RedirectToAction(nameof(Invitations));
         }
-
-        var invitation = new Invitation
-        {
-            TenderId = tenderId,
-            SupplierProfileId = supplierProfileId,
-            InvitedByUserId = userId!,
-            Status = "Pending",
-            SentAt = DateTime.UtcNow
-        };
-
-        db.Invitations.Add(invitation);
+        db.Invitations.AddRange(invitations);
         try
         {
             await db.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {
-            db.Entry(invitation).State = EntityState.Detached;
-            var duplicateExists = await db.Invitations.AnyAsync(i =>
-                i.TenderId == tenderId && i.SupplierProfileId == supplierProfileId);
-            TempData["InvitationError"] = duplicateExists
-                ? "This supplier has already been invited to this tender."
-                : "The invitation could not be saved. Please try again.";
+            foreach (var invitation in invitations) db.Entry(invitation).State = EntityState.Detached;
+            TempData["InvitationError"] = "The invitations could not be saved. Refresh and try again; a supplier may have just been invited.";
             return RedirectToAction(nameof(Invitations));
         }
-
-        TempData["InvitationSuccess"] = "Supplier invitation created successfully.";
+        TempData["InvitationSuccess"] = $"Sent {invitations.Count} invitation(s). Suppliers already invited were skipped.";
         return RedirectToAction(nameof(Invitations));
     }
+
     public async Task<IActionResult> Offers(int? id, int? tenderId, int? supplierProfileId, string status = "All")
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

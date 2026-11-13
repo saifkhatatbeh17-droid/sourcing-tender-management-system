@@ -231,6 +231,42 @@ public partial class SourcingManagerController : Controller
             return SubmissionMessage("Only an approved recommendation awaiting referral can be forwarded.");
         }
 
+        var assignments = _context.CommitteeAssignments
+            .Where(a => a.TenderId == tender.TenderId && a.CommitteeType == "Top").ToList();
+        if (assignments.Count == 0)
+        {
+            var memberIds = new List<string>();
+            foreach (var role in RoleNames.TopPositions)
+            {
+                var candidates = _context.Users.Where(user => user.IsActive &&
+                    _context.UserRoles.Any(link => link.UserId == user.Id &&
+                        _context.Roles.Any(r => r.Id == link.RoleId && r.Name == role)) &&
+                    _context.UserRoles.Any(link => link.UserId == user.Id &&
+                        _context.Roles.Any(r => r.Id == link.RoleId && r.Name == RoleNames.TopCommittee)))
+                    .Select(user => user.Id).ToList();
+                if (candidates.Count != 1)
+                    return SubmissionMessage($"Admin must provide exactly one active Top Committee account for {role}.", input.ReportId);
+                memberIds.Add(candidates[0]);
+            }
+            if (memberIds.Distinct().Count() != 4)
+                return SubmissionMessage("Four different Top Committee accounts are required.", input.ReportId);
+            for (var position = 1; position <= 4; position++)
+                _context.CommitteeAssignments.Add(new CommitteeAssignment
+                {
+                    TenderId = tender.TenderId, UserId = memberIds[position - 1],
+                    CommitteeType = "Top", Position = position
+                });
+            // Save inside this transaction so the notification query can find the new assignments.
+            _context.SaveChanges();
+        }
+        else if (assignments.Count != 4 || assignments.Select(a => a.UserId).Distinct().Count() != 4 ||
+            assignments.Any(a => !_context.Users.Any(user => user.Id == a.UserId && user.IsActive &&
+                _context.UserRoles.Any(link => link.UserId == user.Id &&
+                    _context.Roles.Any(r => r.Id == link.RoleId && r.Name == RoleNames.TopCommittee)))))
+        {
+            return SubmissionMessage("The tender needs four distinct, active Top Committee members before referral.", input.ReportId);
+        }
+
         tender.Status = AwaitingCommitteeDecision;
         if (string.IsNullOrWhiteSpace(evaluationReport.ManagerSummary))
         {
