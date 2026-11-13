@@ -1,0 +1,121 @@
+@model PurchaseRequestForm
+@{
+    var requestId = ViewData["RequestId"] as int?;
+    var editing = requestId.HasValue;
+    var earliestTargetDate = PurchaseRequestForm.EarliestTargetDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    ViewData["Title"] = editing ? "Edit Purchase Request" : "Create Purchase Request";
+}
+<h1>@ViewData["Title"]</h1>
+@if (ViewData["ReviewNotes"] is string notes)
+{
+    <p><strong>Latest review notes</strong></p>
+    <p class="text-break" style="white-space: pre-wrap">@notes</p>
+}
+<form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@requestId" method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="Title" class="form-label"></label>
+        <input asp-for="Title" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Reason" class="form-label"></label>
+        <textarea asp-for="Reason" class="form-control"></textarea>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Priority" class="form-label"></label>
+        <select asp-for="Priority" class="form-select">
+            @foreach (var priority in PurchaseRequestForm.Priorities)
+            {
+                <option value="@priority">@priority</option>
+            }
+        </select>
+    </div>
+    <div class="mb-3">
+        <label asp-for="TargetDate" class="form-label">Target date</label>
+        <input asp-for="TargetDate" type="date" class="form-control" min="@earliestTargetDate" required />
+        <span asp-validation-for="TargetDate" class="text-danger"></span>
+    </div>
+
+    <h2>Items</h2>
+    <p class="form-text" id="item-name-help">Choose a suggestion or type the exact item name.</p>
+    <datalist id="purchase-item-suggestions">
+        <option value="Active pharmaceutical ingredient"></option>
+        <option value="Excipient"></option>
+        <option value="Laboratory reagent"></option>
+        <option value="Reference standard"></option>
+        <option value="Sample vial"></option>
+        <option value="Blister packaging"></option>
+        <option value="Label stock"></option>
+        <option value="Nitrile gloves"></option>
+    </datalist>
+    <div id="request-items">
+        @for (var i = 0; i < Model.Items.Count; i++)
+        {
+            <fieldset class="border rounded p-3 mb-3">
+                <legend class="fs-6">Item</legend>
+                <label asp-for="Items[i].ItemName" class="form-label">Item name</label>
+                <input asp-for="Items[i].ItemName" class="form-control mb-2" maxlength="200" list="purchase-item-suggestions" aria-describedby="item-name-help" />
+                <label asp-for="Items[i].Quantity" class="form-label">Quantity</label>
+                <input asp-for="Items[i].Quantity" type="number" min="0.001" step="0.001" class="form-control mb-2" />
+                <label asp-for="Items[i].Unit" class="form-label">Unit</label>
+                <input asp-for="Items[i].Unit" class="form-control mb-2" maxlength="30" />
+                <label asp-for="Items[i].Specifications" class="form-label">Specifications</label>
+                <textarea asp-for="Items[i].Specifications" class="form-control mb-2" maxlength="4000"></textarea>
+                <button type="button" class="btn btn-outline-secondary" data-remove>Remove Item</button>
+            </fieldset>
+        }
+    </div>
+    <button type="button" class="btn btn-outline-secondary" id="add-request-item">Add Item</button>
+    <button type="submit" class="btn btn-primary">@(editing ? "Resubmit Request" : "Submit Request")</button>
+    <a asp-action="@(editing ? "Details" : "Requests")" asp-route-id="@requestId" class="btn btn-link">Cancel</a>
+</form>
+
+<template id="request-item-template">
+    <fieldset class="border rounded p-3 mb-3">
+        <legend class="fs-6">Item</legend>
+        <label class="form-label" data-for="ItemName">Item name</label>
+        <input class="form-control mb-2" data-field="ItemName" maxlength="200" list="purchase-item-suggestions" aria-describedby="item-name-help" />
+        <label class="form-label" data-for="Quantity">Quantity</label>
+        <input type="number" min="0.001" step="0.001" class="form-control mb-2" data-field="Quantity" />
+        <label class="form-label" data-for="Unit">Unit</label>
+        <input class="form-control mb-2" data-field="Unit" maxlength="30" />
+        <label class="form-label" data-for="Specifications">Specifications</label>
+        <textarea class="form-control mb-2" data-field="Specifications" maxlength="4000"></textarea>
+        <button type="button" class="btn btn-outline-secondary" data-remove>Remove Item</button>
+    </fieldset>
+</template>
+
+@section Scripts {
+    <script>
+        const items = document.getElementById('request-items');
+        const template = document.getElementById('request-item-template');
+
+        function renumberItems() {
+            Array.from(items.children).forEach((row, index) => {
+                row.querySelectorAll('input, textarea').forEach(field => {
+                    const property = field.dataset.field ?? field.name.split('.').pop();
+                    const label = row.querySelector(`label[for="${field.id}"]`) ??
+                        row.querySelector(`label[data-for="${property}"]`);
+                    field.name = `Items[${index}].${property}`;
+                    field.id = `Items_${index}__${property}`;
+                    label.htmlFor = field.id;
+                });
+                row.querySelector('[data-remove]').disabled = items.children.length === 1;
+            });
+        }
+
+        document.getElementById('add-request-item').addEventListener('click', () => {
+            items.append(template.content.cloneNode(true));
+            renumberItems();
+            items.lastElementChild.querySelector('input').focus();
+        });
+        items.addEventListener('click', event => {
+            if (event.target.matches('[data-remove]') && items.children.length > 1) {
+                event.target.closest('fieldset').remove();
+                renumberItems();
+            }
+        });
+        if (items.children.length === 0) items.append(template.content.cloneNode(true));
+        renumberItems();
+    </script>
+}

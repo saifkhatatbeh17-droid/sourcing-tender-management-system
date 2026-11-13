@@ -1,12 +1,140 @@
+using System.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Models;
+using SourcingTenderManagement.Models.Entities;
+
 namespace SourcingTenderManagement.Controllers;
+
 [Authorize(Roles = RoleNames.Department)]
-public class DepartmentController : Controller
+[AutoValidateAntiforgeryToken]
+public class DepartmentController(ApplicationDbContext db, UserManager<ApplicationUser> users)
+    : Controller
 {
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
-    public IActionResult Dashboard() => View();
-    public IActionResult Requests() => View();
+
+    public async Task<IActionResult> Dashboard()
+    {
+        var user = await users.GetUserAsync(User);
+        if (user?.DepartmentId == null) return Forbid();
+        return View(await DepartmentRequests(user).OrderByDescending(r => r.CreatedAt).ToListAsync());
+    }
+
+    public async Task<IActionResult> Requests()
+    {
+        var user = await users.GetUserAsync(User);
+        if (user?.DepartmentId == null) return Forbid();
+        return View(await DepartmentRequests(user).Where(r => r.RequestedByUserId == user.Id)
+            .OrderByDescending(r => r.CreatedAt).ToListAsync());
+    }
+
+    public async Task<IActionResult> Details(int id)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user?.DepartmentId == null) return Forbid();
+
+        var request = await DepartmentRequests(user)
+            .Include(r => r.RequestedByUser).Include(r => r.ReviewedByUser)
+            .Include(r => r.PurchaseRequestItems)
+            .SingleOrDefaultAsync(r => r.PurchaseRequestId == id);
+        if (request == null) return NotFound();
+
+        ViewData["CanEdit"] = request.RequestedByUserId == user.Id && request.Status == "Returned";
+
+        return View(request);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Create()
+    {
+        var user = await users.GetUserAsync(User);
+        if (user?.DepartmentId == null) return Forbid();
+        return View("RequestForm", new PurchaseRequestForm { Items = [new()] });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create(PurchaseRequestForm form)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user?.DepartmentId == null) return Forbid();
+        if (!ModelState.IsValid) return View("RequestForm", form);
+
+        var request = new PurchaseRequest
+        {
+            DepartmentId = user.DepartmentId.Value,
+            RequestedByUserId = user.Id
+        };
+        form.ApplyTo(request);
+        db.PurchaseRequests.Add(request);
+        await db.SaveChangesAsync();
+        return RedirectToAction(nameof(Details), new { id = request.PurchaseRequestId });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user?.DepartmentId == null) return Forbid();
+        var request = await DepartmentRequests(user).Include(r => r.PurchaseRequestItems)
+            .SingleOrDefaultAsync(r => r.PurchaseRequestId == id && r.RequestedByUserId == user.Id);
+        if (request == null) return NotFound();
+        if (request.Status != "Returned") return Conflict("Only returned requests can be resubmitted.");
+
+        SetEditViewData(request);
+        return View("RequestForm", new PurchaseRequestForm
+        {
+            Title = request.Title,
+            Reason = request.Reason,
+            Priority = request.Priority,
+            TargetDate = request.TargetDate,
+            Items = request.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId)
+                .Select(i => new PurchaseRequestItemForm
+                {
+                    ItemName = i.ItemName,
+                    Quantity = i.Quantity,
+                    Unit = i.Unit,
+                    Specifications = i.Specifications
+                }).ToList()
+        });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Edit(int id, PurchaseRequestForm form)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user?.DepartmentId == null) return Forbid();
+
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var request = await db.PurchaseRequests.Include(r => r.PurchaseRequestItems)
+            .SingleOrDefaultAsync(r => r.PurchaseRequestId == id && r.DepartmentId == user.DepartmentId
+                && r.RequestedByUserId == user.Id);
+        if (request == null) return NotFound();
+        if (request.Status != "Returned") return Conflict("Only returned requests can be resubmitted.");
+        if (!ModelState.IsValid)
+        {
+            SetEditViewData(request);
+            return View("RequestForm", form);
+        }
+
+        db.PurchaseRequestItems.RemoveRange(request.PurchaseRequestItems);
+        request.PurchaseRequestItems.Clear();
+        form.ApplyTo(request);
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     public IActionResult Clarifications() => View();
+
+    private IQueryable<PurchaseRequest> DepartmentRequests(ApplicationUser user) =>
+        db.PurchaseRequests.AsNoTracking().Include(r => r.Department).Where(r => r.DepartmentId == user.DepartmentId);
+
+    private void SetEditViewData(PurchaseRequest request)
+    {
+        ViewData["RequestId"] = request.PurchaseRequestId;
+        ViewData["ReviewNotes"] = request.ReviewNotes;
+    }
 }

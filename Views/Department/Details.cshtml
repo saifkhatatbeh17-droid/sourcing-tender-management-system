@@ -1,0 +1,16 @@
+@model SourcingTenderManagement.Models.Entities.PurchaseRequest
+@{ ViewData["Title"] = "Purchase Requests"; }
+<h1>Purchase Requests</h1>
+<div class="nav nav-tabs workspace-tabs" aria-label="Purchase Requests">
+    <a class="nav-link" asp-action="Requests">My Requests</a>
+    <a class="nav-link active" asp-action="Details" asp-route-id="@Model.PurchaseRequestId" aria-current="page">Request Details</a>
+</div>
+<div class="workspace-content">
+    <section class="workspace-section">
+        <partial name="_PurchaseRequestDetails" model="Model" />
+        @if (ViewData["CanEdit"] is true)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.PurchaseRequestId" class="btn btn-primary">Edit and Resubmit</a>
+        }
+    </section>
+</div>
