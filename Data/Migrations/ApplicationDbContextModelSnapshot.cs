@@ -1361,6 +1361,61 @@ namespace SourcingTenderManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.UserFaceCredential", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("ConsentGrantedAt")
+                        .HasColumnType("datetime2(7)");
+
+                    b.Property<string>("ConsentVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("EnrolledAt")
+                        .HasColumnType("datetime2(7)");
+
+                    b.Property<DateTime>("EnrollmentPromptedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(7)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("ModelIdentifier")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<byte[]>("ProtectedTemplates")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<short>("SampleCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0);
+
+                    b.Property<short?>("TemplateFormatVersion")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(7)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserFaceCredentials", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_UserFaceCredentials_EnrollmentState", "(\n    [SampleCount] = 0\n    AND [ProtectedTemplates] IS NULL\n    AND [TemplateFormatVersion] IS NULL\n    AND [ModelIdentifier] IS NULL\n    AND [ConsentVersion] IS NULL\n    AND [ConsentGrantedAt] IS NULL\n    AND [EnrolledAt] IS NULL\n)\nOR\n(\n    [SampleCount] BETWEEN 3 AND 5\n    AND [ProtectedTemplates] IS NOT NULL\n    AND DATALENGTH([ProtectedTemplates]) > 0\n    AND [TemplateFormatVersion] IS NOT NULL\n    AND [TemplateFormatVersion] > 0\n    AND [ModelIdentifier] IS NOT NULL\n    AND LEN([ModelIdentifier]) > 0\n    AND [ConsentVersion] IS NOT NULL\n    AND LEN([ConsentVersion]) > 0\n    AND [ConsentGrantedAt] IS NOT NULL\n    AND [EnrolledAt] IS NOT NULL\n)");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -1822,6 +1877,17 @@ namespace SourcingTenderManagement.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Tender");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.UserFaceCredential", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Data.ApplicationUser", "User")
+                        .WithOne()
+                        .HasForeignKey("SourcingTenderManagement.Models.Entities.UserFaceCredential", "UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Data.ApplicationUser", b =>

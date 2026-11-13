@@ -23,6 +23,7 @@
         @if (User.Identity?.IsAuthenticated == true)
         {
             <a asp-controller="Account" asp-action="GoToDashboard">My Dashboard</a>
+            <a asp-controller="FaceEnrollment" asp-action="Index">Manage Face ID</a>
             @await Component.InvokeAsync("NotificationBell")
             <form asp-controller="Account" asp-action="Logout" method="post"><button class="btn btn-sm btn-outline-secondary">Sign Out</button></form>
         }
