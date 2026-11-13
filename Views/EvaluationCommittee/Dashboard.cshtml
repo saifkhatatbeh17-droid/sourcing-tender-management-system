@@ -1,3 +1,10 @@
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<!-- TEAM TODO: Implement EvaluationCommittee / Dashboard here. -->
+@model CommitteeEvaluationPage
+@{ ViewData["Title"] = "Evaluation Committee"; }
+<h1>Evaluation Committee</h1>
+<p>Review compliant offers, save your member form, and approve the combined report.</p>
+<p><strong>Under evaluation:</strong> @Model.Tenders.Count(t => t.Status == "UnderEvaluation") · <strong>Sent to officer or later:</strong> @Model.Tenders.Count(t => t.Status != "UnderEvaluation")</p>
+@foreach (var tender in Model.Tenders)
+{
+    <section class="workspace-section"><h2 class="h5"><a asp-action="Evaluations" asp-route-id="@tender.TenderId">@tender.Title</a></h2><p>@tender.Status</p></section>
+}
+@if (Model.Tenders.Count == 0) { <p>No tenders are ready for evaluation.</p> }

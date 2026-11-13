@@ -1,67 +1,50 @@
+@model CommitteeEvaluationPage
+@if (Model.Members.Count == 0) { <p>Start the evaluation to open the four member forms.</p> }
 <div class="committee-grid">
-<section class="committee-section" aria-label="Sourcing Manager">
-    <h3>Sourcing Manager</h3>
-    @if (User.IsInRole("EvaluationSourcingManager"))
-    {
-        <p class="text-success">Your form</p>
-        <!-- TEAM TODO: Add the assigned member's form here. Validate the tender assignment server-side. -->
-        <button type="button" class="btn btn-primary" disabled>Save</button>
-        <button type="button" class="btn btn-success" disabled>Approve</button>
-        <button type="button" class="btn btn-outline-danger" title="Design only">Reject</button>
-    }
-    else
-    {
-        <p class="text-secondary">Read-only</p>
-        <!-- TEAM TODO: Display this member's saved evaluation here, without editable inputs. -->
-    }
-</section>
-<section class="committee-section" aria-label="Department Representative">
-    <h3>Department Representative</h3>
-    @if (User.IsInRole("EvaluationDepartment"))
-    {
-        <p class="text-success">Your form</p>
-        <!-- TEAM TODO: Add the assigned member's form here. Validate the tender assignment server-side. -->
-        <button type="button" class="btn btn-primary" disabled>Save</button>
-        <button type="button" class="btn btn-success" disabled>Approve</button>
-        <button type="button" class="btn btn-outline-danger" title="Design only">Reject</button>
-    }
-    else
-    {
-        <p class="text-secondary">Read-only</p>
-        <!-- TEAM TODO: Display this member's saved evaluation here, without editable inputs. -->
-    }
-</section>
-<section class="committee-section" aria-label="Financial Representative">
-    <h3>Financial Representative</h3>
-    @if (User.IsInRole("EvaluationFinancial"))
-    {
-        <p class="text-success">Your form</p>
-        <!-- TEAM TODO: Add the assigned member's form here. Validate the tender assignment server-side. -->
-        <button type="button" class="btn btn-primary" disabled>Save</button>
-        <button type="button" class="btn btn-success" disabled>Approve</button>
-        <button type="button" class="btn btn-outline-danger" title="Design only">Reject</button>
-    }
-    else
-    {
-        <p class="text-secondary">Read-only</p>
-        <!-- TEAM TODO: Display this member's saved evaluation here, without editable inputs. -->
-    }
-</section>
-<section class="committee-section" aria-label="Technical Representative">
-    <h3>Technical Representative</h3>
-    @if (User.IsInRole("EvaluationTechnical"))
-    {
-        <p class="text-success">Your form</p>
-        <!-- TEAM TODO: Add the assigned member's form here. Validate the tender assignment server-side. -->
-        <button type="button" class="btn btn-primary" disabled>Save</button>
-        <button type="button" class="btn btn-success" disabled>Approve</button>
-        <button type="button" class="btn btn-outline-danger" title="Design only">Reject</button>
-    }
-    else
-    {
-        <p class="text-secondary">Read-only</p>
-        <!-- TEAM TODO: Display this member's saved evaluation here, without editable inputs. -->
-    }
-</section>
+@foreach (var member in Model.Members)
+{
+    var mine = member.UserId == Model.UserId;
+    var approval = Model.Approvals.SingleOrDefault(a => a.UserId == member.UserId);
+    var editable = mine && !Model.Locked && approval == null;
+    var scoreIndex = 0;
+    <section class="committee-section">
+        <h3>@CommitteeEvaluationPage.MemberName(member.Position)</h3>
+        <p>@member.User.FullName</p>
+        <p><strong>@(mine ? "Your form" : "Read-only")</strong> · @(approval == null ? "Not approved" : "Approved")</p>
+        <form asp-action="SaveScores" method="post">
+            <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
+            @foreach (var offer in Model.Offers)
+            {
+                <h4 class="h6 mt-3">Offer #@offer.BidId — @offer.Invitation.SupplierProfile.CompanyName</h4>
+                @foreach (var criterion in Model.ForMember(member))
+                {
+                    var saved = Model.Score(member, offer, criterion);
+                    var initial = saved ?? (criterion.Category == "Financial" && criterion.Name == "Price" ? Model.PriceScore(offer) : (decimal?)null);
+                    <div class="mb-2">
+                        <label for="score-@member.Position-@scoreIndex" class="form-label">@criterion.Name (@criterion.Weight%)</label>
+                        @if (editable)
+                        {
+                            <input type="hidden" name="scores[@scoreIndex].BidId" value="@offer.BidId" />
+                            <input type="hidden" name="scores[@scoreIndex].CriterionId" value="@criterion.EvaluationCriterionId" />
+                            <input id="score-@member.Position-@scoreIndex" name="scores[@scoreIndex].Score" type="number" min="0" max="100" step="0.01" value="@initial?.ToString(System.Globalization.CultureInfo.InvariantCulture)" required class="form-control" />
+                        }
+                        else
+                        { <input id="score-@member.Position-@scoreIndex" value="@(saved?.ToString("0.##") ?? "Not saved")" readonly class="form-control" /> }
+                    </div>
+                    scoreIndex++;
+                }
+            }
+            @if (member.Position == 3) { <p class="small">Price starts at lowest offer total ÷ this offer total × 100. Review before saving.</p> }
+            <label for="notes-@member.Position" class="form-label">Member notes</label>
+            <textarea id="notes-@member.Position" name="notes" maxlength="4000" readonly="@(!editable)" class="form-control mb-2">@Model.Evaluations.FirstOrDefault(e => e.CommitteeAssignmentId == member.CommitteeAssignmentId)?.Notes</textarea>
+            @if (editable)
+            {
+                <button class="btn btn-primary">Save my form</button>
+                <p class="small mt-3">Approve saves your current scores and locks only your form. You do not need to save first or wait for other members. All four approvals are required to send the evaluation to the officer.</p>
+                <button asp-action="Approve" class="btn btn-success">Approve</button>
+                <button type="button" class="btn btn-outline-danger" disabled title="Design only; committee rejection is outside this workflow.">Reject</button>
+            }
+        </form>
+    </section>
+}
 </div>
-<!-- Advance only after four distinct assigned members approve. -->
