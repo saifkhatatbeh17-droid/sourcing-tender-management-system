@@ -11,7 +11,14 @@
     </select><span asp-validation-for="Role" class="text-danger"></span></div>
     <div class="field"><label asp-for="CommitteeRole">Committee Position</label><select asp-for="CommitteeRole" class="form-select">
         <option value="">Not a committee member</option>
-        @foreach (var role in SourcingTenderManagement.Data.RoleNames.EvaluationPositions.Concat(SourcingTenderManagement.Data.RoleNames.TopPositions)) { <option value="@role">@role</option> }
+        @foreach (var position in SourcingTenderManagement.Data.RoleNames.EvaluationPositions)
+        {
+            <option value="@position" data-committee="evaluation">@position</option>
+        }
+        @foreach (var position in SourcingTenderManagement.Data.RoleNames.TopPositions)
+        {
+            <option value="@position" data-committee="top">@position</option>
+        }
     </select><span asp-validation-for="CommitteeRole" class="text-danger"></span></div>
     <div class="field"><label asp-for="DepartmentId">Department</label><select asp-for="DepartmentId" class="form-select"><option value="">No department</option>
         @foreach (SourcingTenderManagement.Models.Entities.Department department in ViewBag.Departments)

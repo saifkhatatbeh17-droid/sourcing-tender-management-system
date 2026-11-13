@@ -1,0 +1,74 @@
+@model SupplierListViewModel
+@{
+    var title = Model.ApplicationsOnly ? "Supplier Applications" : "Suppliers";
+    var action = Model.ApplicationsOnly ? "SupplierApplications" : "Suppliers";
+}
+
+<div class="workspace-heading">
+    <h1>@title</h1>
+    @if (!Model.ApplicationsOnly)
+    {
+        <a asp-action="ExportSuppliers" asp-route-status="@Model.SelectedStatus" class="btn btn-outline-primary">
+            Download supplier report (CSV)
+        </a>
+    }
+</div>
+
+<form asp-action="@action" method="get" class="workspace-toolbar align-items-end" aria-label="Filter suppliers">
+    <div>
+        <label for="supplier-status" class="form-label">Status</label>
+        <select id="supplier-status" name="status" class="form-select">
+            <option value="">All statuses</option>
+            @foreach (var status in Model.AvailableStatuses)
+            {
+                <option value="@status" selected="@(status == Model.SelectedStatus)">@SupplierListViewModel.StatusLabel(status)</option>
+            }
+        </select>
+    </div>
+    <button class="btn btn-outline-primary" type="submit">Apply filter</button>
+    @if (Model.SelectedStatus != null)
+    {
+        <a asp-action="@action" class="btn btn-link">Clear</a>
+    }
+</form>
+
+@if (Model.Suppliers.Count == 0)
+{
+    <p class="workspace-section">No @(Model.ApplicationsOnly ? "applications" : "suppliers") match this view.</p>
+}
+else
+{
+    <div class="table-responsive" role="region" aria-label="@title" tabindex="0">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Company</th>
+                    <th scope="col">Registration number</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Submitted (UTC)</th>
+                    <th scope="col">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var supplier in Model.Suppliers)
+                {
+                    <tr id="supplier-@supplier.SupplierProfileId">
+                        <th scope="row" class="text-break">
+                            @supplier.CompanyName
+                            <div class="small fw-normal text-secondary">@supplier.User.Email</div>
+                        </th>
+                        <td>@supplier.RegistrationNumber</td>
+                        <td>
+                            <span class="badge @SupplierListViewModel.StatusStyle(supplier.Status)">@SupplierListViewModel.StatusLabel(supplier.Status)</span>
+                        </td>
+                        <td><time datetime="@supplier.CreatedAt.ToString("yyyy-MM-dd")">@supplier.CreatedAt.ToString("dd MMM yyyy")</time></td>
+                        <td>
+                            <a asp-action="SupplierDetails" asp-route-id="@supplier.SupplierProfileId"
+                               aria-label="Open @supplier.CompanyName">@(Model.ApplicationsOnly ? "Review" : "View details")</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
