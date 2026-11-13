@@ -1,0 +1,131 @@
+/*
+ * Shared team design tokens. Load before each page's stylesheet:
+ * <link rel="stylesheet" href="~/css/root.css" asp-append-version="true" />
+ * Use var(--color-primary), var(--space-24), etc. instead of repeating values.
+ * Light is the default; set data-theme="dark" on <html> for dark mode.
+ * This file defines variables only; it does not restyle existing pages.
+ *
+ * Layout: clean section bands, simple grids, and a clear reading order.
+ * Use --section-padding for sections, --card-padding inside cards, and
+ * --layout-gap between grid items. Keep body copy within --text-max-width.
+ * Mobile: one column. Tablet: two columns where useful. Desktop: up to four.
+ * Keep DOM order consistent with the visual reading order.
+ * Breakpoints must be literal values in media queries (CSS var() cannot be used).
+ */
+
+:root {
+    /* Reference palette */
+    --blue: #1170cf;
+    --blue-hover: #0353a8;
+    --blue-pressed: #063a75;
+    --blue-light: #64b4fa;
+    --teal: #00a3a6; /* Supporting decoration; primary buttons use blue. */
+    --black: #000000;
+    --white: #ffffff;
+    --black-95: #000000f2;
+    --black-70: #000000b3;
+    --white-95: #fffffff2;
+    --white-70: #ffffffb3;
+    --dark-surface-1: #1a1a1a;
+    --dark-surface-2: #262626;
+
+    /* Shared action states */
+    --color-primary: var(--blue);
+    --color-primary-hover: var(--blue-hover);
+    --color-primary-active: var(--blue-pressed);
+    --color-on-primary: var(--white);
+    --color-accent: var(--blue-light);
+    --color-supporting-accent: var(--teal);
+    --color-disabled-bg: #e6e6e6;
+    --color-disabled-text: #666666;
+
+    /* Light theme */
+    --color-background: var(--white);
+    --color-surface: var(--white);
+    --color-surface-alt: #f5f7fa;
+    --color-text: var(--black-95);
+    --color-text-secondary: var(--black-70);
+    --color-border: #dce3e9;
+    --color-input-border: #767676;
+    --color-link: var(--blue);
+    --color-link-hover: var(--blue-hover);
+    --color-focus: var(--blue);
+    --color-selection: #e7f2ff;
+
+    /* Base rhythm: 8px; 12px is the supplied compact spacing step. */
+    --space-8: 8px;
+    --space-12: 12px;
+    --space-16: 16px;
+    --space-24: 24px;
+    --space-32: 32px;
+    --space-48: 48px;
+    --space-64: 64px;
+    --space-88: 88px;
+
+    --font-family: "Segoe UI", Arial, sans-serif;
+    --font-size-small: 0.875rem;
+    --font-size-body: 1rem;
+    --font-size-heading: 2rem;
+    --font-size-display: 2.5rem;
+    --line-height-body: 1.5;
+    --line-height-heading: 1.15;
+    --font-weight-normal: 400;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    --radius-small: 8px;
+    --radius-card: 18px;
+    --radius-pill: 999px;
+    --border-width: 1px;
+    --focus-width: 3px;
+    --focus-offset: 3px;
+    --control-min-height: 48px;
+    --container-max-width: 1200px;
+    --text-max-width: 65ch;
+
+    /* Mobile: below 768px */
+    --page-gutter: var(--space-16);
+    --section-padding: var(--space-48);
+    --card-padding: var(--space-24);
+    --layout-gap: var(--space-16);
+    --grid-columns: 1;
+}
+
+[data-theme="dark"] {
+    --color-background: var(--black);
+    --color-surface: var(--dark-surface-1);
+    --color-surface-alt: var(--dark-surface-2);
+    --color-text: var(--white-95);
+    --color-text-secondary: var(--white-70);
+    --color-border: #424242;
+    --color-input-border: #888888;
+    --color-link: var(--blue-light);
+    --color-link-hover: var(--white);
+    --color-focus: var(--blue-light);
+    --color-selection: var(--blue-pressed);
+    --color-disabled-bg: var(--dark-surface-2);
+    --color-disabled-text: #999999;
+}
+
+/* Tablet: 768px–1199px */
+@media (min-width: 768px) {
+    :root {
+        --page-gutter: var(--space-32);
+        --section-padding: var(--space-64);
+        --card-padding: var(--space-32);
+        --layout-gap: var(--space-24);
+        --grid-columns: 2;
+        --font-size-display: 4rem;
+    }
+}
+
+/* Desktop: 1200px and above */
+@media (min-width: 1200px) {
+    :root {
+        --page-gutter: var(--space-48);
+        --section-padding: var(--space-88);
+        --layout-gap: var(--space-32);
+        --grid-columns: 4;
+        --font-size-display: 5.5rem;
+    }
+}
