@@ -1,3 +1,7 @@
-@{ ViewData["Title"] = "Contact"; }
-<h1>Contact</h1>
-<!-- TEAM TODO: Add the public Contact content here. -->
+@{ ViewData["Title"] = "Contact Us"; }
+
+<partial name="_ContactSection" />
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/public-guide.css" asp-append-version="true" />
+}

@@ -1,6 +1,6 @@
 @model SourcingTenderManagement.Models.SupplierDashboardViewModel
 @{ ViewData["Title"] = "Supplier dashboard"; }
-<div class="supplier-hero"><div><p class="eyebrow">PHARMACARE SUPPLIER PORTAL</p><h1>Welcome, @Model.CompanyName</h1><p>Manage tender invitations, prepare offers, and keep your company information current.</p></div><a asp-action="Invitations" class="btn btn-light">View invitations <span aria-hidden="true">→</span></a></div>
+<div class="supplier-hero"><div><p class="eyebrow">APEX PHARMA SUPPLIER PORTAL</p><h1>Welcome, @Model.CompanyName</h1><p>Manage tender invitations, prepare offers, and keep your company information current.</p></div><a asp-action="Invitations" class="btn btn-light">View invitations <span aria-hidden="true">→</span></a></div>
 @if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> }
 @if (TempData["Error"] is string error) { <div class="alert alert-danger">@error</div> }
 <section class="supplier-stats" aria-label="Supplier activity">

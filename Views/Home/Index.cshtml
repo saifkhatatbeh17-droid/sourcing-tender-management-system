@@ -1,3 +1,48 @@
-@{ ViewData["Title"] = "Sourcing & Tender Management"; }
-<h1>Sourcing & Tender Management</h1>
-<!-- TEAM TODO: Add the public Index content here. -->
+@{
+    ViewData["Title"] = "Apex Pharma";
+    ViewData["HomeLanding"] = true;
+}
+
+<section class="landing-hero" id="top" aria-labelledby="landing-title">
+    <video class="landing-video" id="landing-video" muted loop playsinline preload="none"
+           data-src="@Url.Content("~/media/pharmacare-hero.mp4")" aria-hidden="true"></video>
+    <div class="landing-hero-content">
+        <p class="landing-eyebrow">Pharmaceutical sourcing &amp; procurement</p>
+        <h1 id="landing-title">Quality starts with better sourcing.</h1>
+        <p class="landing-intro">Apex Pharma connects qualified suppliers with our pharmaceutical procurement team, from tender invitation to final decision.</p>
+        <div class="landing-hero-actions">
+            <a class="landing-primary" asp-controller="Account" asp-action="Register">Register as a supplier <span aria-hidden="true">→</span></a>
+            <a class="landing-secondary" href="#how-it-works">How It Works</a>
+        </div>
+    </div>
+    <button class="landing-video-toggle" type="button" aria-controls="landing-video" hidden>Play background video</button>
+</section>
+
+<section class="pharma-about" id="about" aria-labelledby="about-title">
+    <div class="pharma-about-inner">
+        <header class="pharma-about-heading">
+            <div>
+                <h2 id="about-title">About Apex Pharma</h2>
+                <p>Apex Pharma brings manufacturing and procurement together to source what our production teams need and build dependable supplier relationships.</p>
+            </div>
+            <a asp-action="About">More about Apex Pharma <span aria-hidden="true">↗</span></a>
+        </header>
+        <partial name="_CompanyOverview" />
+    </div>
+</section>
+
+<partial name="_HowItWorksSection" />
+<partial name="_ContactSection" />
+
+@section Footer {
+    <partial name="_PublicFooter" />
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/public-guide.css" asp-append-version="true" />
+}
+@section Scripts {
+    <script src="~/js/home.js" asp-append-version="true"></script>
+    <script src="~/js/sourcing-journey.js" asp-append-version="true"></script>
+}
