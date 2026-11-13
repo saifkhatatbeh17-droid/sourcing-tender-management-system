@@ -1,3 +1,28 @@
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<!-- TEAM TODO: Implement SourcingManager / Dashboard here. -->
+@model ManagerDashboard
+@{
+    ViewData["Title"] = "Sourcing Manager Dashboard";
+}
+
+<h1>Sourcing Manager Dashboard</h1>
+<div class="row g-3">
+    <div class="col-sm-6 col-xl-3">
+        <a class="card card-body h-100 text-decoration-none" href="@Url.Action("Submissions")">
+            Awaiting manager review <strong class="fs-3">@Model.AwaitingReview</strong>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="card card-body h-100 text-decoration-none" href="@Url.Action("Submissions")">
+            Approved recommendations <strong class="fs-3">@Model.Approved</strong>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="card card-body h-100 text-decoration-none" href="@Url.Action("Reports", new { decision = "Approved" })">
+            Awaiting committee decision <strong class="fs-3">@Model.AwaitingCommittee</strong>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="card card-body h-100 text-decoration-none" href="@Url.Action("Clarifications")">
+            Pending questions for you <strong class="fs-3">@Model.PendingClarifications</strong>
+        </a>
+    </div>
+</div>

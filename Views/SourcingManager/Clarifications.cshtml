@@ -1,3 +1,107 @@
-@{ ViewData["Title"] = "Clarifications"; }
+@model ManagerClarificationPage
+@{
+    ViewData["Title"] = "Clarifications";
+    var conversation = Model.Selected;
+}
+
 <h1>Clarifications</h1>
-<partial name="_ClarificationWorkspace" />
+@if (TempData["ManagerMessage"] is string message)
+{
+    <div class="alert alert-info" role="status">@message</div>
+}
+<div class="workspace-columns">
+    <section class="workspace-section">
+        <h2>New question</h2>
+        @if (Model.Tenders.Count == 0)
+        {
+            <p>No tenders have eligible committee contacts at their current stage.</p>
+        }
+        else
+        {
+            <form method="get" action="@Url.Action("Clarifications")" class="mb-3">
+                <input type="hidden" name="id" value="@conversation?.ClarificationId" />
+                <label class="form-label" for="tender">Tender</label>
+                <div class="input-group">
+                    <select class="form-select" id="tender" name="tenderId">
+                        @foreach (var tender in Model.Tenders)
+                        {
+                            <option value="@tender.TenderId" selected="@(tender.TenderId == Model.SelectedTenderId)">@tender.Title</option>
+                        }
+                    </select>
+                    <button class="btn btn-outline-primary" type="submit">Load contacts</button>
+                </div>
+            </form>
+        }
+        @if (Model.Recipients.Count > 0)
+        {
+            <form method="post" action="@Url.Action("CreateClarification")">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="TenderId" value="@Model.SelectedTenderId" />
+                <label class="form-label" for="recipient">Committee member</label>
+                <select class="form-select mb-3" id="recipient" name="RecipientId" required>
+                    <option value="">Choose a member</option>
+                    @foreach (var recipient in Model.Recipients)
+                    {
+                        <option value="@recipient.UserId">@recipient.User.FullName (@(recipient.CommitteeType == "Top" ? "Top Committee" : "Evaluation Committee"))</option>
+                    }
+                </select>
+                <label class="form-label" for="subject">Subject</label>
+                <input class="form-control mb-3" id="subject" name="Subject" maxlength="200" required />
+                <label class="form-label" for="description">Question</label>
+                <textarea class="form-control mb-3" id="description" name="Description" maxlength="4000" rows="3" required></textarea>
+                <button class="btn btn-primary" type="submit">Send question</button>
+            </form>
+        }
+
+        <h2 class="mt-4">Conversations</h2>
+        @if (Model.Conversations.Count == 0)
+        {
+            <p>No questions yet.</p>
+        }
+        <div class="list-group">
+            @foreach (var item in Model.Conversations)
+            {
+                <a class="list-group-item list-group-item-action @(item == conversation ? "active" : "")"
+                   href="@Url.Action("Clarifications", new { id = item.ClarificationId, tenderId = Model.SelectedTenderId })">
+                    @item.Subject
+                    <small class="d-block">@(item.SenderUserId == Model.UserId ? "Sent" : "Received") · @item.Status</small>
+                </a>
+            }
+        </div>
+    </section>
+    @if (conversation is not null)
+    {
+        <section class="workspace-section">
+            <h2>@conversation.Subject</h2>
+            <p>@(conversation.Tender?.Title ?? conversation.Bid?.Invitation.Tender.Title ?? conversation.PurchaseRequest?.Title)</p>
+            <p><strong>@conversation.Status</strong> · @conversation.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</p>
+            <p><strong>From</strong> @conversation.SenderUser.FullName <strong>To</strong> @conversation.RecipientUser.FullName</p>
+            <p class="text-break" style="white-space: pre-wrap">@conversation.Description</p>
+            @foreach (var reply in conversation.ClarificationResponses)
+            {
+                <article class="border-top pt-3">
+                    <p><strong>@reply.RespondedByUser.FullName</strong> · @reply.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</p>
+                    <p class="text-break" style="white-space: pre-wrap">@reply.Message</p>
+                </article>
+            }
+            @if (Model.CanReply)
+            {
+                <form method="post" action="@Url.Action("ReplyToClarification")">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="Id" value="@conversation.ClarificationId" />
+                    <label class="form-label" for="response">Response</label>
+                    <textarea class="form-control mb-3" id="response" name="Message" rows="3" maxlength="4000" required></textarea>
+                    <button class="btn btn-primary" type="submit">Send response</button>
+                </form>
+            }
+            @if (conversation.Status == "Answered" && conversation.SenderUserId == Model.UserId)
+            {
+                <form method="post" action="@Url.Action("ResolveClarification")">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@conversation.ClarificationId" />
+                    <button class="btn btn-outline-primary" type="submit">Mark as resolved</button>
+                </form>
+            }
+        </section>
+    }
+</div>
