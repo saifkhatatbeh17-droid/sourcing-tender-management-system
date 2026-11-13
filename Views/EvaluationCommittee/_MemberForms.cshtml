@@ -1,55 +1,62 @@
 @model CommitteeEvaluationPage
+@{ var editable = !Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId); }
 @if (Model.Members.Count == 0)
-{ <div class="ev-empty"><h3>Ready when you are</h3><p>Start this tender's evaluation from the header to open the four committee forms.</p></div> }
+{ <div class="ev-empty"><p>Start the evaluation to open the shared form.</p></div> }
 else
 {
-    <div class="ev-section-heading"><div><h3>Member evaluations</h3><p>Fill in your scores, then approve. Saving a draft first is optional.</p></div><span class="ev-subtle">Scores range from 0 to 100</span></div>
+    <section class="ev-shared-evaluation">
+        <div class="ev-weights-summary">
+            <div><h3>Evaluation weights</h3><p>Same weights for all offers</p></div>
+            <div class="ev-weight-value"><span>Price</span><strong>@Model.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight).ToString("0.##")%</strong></div>
+            <div class="ev-weight-value"><span>Technical</span><strong>@Model.Criteria.Where(c => c.Category == "Requirements").Sum(c => c.Weight).ToString("0.##")%</strong></div>
+            @if (editable) { <button type="button" class="btn ev-button-secondary" id="edit-weights" aria-expanded="false" aria-controls="weights-editor">Edit weights</button> }
+            else { <span class="ev-access-label">Read-only</span> }
+        </div>
+        @if (editable)
+        {
+        <form asp-action="SaveWeights" method="post" id="weights-editor" hidden>
+            <input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
+            <div class="ev-overall-weights">
+                <label for="financial-weight">Price (%)<input id="financial-weight" name="financialWeight" type="number" min="0.01" max="99.99" step="0.01" required class="form-control" value="@Model.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight).ToString(System.Globalization.CultureInfo.InvariantCulture)" /></label>
+                <label for="requirements-weight">Technical requirements (%)<input id="requirements-weight" name="requirementsWeight" type="number" min="0.01" max="99.99" step="0.01" required class="form-control" value="@Model.Criteria.Where(c => c.Category == "Requirements").Sum(c => c.Weight).ToString(System.Globalization.CultureInfo.InvariantCulture)" /></label>
+            </div>
+            <div class="ev-shared-actions"><p>Changes clear previous approvals.</p><span id="weight-total" role="status">Total 100%</span><button type="button" id="cancel-weights" class="btn ev-button-secondary">Cancel</button><button type="submit" class="btn ev-button-primary">Save weights</button></div>
+        </form>
+        }
+    </section>
+    <div class="ev-forms-heading"><h3>Committee approvals</h3><span class="ev-approval-summary">@Model.Approvals.Count / 4 approved</span></div>
     <div class="ev-forms-grid">
-    @foreach (var member in Model.Members)
+    @foreach (var member in Model.Members.OrderBy(m => m.Position))
     {
         var mine = member.UserId == Model.UserId;
-        var approval = Model.Approvals.SingleOrDefault(a => a.UserId == member.UserId);
-        var editable = mine && !Model.Locked && approval == null;
-        var scoreIndex = 0;
-        <section class="ev-member-form @(mine ? "ev-my-form" : "")" aria-label="@CommitteeEvaluationPage.MemberName(member.Position)">
-            <header><div class="ev-member-heading"><span class="ev-member-number" aria-hidden="true">@member.Position.ToString("00")</span><span class="ev-form-badge">@(approval != null ? "Approved" : mine ? "Your form" : "Read-only")</span></div><h3>@CommitteeEvaluationPage.MemberName(member.Position)</h3><p>@member.User.FullName</p></header>
-            <form asp-action="SaveScores" method="post">
-                <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
-                <div class="ev-member-fields">
-                @foreach (var offer in Model.Offers)
-                {
-                    <fieldset class="ev-score-group"><legend><span>Offer #@offer.BidId</span>@offer.Invitation.SupplierProfile.CompanyName</legend>
-                    @foreach (var criterion in Model.ForMember(member))
-                    {
-                        var saved = Model.Score(member, offer, criterion);
-                        var initial = saved ?? (criterion.Category == "Financial" && criterion.Name == "Price" ? Model.PriceScore(offer) : (decimal?)null);
-                        <label for="score-@member.Position-@scoreIndex">@criterion.Name <span>@criterion.Weight.ToString("0.##")%</span></label>
-                        <div class="ev-score-input">
-                        @if (editable)
-                        {
-                            <input type="hidden" name="scores[@scoreIndex].BidId" value="@offer.BidId" /><input type="hidden" name="scores[@scoreIndex].CriterionId" value="@criterion.EvaluationCriterionId" />
-                            <input id="score-@member.Position-@scoreIndex" name="scores[@scoreIndex].Score" type="number" min="0" max="100" step="0.01" value="@initial?.ToString(System.Globalization.CultureInfo.InvariantCulture)" placeholder="0" required class="form-control" /><span>/ 100</span>
-                        }
-                        else { <input id="score-@member.Position-@scoreIndex" value="@(saved?.ToString("0.##") ?? "Not scored")" readonly class="form-control" /><span>@(saved.HasValue ? "/ 100" : "")</span> }
-                        </div>
-                        scoreIndex++;
-                    }
-                    </fieldset>
-                }
-                @if (member.Position == 3) { <p class="ev-field-help">Price suggestions use the lowest offer total divided by each offer total, multiplied by 100.</p> }
-                <label for="notes-@member.Position">@(mine ? "Your observations" : "Member observations")</label><textarea id="notes-@member.Position" name="notes" maxlength="4000" readonly="@(!editable)" placeholder="Add context for your scores…" class="form-control" rows="3">@Model.Evaluations.FirstOrDefault(e => e.CommitteeAssignmentId == member.CommitteeAssignmentId)?.Notes</textarea>
-                </div>
-                <footer class="ev-form-footer">
-                @if (editable)
-                {
-                    <p>Approve saves your scores and locks your form. Other members can approve independently.</p>
-                    <button asp-action="Approve" class="btn ev-button-primary ev-approve-button">Approve my evaluation <span aria-hidden="true">✓</span></button>
-                    <div class="ev-draft-actions"><button class="btn ev-button-secondary">Save draft</button><button type="button" class="btn ev-button-reject" disabled title="Design only. Rejection is outside the committee workflow.">Reject</button></div>
-                }
-                else { <p class="@(approval != null ? "ev-approved-note" : "")">@(approval != null ? "✓ This member has approved." : mine ? "This evaluation is read-only." : "Only this member can edit their form.")</p> }
-                </footer>
-            </form>
+        var approved = Model.Approvals.Any(a => a.UserId == member.UserId);
+        <section class="ev-member-form ev-approval-card @(mine ? "is-yours" : "")">
+            <header><div class="ev-member-heading"><span class="ev-form-badge @(approved ? "is-approved" : "")">@(approved ? "✓ Approved" : "Pending")</span><span class="ev-access-label">@(mine ? "Your approval" : "Read-only")</span></div><h3>@CommitteeEvaluationPage.MemberName(member.Position)</h3><p>@member.User.FullName @(mine ? "(you)" : "")</p></header>
+            <div class="ev-approval-footer">
+            @if (mine && !approved && !Model.Locked)
+            {
+                <form asp-action="Approve" method="post" class="ev-approval-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" /><button class="btn ev-button-primary" disabled="@(!Model.WeightsReady)">Approve evaluation</button></form>
+            }
+            else { <span class="ev-approval-readonly">@(mine && approved ? "Your approval is recorded" : "Read-only")</span> }
+            </div>
         </section>
     }
     </div>
+    <section class="ev-comments" aria-labelledby="committee-comments-heading">
+        <h3 id="committee-comments-heading">Committee comments</h3>
+        <div class="ev-comments-list">
+        @{ var comments = Model.Members.Select(m => new { Member = m, Entry = Model.Evaluations.Where(e => e.CommitteeAssignmentId == m.CommitteeAssignmentId && !string.IsNullOrWhiteSpace(e.Notes)).OrderByDescending(e => e.SubmittedAt).FirstOrDefault() }).Where(c => c.Entry != null).OrderBy(c => c.Entry!.SubmittedAt).ToList(); }
+        @if (comments.Count == 0) { <p class="ev-comment-empty">No comments yet.</p> }
+        @foreach (var item in comments)
+        {
+            <article class="ev-comment"><header><strong>@item.Member.User.FullName</strong><span>@CommitteeEvaluationPage.MemberName(item.Member.Position)</span><time>@item.Entry!.SubmittedAt?.ToString("yyyy-MM-dd HH:mm") UTC</time></header><p>@item.Entry!.Notes</p></article>
+        }
+        </div>
+        @if (editable && Model.Offers.Count > 0)
+        {
+            var myComment = comments.FirstOrDefault(c => c.Member.UserId == Model.UserId)?.Entry?.Notes;
+            <form asp-action="SaveComment" method="post" class="ev-comment-form"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><label for="committee-comment">Your comment <span>Visible to all committee members</span></label><textarea id="committee-comment" name="comment" class="form-control" rows="2" maxlength="4000" required placeholder="Share a note with the committee…">@myComment</textarea><button class="btn ev-button-secondary">@(myComment == null ? "Post comment" : "Update comment")</button></form>
+        }
+    </section>
+
 }

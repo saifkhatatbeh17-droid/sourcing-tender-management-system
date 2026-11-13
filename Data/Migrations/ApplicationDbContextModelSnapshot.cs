@@ -281,7 +281,7 @@ namespace SourcingTenderManagement.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_AiAnalyses_1", "(isjson([ResultJson])=(1))");
 
-                            t.HasCheckConstraint("CK_AiAnalyses_2", "([FinancialWeight]=(60) AND [RequirementsWeight]=(40) OR [FinancialWeight]=(100) AND [RequirementsWeight]=(0) OR [FinancialWeight]=(0) AND [RequirementsWeight]=(100))");
+                            t.HasCheckConstraint("CK_AiAnalyses_2", "([FinancialWeight]>=0 AND [FinancialWeight]<=100 AND [RequirementsWeight]>=0 AND [RequirementsWeight]<=100 AND [FinancialWeight]+[RequirementsWeight]=100)");
                         });
                 });
 
@@ -1412,7 +1412,7 @@ namespace SourcingTenderManagement.Data.Migrations
 
                     b.ToTable("UserFaceCredentials", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_UserFaceCredentials_EnrollmentState", "(\n    [SampleCount] = 0\n    AND [ProtectedTemplates] IS NULL\n    AND [TemplateFormatVersion] IS NULL\n    AND [ModelIdentifier] IS NULL\n    AND [ConsentVersion] IS NULL\n    AND [ConsentGrantedAt] IS NULL\n    AND [EnrolledAt] IS NULL\n)\nOR\n(\n    [SampleCount] BETWEEN 3 AND 5\n    AND [ProtectedTemplates] IS NOT NULL\n    AND DATALENGTH([ProtectedTemplates]) > 0\n    AND [TemplateFormatVersion] IS NOT NULL\n    AND [TemplateFormatVersion] > 0\n    AND [ModelIdentifier] IS NOT NULL\n    AND LEN([ModelIdentifier]) > 0\n    AND [ConsentVersion] IS NOT NULL\n    AND LEN([ConsentVersion]) > 0\n    AND [ConsentGrantedAt] IS NOT NULL\n    AND [EnrolledAt] IS NOT NULL\n)");
+                            t.HasCheckConstraint("CK_UserFaceCredentials_EnrollmentState", "(\r\n    [SampleCount] = 0\r\n    AND [ProtectedTemplates] IS NULL\r\n    AND [TemplateFormatVersion] IS NULL\r\n    AND [ModelIdentifier] IS NULL\r\n    AND [ConsentVersion] IS NULL\r\n    AND [ConsentGrantedAt] IS NULL\r\n    AND [EnrolledAt] IS NULL\r\n)\r\nOR\r\n(\r\n    [SampleCount] BETWEEN 3 AND 5\r\n    AND [ProtectedTemplates] IS NOT NULL\r\n    AND DATALENGTH([ProtectedTemplates]) > 0\r\n    AND [TemplateFormatVersion] IS NOT NULL\r\n    AND [TemplateFormatVersion] > 0\r\n    AND [ModelIdentifier] IS NOT NULL\r\n    AND LEN([ModelIdentifier]) > 0\r\n    AND [ConsentVersion] IS NOT NULL\r\n    AND LEN([ConsentVersion]) > 0\r\n    AND [ConsentGrantedAt] IS NOT NULL\r\n    AND [EnrolledAt] IS NOT NULL\r\n)");
                         });
                 });
 

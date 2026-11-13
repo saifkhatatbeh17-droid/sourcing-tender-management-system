@@ -5,7 +5,7 @@
 }
 
 <div class="workspace-heading">
-    <h1>@title</h1>
+    <div><h1>@title</h1><p>@(Model.ApplicationsOnly ? "Review supplier registrations and supporting documents." : "Browse supplier records, approval status, and company details.")</p></div>
     @if (!Model.ApplicationsOnly)
     {
         <a id="supplier-export" asp-action="ExportSuppliers" asp-route-search="@ViewBag.FilterSearch" asp-route-status="@Model.SelectedStatus" class="btn btn-outline-primary">

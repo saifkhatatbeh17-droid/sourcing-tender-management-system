@@ -8,7 +8,7 @@
 }
 
 <div class="workspace-heading">
-    <h1>Users</h1>
+    <div><h1>Users</h1><p>Manage account access, roles, and department assignments.</p></div>
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#create-user-modal">Create User</button>
 </div>
 
@@ -60,7 +60,6 @@ else
             <thead>
                 <tr>
                     <th scope="col">Name</th>
-                    <th scope="col">Email</th>
                     <th scope="col">Roles</th>
                     <th scope="col">Department</th>
                     <th scope="col">Status</th>
@@ -73,10 +72,9 @@ else
                     <tr data-admin-row>
                         <th scope="row"><div class="admin-record-identity">
                             <span class="admin-record-avatar" aria-hidden="true">@account.FullName.Trim().FirstOrDefault()</span>
-                            <span>@account.FullName</span>
+                            <span class="admin-user-name">@account.FullName<small>@(account.Email ?? "—")</small></span>
                         </div></th>
-                        <td class="text-break">@(account.Email ?? "—")</td>
-                        <td>@(account.Roles.Count == 0 ? "Unassigned" : string.Join(", ", account.Roles))</td>
+                        <td><div class="admin-role-list">@if (account.Roles.Count == 0) { <span>Unassigned</span> } @foreach (var role in account.Roles) { <span>@System.Text.RegularExpressions.Regex.Replace(role, "([a-z])([A-Z])", "$1 $2")</span> }</div></td>
                         <td>@(account.DepartmentName ?? "—")</td>
                         <td>
                             <span class="badge rounded-pill @(account.IsActive ? "text-bg-success" : "text-bg-secondary")">

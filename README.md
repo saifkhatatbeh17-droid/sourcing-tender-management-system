@@ -114,3 +114,28 @@ The HTTP checks require Python 3 and sqlcmd; they use the default local code-fir
 Commit this project, its migrations, and its tool manifest. Do not upload `bin/`, `obj/`, local connection overrides, database backups/data files, or passwords. Each teammate applies the same migrations to their own database; GitHub does not synchronize database records.
 
 Official references: [EF Core migrations](https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/) and [ASP.NET Core Identity model](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/customize-identity-model?view=aspnetcore-10.0).
+
+
+### AI bid recommendations
+
+The Evaluation Committee page uses local Ollama, with no API key or cloud provider. The default model is `qwen2.5:7b` at `http://localhost:11434/api/generate`. Keep Ollama running, enter the financial and technical percentages under **Tender & offers**, then select **Find best offer**. Use whole percentages between 0 and 100, totaling 100%.
+
+The AI compares submitted offers against purchase requirements and returns one recommendation using the entered percentages. Insufficient evidence can produce no recommendation. It does not use committee scores, fill score fields, approve, award, or advance the tender. The input contains tender requirements, bid items/specifications, totals, delivery/payment terms and validity; uploaded attachments are not read. The local model can make factual or comparative errors; committee members must check its reasons against the bids.
+
+Optional `appsettings.Local.json` configuration (merge with any existing settings):
+
+```json
+{
+  "Ollama": {
+    "BaseUrl": "http://localhost:11434",
+    "Model": "qwen2.5:7b"
+  }
+}
+```
+
+Only local HTTP endpoints are accepted. The recommendation and chosen percentages are saved in the existing `AiAnalyses` table. Changed bids hide the old result until regenerated. Invalid bid IDs, mismatched weights, incomplete comparisons, mixed-currency financial recommendations, financial-only selections above the lowest total, provider errors and incomplete output are rejected. Requests and model output use Ollama's [structured JSON format](https://docs.ollama.com/capabilities/structured-outputs). Apply the included `AllowCustomAiWeights` migration with `Update-Database` or `dotnet ef database update` to allow custom percentages.
+
+
+### Committee evaluation basis
+
+The shared form edits one price weight and one technical-requirements weight for the entire tender. Both must be positive, have at most two decimals, and sum to 100%. Assigned committee members share these weights; changing them clears existing evaluation approvals. Four distinct member approvals complete the report and advance the tender to `AwaitingOfficerSummary`. No manually entered per-supplier scores are required, and approval does not automatically select a supplier. Existing historical score records remain available in older reports. AI comparisons are advisory and use separate percentages. Members can post or update a shared committee comment without clearing approvals.

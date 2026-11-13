@@ -5,6 +5,9 @@ namespace SourcingTenderManagement.Models;
 
 public class CommitteeEvaluationPage
 {
+    public SourcingTenderManagement.Services.Evaluation.BidRecommendation? AiRecommendation { get; set; }
+    public DateTime? AiCreatedAt { get; set; }
+    public bool AiOutdated { get; set; }
     public List<Tender> Tenders { get; set; } = [];
     public Tender? Tender { get; set; }
     public List<Evaluation> Evaluations { get; set; } = [];
@@ -14,10 +17,21 @@ public class CommitteeEvaluationPage
     public List<EvaluationCriterion> Criteria => Tender?.EvaluationCriteria.OrderBy(c => c.EvaluationCriterionId).ToList() ?? [];
     public List<TenderApproval> Approvals => Tender?.TenderApprovals.Where(a => a.Stage == "Evaluation").ToList() ?? [];
     public bool Locked => Tender?.Status != "UnderEvaluation";
+    public bool WeightsReady => Members.Count == 4 && Offers.Count > 0
+        && Criteria.All(c => c.Weight > 0) && Criteria.Sum(c => c.Weight) == 100
+        && Criteria.Any(c => c.Category == "Financial") && Criteria.Any(c => c.Category == "Requirements")
+        && Offers.Select(b => b.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1;
     public bool Ready => Members.Count == 4 && Offers.Count > 0 && Criteria.Count > 0
         && Criteria.Sum(c => c.Weight) == 100 && Criteria.Any(c => c.Category == "Financial") && Criteria.Any(c => c.Category == "Requirements")
         && Offers.Select(b => b.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1
         && Members.All(m => Offers.All(b => ForMember(m).All(c => Score(m, b, c) != null)));
+
+    public decimal? SharedScore(Bid bid, EvaluationCriterion criterion) => Members
+        .Where(m => ForMember(m).Contains(criterion)).Select(m => Score(m, bid, criterion)).FirstOrDefault(s => s.HasValue);
+    public string SharedVersion => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+        System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new {
+            Weights = Criteria.Select(c => new { c.EvaluationCriterionId, c.Weight }),
+            Approvals = Approvals.OrderBy(a => a.UserId).Select(a => new { a.UserId, a.DecidedAt }) }))));
 
     public static string MemberName(int position) => position switch
     {

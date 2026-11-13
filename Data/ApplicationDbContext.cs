@@ -522,7 +522,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<AiAnalysis>().ToTable("AiAnalyses", table =>
         {
             table.HasCheckConstraint("CK_AiAnalyses_1", "(isjson([ResultJson])=(1))");
-            table.HasCheckConstraint("CK_AiAnalyses_2", "([FinancialWeight]=(60) AND [RequirementsWeight]=(40) OR [FinancialWeight]=(100) AND [RequirementsWeight]=(0) OR [FinancialWeight]=(0) AND [RequirementsWeight]=(100))");
+            table.HasCheckConstraint("CK_AiAnalyses_2", "([FinancialWeight]>=0 AND [FinancialWeight]<=100 AND [RequirementsWeight]>=0 AND [RequirementsWeight]<=100 AND [FinancialWeight]+[RequirementsWeight]=100)");
         });
 
         modelBuilder.Entity<Bid>().ToTable("Bids", table =>

@@ -1,3 +1,5 @@
+using System.Text.Json;
+using SourcingTenderManagement.Services.Evaluation;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -10,7 +12,7 @@ using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Controllers;
 
 [Authorize(Roles = RoleNames.EvaluationCommittee)]
-public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users) : Controller
+public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users, BidRecommendationService ai) : Controller
 {
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
@@ -32,7 +34,57 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
             page.Evaluations = await db.Evaluations.AsNoTracking().Where(e => e.TenderId == selected)
                 .Include(e => e.EvaluationScores).ToListAsync();
         }
+        if (page.Tender != null)
+        {
+            var saved = await db.AiAnalyses.AsNoTracking().Where(a => a.TenderId == page.Tender.TenderId)
+                .OrderByDescending(a => a.CreatedAt).ThenByDescending(a => a.AiAnalysisId).FirstOrDefaultAsync();
+            if (saved != null)
+            {
+                try
+                {
+                    var result = JsonSerializer.Deserialize<SavedBidRecommendation>(saved.ResultJson, BidRecommendationService.Json);
+                    page.AiOutdated = result?.Fingerprint != BidRecommendationService.Fingerprint(page);
+                    if (!page.AiOutdated && result != null)
+                    {
+                        BidRecommendationService.Validate(result.Recommendation, page,
+                            result.Recommendation.Scenarios?.Length == 1 ? (int)saved.FinancialWeight : null);
+                        page.AiRecommendation = result.Recommendation;
+                        page.AiCreatedAt = saved.CreatedAt;
+                    }
+                }
+                catch (Exception ex) when (ex is JsonException or InvalidOperationException) { page.AiOutdated = true; }
+            }
+        }
         return page;
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RecommendBids(int id, int financialWeight, int requirementsWeight, CancellationToken cancellationToken)
+    {
+        var tender = await TenderQuery().AsNoTracking().SingleOrDefaultAsync(t => t.TenderId == id, cancellationToken);
+        if (tender == null) return NotFound();
+        var page = new CommitteeEvaluationPage { Tender = tender, UserId = UserId };
+        if (!page.Members.Any(m => m.UserId == UserId)) return Forbid();
+        try
+        {
+            if (!ModelState.IsValid || financialWeight is < 0 or > 100 || requirementsWeight is < 0 or > 100
+                || financialWeight + requirementsWeight != 100)
+                throw new InvalidOperationException("Financial and technical percentages must total 100%.");
+            var fingerprint = BidRecommendationService.Fingerprint(page);
+            var result = await ai.Recommend(page, financialWeight, cancellationToken);
+            var currentTender = await TenderQuery().AsNoTracking().SingleAsync(t => t.TenderId == id, cancellationToken);
+            if (!currentTender.CommitteeAssignments.Any(m => m.CommitteeType == "Evaluation" && m.UserId == UserId)) return Forbid();
+            if (fingerprint != BidRecommendationService.Fingerprint(new CommitteeEvaluationPage { Tender = currentTender }))
+                throw new InvalidOperationException("The bids changed during analysis. Run the comparison again.");
+            db.AiAnalyses.Add(new AiAnalysis { TenderId = id, RequestedByUserId = UserId,
+                FinancialWeight = financialWeight, RequirementsWeight = requirementsWeight, ModelName = ai.Model, CreatedAt = DateTime.UtcNow,
+                ResultJson = JsonSerializer.Serialize(new SavedBidRecommendation(fingerprint, result), BidRecommendationService.Json) });
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (InvalidOperationException ex) { TempData["AiError"] = ex.Message; }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException or KeyNotFoundException)
+        { TempData["AiError"] = "Could not reach local Ollama or finish the comparison. Check that Ollama is running, then try again."; }
+        return RedirectToAction(nameof(Evaluations), new { id });
     }
 
     private IQueryable<Tender> TenderQuery() => db.Tenders.AsSplitQuery()
@@ -99,65 +151,63 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
     }, initialize: true);
 
     [HttpPost, ValidateAntiForgeryToken]
-    public Task<IActionResult> SaveCriteria(int id, List<CommitteeCriterionInput> criteria) => Change(id, page =>
+    public Task<IActionResult> SaveComment(int id, string? comment) => Change(id, page =>
     {
-        if (!page.Members.Any(m => m.UserId == UserId && m.Position == 1)) return Task.FromResult<string?>("Only the committee manager can set criteria.");
-        if (page.Evaluations.Count > 0) return Task.FromResult<string?>("Criteria are locked after the first saved evaluation.");
-        if (criteria.Count == 0 || criteria.Sum(c => c.Weight) != 100
-            || !criteria.Any(c => c.Category == "Financial") || !criteria.Any(c => c.Category == "Requirements")
-            || criteria.Select(c => c.Name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != criteria.Count)
-            return Task.FromResult<string?>("Use unique criterion names, both Financial and Requirements categories, and weights totaling 100%.");
-        // Delete and insert separately to respect the existing unique name index.
-        return ReplaceCriteria();
-        async Task<string?> ReplaceCriteria()
-        {
-            db.EvaluationCriteria.RemoveRange(page.Criteria);
-            await db.SaveChangesAsync();
-            foreach (var c in criteria)
-                db.EvaluationCriteria.Add(new EvaluationCriterion { TenderId = id, Name = c.Name.Trim(), Category = c.Category, Weight = c.Weight });
-            return null;
-        }
+        if (string.IsNullOrWhiteSpace(comment) || comment.Trim().Length > 4000)
+            return Task.FromResult<string?>("Enter a comment of up to 4,000 characters.");
+        if (page.Offers.Count == 0) return Task.FromResult<string?>("No eligible offers are available for this evaluation.");
+        var entry = UpdateMemberComment(page, comment.Trim());
+        if (db.Entry(entry).State == EntityState.Detached) db.Evaluations.Add(entry);
+        return Task.FromResult<string?>(null);
     });
 
-    [HttpPost, ValidateAntiForgeryToken]
-    public Task<IActionResult> SaveScores(int id, List<CommitteeScoreInput> scores, string? notes) => Change(id,
-        page => Task.FromResult(SaveMemberScores(page, scores, notes)));
-
-    private string? SaveMemberScores(CommitteeEvaluationPage page, List<CommitteeScoreInput> scores, string? notes, bool approve = false)
+    internal static Evaluation UpdateMemberComment(CommitteeEvaluationPage page, string comment)
     {
-        var member = page.Members.Single(m => m.UserId == UserId);
-        if (page.Approvals.Any(a => a.UserId == UserId)) return "Your form has already been approved and is read-only.";
-        var expected = page.Offers.SelectMany(b => page.ForMember(member).Select(c => (b.BidId, c.EvaluationCriterionId))).ToHashSet();
-        if (notes?.Length > 4000 || expected.Count == 0 || scores.Count != expected.Count
-            || !expected.SetEquals(scores.Select(s => (s.BidId, s.CriterionId)))
-            || scores.Any(s => s.Score == null || s.Score < 0 || s.Score > 100))
-            return "Score every eligible offer against every criterion on your form (0–100). Notes are limited to 4,000 characters.";
-        foreach (var bid in page.Offers)
+        var member = page.Members.Single(m => m.UserId == page.UserId);
+        var bid = page.Offers.First();
+        var entry = page.Evaluation(member, bid);
+        if (entry == null)
         {
-            var evaluation = page.Evaluation(member, bid);
-            if (evaluation == null)
+            entry = new Evaluation { TenderId = page.Tender!.TenderId, BidId = bid.BidId,
+                CommitteeAssignmentId = member.CommitteeAssignmentId, Status = "Draft" };
+            page.Evaluations.Add(entry);
+        }
+        entry.Notes = comment;
+        entry.SubmittedAt = DateTime.UtcNow;
+        return entry;
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> SaveWeights(int id, decimal financialWeight, decimal requirementsWeight, string version) => Change(id, page =>
+    {
+        if (version != page.SharedVersion) return Task.FromResult<string?>("The evaluation changed. Reload before saving the weights.");
+        if (financialWeight <= 0 || requirementsWeight <= 0 || financialWeight + requirementsWeight != 100
+            || decimal.Round(financialWeight, 2) != financialWeight || decimal.Round(requirementsWeight, 2) != requirementsWeight)
+            return Task.FromResult<string?>("Price and technical weights must be positive and total 100%.");
+        if (page.Criteria.Any(c => c.Weight <= 0) || page.Members.Count != 4 || !page.Criteria.Any(c => c.Category == "Financial") || !page.Criteria.Any(c => c.Category == "Requirements"))
+            return Task.FromResult<string?>("Start the committee evaluation before setting weights.");
+        if (page.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight) == financialWeight
+            && page.Criteria.Where(c => c.Category == "Requirements").Sum(c => c.Weight) == requirementsWeight)
+            return Task.FromResult<string?>(null);
+        foreach (var category in new[] { "Financial", "Requirements" })
+        {
+            var criteria = page.Criteria.Where(c => c.Category == category).ToList();
+            var total = criteria.Sum(c => c.Weight);
+            var target = category == "Financial" ? financialWeight : requirementsWeight;
+            decimal assigned = 0;
+            for (var i = 0; i < criteria.Count; i++)
             {
-                evaluation = new Evaluation { TenderId = page.Tender!.TenderId, BidId = bid.BidId, CommitteeAssignmentId = member.CommitteeAssignmentId };
-                db.Evaluations.Add(evaluation);
-                page.Evaluations.Add(evaluation);
-            }
-            evaluation.Notes = notes;
-            evaluation.Status = approve ? "Approved" : "Submitted";
-            evaluation.SubmittedAt = DateTime.UtcNow;
-            evaluation.ApprovedAt = approve ? DateTime.UtcNow : null;
-            foreach (var input in scores.Where(s => s.BidId == bid.BidId))
-            {
-                var score = evaluation.EvaluationScores.SingleOrDefault(s => s.EvaluationCriterionId == input.CriterionId);
-                if (score == null)
-                {
-                    score = new EvaluationScore { TenderId = page.Tender!.TenderId, EvaluationCriterionId = input.CriterionId };
-                    evaluation.EvaluationScores.Add(score);
-                }
-                score.Score = input.Score!.Value;
+                var value = i == criteria.Count - 1 ? target - assigned : decimal.Round(target * criteria[i].Weight / total, 2);
+                if (value <= 0) return Task.FromResult<string?>("These weights are too small for the existing criteria.");
+                criteria[i].Weight = value;
+                assigned += value;
             }
         }
-        return null;
-    }
+        db.TenderApprovals.RemoveRange(page.Approvals);
+        foreach (var approval in page.Approvals.ToList()) page.Tender!.TenderApprovals.Remove(approval);
+        foreach (var evaluation in page.Evaluations) { evaluation.Status = "Submitted"; evaluation.ApprovedAt = null; }
+        return Task.FromResult<string?>(null);
+    });
 
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> SaveReport(int id, int recommendedBidId, string? summary) => Change(id, page =>
@@ -173,35 +223,33 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
     });
 
     [HttpPost, ValidateAntiForgeryToken]
-    public Task<IActionResult> Approve(int id, List<CommitteeScoreInput> scores, string? notes) => Change(id, page =>
+    public Task<IActionResult> Approve(int id, string version) => Change(id, page =>
     {
-        if (page.Members.Count != 4 || page.Criteria.Sum(c => c.Weight) != 100
-            || !page.Criteria.Any(c => c.Category == "Financial") || !page.Criteria.Any(c => c.Category == "Requirements")
-            || page.Offers.Select(b => b.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() != 1)
-            return Task.FromResult<string?>("Four members, criteria totaling 100%, and offers in the same currency are required.");
-        var error = SaveMemberScores(page, scores, notes, approve: true);
-        if (error != null) return Task.FromResult<string?>(error);
+        if (version != page.SharedVersion) return Task.FromResult<string?>("The evaluation changed. Reload and review the latest weights before approving.");
+        if (!page.WeightsReady) return Task.FromResult<string?>("Four members, eligible offers in one currency, and weights totaling 100% are required.");
+        if (page.Approvals.Any(a => a.UserId == UserId)) return Task.FromResult<string?>("You have already approved this evaluation.");
         var member = page.Members.Single(m => m.UserId == UserId);
         db.TenderApprovals.Add(new TenderApproval { TenderId = id, UserId = UserId, CommitteeAssignmentId = member.CommitteeAssignmentId,
             Stage = "Evaluation", Decision = "Approved", DecidedAt = DateTime.UtcNow });
-        if (page.Approvals.Select(a => a.UserId).Append(UserId).Distinct().Count() == 4)
+        CompleteWeightApproval(page);
+        return Task.FromResult<string?>(null);
+    });
+
+    internal static void CompleteWeightApproval(CommitteeEvaluationPage page)
+    {
+        if (page.WeightsReady && page.Approvals.Select(a => a.UserId).Append(page.UserId).Distinct().Count() == 4)
         {
-            if (!page.Ready) return Task.FromResult<string?>("All approved forms must contain complete scores.");
-            var ranking = page.Rank();
-            var leaders = ranking.Where(r => r.Score == ranking[0].Score).ToList();
-            page.Tender!.EvaluationReport ??= new EvaluationReport { PreparedByUserId = UserId };
+            page.Tender!.EvaluationReport ??= new EvaluationReport { PreparedByUserId = page.UserId };
             var report = page.Tender.EvaluationReport;
-            report.RecommendedBidId ??= leaders.Count == 1 ? leaders[0].BidId : null;
             if (string.IsNullOrWhiteSpace(report.CommitteeSummary))
-                report.CommitteeSummary = "All four members approved their evaluations. Highest weighted score: "
-                    + ranking[0].Score.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
-                    + "/100. Leading offer(s): " + string.Join(", ", leaders.Select(r => "#" + r.BidId))
-                    + (leaders.Count > 1 ? ". The leading offers are tied." : ".");
+                report.CommitteeSummary = "All four members approved the evaluation basis: "
+                    + page.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight).ToString("0.##")
+                    + "% price and " + page.Criteria.Where(c => c.Category == "Requirements").Sum(c => c.Weight).ToString("0.##")
+                    + "% technical requirements, applied to all eligible offers. No individual supplier scores were entered.";
             report.Status = "CommitteeApproved";
             report.SubmittedAt = DateTime.UtcNow;
             page.Tender.Status = "AwaitingOfficerSummary";
         }
-        return Task.FromResult<string?>(null);
-    });
+    }
 
 }

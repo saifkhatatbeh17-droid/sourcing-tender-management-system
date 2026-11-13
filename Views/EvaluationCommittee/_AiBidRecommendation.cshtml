@@ -1,0 +1,42 @@
+@model CommitteeEvaluationPage
+@{ var result = Model.AiRecommendation; var financial = result?.Scenarios.FirstOrDefault()?.FinancialWeight ?? 60; }
+<section class="ev-ai-panel" aria-labelledby="ai-heading">
+    <div class="ev-ai-heading"><div class="ev-ai-title"><span class="ev-ai-mark" aria-hidden="true">AI</span><div><h3 id="ai-heading">AI recommendation</h3><p>Set your percentages to find the best offer</p></div></div>
+    @if (Model.Members.Any(m => m.UserId == Model.UserId))
+    {
+        <form asp-action="RecommendBids" method="post" data-ai-comparison class="ev-ai-weight-form">
+            <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
+            <label>Financial %<input class="form-control" type="number" name="financialWeight" min="0" max="100" step="1" required value="@financial" /></label>
+            <label>Technical %<input class="form-control" type="number" name="requirementsWeight" min="0" max="100" step="1" required value="@(100 - financial)" /></label>
+            <button class="btn ev-button-primary" disabled="@(Model.Offers.Count == 0)">Find best offer</button><span role="status" class="ev-ai-loading" hidden>Comparing bids…</span>
+        </form>
+    }
+    </div>
+    @if (TempData["AiError"] is string error) { <p class="ev-notice ev-notice-error" role="alert">@error</p> }
+    @if (Model.AiOutdated) { <p class="ev-field-help">The bids have changed since the last comparison. Run a new comparison for the current offers.</p> }
+    @if (result != null)
+    {
+        <div class="ev-ai-scenarios" style="grid-template-columns: 1fr">
+        @foreach (var scenario in result.Scenarios.Take(1))
+        {
+            var weight = scenario.FinancialWeight;
+            var winner = Model.Offers.FirstOrDefault(b => b.BidId == scenario.RecommendedBidId);
+            <article class="ev-ai-result">
+                <div class="ev-ai-scenario-heading"><h4>Recommended offer</h4><span>@weight% financial / @(100 - weight)% technical</span></div>
+                <h5>@(winner == null ? "No clear recommendation" : winner.Invitation.SupplierProfile.CompanyName)</h5>
+                @if (winner != null) { <p class="ev-ai-offer-facts"><strong>@CommitteeEvaluationPage.Total(winner).ToString("N2") @winner.Currency</strong><span>Offer #@winner.BidId · @winner.DeliveryDays-day delivery</span></p> }
+                <p class="ev-ai-reason">@scenario.Reason</p>
+            </article>
+        }
+        </div>
+        <details class="ev-ai-details"><summary>Compare strengths &amp; tradeoffs</summary>
+        @foreach (var comparison in result.Comparisons)
+        {
+            var offer = Model.Offers.Single(b => b.BidId == comparison.BidId);
+            <article><h4>@offer.Invitation.SupplierProfile.CompanyName <span class="ev-subtle">#@offer.BidId</span></h4><p><strong>Strengths:</strong> @comparison.Strengths</p><p><strong>Tradeoffs:</strong> @comparison.Tradeoffs</p></article>
+        }
+        @if (result.MissingInformation.Length > 0) { <h4>Information to verify</h4><ul>@foreach (var item in result.MissingInformation) { <li>@item</li> }</ul> }
+        </details>
+        <p class="ev-field-help">AI suggestions · Review against the bids before deciding.</p>
+    }
+</section>
