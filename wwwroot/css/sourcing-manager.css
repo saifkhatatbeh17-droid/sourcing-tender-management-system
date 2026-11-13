@@ -1,4 +1,67 @@
-.manager-shell > .main-content > * {
+.manager-shell {
+    --color-primary: #00a3a6;
+    --color-link: #007b7e;
+    --color-selection: #eef8f6;
+    color: var(--color-text);
+    font-family: var(--font-family);
+}
+
+[data-theme="dark"] .manager-shell {
+    --color-link: #67d4d3;
+    --color-selection: #112e2d;
+}
+
+.manager-shell .workspace-section,
+.manager-shell .manager-metric {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    padding: var(--space-24);
+}
+
+.manager-shell .manager-metric {
+    display: flex;
+    min-height: 120px;
+    align-items: center;
+}
+
+.manager-shell .manager-metric dt {
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-normal);
+}
+
+.manager-shell .manager-metric dd {
+    order: -1;
+    margin: 0;
+    font-size: var(--font-size-heading);
+    font-weight: var(--font-weight-semibold);
+}
+
+.manager-shell .table {
+    --bs-table-bg: var(--color-surface);
+    --bs-table-color: var(--color-text);
+    --bs-table-border-color: var(--color-border);
+}
+
+.manager-shell .table thead th {
+    background: var(--color-surface-alt);
+    color: var(--color-text-secondary);
+}
+
+.manager-shell .btn-primary {
+    --bs-btn-bg: var(--color-primary);
+    --bs-btn-border-color: var(--color-primary);
+    --bs-btn-color: #002e30;
+    --bs-btn-hover-bg: #009497;
+    --bs-btn-hover-border-color: #009497;
+    --bs-btn-hover-color: #002e30;
+}
+
+.manager-shell :is(.btn, .form-control, .form-select) {
+    border-radius: 18px;
+}
+
+.manager-shell {
     max-width: var(--container-max-width);
     margin-inline: auto;
 }
@@ -6,18 +69,6 @@
 .manager-shell .workspace-columns {
     align-items: start;
     gap: var(--space-16);
-}
-
-.manager-shell .admin-sidebar-role {
-    font-weight: var(--font-weight-semibold);
-}
-
-.manager-shell .admin-sidebar-toggle {
-    flex-shrink: 0;
-}
-
-.manager-shell .admin-sidebar-item span {
-    white-space: normal;
 }
 
 .manager-shell .manager-metric {
@@ -71,11 +122,5 @@
 @media (max-width: 1000px) {
     .manager-shell .workspace-columns {
         grid-template-columns: minmax(0, 1fr);
-    }
-}
-
-@media (max-width: 650px) {
-    .manager-shell .admin-sidebar-header {
-        justify-content: flex-start;
     }
 }

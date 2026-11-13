@@ -4,154 +4,160 @@
     var report = Model.Selected;
 }
 
-<div class="workspace-heading">
-    <h1>Committee Submissions</h1>
-</div>
-@if (TempData["ManagerMessage"] is string message)
-{
-    <div class="alert alert-info" role="status">@message</div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
 }
 
-<div class="workspace-columns">
-    <section class="workspace-section">
-        <h2>Recommendations</h2>
-        @if (Model.Reports.Count == 0)
-        {
-            <p>No recommendations are awaiting review or referral.</p>
-        }
-        <div class="list-group">
-            @foreach (var item in Model.Reports)
-            {
-                <a class="list-group-item list-group-item-action @(item == report ? "active" : "")"
-                   href="@Url.Action("Submissions", new { id = item.EvaluationReportId })">
-                    @item.Tender.Title
-                    <small class="d-block">@(item.Status == "ManagerApproved" ? "Approved recommendation" : "Awaiting manager review")</small>
-                </a>
-            }
-        </div>
-    </section>
-    @if (report is not null)
+<div class="manager-shell">
+    <div class="workspace-heading">
+        <h1>Committee Submissions</h1>
+    </div>
+    @if (TempData["ManagerMessage"] is string message)
     {
-        var recommendedOffer = Model.Offers.FirstOrDefault(offer => offer.BidId == report.RecommendedBidId);
-        <section class="workspace-section">
-            <h2>@report.Tender.Title</h2>
-            <p><strong>Recommended supplier</strong> @(recommendedOffer?.Invitation.SupplierProfile.CompanyName ?? "Unavailable")</p>
-            <h3 class="h5">Committee report</h3>
-            <p class="text-break manager-text">@(report.CommitteeSummary ?? "No summary was provided.")</p>
-            @if (!string.IsNullOrWhiteSpace(report.OfficerSummary))
-            {
-                <h3 class="h5">Sourcing officer summary</h3>
-                <p class="text-break manager-text">@report.OfficerSummary</p>
-            }
-
-            <h3 class="h5">Supplier comparison</h3>
-            @if (Model.Offers.Count == 0)
-            {
-                <p>No submitted offers are available.</p>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr><th scope="col">Supplier</th><th scope="col">Total including tax and fees</th><th scope="col">Delivery</th><th scope="col">Compliance</th></tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var offer in Model.Offers)
-                            {
-                                var total = offer.BidItems.Sum(item => item.Quantity * item.UnitPrice) + offer.TaxAmount + offer.AdditionalCosts;
-                                <tr>
-                                    <td>@offer.Invitation.SupplierProfile.CompanyName</td>
-                                    <td>@total.ToString("N2") @offer.Currency</td>
-                                    <td>@offer.DeliveryDays days</td>
-                                    <td>
-                                        @(offer.ComplianceStatus ?? "Unreviewed")
-                                        @if (!string.IsNullOrWhiteSpace(offer.ComplianceNotes))
-                                        {
-                                            <div class="small text-break">@offer.ComplianceNotes</div>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <h3 class="h5">Technical and financial evaluations</h3>
-                @foreach (var offer in Model.Offers)
-                {
-                    <details class="mb-3">
-                        <summary>@offer.Invitation.SupplierProfile.CompanyName</summary>
-                        @if (!string.IsNullOrWhiteSpace(offer.TechnicalDetails))
-                        {
-                            <p class="text-break manager-text">@offer.TechnicalDetails</p>
-                        }
-                        @if (offer.Evaluations.Count == 0)
-                        {
-                            <p>No submitted evaluations.</p>
-                        }
-                        @foreach (var evaluation in offer.Evaluations.OrderBy(e => e.CommitteeAssignmentId))
-                        {
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <caption class="caption-top">Evaluation #@evaluation.EvaluationId (@evaluation.Status)</caption>
-                                    <thead>
-                                        <tr><th scope="col">Category</th><th scope="col">Criterion</th><th scope="col">Weight</th><th scope="col">Score</th><th scope="col">Notes</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var score in evaluation.EvaluationScores.OrderBy(s => s.EvaluationCriterion.Category).ThenBy(s => s.EvaluationCriterion.Name))
-                                        {
-                                            <tr>
-                                                <td>@(score.EvaluationCriterion.Category == "Requirements" ? "Technical" : "Financial")</td>
-                                                <td>@score.EvaluationCriterion.Name</td>
-                                                <td>@score.EvaluationCriterion.Weight.ToString("0.##")%</td>
-                                                <td>@score.Score.ToString("0.##")</td>
-                                                <td class="text-break">@score.Notes</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                            @if (!string.IsNullOrWhiteSpace(evaluation.Notes))
-                            {
-                                <p class="text-break manager-text">@evaluation.Notes</p>
-                            }
-                        }
-                    </details>
-                }
-            }
-
-            @if (report.Status == "ManagerApproved")
-            {
-                <h3 class="h5 manager-section-break">Refer to the Top Committee</h3>
-                @if (!string.IsNullOrWhiteSpace(report.ManagerSummary))
-                {
-                    <p class="text-break manager-text">@report.ManagerSummary</p>
-                }
-                <form method="post" asp-action="Forward">
-
-                    <input type="hidden" name="ReportId" value="@report.EvaluationReportId" />
-                    <label class="form-label" for="forward-reason">Reason under the referral policy</label>
-                    <textarea class="form-control mb-3" id="forward-reason" name="Reason" rows="3" maxlength="4000" required></textarea>
-                    <button type="submit" class="btn btn-primary">Forward to Top Committee</button>
-                </form>
-            }
-            else
-            {
-                <h3 class="h5 manager-section-break">Manager decision</h3>
-                <form method="post" asp-action="Decide">
-
-                    <input type="hidden" name="ReportId" value="@report.EvaluationReportId" />
-                    <input type="hidden" name="ReviewVersion" value="@(Model.ReviewVersion?.Ticks)" />
-                    <label class="form-label" for="manager-notes">Comments (required for rejection or return)</label>
-                    <textarea class="form-control mb-3" id="manager-notes" name="Notes" rows="3" maxlength="4000"></textarea>
-                    <div class="d-flex flex-wrap gap-2">
-                        <button type="submit" class="btn btn-primary" name="Decision" value="Approved">Approve recommendation</button>
-                        <button type="submit" class="btn btn-outline-secondary" name="Decision" value="ReturnedForReview">Return for review</button>
-                        <button type="submit" class="btn btn-outline-danger" name="Decision" value="Rejected">Reject recommendation</button>
-                    </div>
-                </form>
-            }
-        </section>
+        <div class="alert alert-info" role="status">@message</div>
     }
+
+    <div class="workspace-columns">
+        <section class="workspace-section">
+            <h2>Recommendations</h2>
+            @if (Model.Reports.Count == 0)
+            {
+                <p>No recommendations are awaiting review or referral.</p>
+            }
+            <div class="list-group">
+                @foreach (var item in Model.Reports)
+                {
+                    <a class="list-group-item list-group-item-action @(item == report ? "active" : "")"
+                       href="@Url.Action("Submissions", new { id = item.EvaluationReportId })">
+                        @item.Tender.Title
+                        <small class="d-block">@(item.Status == "ManagerApproved" ? "Approved recommendation" : "Awaiting manager review")</small>
+                    </a>
+                }
+            </div>
+        </section>
+        @if (report is not null)
+        {
+            var recommendedOffer = Model.Offers.FirstOrDefault(offer => offer.BidId == report.RecommendedBidId);
+            <section class="workspace-section">
+                <h2>@report.Tender.Title</h2>
+                <p><strong>Recommended supplier</strong> @(recommendedOffer?.Invitation.SupplierProfile.CompanyName ?? "Unavailable")</p>
+                <h3 class="h5">Committee report</h3>
+                <p class="text-break manager-text">@(report.CommitteeSummary ?? "No summary was provided.")</p>
+                @if (!string.IsNullOrWhiteSpace(report.OfficerSummary))
+                {
+                    <h3 class="h5">Sourcing officer summary</h3>
+                    <p class="text-break manager-text">@report.OfficerSummary</p>
+                }
+
+                <h3 class="h5">Supplier comparison</h3>
+                @if (Model.Offers.Count == 0)
+                {
+                    <p>No submitted offers are available.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr><th scope="col">Supplier</th><th scope="col">Total including tax and fees</th><th scope="col">Delivery</th><th scope="col">Compliance</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var offer in Model.Offers)
+                                {
+                                    var total = offer.BidItems.Sum(item => item.Quantity * item.UnitPrice) + offer.TaxAmount + offer.AdditionalCosts;
+                                    <tr>
+                                        <td>@offer.Invitation.SupplierProfile.CompanyName</td>
+                                        <td>@total.ToString("N2") @offer.Currency</td>
+                                        <td>@offer.DeliveryDays days</td>
+                                        <td>
+                                            @(offer.ComplianceStatus ?? "Unreviewed")
+                                            @if (!string.IsNullOrWhiteSpace(offer.ComplianceNotes))
+                                            {
+                                                <div class="small text-break">@offer.ComplianceNotes</div>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3 class="h5">Technical and financial evaluations</h3>
+                    @foreach (var offer in Model.Offers)
+                    {
+                        <details class="mb-3">
+                            <summary>@offer.Invitation.SupplierProfile.CompanyName</summary>
+                            @if (!string.IsNullOrWhiteSpace(offer.TechnicalDetails))
+                            {
+                                <p class="text-break manager-text">@offer.TechnicalDetails</p>
+                            }
+                            @if (offer.Evaluations.Count == 0)
+                            {
+                                <p>No submitted evaluations.</p>
+                            }
+                            @foreach (var evaluation in offer.Evaluations.OrderBy(e => e.CommitteeAssignmentId))
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <caption class="caption-top">Evaluation #@evaluation.EvaluationId (@evaluation.Status)</caption>
+                                        <thead>
+                                            <tr><th scope="col">Category</th><th scope="col">Criterion</th><th scope="col">Weight</th><th scope="col">Score</th><th scope="col">Notes</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var score in evaluation.EvaluationScores.OrderBy(s => s.EvaluationCriterion.Category).ThenBy(s => s.EvaluationCriterion.Name))
+                                            {
+                                                <tr>
+                                                    <td>@(score.EvaluationCriterion.Category == "Requirements" ? "Technical" : "Financial")</td>
+                                                    <td>@score.EvaluationCriterion.Name</td>
+                                                    <td>@score.EvaluationCriterion.Weight.ToString("0.##")%</td>
+                                                    <td>@score.Score.ToString("0.##")</td>
+                                                    <td class="text-break">@score.Notes</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(evaluation.Notes))
+                                {
+                                    <p class="text-break manager-text">@evaluation.Notes</p>
+                                }
+                            }
+                        </details>
+                    }
+                }
+
+                @if (report.Status == "ManagerApproved")
+                {
+                    <h3 class="h5 manager-section-break">Refer to the Top Committee</h3>
+                    @if (!string.IsNullOrWhiteSpace(report.ManagerSummary))
+                    {
+                        <p class="text-break manager-text">@report.ManagerSummary</p>
+                    }
+                    <form method="post" asp-action="Forward">
+
+                        <input type="hidden" name="ReportId" value="@report.EvaluationReportId" />
+                        <label class="form-label" for="forward-reason">Reason under the referral policy</label>
+                        <textarea class="form-control mb-3" id="forward-reason" name="Reason" rows="3" maxlength="4000" required></textarea>
+                        <button type="submit" class="btn btn-primary">Forward to Top Committee</button>
+                    </form>
+                }
+                else
+                {
+                    <h3 class="h5 manager-section-break">Manager decision</h3>
+                    <form method="post" asp-action="Decide">
+
+                        <input type="hidden" name="ReportId" value="@report.EvaluationReportId" />
+                        <input type="hidden" name="ReviewVersion" value="@(Model.ReviewVersion?.Ticks)" />
+                        <label class="form-label" for="manager-notes">Comments (required for rejection or return)</label>
+                        <textarea class="form-control mb-3" id="manager-notes" name="Notes" rows="3" maxlength="4000"></textarea>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="submit" class="btn btn-primary" name="Decision" value="Approved">Approve recommendation</button>
+                            <button type="submit" class="btn btn-outline-secondary" name="Decision" value="ReturnedForReview">Return for review</button>
+                            <button type="submit" class="btn btn-outline-danger" name="Decision" value="Rejected">Reject recommendation</button>
+                        </div>
+                    </form>
+                }
+            </section>
+        }
+    </div>
 </div>

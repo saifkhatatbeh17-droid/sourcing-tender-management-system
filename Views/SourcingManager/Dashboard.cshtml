@@ -9,22 +9,29 @@
         (Label: "Pending questions for you", Count: Model.PendingClarifications, Action: "Clarifications", Decision: (string?)null)
     };
 }
-<div class="admin-dashboard">
-    <div class="workspace-heading">
-        <h1>Sourcing Manager Dashboard</h1>
-        <a class="btn btn-primary" asp-action="Submissions">Review submissions <span aria-hidden="true">→</span></a>
-    </div>
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 admin-metrics">
-        @foreach (var metric in metrics)
-        {
-            <div class="col">
-                <a class="admin-metric manager-metric" asp-action="@metric.Action" asp-route-decision="@metric.Decision">
-                    <dl class="mb-0">
-                        <dt>@metric.Label</dt>
-                        <dd>@metric.Count.ToString("N0")</dd>
-                    </dl>
-                </a>
-            </div>
-        }
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
+}
+
+<div class="manager-shell">
+    <div class="admin-dashboard">
+        <div class="workspace-heading">
+            <h1>Sourcing Manager Dashboard</h1>
+            <a class="btn btn-primary" asp-action="Submissions">Review submissions <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 admin-metrics">
+            @foreach (var metric in metrics)
+            {
+                <div class="col">
+                    <a class="admin-metric manager-metric" asp-action="@metric.Action" asp-route-decision="@metric.Decision">
+                        <dl class="mb-0">
+                            <dt>@metric.Label</dt>
+                            <dd>@metric.Count.ToString("N0")</dd>
+                        </dl>
+                    </a>
+                </div>
+            }
+        </div>
     </div>
 </div>
