@@ -20,6 +20,8 @@
         && ViewData["HideWorkspaceSidebar"] is not true && PageNavigation.Menus.ContainsKey(workspaceController)
         && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
     var showAdminSidebar = showWorkspace && workspaceController == "Admin";
+    var showManagerWorkspace = showWorkspace && workspaceController == RoleNames.SourcingManager;
+    var useAdminStyles = showAdminSidebar || showManagerWorkspace;
     ViewData["WorkspaceController"] = workspaceController;
     ViewData["WorkspaceLabel"] = workspaceController == "Admin" ? "Administration" : System.Text.RegularExpressions.Regex.Replace(workspaceController, "([a-z])([A-Z])", "$1 $2");
     var activeAction = ViewData["ActivePage"]?.ToString() ?? currentAction;
@@ -39,19 +41,20 @@
     <title>@ViewData["Title"] — Sourcing &amp; Tender Management</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    @if (showAdminSidebar)
+    @if (useAdminStyles)
     {
         <link rel="stylesheet" href="~/css/admin-sidebar.css" asp-append-version="true" />
     }
     @if (showWorkspace) { <link rel="stylesheet" href="~/css/root.css" asp-append-version="true" /> }
     @await RenderSectionAsync("Styles", required: false)
     <link rel="stylesheet" href="~/css/site-theme.css" asp-append-version="true" />
-    @if (showAdminSidebar)
+    @if (useAdminStyles)
     {
         <link rel="stylesheet" href="~/css/root.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/admin-root.css" asp-append-version="true" />
     }
     @if (showWorkspace) { <link rel="stylesheet" href="~/css/workspace-shell.css" asp-append-version="true" /> }
+    @if (showManagerWorkspace) { <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" /> }
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -101,7 +104,7 @@ else
     </nav>
 </header>
 }
-<div class="app-shell @(showAdminSidebar ? "admin-shell" : null) @(showWorkspace ? "workspace-shell" : null)">
+<div class="app-shell @(useAdminStyles ? "admin-shell" : null) @(showManagerWorkspace ? "manager-shell" : null) @(showWorkspace ? "workspace-shell" : null)">
 @if (showWorkspace)
 {
     <partial name="_WorkspaceSidebar" />
@@ -112,10 +115,6 @@ else
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 @if (showWorkspace) { <script src="~/js/workspace-sidebar.js" asp-append-version="true"></script> }
-@if (showAdminSidebar)
-{
-    <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
-}
 
 @await RenderSectionAsync("Scripts", required: false)
 </body>

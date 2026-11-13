@@ -1,28 +1,30 @@
 @model ManagerDashboard
 @{
     ViewData["Title"] = "Sourcing Manager Dashboard";
+    var metrics = new[]
+    {
+        (Label: "Awaiting manager review", Count: Model.AwaitingReview, Action: "Submissions", Decision: (string?)null),
+        (Label: "Approved recommendations", Count: Model.Approved, Action: "Submissions", Decision: (string?)null),
+        (Label: "Awaiting committee decision", Count: Model.AwaitingCommittee, Action: "Reports", Decision: (string?)"Approved"),
+        (Label: "Pending questions for you", Count: Model.PendingClarifications, Action: "Clarifications", Decision: (string?)null)
+    };
 }
-
-<h1>Sourcing Manager Dashboard</h1>
-<div class="row g-3">
-    <div class="col-sm-6 col-xl-3">
-        <a class="card card-body h-100 text-decoration-none" href="@Url.Action("Submissions")">
-            Awaiting manager review <strong class="fs-3">@Model.AwaitingReview</strong>
-        </a>
+<div class="admin-dashboard">
+    <div class="workspace-heading">
+        <h1>Sourcing Manager Dashboard</h1>
+        <a class="btn btn-primary" asp-action="Submissions">Review submissions <span aria-hidden="true">→</span></a>
     </div>
-    <div class="col-sm-6 col-xl-3">
-        <a class="card card-body h-100 text-decoration-none" href="@Url.Action("Submissions")">
-            Approved recommendations <strong class="fs-3">@Model.Approved</strong>
-        </a>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-        <a class="card card-body h-100 text-decoration-none" href="@Url.Action("Reports", new { decision = "Approved" })">
-            Awaiting committee decision <strong class="fs-3">@Model.AwaitingCommittee</strong>
-        </a>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-        <a class="card card-body h-100 text-decoration-none" href="@Url.Action("Clarifications")">
-            Pending questions for you <strong class="fs-3">@Model.PendingClarifications</strong>
-        </a>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 admin-metrics">
+        @foreach (var metric in metrics)
+        {
+            <div class="col">
+                <a class="admin-metric manager-metric" asp-action="@metric.Action" asp-route-decision="@metric.Decision">
+                    <dl class="mb-0">
+                        <dt>@metric.Label</dt>
+                        <dd>@metric.Count.ToString("N0")</dd>
+                    </dl>
+                </a>
+            </div>
+        }
     </div>
 </div>

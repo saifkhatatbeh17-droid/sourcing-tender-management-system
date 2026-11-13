@@ -3,6 +3,8 @@
     var currentAction = ViewData["ActivePage"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString();
     var controller = ViewData["WorkspaceController"]?.ToString() ?? "Admin";
     var activeAction = ViewData["WorkspaceActiveAction"]?.ToString() ?? currentAction;
+    var isManagerProfile = ViewContext.RouteData.Values["controller"]?.ToString() == "Account" &&
+        (currentAction == "Profile" || currentAction == "EditProfile");
 }
 <aside class="admin-sidebar" aria-label="@ViewData["WorkspaceLabel"] navigation">
     <div class="admin-sidebar-top">
@@ -25,6 +27,14 @@
         </nav>
     </div>
     <div class="admin-sidebar-bottom">
+        @if (controller == "SourcingManager")
+        {
+            <a class="admin-sidebar-item @(isManagerProfile ? "is-active" : null)" asp-controller="Account" asp-action="Profile"
+               aria-current="@(isManagerProfile ? "page" : null)" aria-label="My Profile" title="My Profile">
+                <partial name="_AdminSidebarIcon" model='@("Profile")' />
+                <span>My Profile</span>
+            </a>
+        }
         <a class="admin-sidebar-item" asp-controller="FaceEnrollment" asp-action="Index" aria-label="Manage Face ID" title="Manage Face ID"><partial name="_AdminSidebarIcon" model='@("FaceId")' /><span>Manage Face ID</span></a>
         <button type="button" class="admin-sidebar-item" data-theme-toggle aria-pressed="false" aria-label="Dark mode" title="Dark mode">
             <partial name="_AdminSidebarIcon" model='@("Theme")' />

@@ -4,7 +4,9 @@
     var conversation = Model.Selected;
 }
 
-<h1>Clarifications</h1>
+<div class="workspace-heading">
+    <h1>Clarifications</h1>
+</div>
 @if (TempData["ManagerMessage"] is string message)
 {
     <div class="alert alert-info" role="status">@message</div>
@@ -18,7 +20,7 @@
         }
         else
         {
-            <form method="get" action="@Url.Action("Clarifications")" class="mb-3">
+            <form method="get" asp-action="Clarifications" class="mb-3">
                 <input type="hidden" name="id" value="@conversation?.ClarificationId" />
                 <label class="form-label" for="tender">Tender</label>
                 <div class="input-group">
@@ -34,8 +36,8 @@
         }
         @if (Model.Recipients.Count > 0)
         {
-            <form method="post" action="@Url.Action("CreateClarification")">
-                @Html.AntiForgeryToken()
+            <form method="post" asp-action="CreateClarification">
+
                 <input type="hidden" name="TenderId" value="@Model.SelectedTenderId" />
                 <label class="form-label" for="recipient">Committee member</label>
                 <select class="form-select mb-3" id="recipient" name="RecipientId" required>
@@ -76,18 +78,18 @@
             <p>@(conversation.Tender?.Title ?? conversation.Bid?.Invitation.Tender.Title ?? conversation.PurchaseRequest?.Title)</p>
             <p><strong>@conversation.Status</strong> · @conversation.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</p>
             <p><strong>From</strong> @conversation.SenderUser.FullName <strong>To</strong> @conversation.RecipientUser.FullName</p>
-            <p class="text-break" style="white-space: pre-wrap">@conversation.Description</p>
+            <p class="text-break manager-text">@conversation.Description</p>
             @foreach (var reply in conversation.ClarificationResponses)
             {
                 <article class="border-top pt-3">
                     <p><strong>@reply.RespondedByUser.FullName</strong> · @reply.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</p>
-                    <p class="text-break" style="white-space: pre-wrap">@reply.Message</p>
+                    <p class="text-break manager-text">@reply.Message</p>
                 </article>
             }
             @if (Model.CanReply)
             {
-                <form method="post" action="@Url.Action("ReplyToClarification")">
-                    @Html.AntiForgeryToken()
+                <form method="post" asp-action="ReplyToClarification">
+
                     <input type="hidden" name="Id" value="@conversation.ClarificationId" />
                     <label class="form-label" for="response">Response</label>
                     <textarea class="form-control mb-3" id="response" name="Message" rows="3" maxlength="4000" required></textarea>
@@ -96,8 +98,8 @@
             }
             @if (conversation.Status == "Answered" && conversation.SenderUserId == Model.UserId)
             {
-                <form method="post" action="@Url.Action("ResolveClarification")">
-                    @Html.AntiForgeryToken()
+                <form method="post" asp-action="ResolveClarification">
+
                     <input type="hidden" name="id" value="@conversation.ClarificationId" />
                     <button class="btn btn-outline-primary" type="submit">Mark as resolved</button>
                 </form>

@@ -4,7 +4,9 @@
     var report = Model.Selected;
 }
 
-<h1>Committee Submissions</h1>
+<div class="workspace-heading">
+    <h1>Committee Submissions</h1>
+</div>
 @if (TempData["ManagerMessage"] is string message)
 {
     <div class="alert alert-info" role="status">@message</div>
@@ -35,11 +37,11 @@
             <h2>@report.Tender.Title</h2>
             <p><strong>Recommended supplier</strong> @(recommendedOffer?.Invitation.SupplierProfile.CompanyName ?? "Unavailable")</p>
             <h3 class="h5">Committee report</h3>
-            <p class="text-break" style="white-space: pre-wrap">@(report.CommitteeSummary ?? "No summary was provided.")</p>
+            <p class="text-break manager-text">@(report.CommitteeSummary ?? "No summary was provided.")</p>
             @if (!string.IsNullOrWhiteSpace(report.OfficerSummary))
             {
                 <h3 class="h5">Sourcing officer summary</h3>
-                <p class="text-break" style="white-space: pre-wrap">@report.OfficerSummary</p>
+                <p class="text-break manager-text">@report.OfficerSummary</p>
             }
 
             <h3 class="h5">Supplier comparison</h3>
@@ -50,7 +52,7 @@
             else
             {
                 <div class="table-responsive">
-                    <table class="table align-middle">
+                    <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr><th scope="col">Supplier</th><th scope="col">Total including tax and fees</th><th scope="col">Delivery</th><th scope="col">Compliance</th></tr>
                         </thead>
@@ -82,7 +84,7 @@
                         <summary>@offer.Invitation.SupplierProfile.CompanyName</summary>
                         @if (!string.IsNullOrWhiteSpace(offer.TechnicalDetails))
                         {
-                            <p class="text-break" style="white-space: pre-wrap">@offer.TechnicalDetails</p>
+                            <p class="text-break manager-text">@offer.TechnicalDetails</p>
                         }
                         @if (offer.Evaluations.Count == 0)
                         {
@@ -112,7 +114,7 @@
                             </div>
                             @if (!string.IsNullOrWhiteSpace(evaluation.Notes))
                             {
-                                <p class="text-break" style="white-space: pre-wrap">@evaluation.Notes</p>
+                                <p class="text-break manager-text">@evaluation.Notes</p>
                             }
                         }
                     </details>
@@ -121,13 +123,13 @@
 
             @if (report.Status == "ManagerApproved")
             {
-                <h3 class="h5">Refer to the Top Committee</h3>
+                <h3 class="h5 manager-section-break">Refer to the Top Committee</h3>
                 @if (!string.IsNullOrWhiteSpace(report.ManagerSummary))
                 {
-                    <p class="text-break" style="white-space: pre-wrap">@report.ManagerSummary</p>
+                    <p class="text-break manager-text">@report.ManagerSummary</p>
                 }
-                <form method="post" action="@Url.Action("Forward")">
-                    @Html.AntiForgeryToken()
+                <form method="post" asp-action="Forward">
+
                     <input type="hidden" name="ReportId" value="@report.EvaluationReportId" />
                     <label class="form-label" for="forward-reason">Reason under the referral policy</label>
                     <textarea class="form-control mb-3" id="forward-reason" name="Reason" rows="3" maxlength="4000" required></textarea>
@@ -136,9 +138,9 @@
             }
             else
             {
-                <h3 class="h5">Manager decision</h3>
-                <form method="post" action="@Url.Action("Decide")">
-                    @Html.AntiForgeryToken()
+                <h3 class="h5 manager-section-break">Manager decision</h3>
+                <form method="post" asp-action="Decide">
+
                     <input type="hidden" name="ReportId" value="@report.EvaluationReportId" />
                     <input type="hidden" name="ReviewVersion" value="@(Model.ReviewVersion?.Ticks)" />
                     <label class="form-label" for="manager-notes">Comments (required for rejection or return)</label>

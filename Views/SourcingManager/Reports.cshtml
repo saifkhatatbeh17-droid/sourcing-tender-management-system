@@ -3,50 +3,55 @@
     ViewData["Title"] = "Manager Decisions";
 }
 
-<h1>Manager Decisions</h1>
-<form class="row g-3 align-items-end mb-4" method="get" action="@Url.Action("Reports")">
-    <div class="col-sm-5">
-        <label for="search" class="form-label">Tender title</label>
-        <input class="form-control" id="search" name="search" value="@Model.Search" />
-    </div>
-    <div class="col-sm-4">
-        <label for="decision" class="form-label">Decision</label>
-        <select class="form-select" id="decision" name="decision">
-            <option value="">All decisions</option>
-            <option value="Approved" selected="@(Model.Decision == "Approved")">Approved</option>
-            <option value="Rejected" selected="@(Model.Decision == "Rejected")">Rejected</option>
-            <option value="ReturnedForReview" selected="@(Model.Decision == "ReturnedForReview")">Returned for review</option>
-        </select>
-    </div>
-    <div class="col-sm-auto">
-        <button type="submit" class="btn btn-primary">Filter</button>
-    </div>
-</form>
+<div class="workspace-heading">
+    <h1>Manager Decisions</h1>
+</div>
 
-@if (Model.Decisions.Count == 0)
-{
-    <p>No decisions match these filters.</p>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table align-middle">
-            <thead>
-                <tr><th scope="col">Tender</th><th scope="col">Manager</th><th scope="col">Decision</th><th scope="col">Recorded (UTC)</th><th scope="col">Tender status</th><th scope="col">Comments</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Decisions)
-                {
-                    <tr>
-                        <td>@item.Tender.Title</td>
-                        <td>@item.User.FullName</td>
-                        <td>@(item.Decision == "ReturnedForReview" ? "Returned for review" : item.Decision)</td>
-                        <td>@item.DecidedAt.ToString("yyyy-MM-dd HH:mm")</td>
-                        <td>@item.Tender.Status</td>
-                        <td class="text-break" style="white-space: pre-wrap">@item.Notes</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+<section class="workspace-section" aria-label="Reports">
+    <form class="row g-3 align-items-end mb-4" method="get" asp-action="Reports">
+        <div class="col-sm-5">
+            <label for="search" class="form-label">Tender title</label>
+            <input class="form-control" id="search" name="search" value="@Model.Search" />
+        </div>
+        <div class="col-sm-4">
+            <label for="decision" class="form-label">Decision</label>
+            <select class="form-select" id="decision" name="decision">
+                <option value="">All decisions</option>
+                <option value="Approved" selected="@(Model.Decision == "Approved")">Approved</option>
+                <option value="Rejected" selected="@(Model.Decision == "Rejected")">Rejected</option>
+                <option value="ReturnedForReview" selected="@(Model.Decision == "ReturnedForReview")">Returned for review</option>
+            </select>
+        </div>
+        <div class="col-sm-auto">
+            <button type="submit" class="btn btn-primary">Filter</button>
+        </div>
+    </form>
+
+    @if (Model.Decisions.Count == 0)
+    {
+        <p>No decisions match these filters.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr><th scope="col">Tender</th><th scope="col">Manager</th><th scope="col">Decision</th><th scope="col">Recorded (UTC)</th><th scope="col">Tender status</th><th scope="col">Comments</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Decisions)
+                    {
+                        <tr>
+                            <td>@item.Tender.Title</td>
+                            <td>@item.User.FullName</td>
+                            <td>@(item.Decision == "ReturnedForReview" ? "Returned for review" : item.Decision)</td>
+                            <td>@item.DecidedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@item.Tender.Status</td>
+                            <td class="text-break manager-text">@item.Notes</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
