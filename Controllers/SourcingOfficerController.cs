@@ -200,7 +200,7 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
             .Where(r => r.Status == "Approved" && !db.Tenders.Any(t => t.PurchaseRequestId == r.PurchaseRequestId))
             .OrderBy(r => r.SubmittedAt)
             .ToListAsync();
-        ViewBag.CreateTender = new Tender();
+        ViewBag.CreateTender = new SourcingOfficerTenderForm();
         return View("Tenders", model);
     }
 
@@ -208,13 +208,13 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
     public async Task<IActionResult> Create(int? purchaseRequestId)
     {
         var result = await Tenders(null);
-        ViewBag.CreateTender = new Tender { PurchaseRequestId = purchaseRequestId ?? 0 };
+        ViewBag.CreateTender = new SourcingOfficerTenderForm { PurchaseRequestId = purchaseRequestId ?? 0 };
         ViewBag.OpenCreateModal = true;
         return result;
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("PurchaseRequestId,Title,Description,Terms,OpensAt,ClosesAt")] Tender tender)
+    public async Task<IActionResult> Create([Bind("PurchaseRequestId,Title,Description,Terms,OpensAt,ClosesAt")] SourcingOfficerTenderForm tender)
     {
         if (tender.PurchaseRequestId <= 0)
             ModelState.AddModelError(nameof(Tender.PurchaseRequestId), "Select an approved purchase request.");
@@ -275,7 +275,7 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
         return RedirectToAction(nameof(Tenders));
     }
 
-    private async Task<IActionResult> ShowCreateTender(Tender tender)
+    private async Task<IActionResult> ShowCreateTender(SourcingOfficerTenderForm tender)
     {
         var result = await Tenders(null);
         ViewBag.CreateTender = tender;
@@ -294,13 +294,21 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
         if (tender.Status != "Draft") return Forbid();
 
         var result = await Tenders(id);
-        ViewBag.EditTender = tender;
+        ViewBag.EditTender = new SourcingOfficerTenderForm
+        {
+            TenderId = tender.TenderId,
+            Title = tender.Title,
+            Description = tender.Description,
+            Terms = tender.Terms,
+            OpensAt = tender.OpensAt,
+            ClosesAt = tender.ClosesAt
+        };
         ViewBag.OpenEditModal = true;
         return result;
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit([Bind("TenderId,Title,Description,Terms,OpensAt,ClosesAt")] Tender input)
+    public async Task<IActionResult> Edit([Bind("TenderId,Title,Description,Terms,OpensAt,ClosesAt")] SourcingOfficerTenderForm input)
     {
         if (string.IsNullOrWhiteSpace(input.Title))
             ModelState.AddModelError(nameof(Tender.Title), "Enter a tender title.");
@@ -338,7 +346,7 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
         return RedirectToAction(nameof(Tenders), new { id = tender.TenderId });
     }
 
-    private async Task<IActionResult> ShowEditTender(Tender input)
+    private async Task<IActionResult> ShowEditTender(SourcingOfficerTenderForm input)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var tender = await db.Tenders

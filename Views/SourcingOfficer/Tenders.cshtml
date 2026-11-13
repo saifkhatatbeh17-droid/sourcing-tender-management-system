@@ -3,8 +3,8 @@
 @{
     ViewData["Title"] = "Tenders";
     var approvedRequests = ViewBag.ApprovedPurchaseRequests as List<PurchaseRequest> ?? [];
-    var createTender = ViewBag.CreateTender as Tender ?? new Tender();
-    var editTender = ViewBag.EditTender as Tender ?? Model.SelectedTender;
+    var createTender = ViewBag.CreateTender as SourcingOfficerTenderForm ?? new SourcingOfficerTenderForm();
+    var editTender = ViewBag.EditTender as SourcingOfficerTenderForm;
     var canSendToEvaluation = ViewBag.CanSendToEvaluation is bool eligible && eligible;
 }
 <h1>Tenders</h1>
@@ -140,7 +140,7 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
 {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const modalId = @(ViewBag.OpenEditModal == true ? "\"tender-edit\"" : "\"tender-create\"");
+            const modalId = '@(ViewBag.OpenEditModal == true ? "tender-edit" : "tender-create")';
             const modal = document.getElementById(modalId);
             if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
         });
