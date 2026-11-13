@@ -1,14 +1,31 @@
-@{ ViewData["Title"] = "Chosen Offers"; }
+@model IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender>
+@{
+    ViewData["Title"] = "Chosen Offers";
+}
+
 <h1>Chosen Offers</h1>
-<div class="workspace-columns">
-    <section class="workspace-section">
-        <h2>Returned by the Top Committee</h2>
-        <!-- TEAM TODO: List reports returned after all four Top Committee approvals, with the selected offer and current shared report status. -->
-    </section>
-    <section class="workspace-section">
-        <h2>Chosen Offer Details</h2>
-        <!-- TEAM TODO: Show the selected tender, chosen supplier/offer, committee decision, manager summary, and report status as read-only details. -->
-        <button type="button" class="btn btn-success" disabled>Approve Report</button>
-        <!-- TEAM TODO: Approve the shared EvaluationReports record. Preserve the chosen bid and supplier-submitted values. Show that same status to the related officer, committee members, supplier, and requesting department under their existing record-access rules. -->
-    </section>
-</div>
+@if (Model.Count == 0)
+{
+    <p>No evaluated tenders have been awarded.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr><th scope="col">Tender</th><th scope="col">Chosen supplier</th><th scope="col">Awarded (UTC)</th><th scope="col">Award notes</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var tender in Model)
+                {
+                    <tr>
+                        <td>@tender.Title</td>
+                        <td>@tender.Bid?.Invitation.SupplierProfile.CompanyName</td>
+                        <td>@tender.AwardedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td class="text-break" style="white-space: pre-wrap">@tender.AwardNotes</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
