@@ -1,7 +1,162 @@
-@{ ViewData["Title"] = "Request Review"; }
+@using SourcingTenderManagement.Models.Entities
+@model List<PurchaseRequest>
+@{
+    ViewData["Title"] = "Request Review";
+    var selectedRequest = ViewBag.SelectedRequest as PurchaseRequest;
+    var currentUserId = ViewBag.CurrentUserId as string;
+}
 <h1>Request Review</h1>
+@if (TempData["RequestSuccess"] is string requestSuccess)
+{
+    <div class="alert alert-success" role="status">@requestSuccess</div>
+}
+@if (TempData["RequestError"] is string requestError)
+{
+    <div class="alert alert-danger" role="alert">@requestError</div>
+}
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Request Review">
-<button class="nav-link active" id="review-0-tab" data-bs-toggle="tab" data-bs-target="#review-0" type="button" role="tab" aria-controls="review-0" aria-selected="true">Requests</button>
-<button class="nav-link " id="review-1-tab" data-bs-toggle="tab" data-bs-target="#review-1" type="button" role="tab" aria-controls="review-1" aria-selected="false">Request Details</button></div>
-<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="review-0" role="tabpanel" aria-labelledby="review-0-tab" tabindex="0"><section class="workspace-section"><h2>Purchase Requests</h2><!-- TEAM TODO: Load submitted requests awaiting the officer's review. A selection opens the details tab. --></section></div>
-<div class="tab-pane fade " id="review-1" role="tabpanel" aria-labelledby="review-1-tab" tabindex="0"><section class="workspace-section"><h2>Request Details & Review</h2><!-- TEAM TODO: Display items, quantities, specifications, and review notes. Add Approve, Return, and Reject actions here. --></section></div></div>
+    <button class="nav-link @(selectedRequest == null ? "active" : "")" id="review-0-tab" data-bs-toggle="tab" data-bs-target="#review-0" type="button" role="tab" aria-controls="review-0" aria-selected="@(selectedRequest == null ? "true" : "false")">Requests</button>
+    <button class="nav-link @(selectedRequest != null ? "active" : "")" id="review-1-tab" data-bs-toggle="tab" data-bs-target="#review-1" type="button" role="tab" aria-controls="review-1" aria-selected="@(selectedRequest != null ? "true" : "false")">Request Details</button>
+</div>
+<div class="tab-content workspace-content">
+    <div class="tab-pane fade @(selectedRequest == null ? "show active" : "")" id="review-0" role="tabpanel" aria-labelledby="review-0-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Purchase Requests</h2>
+            <form asp-action="Requests" method="get" class="mb-3">
+                <label for="request-status" class="form-label">Filter by status</label>
+                <div class="d-flex flex-wrap gap-2">
+                    <select id="request-status" name="status" class="form-select" style="max-width: 240px">
+                        <option value="All" selected="@(ViewBag.StatusFilter == "All")">All</option>
+                        <option value="Submitted" selected="@(ViewBag.StatusFilter == "Submitted")">Submitted</option>
+                        <option value="UnderReview" selected="@(ViewBag.StatusFilter == "UnderReview")">Under Review</option>
+                        <option value="Approved" selected="@(ViewBag.StatusFilter == "Approved")">Approved</option>
+                        <option value="Returned" selected="@(ViewBag.StatusFilter == "Returned")">Returned</option>
+                        <option value="Rejected" selected="@(ViewBag.StatusFilter == "Rejected")">Rejected</option>
+                    </select>
+                    <button type="submit" class="btn btn-outline-primary">Apply Filter</button>
+                </div>
+            </form>
+            @if (Model.Count == 0)
+            {
+                <p class="text-secondary">No requests match this status filter.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr><th>Title</th><th>Department</th><th>Priority</th><th>Target Date</th><th>Submitted</th><th>Assigned Reviewer</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var request in Model)
+                        {
+                            <tr>
+                                <td>@request.Title</td>
+                                <td>@request.Department.Name</td>
+                                <td>@request.Priority</td>
+                                <td>@request.TargetDate</td>
+                                <td>@request.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@(request.ReviewedByUser?.FullName ?? "Unassigned")</td>
+                                <td><a class="btn btn-outline-primary btn-sm" asp-action="Requests" asp-route-id="@request.PurchaseRequestId" asp-route-status="@ViewBag.StatusFilter">Review</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+    <div class="tab-pane fade @(selectedRequest != null ? "show active" : "")" id="review-1" role="tabpanel" aria-labelledby="review-1-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Request Details &amp; Review</h2>
+            @if (selectedRequest is null)
+            {
+                <p class="text-secondary">Select a submitted request to review its details.</p>
+            }
+            else
+            {
+                <dl>
+                    <dt>Title</dt><dd>@selectedRequest.Title</dd>
+                    <dt>Department</dt><dd>@selectedRequest.Department.Name</dd>
+                    <dt>Requested By</dt><dd>@selectedRequest.RequestedByUser.FullName</dd>
+                    <dt>Reason</dt><dd>@selectedRequest.Reason</dd>
+                    <dt>Priority</dt><dd>@selectedRequest.Priority</dd>
+                    <dt>Target Date</dt><dd>@selectedRequest.TargetDate</dd>
+                    <dt>Status</dt><dd>@selectedRequest.Status</dd>
+                    <dt>Assigned Reviewer</dt><dd>@(selectedRequest.ReviewedByUser?.FullName ?? "Unassigned")</dd>
+                    @if (selectedRequest.ReviewedAt.HasValue)
+                    {
+                        <dt>Last Reviewed (UTC)</dt><dd>@selectedRequest.ReviewedAt.Value.ToString("yyyy-MM-dd HH:mm")</dd>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(selectedRequest.ReviewNotes))
+                    {
+                        <dt>Review Notes</dt><dd>@selectedRequest.ReviewNotes</dd>
+                    }
+                </dl>
+
+                <h3>Requested Items</h3>
+                @if (selectedRequest.PurchaseRequestItems.Count == 0)
+                {
+                    <p class="text-secondary">No items were added to this request.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead><tr><th>Item</th><th>Quantity</th><th>Unit</th><th>Specifications</th></tr></thead>
+                            <tbody>
+                            @foreach (var item in selectedRequest.PurchaseRequestItems)
+                            {
+                                <tr><td>@item.ItemName</td><td>@item.Quantity</td><td>@item.Unit</td><td>@item.Specifications</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                @if (selectedRequest.Status == "Submitted" &&
+                    (selectedRequest.ReviewedByUserId == null || selectedRequest.ReviewedByUserId == currentUserId))
+                {
+                    <form asp-action="StartReview" method="post" class="mt-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@selectedRequest.PurchaseRequestId" />
+                        <button type="submit" class="btn btn-primary">Start Review</button>
+                    </form>
+                }
+                else if (selectedRequest.Status == "UnderReview" && selectedRequest.ReviewedByUserId == currentUserId)
+                {
+                    <div class="workspace-section mt-3">
+                        <h3>Review Decision</h3>
+                        <form asp-action="ApproveRequest" method="post" class="mb-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@selectedRequest.PurchaseRequestId" />
+                            <div class="mb-2">
+                                <label for="approve-notes" class="form-label">Review notes (optional)</label>
+                                <textarea id="approve-notes" name="notes" class="form-control" rows="2" maxlength="2000"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-success">Approve</button>
+                        </form>
+                        <form asp-action="ReturnRequest" method="post" class="mb-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@selectedRequest.PurchaseRequestId" />
+                            <div class="mb-2">
+                                <label for="return-reason-@selectedRequest.PurchaseRequestId" class="form-label">Return reason (required)</label>
+                                <textarea id="return-reason-@selectedRequest.PurchaseRequestId" name="reason" class="form-control" rows="3" maxlength="2000" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary">Return for Correction</button>
+                        </form>
+                        <form asp-action="RejectRequest" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@selectedRequest.PurchaseRequestId" />
+                        <div class="mb-3">
+                                <label for="reject-reason-@selectedRequest.PurchaseRequestId" class="form-label">Rejection reason (required)</label>
+                                <textarea id="reject-reason-@selectedRequest.PurchaseRequestId" name="reason" class="form-control" rows="3" maxlength="2000" required></textarea>
+                        </div>
+                            <button type="submit" class="btn btn-danger">Reject</button>
+                        </form>
+                    </div>
+                }
+            }
+        </section>
+    </div>
+</div>

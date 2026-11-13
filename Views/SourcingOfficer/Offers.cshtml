@@ -1,7 +1,148 @@
-@{ ViewData["Title"] = "Received Offers"; }
+@using SourcingTenderManagement.Models.Entities
+@model List<Bid>
+@{
+    ViewData["Title"] = "Received Offers";
+    var selectedBid = ViewBag.SelectedBid as Bid;
+    var tenders = ViewBag.OfferTenders as List<Tender> ?? [];
+    var suppliers = ViewBag.OfferSuppliers as List<SupplierProfile> ?? [];
+    var tenderFilter = ViewBag.TenderFilter as int?;
+    var supplierFilter = ViewBag.SupplierFilter as int?;
+    var statusFilter = ViewBag.StatusFilter as string ?? "All";
+}
+
 <h1>Received Offers</h1>
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Received Offers">
-<button class="nav-link active" id="offers-0-tab" data-bs-toggle="tab" data-bs-target="#offers-0" type="button" role="tab" aria-controls="offers-0" aria-selected="true">Offers</button>
-<button class="nav-link " id="offers-1-tab" data-bs-toggle="tab" data-bs-target="#offers-1" type="button" role="tab" aria-controls="offers-1" aria-selected="false">Offer Details</button></div>
-<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="offers-0" role="tabpanel" aria-labelledby="offers-0-tab" tabindex="0"><section class="workspace-section"><h2>Received Offers</h2><!-- TEAM TODO: Load the offers for the selected tender; selecting an offer opens its details. --></section></div>
-<div class="tab-pane fade " id="offers-1" role="tabpanel" aria-labelledby="offers-1-tab" tabindex="0"><section class="workspace-section"><h2>Offer Details</h2><!-- TEAM TODO: Show the selected supplier's item prices, technical specifications, delivery terms, and documents. --></section></div></div>
+    <button class="nav-link @(selectedBid == null ? "active" : "")" id="offers-list-tab" data-bs-toggle="tab" data-bs-target="#offers-list" type="button" role="tab" aria-controls="offers-list" aria-selected="@(selectedBid == null ? "true" : "false")">Offers</button>
+    <button class="nav-link @(selectedBid != null ? "active" : "")" id="offers-details-tab" data-bs-toggle="tab" data-bs-target="#offers-details" type="button" role="tab" aria-controls="offers-details" aria-selected="@(selectedBid != null ? "true" : "false")">Offer Details</button>
+</div>
+
+<div class="tab-content workspace-content">
+    <div class="tab-pane fade @(selectedBid == null ? "show active" : "")" id="offers-list" role="tabpanel" aria-labelledby="offers-list-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Received Offers</h2>
+            <form asp-action="Offers" method="get" class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label for="tenderId" class="form-label">Tender</label>
+                    <select id="tenderId" name="tenderId" class="form-select">
+                        <option value="">All tenders</option>
+                        @foreach (var tender in tenders)
+                        {
+                            <option value="@tender.TenderId" selected="@(tenderFilter == tender.TenderId)">@tender.Title</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="supplierProfileId" class="form-label">Supplier</label>
+                    <select id="supplierProfileId" name="supplierProfileId" class="form-select">
+                        <option value="">All suppliers</option>
+                        @foreach (var supplier in suppliers)
+                        {
+                            <option value="@supplier.SupplierProfileId" selected="@(supplierFilter == supplier.SupplierProfileId)">@supplier.CompanyName</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select id="status" name="status" class="form-select">
+                        @foreach (var status in new[] { "All", "Submitted", "UnderReview", "Compliant", "NonCompliant", "Accepted", "Rejected", "Withdrawn" })
+                        {
+                            <option value="@status" selected="@(statusFilter == status)">@status</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                </div>
+            </form>
+
+            @if (Model.Count == 0)
+            {
+                <p class="text-secondary">No submitted offers match these filters.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr><th>Tender</th><th>Supplier</th><th>Submitted (UTC)</th><th>Status</th><th>Offer Total</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var bid in Model)
+                            {
+                                var total = bid.BidItems.Sum(i => i.Quantity * i.UnitPrice) + bid.TaxAmount + bid.AdditionalCosts;
+                                <tr>
+                                    <td>@bid.Invitation.Tender.Title</td>
+                                    <td>@bid.Invitation.SupplierProfile.CompanyName</td>
+                                    <td>@bid.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td>@bid.Status</td>
+                                    <td>@total.ToString("N2") @bid.Currency</td>
+                                    <td><a class="btn btn-outline-primary btn-sm" asp-action="Offers" asp-route-id="@bid.BidId">Details</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+
+    <div class="tab-pane fade @(selectedBid != null ? "show active" : "")" id="offers-details" role="tabpanel" aria-labelledby="offers-details-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Offer Details</h2>
+            @if (selectedBid is null)
+            {
+                <p class="text-secondary">Select a submitted offer to view its details.</p>
+            }
+            else
+            {
+                <dl>
+                    <dt>Tender</dt><dd>@selectedBid.Invitation.Tender.Title</dd>
+                    <dt>Supplier</dt><dd>@selectedBid.Invitation.SupplierProfile.CompanyName</dd>
+                    <dt>Submission Date (UTC)</dt><dd>@selectedBid.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</dd>
+                    <dt>Status</dt><dd>@selectedBid.Status</dd>
+                    <dt>Compliance Status</dt><dd>@(selectedBid.ComplianceStatus ?? "Pending review")</dd>
+                    <dt>Currency</dt><dd>@selectedBid.Currency</dd>
+                    <dt>Delivery Days</dt><dd>@selectedBid.DeliveryDays</dd>
+                    <dt>Payment Terms</dt><dd>@selectedBid.PaymentTerms</dd>
+                    <dt>Valid Until</dt><dd>@selectedBid.ValidUntil?.ToString("yyyy-MM-dd")</dd>
+                    <dt>Technical Details</dt><dd>@selectedBid.TechnicalDetails</dd>
+                    <dt>Tax</dt><dd>@selectedBid.TaxAmount.ToString("N2") @selectedBid.Currency</dd>
+                    <dt>Additional Costs</dt><dd>@selectedBid.AdditionalCosts.ToString("N2") @selectedBid.Currency</dd>
+                </dl>
+
+                <h3>Offered Items</h3>
+                @if (selectedBid.BidItems.Count == 0)
+                {
+                    <p class="text-secondary">No item prices are stored for this offer.</p>
+                }
+                else
+                {
+                    <div class="table-responsive"><table class="table">
+                        <thead><tr><th>Requested Item</th><th>Quantity</th><th>Unit Price</th><th>Line Total</th><th>Offered Specifications</th></tr></thead>
+                        <tbody>
+                            @foreach (var item in selectedBid.BidItems)
+                            {
+                                <tr><td>@item.PurchaseRequestItem.ItemName</td><td>@item.Quantity</td><td>@item.UnitPrice.ToString("N2") @selectedBid.Currency</td><td>@((item.Quantity * item.UnitPrice).ToString("N2")) @selectedBid.Currency</td><td>@item.OfferedSpecifications</td></tr>
+                            }
+                        </tbody>
+                    </table></div>
+                }
+
+                <h3>Documents</h3>
+                @if (selectedBid.BidDocuments.Count == 0)
+                {
+                    <p class="text-secondary">No document metadata is available.</p>
+                }
+                else
+                {
+                    <ul>
+                        @foreach (var document in selectedBid.BidDocuments)
+                        {
+                            <li>@document.OriginalFileName — @document.DocumentType, @document.ContentType, @document.FileSizeBytes bytes (uploaded @document.UploadedAt.ToString("yyyy-MM-dd HH:mm") UTC)</li>
+                        }
+                    </ul>
+                }
+            }
+        </section>
+    </div>
+</div>

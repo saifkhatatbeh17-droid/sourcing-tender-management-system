@@ -1,3 +1,70 @@
-@{ ViewData["Title"] = "Reports"; }
-<h1>Reports</h1>
-<partial name="_ReportWorkspace" />
+@using SourcingTenderManagement.Models.Entities
+@model List<EvaluationReport>
+@{
+    ViewData["Title"] = "Reports";
+    var selectedReport = ViewBag.SelectedReport as EvaluationReport;
+}
+
+<h1>Sourcing Officer Reports</h1>
+<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Sourcing Officer Reports">
+    <button class="nav-link @(selectedReport == null ? "active" : "")" id="reports-list-tab" data-bs-toggle="tab" data-bs-target="#reports-list" type="button" role="tab" aria-controls="reports-list" aria-selected="@(selectedReport == null ? "true" : "false")">Reports</button>
+    <button class="nav-link @(selectedReport != null ? "active" : "")" id="reports-details-tab" data-bs-toggle="tab" data-bs-target="#reports-details" type="button" role="tab" aria-controls="reports-details" aria-selected="@(selectedReport != null ? "true" : "false")">Report Details</button>
+</div>
+
+<div class="tab-content workspace-content">
+    <div class="tab-pane fade @(selectedReport == null ? "show active" : "")" id="reports-list" role="tabpanel" aria-labelledby="reports-list-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Evaluation Reports for Your Tenders</h2>
+            @if (Model.Count == 0)
+            {
+                <p class="text-secondary">No EvaluationReports are available for your tenders.</p>
+            }
+            else
+            {
+                <div class="table-responsive"><table class="table">
+                    <thead><tr><th>Tender</th><th>Status</th><th>Committee Findings</th><th>Officer Submitted (UTC)</th><th>Manager Review</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var report in Model)
+                        {
+                            <tr>
+                                <td>@report.Tender.Title</td>
+                                <td>@report.Status</td>
+                                <td>@(string.IsNullOrWhiteSpace(report.CommitteeSummary) ? "Not recorded" : report.CommitteeSummary)</td>
+                                <td>@report.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@(string.IsNullOrWhiteSpace(report.ManagerSummary) ? "Pending / not recorded" : report.ManagerSummary)</td>
+                                <td><a class="btn btn-outline-primary btn-sm" asp-action="Reports" asp-route-id="@report.EvaluationReportId">Details</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table></div>
+            }
+        </section>
+    </div>
+    <div class="tab-pane fade @(selectedReport != null ? "show active" : "")" id="reports-details" role="tabpanel" aria-labelledby="reports-details-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Report Details</h2>
+            @if (selectedReport is null)
+            {
+                <p class="text-secondary">Select a report to view its committee findings and review status.</p>
+            }
+            else
+            {
+                <dl>
+                    <dt>Tender</dt><dd>@selectedReport.Tender.Title</dd>
+                    <dt>Status</dt><dd>@selectedReport.Status</dd>
+                    <dt>Committee Summary</dt><dd>@selectedReport.CommitteeSummary</dd>
+                    <dt>Sourcing Officer Summary</dt><dd>@selectedReport.OfficerSummary</dd>
+                    <dt>Prepared By</dt><dd>@(selectedReport.PreparedByUser?.FullName ?? "Not recorded")</dd>
+                    <dt>Submitted (UTC)</dt><dd>@selectedReport.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</dd>
+                    <dt>Sourcing Manager Summary</dt><dd>@(selectedReport.ManagerSummary ?? "No manager summary has been recorded.")</dd>
+                    @if (selectedReport.Bid is { } recommendedBid)
+                    {
+                        <dt>Recommended Bid Supplier</dt><dd>@recommendedBid.Invitation.SupplierProfile.CompanyName</dd>
+                        <dt>Recommended Bid Status</dt><dd>@recommendedBid.Status</dd>
+                    }
+                </dl>
+                <p class="text-secondary">This report is a recommendation and review record. Final award decisions belong to the authorized later workflow stages.</p>
+            }
+        </section>
+    </div>
+</div>

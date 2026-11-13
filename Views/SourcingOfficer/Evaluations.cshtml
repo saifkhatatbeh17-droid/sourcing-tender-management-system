@@ -1,7 +1,213 @@
-@{ ViewData["Title"] = "Evaluations & Recommendations"; }
+@using SourcingTenderManagement.Models.Entities
+@{
+    ViewData["Title"] = "Evaluations & Recommendations";
+    var tenders = ViewBag.EvaluationTenders as List<Tender> ?? [];
+    var assignments = ViewBag.CommitteeAssignments as List<CommitteeAssignment> ?? [];
+    var evaluationApprovals = ViewBag.EvaluationApprovals as List<TenderApproval> ?? [];
+    var evaluations = ViewBag.Evaluations as List<Evaluation> ?? [];
+    var criteria = ViewBag.EvaluationCriteria as List<EvaluationCriterion> ?? [];
+    var selectedTenderId = ViewBag.SelectedTenderId as int?;
+    var selectedTenderStatus = ViewBag.SelectedTenderStatus as string;
+    var report = ViewBag.EvaluationReport as EvaluationReport;
+    var recommendationBids = ViewBag.RecommendationBids as List<Bid> ?? [];
+    var allFourApprovalsRecorded = assignments.Count == 4 && assignments.All(assignment =>
+        evaluationApprovals.Any(approval => approval.CommitteeAssignmentId == assignment.CommitteeAssignmentId &&
+            approval.Stage == "Evaluation" && approval.Decision == "Approved"));
+}
+
 <h1>Evaluations & Recommendations</h1>
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Evaluations & Recommendations">
-<button class="nav-link active" id="evaluations-0-tab" data-bs-toggle="tab" data-bs-target="#evaluations-0" type="button" role="tab" aria-controls="evaluations-0" aria-selected="true">Evaluation Tracking</button>
-<button class="nav-link " id="evaluations-1-tab" data-bs-toggle="tab" data-bs-target="#evaluations-1" type="button" role="tab" aria-controls="evaluations-1" aria-selected="false">Report & Officer Summary</button></div>
-<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="evaluations-0" role="tabpanel" aria-labelledby="evaluations-0-tab" tabindex="0"><section class="workspace-section"><h2>Evaluation Progress</h2><!-- TEAM TODO: Track the four assigned evaluators and their submitted/approved forms for the selected tender. --></section></div>
-<div class="tab-pane fade " id="evaluations-1" role="tabpanel" aria-labelledby="evaluations-1-tab" tabindex="0"><section class="workspace-section"><h2>Committee Report</h2><!-- TEAM TODO: Show the committee's unified evaluation report here. --></section><section class="workspace-section"><h2>Officer Summary</h2><!-- TEAM TODO: Add the officer's summary and recommendation form here. --></section><button type="button" class="btn btn-primary" disabled>Send to Sourcing Manager</button></div></div>
+@if (TempData["EvaluationSuccess"] is string evaluationSuccess)
+{
+    <div class="alert alert-success" role="status">@evaluationSuccess</div>
+}
+@if (TempData["EvaluationError"] is string evaluationError)
+{
+    <div class="alert alert-danger" role="alert">@evaluationError</div>
+}
+<section class="workspace-section">
+    <form asp-action="Evaluations" method="get" class="row g-3 align-items-end">
+        <div class="col-md-8">
+            <label for="tenderId" class="form-label">Tender</label>
+            <select id="tenderId" name="tenderId" class="form-select">
+                @if (tenders.Count == 0) { <option value="">No tenders available</option> }
+                @foreach (var tender in tenders)
+                {
+                    <option value="@tender.TenderId" selected="@(selectedTenderId == tender.TenderId)">@tender.Title (@tender.Status)</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4"><button type="submit" class="btn btn-primary" disabled="@(tenders.Count == 0)">View Evaluation Progress</button></div>
+    </form>
+</section>
+
+<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Evaluation tracking">
+    <button class="nav-link active" id="evaluation-progress-tab" data-bs-toggle="tab" data-bs-target="#evaluation-progress" type="button" role="tab" aria-controls="evaluation-progress" aria-selected="true">Evaluation Tracking</button>
+    <button class="nav-link" id="evaluation-results-tab" data-bs-toggle="tab" data-bs-target="#evaluation-results" type="button" role="tab" aria-controls="evaluation-results" aria-selected="false">Submitted Scores</button>
+    <button class="nav-link" id="evaluation-report-tab" data-bs-toggle="tab" data-bs-target="#evaluation-report" type="button" role="tab" aria-controls="evaluation-report" aria-selected="false">Officer Summary</button>
+</div>
+<div class="tab-content workspace-content">
+    <div class="tab-pane fade show active" id="evaluation-progress" role="tabpanel" aria-labelledby="evaluation-progress-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Committee Assignments</h2>
+            @if (assignments.Count == 0)
+            {
+                <p class="text-secondary">No Evaluation committee assignments are recorded for this Tender.</p>
+            }
+            else
+            {
+                var submittedAssignments = assignments.Count(assignment => evaluations.Any(e => e.CommitteeAssignmentId == assignment.CommitteeAssignmentId && (e.Status == "Submitted" || e.Status == "Approved")));
+                <p>Submitted or approved evaluator positions: @submittedAssignments of @assignments.Count.</p>
+                <div class="table-responsive"><table class="table">
+                    <thead><tr><th>Position</th><th>Committee Member</th><th>Evaluation Records</th><th>Progress</th></tr></thead>
+                    <tbody>
+                        @foreach (var assignment in assignments)
+                        {
+                            var memberEvaluations = evaluations.Where(e => e.CommitteeAssignmentId == assignment.CommitteeAssignmentId).ToList();
+                            var progress = memberEvaluations.Count == 0 ? "Not started" : memberEvaluations.All(e => e.Status == "Approved") ? "Approved" : memberEvaluations.Any(e => e.Status == "Submitted" || e.Status == "Approved") ? "Submitted" : "Draft";
+                            <tr><td>@assignment.Position</td><td>@assignment.User.FullName</td><td>@memberEvaluations.Count</td><td>@progress</td></tr>
+                        }
+                    </tbody>
+                </table></div>
+            }
+        </section>
+        <section class="workspace-section">
+            <h2>Committee Approval Handoff</h2>
+            @if (assignments.Count == 0)
+            {
+                <p class="text-secondary">No Evaluation committee assignments are recorded for this Tender.</p>
+            }
+            else
+            {
+                var approvedPositions = assignments.Count(assignment => evaluationApprovals.Any(approval => approval.CommitteeAssignmentId == assignment.CommitteeAssignmentId && approval.Stage == "Evaluation" && approval.Decision == "Approved"));
+                <p>Recorded Evaluation approvals: @approvedPositions of @assignments.Count assigned positions.</p>
+                @if (evaluationApprovals.Count == 0)
+                {
+                    <p class="text-secondary">No committee approval decisions are recorded yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive"><table class="table">
+                        <thead><tr><th>Position</th><th>Committee Member</th><th>Decision</th><th>Notes</th><th>Decided (UTC)</th></tr></thead>
+                        <tbody>
+                            @foreach (var approval in evaluationApprovals)
+                            {
+                                <tr><td>@(approval.CommitteeAssignment?.Position.ToString() ?? "—")</td><td>@approval.User.FullName</td><td>@approval.Decision</td><td>@approval.Notes</td><td>@approval.DecidedAt.ToString("yyyy-MM-dd HH:mm")</td></tr>
+                            }
+                        </tbody>
+                    </table></div>
+                }
+            }
+            <p class="text-secondary">The Sourcing Officer waits for the committee workflow to set Tender.Status to AwaitingOfficerSummary; this page does not approve committee decisions or change that status.</p>
+        </section>
+        <section class="workspace-section">
+            <h2>Evaluation Criteria</h2>
+            @if (criteria.Count == 0)
+            {
+                <p class="text-secondary">No evaluation criteria are stored for this Tender.</p>
+            }
+            else
+            {
+                <div class="table-responsive"><table class="table">
+                    <thead><tr><th>Criterion</th><th>Category</th><th>Weight</th><th>Mandatory</th><th>Description</th></tr></thead>
+                    <tbody>@foreach (var criterion in criteria) { <tr><td>@criterion.Name</td><td>@criterion.Category</td><td>@criterion.Weight%</td><td>@(criterion.IsMandatory ? "Yes" : "No")</td><td>@criterion.Description</td></tr> }</tbody>
+                </table></div>
+            }
+        </section>
+    </div>
+    <div class="tab-pane fade" id="evaluation-results" role="tabpanel" aria-labelledby="evaluation-results-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Evaluation Records and Scores</h2>
+            @if (evaluations.Count == 0)
+            {
+                <p class="text-secondary">No committee evaluation records are available for this Tender.</p>
+            }
+            else
+            {
+                <div class="table-responsive"><table class="table">
+                    <thead><tr><th>Supplier</th><th>Committee Member</th><th>Status</th><th>Submitted (UTC)</th><th>Notes and Scores</th></tr></thead>
+                    <tbody>
+                        @foreach (var evaluation in evaluations)
+                        {
+                            <tr>
+                                <td>@evaluation.Bid.Invitation.SupplierProfile.CompanyName</td>
+                                <td>@evaluation.CommitteeAssignment.User.FullName (position @evaluation.CommitteeAssignment.Position)</td>
+                                <td>@evaluation.Status</td>
+                                <td>@evaluation.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    @evaluation.Notes
+                                    @if (evaluation.EvaluationScores.Count > 0)
+                                    {
+                                        <ul class="mb-0">@foreach (var score in evaluation.EvaluationScores) { <li>@score.EvaluationCriterion.Name: @score.Score — @score.Notes</li> }</ul>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table></div>
+            }
+        </section>
+    </div>
+    <div class="tab-pane fade" id="evaluation-report" role="tabpanel" aria-labelledby="evaluation-report-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Committee Report and Manager Review</h2>
+            @if (report is null)
+            {
+                <p class="text-secondary">No EvaluationReport has been recorded for this Tender.</p>
+            }
+            else
+            {
+                <dl>
+                    <dt>Report Status</dt><dd>@report.Status</dd>
+                    <dt>Committee Findings</dt><dd>@report.CommitteeSummary</dd>
+                    <dt>Manager Summary</dt><dd>@(report.ManagerSummary ?? "No manager response recorded.")</dd>
+                </dl>
+                @if (report.Status == "CommitteeApproved" && selectedTenderStatus == "AwaitingOfficerSummary" && allFourApprovalsRecorded)
+                {
+                    @if (selectedTenderId.HasValue)
+                    {
+                        <form asp-action="SubmitOfficerReport" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="tenderId" value="@selectedTenderId.Value" />
+                            <div class="mb-3">
+                                <label for="recommendedBidId" class="form-label">Recommended Compliant Offer</label>
+                                <select id="recommendedBidId" name="recommendedBidId" class="form-select" required>
+                                    <option value="">Select a Compliant offer</option>
+                                    @foreach (var bid in recommendationBids)
+                                    {
+                                        <option value="@bid.BidId" selected="@(report.RecommendedBidId == bid.BidId)">@bid.Invitation.SupplierProfile.CompanyName — Bid #@bid.BidId</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="officerSummary" class="form-label">Sourcing Officer Summary</label>
+                                <textarea id="officerSummary" name="officerSummary" rows="5" maxlength="4000" class="form-control" required>@report.OfficerSummary</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit Report to Sourcing Manager</button>
+                        </form>
+                    }
+                }
+                else
+                {
+                    <h3>Sourcing Officer Summary</h3>
+                    <p>@(report.OfficerSummary ?? "No Officer summary is recorded.")</p>
+                    @if (report.RecommendedBidId.HasValue)
+                    {
+                        <p>Recommended bid: #@report.RecommendedBidId</p>
+                    }
+                    @if (report.Status == "CommitteeApproved" && selectedTenderStatus == "AwaitingOfficerSummary" && !allFourApprovalsRecorded)
+                    {
+                        <p class="text-secondary">Officer submission is unavailable until all four assigned Evaluation Committee members have an Approved decision.</p>
+                    }
+                    else if (report.Status == "CommitteeApproved" && selectedTenderStatus != "AwaitingOfficerSummary")
+                    {
+                        <p class="text-secondary">The report is CommitteeApproved, but submission is available only after the committee workflow sets Tender.Status to AwaitingOfficerSummary.</p>
+                    }
+                    else
+                    {
+                        <p class="text-secondary">The Officer summary and recommendation have been recorded. This page does not make an award decision.</p>
+                    }
+                }
+            }
+        </section>
+    </div>
+</div>

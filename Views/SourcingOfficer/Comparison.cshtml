@@ -1,7 +1,122 @@
-@{ ViewData["Title"] = "Comparison & AI Analysis"; }
-<h1>Comparison & AI Analysis</h1>
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Comparison & AI Analysis">
-<button class="nav-link active" id="comparison-0-tab" data-bs-toggle="tab" data-bs-target="#comparison-0" type="button" role="tab" aria-controls="comparison-0" aria-selected="true">Offer Comparison</button>
-<button class="nav-link " id="comparison-1-tab" data-bs-toggle="tab" data-bs-target="#comparison-1" type="button" role="tab" aria-controls="comparison-1" aria-selected="false">AI Analysis</button></div>
-<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="comparison-0" role="tabpanel" aria-labelledby="comparison-0-tab" tabindex="0"><section class="workspace-section"><h2>Offer Comparison</h2><!-- TEAM TODO: Compare the selected tender's compliant offers side by side. --></section></div>
-<div class="tab-pane fade " id="comparison-1" role="tabpanel" aria-labelledby="comparison-1-tab" tabindex="0"><partial name="_AiAnalysis" /></div></div>
+@using SourcingTenderManagement.Models.Entities
+@model List<Bid>
+@{
+    ViewData["Title"] = "Comparison & Analysis";
+    var tenders = ViewBag.ComparisonTenders as List<Tender> ?? [];
+    var selectedTenderId = ViewBag.SelectedTenderId as int?;
+    var criteria = ViewBag.ComparisonCriteria as List<EvaluationCriterion> ?? [];
+    var totals = Model.Select(bid => new
+    {
+        Bid = bid,
+        Total = bid.BidItems.Sum(item => item.Quantity * item.UnitPrice) + bid.TaxAmount + bid.AdditionalCosts
+    }).ToList();
+    var compliantTotals = totals.Where(x => x.Bid.Status == "Compliant" && x.Bid.ComplianceStatus == "Compliant").ToList();
+    var lowestCompliant = compliantTotals.OrderBy(x => x.Total).FirstOrDefault();
+}
+
+<h1>Comparison & Analysis</h1>
+<section class="workspace-section">
+    <form asp-action="Comparison" method="get" class="row g-3 align-items-end">
+        <div class="col-md-8">
+            <label for="tenderId" class="form-label">Tender</label>
+            <select id="tenderId" name="tenderId" class="form-select">
+                @if (tenders.Count == 0)
+                {
+                    <option value="">No tenders with submitted offers</option>
+                }
+                @foreach (var tender in tenders)
+                {
+                    <option value="@tender.TenderId" selected="@(selectedTenderId == tender.TenderId)">@tender.Title</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4"><button type="submit" class="btn btn-primary" disabled="@(tenders.Count == 0)">Load Comparison</button></div>
+    </form>
+</section>
+
+<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Comparison and analysis">
+    <button class="nav-link active" id="comparison-table-tab" data-bs-toggle="tab" data-bs-target="#comparison-table" type="button" role="tab" aria-controls="comparison-table" aria-selected="true">Bid Comparison</button>
+    <button class="nav-link" id="comparison-analysis-tab" data-bs-toggle="tab" data-bs-target="#comparison-analysis" type="button" role="tab" aria-controls="comparison-analysis" aria-selected="false">Rule-Based Analysis (Non-AI)</button>
+</div>
+
+<div class="tab-content workspace-content">
+    <div class="tab-pane fade show active" id="comparison-table" role="tabpanel" aria-labelledby="comparison-table-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Submitted Bids for the Selected Tender</h2>
+            @if (totals.Count == 0)
+            {
+                <p class="text-secondary">No submitted bids are available for this Tender.</p>
+            }
+            else
+            {
+                <div class="table-responsive"><table class="table">
+                    <thead><tr><th>Supplier</th><th>Bid Status</th><th>Compliance</th><th>Delivery (days)</th><th>Items and Unit Prices</th><th>Total</th><th>Difference from Lowest Compliant</th></tr></thead>
+                    <tbody>
+                        @foreach (var offer in totals)
+                        {
+                            var difference = lowestCompliant == null || offer.Bid.Status != "Compliant" || offer.Bid.ComplianceStatus != "Compliant"
+                                ? (decimal?)null
+                                : offer.Total - lowestCompliant.Total;
+                            <tr>
+                                <td>@offer.Bid.Invitation.SupplierProfile.CompanyName</td>
+                                <td>@offer.Bid.Status</td>
+                                <td>@(offer.Bid.ComplianceStatus ?? "Pending review")</td>
+                                <td>@offer.Bid.DeliveryDays</td>
+                                <td>
+                                    @if (offer.Bid.BidItems.Count == 0)
+                                    {
+                                        <span class="text-secondary">No item prices</span>
+                                    }
+                                    else
+                                    {
+                                        <ul class="mb-0">
+                                            @foreach (var item in offer.Bid.BidItems)
+                                            {
+                                                <li>@item.PurchaseRequestItem.ItemName: @item.Quantity × @item.UnitPrice.ToString("N2") @offer.Bid.Currency</li>
+                                            }
+                                        </ul>
+                                    }
+                                </td>
+                                <td>@offer.Total.ToString("N2") @offer.Bid.Currency</td>
+                                <td>@(difference.HasValue ? difference.Value.ToString("N2") + " " + offer.Bid.Currency : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table></div>
+            }
+        </section>
+        <section class="workspace-section">
+            <h2>Evaluation Criteria</h2>
+            @if (criteria.Count == 0)
+            {
+                <p class="text-secondary">No evaluation criteria are stored for this Tender.</p>
+            }
+            else
+            {
+                <ul>@foreach (var criterion in criteria) { <li>@criterion.Name (@criterion.Category) — @criterion.Weight%@(criterion.IsMandatory ? ", mandatory" : "")</li> }</ul>
+            }
+        </section>
+    </div>
+
+    <div class="tab-pane fade" id="comparison-analysis" role="tabpanel" aria-labelledby="comparison-analysis-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Rule-Based Analysis (Non-AI)</h2>
+            <p class="text-secondary">This section uses stored prices and compliance statuses only. It is informational and does not select a supplier or make an award decision.</p>
+            @if (lowestCompliant == null)
+            {
+                <p class="text-secondary">No bids currently have a Compliant status for price ranking.</p>
+            }
+            else
+            {
+                <p>Lowest total among compliant bids: <strong>@lowestCompliant.Bid.Invitation.SupplierProfile.CompanyName</strong> — @lowestCompliant.Total.ToString("N2") @lowestCompliant.Bid.Currency.</p>
+                <h3>Compliant Bid Price Order</h3>
+                <ol>
+                    @foreach (var offer in compliantTotals.OrderBy(x => x.Total))
+                    {
+                        <li>@offer.Bid.Invitation.SupplierProfile.CompanyName — @offer.Total.ToString("N2") @offer.Bid.Currency; difference from lowest: @((offer.Total - lowestCompliant.Total).ToString("N2")) @offer.Bid.Currency</li>
+                    }
+                </ol>
+            }
+        </section>
+    </div>
+</div>
