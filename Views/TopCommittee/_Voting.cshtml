@@ -1,0 +1,52 @@
+@model CommitteeTenderPage
+@{
+    var tender = Model.Tender;
+    var approvals = tender.Votes.Count(v => v.Decision == "Approved" && tender.Members.Any(m => m.UserId == v.UserId && m.AssignmentId == v.AssignmentId && m.IsEligible));
+}
+<section id="voting" class="workspace-section" aria-labelledby="voting-heading">
+    <h2 id="voting-heading">Committee voting</h2>
+    <p><strong>@approvals of 4 approvals recorded.</strong> Every member has one final vote. Reload to see updates.</p>
+    @if (tender.Readiness.HasRejection)
+    { <p class="mb-0">Voting permanently ended after a rejection. The tender is back with the Sourcing Manager for review and cannot be voted on again.</p> }
+    else if (tender.Status == "Awarded" || tender.AwardedBidId.HasValue)
+    { <p class="mb-0">The final award has been recorded. No further votes can be submitted.</p> }
+    else
+    {
+        @if (tender.Readiness.HasCurrentMemberVoted)
+        { <p>Your final vote is already recorded and cannot be changed. Other members' votes and notes appear in Committee records.</p> }
+        @if (tender.OpenClarifications > 0)
+        { <p class="mb-0">Voting is paused for every member until all open clarifications are resolved. Previously recorded approvals are preserved.</p> }
+        else if (!tender.Readiness.CanCurrentMemberVote && !tender.Readiness.HasCurrentMemberVoted)
+        { <p class="mb-0">@tender.Readiness.BlockingReason</p> }
+        else if (tender.Readiness.CanCurrentMemberVote && !Model.VotingDatabaseReady)
+        { <p class="mb-0">Voting is temporarily unavailable. Contact the system administrator, then reload this page.</p> }
+        @if (tender.Readiness.CanCurrentMemberVote && Model.VotingDatabaseReady)
+        {
+            <form asp-action="SubmitVote" method="post" id="committee-vote-form">
+                <input asp-for="Vote!.TenderId" type="hidden" />
+                <input asp-for="Vote!.ExpectedNominatedBidId" type="hidden" />
+                <input type="hidden" name="Vote.Confirmed" id="vote-confirmed" value="false" />
+                <fieldset class="mb-3">
+                    <legend class="fs-6">Your decision on nominated bid #@tender.Report?.RecommendedBidId</legend>
+                    <div class="form-check"><input asp-for="Vote!.Decision" type="radio" value="Approved" id="vote-approve" class="form-check-input" required /><label for="vote-approve" class="form-check-label">Approve</label></div>
+                    <div class="form-check"><input asp-for="Vote!.Decision" type="radio" value="Rejected" id="vote-reject" class="form-check-input" required /><label for="vote-reject" class="form-check-label">Reject</label></div>
+                    <span asp-validation-for="Vote!.Decision" class="text-danger"></span>
+                </fieldset>
+                <div class="field"><label for="vote-notes">Notes / rejection justification</label>
+                    <textarea asp-for="Vote!.Notes" id="vote-notes" class="form-control" rows="4" maxlength="4000" aria-describedby="vote-notes-help"></textarea>
+                    <p id="vote-notes-help" class="small text-secondary mt-1">Optional for approval. A justification is required for rejection. Assigned members can read your recorded notes.</p>
+                    <span asp-validation-for="Vote!.Notes" class="text-danger"></span>
+                </div>
+                <button type="button" id="review-vote" class="btn btn-primary">Review final vote</button>
+                <noscript><p>Enable JavaScript to review and confirm your final vote.</p></noscript>
+            </form>
+            <div class="modal" id="vote-confirmation" tabindex="-1" aria-labelledby="vote-confirmation-title" aria-describedby="vote-confirmation-description" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+                    <div class="modal-header"><h3 class="modal-title fs-5" id="vote-confirmation-title">Confirm final vote</h3><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close confirmation"></button></div>
+                    <div class="modal-body"><p>Tender #@tender.TenderId · Nominated bid #@tender.Report?.RecommendedBidId</p><p id="vote-confirmation-description"></p><p>Your vote and notes will be recorded permanently and cannot be changed.</p></div>
+                    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep reviewing</button><button type="submit" form="committee-vote-form" id="confirm-vote" class="btn btn-primary">Record final vote</button></div>
+                </div></div>
+            </div>
+        }
+    }
+</section>

@@ -1,0 +1,32 @@
+@model CommitteeTenderDetails
+@if (Model.Bids.Count == 0)
+{ <p class="mb-0">No submitted bids are available for this tender.</p> }
+else
+{
+    <p class="text-secondary">Totals include item prices, taxes and additional costs in each bid's own currency. Evaluation scores are shown as recorded; no currency conversion or combined ranking is applied.</p>
+    <div class="table-responsive" tabindex="0" role="region" aria-label="Submitted bid comparison"><table class="committee-bid-table table align-middle mb-0">
+        <caption>@Model.Bids.Count submitted bid(s), including later compliance and decision statuses.</caption>
+        <thead><tr><th scope="col">Supplier / bid</th><th scope="col">Total</th><th scope="col">Delivery</th><th scope="col">Compliance</th><th scope="col">Evaluation results</th><th scope="col">Details</th></tr></thead>
+        <tbody>@foreach (var bid in Model.Bids)
+        {
+            <tr class="@(bid.IsNominated ? "table-primary" : null)">
+                <th scope="row">@bid.SupplierName<span class="d-block small fw-normal">Bid #@bid.BidId · @CommitteeDisplay.Status(bid.Status)</span>@if (bid.IsNominated) { <span class="badge text-bg-primary mt-1">Manager nominated</span> }</th>
+                <td class="text-nowrap">@CommitteeDisplay.Money(bid.Total) @bid.Currency</td>
+                <td>@bid.DeliveryDays days</td><td>@CommitteeDisplay.Status(bid.ComplianceStatus)</td>
+                <td>@if (bid.Evaluations.Count == 0) { <span class="text-secondary">No submitted evaluation results</span> }
+                else
+                {
+                    <ul class="list-unstyled small mb-0">@foreach (var evaluation in bid.Evaluations)
+                    {
+                        <li class="mb-2"><strong>@evaluation.Evaluator</strong> · @CommitteeDisplay.Status(evaluation.Status)
+                            @if (evaluation.Scores.Count == 0) { <span class="d-block">No scores recorded</span> }
+                            @foreach (var score in evaluation.Scores)
+                            { <span class="d-block">@(score.Category == "Requirements" ? "Technical" : score.Category): @score.Criterion · @CommitteeDisplay.Quantity(score.Score)/100</span> }
+                        </li>
+                    }</ul>
+                }</td>
+                <td><a asp-action="TenderDetails" asp-route-id="@Model.TenderId" asp-route-bidId="@bid.BidId" asp-fragment="selected-bid" aria-label="View bid @bid.BidId from @bid.SupplierName">View bid</a></td>
+            </tr>
+        }</tbody>
+    </table></div>
+}

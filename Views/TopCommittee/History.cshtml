@@ -1,7 +1,70 @@
-@{ ViewData["Title"] = "Tender History"; }
-<h1>Tender History</h1>
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Tender History">
-<button class="nav-link active" id="history-0-tab" data-bs-toggle="tab" data-bs-target="#history-0" type="button" role="tab" aria-controls="history-0" aria-selected="true">Past Tenders</button>
-<button class="nav-link " id="history-1-tab" data-bs-toggle="tab" data-bs-target="#history-1" type="button" role="tab" aria-controls="history-1" aria-selected="false">Decision Details</button></div>
-<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="history-0" role="tabpanel" aria-labelledby="history-0-tab" tabindex="0"><section class="workspace-section"><h2>Tender History</h2><!-- TEAM TODO: Load completed tenders and their final decisions. --></section></div>
-<div class="tab-pane fade " id="history-1" role="tabpanel" aria-labelledby="history-1-tab" tabindex="0"><section class="workspace-section"><h2>Decision Details</h2><!-- TEAM TODO: Display the selected tender, four member approvals, winning supplier, and recorded justifications. --></section></div></div>
+@model CommitteeHistoryPage
+@using SourcingTenderManagement.Services.TopCommittee
+@{
+    ViewData["Title"] = "Decision History";
+    var f = Model.Filter;
+    var pages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, f.PageSize)));
+}
+@section Styles { <partial name="_ReadStyles" /> }
+<div class="workspace-heading"><h1>Decision History</h1><a asp-action="Dashboard">Dashboard</a><a asp-action="Decisions">Pending tenders</a></div>
+<p>Your recorded votes, newest first. Your approval is an individual decision; an award requires the collective decision. All times are UTC.</p>
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+<form method="get" asp-action="History" class="workspace-section">
+    <div class="row g-3">
+        <div class="col-md-4"><label for="history-search">Tender title</label><input id="history-search" name="Search" value="@f.Search" maxlength="200" class="form-control" /></div>
+        <div class="col-md-4"><label for="history-status">Current tender status</label>
+            <select id="history-status" name="Status" class="form-select"><option value="">All statuses</option>
+            @foreach (var status in TopCommitteeReports.Statuses)
+            { <option value="@status" selected="@(f.Status == status)">@CommitteeDisplay.Status(status)</option> }
+            </select>
+        </div>
+        <div class="col-md-4"><label for="history-decision">My decision</label>
+            <select id="history-decision" name="Decision" class="form-select"><option value="">All decisions</option>
+            @foreach (var decision in new[] { "Approved", "Rejected" })
+            { <option value="@decision" selected="@(f.Decision == decision)">@decision</option> }
+            </select>
+        </div>
+        <div class="col-md-4"><label for="history-size">Decisions per page</label>
+            <select id="history-size" name="PageSize" class="form-select">
+            @foreach (var size in new[] { 10, 20, 50, 100 })
+            { <option value="@size" selected="@(f.PageSize == size)">@size</option> }
+            </select>
+        </div>
+        <div class="col-md-8 align-self-end"><button class="btn btn-primary">Apply filters</button><a asp-action="History" class="ms-2">Reset</a></div>
+    </div>
+</form>
+<p>@Model.Total matching recorded decision(s). Outcomes and bid references reflect the current persisted tender; refresh for updates.</p>
+@if (Model.Rows.Count == 0)
+{
+    <section class="workspace-section"><h2>No recorded decisions on this page</h2>
+        <p>Only your votes on currently assigned tenders appear here. Adjust the filters, return to the first page, or review your pending tenders.</p>
+        <a asp-action="History">Show all my decisions</a>
+    </section>
+}
+else
+{
+    <div class="table-responsive" role="region" aria-label="My decision history" tabindex="0">
+        <table class="table committee-read-table">
+            <caption>Your final votes are read-only. Clarifications are not votes and their private conversations are excluded.</caption>
+            <thead><tr><th scope="col">My vote / time (UTC)</th><th scope="col">Tender</th><th scope="col">Current status</th><th scope="col">Committee outcome</th><th scope="col">Nominated / awarded bid</th></tr></thead>
+            <tbody>
+            @foreach (var row in Model.Rows)
+            {
+                <tr>
+                    <td><strong>@row.Decision</strong><br /><time datetime="@row.DecidedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")">@CommitteeDisplay.Utc(row.DecidedAt)</time></td>
+                    <th scope="row"><a asp-action="TenderDetails" asp-route-id="@row.TenderId">#@row.TenderId · @row.Title</a></th>
+                    <td>@CommitteeDisplay.Status(row.Status)</td>
+                    <td>@row.Outcome<br /><span>@row.Approvals / 4 recorded approvals</span></td>
+                    <td>@(row.NominatedBidId.HasValue ? "#" + row.NominatedBidId : "Not recorded") / @(row.AwardedBidId.HasValue ? "#" + row.AwardedBidId : "None")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+<nav class="workspace-toolbar" aria-label="History pages"><span>Page @f.Page of @pages</span>
+@foreach (var pageNumber in new[] { f.Page - 1, f.Page + 1 }.Where(p => p >= 1 && p <= pages))
+{
+    <a asp-action="History" asp-route-Page="@pageNumber" asp-route-PageSize="@f.PageSize" asp-route-Search="@f.Search" asp-route-Status="@f.Status" asp-route-Decision="@f.Decision">Page @pageNumber</a>
+}
+</nav>

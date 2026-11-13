@@ -1,14 +1,147 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+using SourcingTenderManagement.Contracts.TopCommittee;
 using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Models.TopCommittee;
 namespace SourcingTenderManagement.Controllers;
 [Authorize(Roles = RoleNames.TopCommittee)]
-public class TopCommitteeController : Controller
+[ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
+public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCommitteeClarifications clarifications,
+    ITopCommitteeClarificationQueries clarificationQueries, ITopCommitteeVoting voting,
+    ITopCommitteeVotingReadiness votingReadiness) : Controller
 {
+    [HttpGet]
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
-    public IActionResult Dashboard() => View();
-    public IActionResult Decisions() => View();
-    public IActionResult History() => View();
-    public IActionResult Reports() => View();
-    public IActionResult Clarifications() => View();
+
+    [HttpGet]
+    public async Task<IActionResult> Dashboard(CancellationToken cancellationToken) =>
+        await ReadAsync(async () => View(await queries.GetDashboardAsync(User, cancellationToken)));
+
+    [HttpGet]
+    public async Task<IActionResult> Decisions([FromQuery] CommitteeTenderFilter filter, CancellationToken cancellationToken)
+    {
+        // Browser-supplied Status cannot widen the pending-list scope.
+        var pending = new CommitteeTenderFilter { Search = filter.Search, FromDate = filter.FromDate,
+            ToDate = filter.ToDate, Page = filter.Page, PageSize = filter.PageSize, Status = "AwaitingCommitteeDecision" };
+        ViewData["ActivePage"] = nameof(Decisions);
+        return await ReadAsync(async () =>
+        {
+            try
+            {
+                if (!ModelState.IsValid) throw new ValidationException("Check the search, dates and page settings below.");
+                var page = await queries.GetTendersAsync(User, pending, cancellationToken);
+                return View(new CommitteePendingPage(page, pending));
+            }
+            catch (ValidationException error)
+            {
+                ModelState.AddModelError("", error.Message);
+                Response.StatusCode = StatusCodes.Status400BadRequest;
+                return View(new CommitteePendingPage(new CommitteePage<CommitteeTenderRow>([], 0, 1, 20), pending));
+            }
+        });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> TenderDetails(int id, int? bidId, CancellationToken cancellationToken)
+    {
+        ViewData["ActivePage"] = nameof(Decisions);
+        return await ReadAsync(async () =>
+        {
+            var tender = await queries.GetTenderDetailsAsync(User, id, cancellationToken);
+            var selected = bidId.HasValue ? tender.Bids.SingleOrDefault(b => b.BidId == bidId.Value)
+                : tender.Bids.FirstOrDefault(b => b.IsNominated) ?? tender.Bids.FirstOrDefault();
+            if (bidId.HasValue && selected == null) return NotFound();
+            return View(await VotingPageAsync(tender, selected, null, cancellationToken));
+        });
+    }
+
+    private async Task<CommitteeTenderPage> VotingPageAsync(CommitteeTenderDetails tender, CommitteeBid? selected,
+        CommitteeVoteInput? input, CancellationToken cancellationToken) =>
+        new(tender, selected, input ?? new CommitteeVoteInput { TenderId = tender.TenderId,
+            ExpectedNominatedBidId = tender.Report?.RecommendedBidId ?? 0 },
+            tender.Readiness.CanCurrentMemberVote && await votingReadiness.IsDatabaseReadyAsync(User, tender.TenderId, cancellationToken));
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SubmitVote([Bind(Prefix = "Vote")] CommitteeVoteInput input, CancellationToken cancellationToken)
+    {
+        ViewData["ActivePage"] = nameof(Decisions);
+        return await ReadAsync(async () =>
+        {
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var result = await voting.SubmitAsync(User, input, cancellationToken);
+                    TempData["VotingSuccess"] = result.IsAwarded
+                        ? "Your approval was recorded. All four members approved, and the nominated bid was awarded."
+                        : result.Decision == "Rejected"
+                            ? "Your rejection was recorded. Voting has permanently ended and the tender has returned to Sourcing Manager review."
+                            : "Your final approval was recorded. Reload this page to see the other members' decisions.";
+                    return RedirectToAction(nameof(TenderDetails), new { id = result.TenderId });
+                }
+                catch (ValidationException error) { ModelState.AddModelError("", error.Message); }
+                catch (CommitteeStateConflictException error) { ModelState.AddModelError("", error.Message); }
+            }
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            if (input.TenderId <= 0) return BadRequest("Choose an assigned tender before voting.");
+            var tender = await queries.GetTenderDetailsAsync(User, input.TenderId, cancellationToken);
+            var selected = tender.Bids.FirstOrDefault(b => b.IsNominated) ?? tender.Bids.FirstOrDefault();
+            return View("TenderDetails", await VotingPageAsync(tender, selected, input, cancellationToken));
+        });
+    }
+
+    private async Task<IActionResult> ReadAsync(Func<Task<IActionResult>> read)
+    {
+        try { return await read(); }
+        catch (CommitteeAccessDeniedException) { return Forbid(); }
+        catch (CommitteeTenderNotFoundException) { return NotFound(); }
+    }
+    [HttpGet]
+    public async Task<IActionResult> Clarifications(int? tenderId, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return BadRequest("Select a valid tender.");
+        return await ReadAsync(async () => View(await clarificationQueries.GetPageAsync(User, tenderId, cancellationToken)));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateClarification([Bind(Prefix = "Create")] CommitteeCreateClarification input, CancellationToken cancellationToken)
+    {
+        ViewData["ActivePage"] = nameof(Clarifications);
+        return await ReadAsync(async () =>
+        {
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var result = await clarifications.CreateAsync(User, input, cancellationToken);
+                    TempData["ClarificationSuccess"] = "Clarification sent to the Sourcing Manager. Committee voting is paused until all open clarifications are resolved.";
+                    return RedirectToAction(nameof(Clarifications), new { tenderId = result.TenderId });
+                }
+                catch (ValidationException error) { ModelState.AddModelError("", error.Message); }
+                catch (CommitteeStateConflictException error) { ModelState.AddModelError("", error.Message); }
+            }
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            if (input.TenderId <= 0) return BadRequest("Select an assigned tender before creating a clarification.");
+            var page = await clarificationQueries.GetPageAsync(User, input.TenderId, cancellationToken);
+            return View("Clarifications", page with { Create = input });
+        });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResolveClarification(int id, CancellationToken cancellationToken) =>
+        await ReadAsync(async () =>
+        {
+            try
+            {
+                var result = await clarifications.ResolveAsync(User, id, cancellationToken);
+                TempData["ClarificationSuccess"] = "Clarification resolved. Voting can resume when no other open clarifications remain.";
+                return RedirectToAction(nameof(Clarifications), new { tenderId = result.TenderId });
+            }
+            catch (CommitteeStateConflictException error)
+            {
+                TempData["ClarificationError"] = error.Message;
+                return RedirectToAction(nameof(Clarifications));
+            }
+        });
 }
