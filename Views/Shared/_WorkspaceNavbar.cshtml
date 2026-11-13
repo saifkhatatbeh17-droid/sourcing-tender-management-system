@@ -1,0 +1,25 @@
+@inject Microsoft.AspNetCore.Identity.UserManager<SourcingTenderManagement.Data.ApplicationUser> UserManager
+@{ var account = await UserManager.GetUserAsync(User); var displayName = string.IsNullOrWhiteSpace(account?.FullName) ? User.Identity?.Name : account.FullName; }
+<header class="admin-navbar workspace-navbar">
+    <nav class="container-fluid p-3 d-flex align-items-center justify-content-end gap-3" aria-label="Workspace toolbar">
+        <div class="admin-navbar-location"><span>@ViewData["WorkspaceLabel"]</span><span aria-hidden="true">/</span><span>@ViewData["Title"]</span></div>
+        <a asp-controller="Home" asp-action="Index" aria-label="Home" title="Home">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9" />
+            </svg>
+        </a>
+        @await Component.InvokeAsync("NotificationBell")
+        <div class="dropdown admin-account">
+            <button class="admin-account-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu for @displayName">
+                <span class="admin-account-avatar" aria-hidden="true">@displayName?.Trim().FirstOrDefault()</span>
+                <span class="admin-account-name">@displayName</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end admin-account-menu">
+                <li><a class="dropdown-item" asp-controller="@(User.IsInRole("Supplier") ? "Supplier" : "Account")" asp-action="Profile">Profile</a></li>
+                <li><hr class="dropdown-divider" /></li>
+                <li><form asp-controller="Account" asp-action="Logout" method="post"><button class="dropdown-item" type="submit">Sign out</button></form></li>
+            </ul>
+        </div>
+    </nav>
+</header>

@@ -14,7 +14,21 @@
             : RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     }
     var isHomeLanding = ViewData["HomeLanding"] is true;
-    var showAdminSidebar = currentController == "Admin" && User.IsInRole(RoleNames.Admin);
+    if (!PageNavigation.Menus.ContainsKey(workspaceController) || !User.IsInRole(workspaceController))
+        workspaceController = RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
+    var showWorkspace = !isHomeLanding && User.Identity?.IsAuthenticated == true
+        && ViewData["HideWorkspaceSidebar"] is not true && PageNavigation.Menus.ContainsKey(workspaceController)
+        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
+    var showAdminSidebar = showWorkspace && workspaceController == "Admin";
+    ViewData["WorkspaceController"] = workspaceController;
+    ViewData["WorkspaceLabel"] = workspaceController == "Admin" ? "Administration" : System.Text.RegularExpressions.Regex.Replace(workspaceController, "([a-z])([A-Z])", "$1 $2");
+    var activeAction = ViewData["ActivePage"]?.ToString() ?? currentAction;
+    activeAction = activeAction switch {
+        "SupplierDetails" => "Suppliers", "CreateRequest" or "EditRequest" or "RequestDetails" => "Requests",
+        "CreateOffer" or "Offer" => "Offers", "TenderDetails" when workspaceController == "TopCommittee" => "Decisions",
+        "TenderDetails" => "Tenders", "Invitation" => "Invitations", _ => activeAction
+    };
+    ViewData["WorkspaceActiveAction"] = activeAction;
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -29,6 +43,7 @@
     {
         <link rel="stylesheet" href="~/css/admin-sidebar.css" asp-append-version="true" />
     }
+    @if (showWorkspace) { <link rel="stylesheet" href="~/css/root.css" asp-append-version="true" /> }
     @await RenderSectionAsync("Styles", required: false)
     <link rel="stylesheet" href="~/css/site-theme.css" asp-append-version="true" />
     @if (showAdminSidebar)
@@ -36,12 +51,13 @@
         <link rel="stylesheet" href="~/css/root.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/admin-root.css" asp-append-version="true" />
     }
+    @if (showWorkspace) { <link rel="stylesheet" href="~/css/workspace-shell.css" asp-append-version="true" /> }
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-@if (showAdminSidebar)
+@if (showWorkspace)
 {
-    <partial name="_AdminNavbar" />
+    <partial name="_WorkspaceNavbar" />
 }
 else
 {
@@ -85,40 +101,22 @@ else
     </nav>
 </header>
 }
-<div class="app-shell @(showAdminSidebar ? "admin-shell" : null)">
-@if (showAdminSidebar)
+<div class="app-shell @(showAdminSidebar ? "admin-shell" : null) @(showWorkspace ? "workspace-shell" : null)">
+@if (showWorkspace)
 {
-    <partial name="_AdminSidebar" />
-}
-else if (!isHomeLanding && ViewData["HideWorkspaceSidebar"] is not true && User.Identity?.IsAuthenticated == true)
-{
-    <aside class="sidebar p-3 border-end" aria-label="Workspace navigation">
-        @foreach (var role in RoleNames.Primary.Where(User.IsInRole))
-        {
-            <a class="workspace-link" asp-controller="@role" asp-action="Dashboard">@role workspace</a>
-        }
-        @if (PageNavigation.Menus.TryGetValue(workspaceController, out var menu) && User.IsInRole(workspaceController))
-        {
-            <hr />
-            @foreach (var item in menu)
-            {
-                var active = (ViewData["ActivePage"]?.ToString() ?? currentAction) == item.Action;
-                <a class="page-link-item @(active ? "active" : "")" asp-controller="@workspaceController" asp-action="@item.Action" aria-current="@(active ? "page" : null)">@item.Title</a>
-            }
-        }
-        <hr />
-        <a class="page-link-item @(profileIsActive ? "active" : "")" asp-controller="@profileController" asp-action="Profile" aria-current="@(profileIsActive ? "page" : null)">My Profile</a>
-    </aside>
+    <partial name="_WorkspaceSidebar" />
 }
 <main id="main" class="main-content @(isHomeLanding ? "landing-main" : "p-4")" tabindex="-1">@RenderBody()</main>
 </div>
 @await RenderSectionAsync("Footer", required: false)
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+@if (showWorkspace) { <script src="~/js/workspace-sidebar.js" asp-append-version="true"></script> }
 @if (showAdminSidebar)
 {
     <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
 }
+
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

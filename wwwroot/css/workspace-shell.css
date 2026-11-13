@@ -1,0 +1,55 @@
+/* Shared role navigation. Content styling stays with each workspace. */
+body:has(.workspace-shell) { --admin-sidebar-width: 252px; }
+body:has(.workspace-shell > .admin-sidebar.is-collapsed) { --admin-sidebar-width: 72px; }
+.workspace-shell > .admin-sidebar { display: flex; flex-direction: column; justify-content: space-between; gap: 24px; padding: 16px; background: #00a3a6; color: #002e30; border: 0; border-radius: 18px; }
+.workspace-shell .admin-sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.workspace-shell .admin-sidebar-role { font-weight: 600; font-size: 16px; }
+.workspace-shell .admin-sidebar-nav, .workspace-shell .admin-sidebar-bottom { display: grid; gap: 4px; }
+.workspace-shell .admin-sidebar-nav { margin-top: 24px; }
+.workspace-shell .admin-sidebar-bottom { padding-top: 12px; border-top: 1px solid #008d90; }
+.workspace-shell .admin-sidebar-bottom form { margin: 0; }
+.workspace-shell .admin-sidebar-item, .workspace-shell .admin-sidebar-toggle { display: flex; align-items: center; gap: 12px; border: 0; border-radius: 18px; color: inherit; background: transparent; text-decoration: none; }
+.workspace-shell .admin-sidebar-item { width: 100%; min-height: 48px; padding: 10px 12px; font: 600 16px/1.4 "Segoe UI", sans-serif; text-align: start; }
+.workspace-shell .admin-sidebar-toggle { width: 40px; height: 40px; padding: 10px; flex-shrink: 0; }
+.workspace-shell :is(.admin-sidebar-item, .admin-sidebar-toggle) svg { width: 20px; height: 20px; flex: 0 0 20px; }
+.workspace-shell :is(.admin-sidebar-item, .admin-sidebar-toggle):hover { background: color-mix(in oklab, #00a3a6, black 8%); }
+.workspace-shell .admin-sidebar-item.is-active { background: #eef8f6; color: #005c5f; }
+.workspace-shell :is(.admin-sidebar-item, .admin-sidebar-toggle):focus-visible { outline: 3px solid #002e30; outline-offset: 2px; }
+html body:has(.workspace-shell) .workspace-navbar { min-height: 64px; background: transparent; border: 0; box-shadow: none; }
+.workspace-navbar nav { min-height: 64px; max-width: 1200px; margin-inline: auto; }
+.workspace-navbar .admin-navbar-location { display: flex; align-items: center; gap: 12px; margin-inline-end: auto; min-width: 0; color: var(--color-text-secondary); font-size: 14px; }
+.workspace-navbar .admin-navbar-location > :last-child { color: var(--color-text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .workspace-navbar :is(nav > a, .notification-bell, .admin-account-toggle) { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; background: transparent; color: var(--color-text); border: 1px solid transparent; border-radius: 18px; box-shadow: none; }
+.workspace-navbar nav > a:first-of-type { margin-inline-start: 0; }
+.workspace-navbar :is(nav > a, .notification-bell) { width: 42px; padding: 0; text-decoration: none; flex-shrink: 0; }
+html body .workspace-navbar :is(nav > a, .notification-bell, .admin-account-toggle):hover { background: #eef8f6; color: #005c5f; }
+.workspace-navbar .notification-bell { position: relative; }
+.workspace-navbar .notification-bell .badge { position: absolute; top: 0; right: 0; border-radius: 99px; background: #00a3a6 !important; color: #002e30; font-size: 10px; }
+.workspace-navbar .admin-account-toggle { gap: 10px; padding: 4px 10px 4px 4px; font-size: 16px; }
+.workspace-navbar .admin-account-avatar { display: grid; place-items: center; width: 32px; height: 32px; color: #007b7e; font-weight: 600; }
+.workspace-navbar .admin-account-name { max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.workspace-navbar .admin-account-menu { padding: 8px; min-width: 190px; border: 1px solid var(--color-border); background: var(--color-surface); border-radius: 18px; box-shadow: 0 8px 24px #003c3e1a; }
+.workspace-navbar .admin-account-menu .dropdown-item { padding: 10px 12px; color: var(--color-text); border-radius: 10px; }
+.workspace-navbar .admin-account-menu .dropdown-item:is(:hover,:focus) { background: var(--color-selection); }
+.workspace-navbar .admin-account-menu form { margin: 0; }
+@media(min-width:651px) {
+    .workspace-shell > .admin-sidebar { position: fixed; inset: 16px auto 16px 16px; width: var(--admin-sidebar-width); z-index: 10; overflow-y: auto; overflow-x: hidden; box-shadow: 0 8px 24px #003c3e1a; }
+    .workspace-shell > .main-content { margin-inline-start: calc(var(--admin-sidebar-width) + 32px); }
+    html body:has(.workspace-shell) .workspace-navbar { margin: 16px 0 0 calc(var(--admin-sidebar-width) + 32px); padding-inline: var(--page-gutter, 32px); }
+    html body:has(.workspace-shell) .workspace-navbar nav { padding: 8px 0 !important; }
+    .workspace-shell .admin-sidebar.is-collapsed { padding-inline: 12px; }
+    .workspace-shell .admin-sidebar.is-collapsed :is(.admin-sidebar-role, .admin-sidebar-item span) { display: none; }
+    .workspace-shell .admin-sidebar.is-collapsed :is(.admin-sidebar-item, .admin-sidebar-header) { justify-content: center; }
+    .workspace-shell .admin-sidebar.is-collapsed .admin-sidebar-item { padding-inline: 0; }
+    .workspace-shell .admin-sidebar.is-collapsed .admin-sidebar-item span { position: static; }
+}
+@media(max-width:650px) {
+    .workspace-shell { flex-direction: column; }
+    .workspace-shell > .admin-sidebar { margin: 12px; flex-basis: auto; }
+    .workspace-shell .admin-sidebar.is-collapsed :is(.admin-sidebar-role, .admin-sidebar-nav, .admin-sidebar-bottom) { display: none; }
+    html body:has(.workspace-shell) .workspace-navbar { margin: 12px 12px 0; }
+    .workspace-navbar .admin-navbar-location { display: none; }
+    .workspace-navbar .admin-account-name { max-width: 90px; }
+    .workspace-shell > .main-content { margin-inline-start: 0; }
+}
+@media(prefers-reduced-motion:no-preference) { .workspace-shell > .admin-sidebar { transition: width 180ms ease; } }
