@@ -1,3 +1,67 @@
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<!-- TEAM TODO: Implement TopCommittee / Dashboard here. -->
+@model CommitteeDashboard
+@section Styles { <partial name="_ReadStyles" /> }
+@{ ViewData["Title"] = "Top Committee Dashboard"; }
+<div class="workspace-heading">
+    <div><h1>Top Committee</h1><p class="text-secondary mt-2 mb-0">Review your assigned tenders and the committee's recorded decisions.</p></div>
+    <a class="btn btn-primary" asp-action="Decisions">View pending tenders</a>
+    <a asp-action="Notifications">Notifications</a>
+</div>
+<dl class="row g-3 border-bottom pb-3 mb-4">
+    <div class="col-6 col-md"><dt class="fw-normal text-secondary">Assigned tenders</dt><dd class="fs-4 mb-0">@Model.AssignedTenders</dd></div>
+    <div class="col-6 col-md"><dt class="fw-normal text-secondary">Awaiting decision</dt><dd class="fs-4 mb-0">@Model.AwaitingDecision</dd></div>
+    <div class="col-6 col-md"><dt class="fw-normal text-secondary">Awarded</dt><dd class="fs-4 mb-0">@Model.AwardedTenders</dd></div>
+    <div class="col-6 col-md"><dt class="fw-normal text-secondary">Rejected</dt><dd class="fs-4 mb-0">@Model.RejectedTenders</dd></div>
+    <div class="col-6 col-md"><dt class="fw-normal text-secondary">Open clarifications</dt><dd class="fs-4 mb-0">@Model.OpenClarifications</dd></div>
+</dl>
+@if (Model.AssignedTenders == 0)
+{
+    <section class="workspace-section" aria-labelledby="no-assignments">
+        <h2 id="no-assignments">No tenders assigned yet</h2>
+        <p class="mb-0">Tenders will appear here when you are assigned to their Top Committee. Contact your sourcing team if you expected an assignment.</p>
+    </section>
+}
+else
+{
+    <section class="workspace-section" aria-labelledby="pending-heading">
+        <h2 id="pending-heading">Pending decisions</h2>
+        @if (Model.PendingTenders.Count == 0)
+        { <p class="mb-0">None of your assigned tenders is awaiting a committee decision.</p> }
+        else
+        {
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Pending committee decisions"><table class="committee-read-table table align-middle mb-0">
+                <caption class="text-secondary">Up to 10 pending tenders, oldest first. Reload the page to see new decisions.</caption>
+                <thead><tr><th scope="col">Tender</th><th scope="col">Nominated supplier</th><th scope="col">Committee progress</th><th scope="col">Review</th></tr></thead>
+                <tbody>@foreach (var tender in Model.PendingTenders)
+                {
+                    var members = Model.VotingProgress.Where(m => m.TenderId == tender.TenderId).ToList();
+                    <tr>
+                        <th scope="row"><a asp-action="TenderDetails" asp-route-id="@tender.TenderId">@tender.Title</a><span class="d-block small text-secondary">Tender #@tender.TenderId</span></th>
+                        <td>@(tender.NominatedSupplier ?? "No submitted nomination recorded")</td>
+                        <td>
+                            <p class="mb-1">@tender.RecordedApprovals / 4 approvals recorded</p>
+                            @if (members.Count != 4) { <p class="text-secondary small mb-1">Four member assignments are required.</p> }
+                            <ul class="list-unstyled small mb-0">@foreach (var member in members)
+                            { <li>@member.FullName: @(member.RecordedDecision == null ? "No vote recorded" : CommitteeDisplay.Status(member.RecordedDecision))@(!member.IsActive || !member.HasCommitteeRole ? " (not eligible)" : "")</li> }</ul>
+                        </td>
+                        <td>@if (tender.OpenClarifications > 0)
+                        { <span class="badge text-bg-secondary">Paused</span><span class="d-block small mt-1">@tender.OpenClarifications open clarification(s)</span> }
+                        else { <span>Awaiting review</span> }</td>
+                    </tr>
+                }</tbody>
+            </table></div>
+        }
+    </section>
+    <section class="workspace-section" aria-labelledby="recent-heading">
+        <h2 id="recent-heading">Recent decisions</h2>
+        @if (Model.RecentDecisions.Count == 0) { <p class="mb-0">No completed decisions have been recorded for your assigned tenders.</p> }
+        else
+        {
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Recent committee decisions"><table class="committee-read-table table align-middle mb-0">
+                <caption>Up to 10 recent decisions for your assignments.</caption>
+                <thead><tr><th scope="col">Tender</th><th scope="col">Outcome</th><th scope="col">Nominated supplier</th></tr></thead>
+                <tbody>@foreach (var tender in Model.RecentDecisions)
+                { <tr><th scope="row"><a asp-action="TenderDetails" asp-route-id="@tender.TenderId">@tender.Title</a></th><td>@(tender.HasRejection ? "Committee rejected" : CommitteeDisplay.Status(tender.Status))</td><td>@CommitteeDisplay.Text(tender.NominatedSupplier)</td></tr> }</tbody>
+            </table></div>
+        }
+    </section>
+}

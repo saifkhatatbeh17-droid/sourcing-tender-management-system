@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Services.TopCommittee;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddEnvironmentVariables();
@@ -8,6 +9,7 @@ var connection = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DefaultConnection is missing.");
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
+builder.Services.AddTopCommitteeFoundation();
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
 {
     o.User.RequireUniqueEmail = true;
@@ -44,6 +46,13 @@ builder.Services.AddAuthorization(o => o.AddPolicy("ApprovedSupplier", policy =>
     })));
 
 var app = builder.Build();
+// This dedicated check path runs before startup role seeding and performs no database writes.
+if (args.Contains("--top-committee-foundation-check"))
+{
+    using var checkScope = app.Services.CreateScope();
+    await SourcingTenderManagement.Checks.TopCommitteeFoundationChecks.RunAsync(checkScope.ServiceProvider);
+    return;
+}
 using (var scope = app.Services.CreateScope())
 {
     var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();

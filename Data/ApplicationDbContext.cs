@@ -620,7 +620,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             table.HasCheckConstraint("CK_TenderApprovals_1", "([Stage]='Top' OR [Stage]='Manager' OR [Stage]='Evaluation')");
             table.HasCheckConstraint("CK_TenderApprovals_2", "([Stage]='Manager' AND [CommitteeAssignmentId] IS NULL OR ([Stage]='Top' OR [Stage]='Evaluation') AND [CommitteeAssignmentId] IS NOT NULL)");
-            table.HasCheckConstraint("CK_TenderApprovals_3", "([Stage]='Manager' OR [Decision]='Approved')");
+            table.HasCheckConstraint("CK_TenderApprovals_3", "([Stage]='Manager' OR [Decision]='Approved' OR ([Stage]='Top' AND [Decision]='Rejected'))");
             table.HasCheckConstraint("CK_TenderApprovals_4", "([Decision]='ReturnedForReview' OR [Decision]='Rejected' OR [Decision]='Approved')");
         });
 

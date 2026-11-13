@@ -1,12 +1,49 @@
-@{ ViewData["Title"] = "Decisions"; }
-<h1>Decisions</h1>
-<!-- TEAM TODO: After all four members approve the selected offer, return that choice/report to the manager for final report approval. Preserve the committee selection when the manager approves its report. -->
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Decisions">
-<button class="nav-link active" id="decisions-0-tab" data-bs-toggle="tab" data-bs-target="#decisions-0" type="button" role="tab" aria-controls="decisions-0" aria-selected="true">Pending Decisions</button>
-<button class="nav-link " id="decisions-1-tab" data-bs-toggle="tab" data-bs-target="#decisions-1" type="button" role="tab" aria-controls="decisions-1" aria-selected="false">Tender & Report</button>
-<button class="nav-link " id="decisions-2-tab" data-bs-toggle="tab" data-bs-target="#decisions-2" type="button" role="tab" aria-controls="decisions-2" aria-selected="false">Approval Forms</button>
-<button class="nav-link " id="decisions-3-tab" data-bs-toggle="tab" data-bs-target="#decisions-3" type="button" role="tab" aria-controls="decisions-3" aria-selected="false">AI Analysis</button></div>
-<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="decisions-0" role="tabpanel" aria-labelledby="decisions-0-tab" tabindex="0"><section class="workspace-section"><h2>Pending Decisions</h2><!-- TEAM TODO: Load tenders awaiting this committee's final decision. Selecting one opens its Tender & Report tab. --></section></div>
-<div class="tab-pane fade " id="decisions-1" role="tabpanel" aria-labelledby="decisions-1-tab" tabindex="0"><section class="workspace-section"><h2>Tender, Offers & Recommendation</h2><!-- TEAM TODO: Display the request, tender, offers, evaluation report, and manager recommendation for the selected tender. --></section></div>
-<div class="tab-pane fade " id="decisions-2" role="tabpanel" aria-labelledby="decisions-2-tab" tabindex="0"><partial name="_MemberForms" /></div>
-<div class="tab-pane fade " id="decisions-3" role="tabpanel" aria-labelledby="decisions-3-tab" tabindex="0"><partial name="_AiAnalysis" /></div></div>
+@model CommitteePendingPage
+@section Styles { <partial name="_ReadStyles" /> }
+@{
+    ViewData["Title"] = "Pending Tenders";
+    var tenderPage = Model.Tenders;
+    var totalPages = Math.Max(1, (int)Math.Ceiling((double)tenderPage.TotalCount / tenderPage.PageSize));
+}
+<div class="workspace-heading"><h1>Pending tenders</h1><a asp-action="Dashboard">Back to dashboard</a></div>
+<p class="text-secondary">Only your assigned tenders awaiting a Top Committee decision are listed.</p>
+<form asp-action="Decisions" method="get" class="workspace-section" aria-label="Filter pending tenders">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <div class="row g-3 align-items-end">
+        <div class="col-12 col-lg-4"><label for="tender-search" class="form-label">Tender or nominated supplier</label><input id="tender-search" name="Search" value="@Model.Filter.Search" maxlength="200" class="form-control" type="search" /></div>
+        <div class="col-6 col-lg-2"><label for="tender-from" class="form-label">Created from (UTC)</label><input id="tender-from" name="FromDate" value="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" type="date" class="form-control" /></div>
+        <div class="col-6 col-lg-2"><label for="tender-to" class="form-label">Created through (UTC)</label><input id="tender-to" name="ToDate" value="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" type="date" class="form-control" /></div>
+        <div class="col-6 col-lg-2"><label for="tender-page-size" class="form-label">Rows per page</label><select id="tender-page-size" name="PageSize" class="form-select">@foreach (var size in new[] { 20, 50, 100 }) { <option value="@size" selected="@(Model.Filter.PageSize == size)">@size</option> }</select></div>
+        <div class="col-12 col-lg-2 d-flex gap-2"><button class="btn btn-primary" type="submit">Apply</button><a asp-action="Decisions" class="btn btn-outline-secondary">Reset</a></div>
+    </div>
+</form>
+@if (!ViewData.ModelState.IsValid)
+{ <p>Correct the filter values and select Apply to load the tender list.</p> }
+else if (tenderPage.TotalCount == 0)
+{
+    <section class="workspace-section"><h2>No pending tenders found</h2><p class="mb-0">You may not have a pending assignment, or no tender matches these filters. Reset the filters to check all pending assignments.</p></section>
+}
+else
+{
+    <div class="table-responsive" tabindex="0" role="region" aria-label="Pending tenders"><table class="committee-read-table table align-middle">
+        <caption>@tenderPage.TotalCount pending tender(s) matching your filters. Dates are shown in UTC.</caption>
+        <thead><tr><th scope="col">Tender</th><th scope="col">Created</th><th scope="col">Nominated supplier</th><th scope="col">Recorded approvals</th><th scope="col">Review status</th></tr></thead>
+        <tbody>@foreach (var tender in tenderPage.Items)
+        {
+            <tr><th scope="row"><a asp-action="TenderDetails" asp-route-id="@tender.TenderId">@tender.Title</a><span class="d-block text-secondary small">Tender #@tender.TenderId</span></th>
+                <td>@CommitteeDisplay.Utc(tender.CreatedAt)</td><td>@CommitteeDisplay.Text(tender.NominatedSupplier)</td><td>@tender.RecordedApprovals / 4</td>
+                <td>@(tender.OpenClarifications > 0 ? $"Paused: {tender.OpenClarifications} open clarification(s)" : "Awaiting committee review")</td></tr>
+        }</tbody>
+    </table></div>
+    @if (tenderPage.Items.Count == 0) { <p>This page has no results. Use Previous or return to the first page.</p> }
+    <nav class="workspace-toolbar" aria-label="Tender list pages">
+        @if (tenderPage.Page > 1)
+        {
+            <a class="btn btn-outline-secondary" asp-action="Decisions" asp-route-Page="1" asp-route-PageSize="@tenderPage.PageSize" asp-route-Search="@Model.Filter.Search" asp-route-FromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-ToDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")">First page</a>
+            <a class="btn btn-outline-secondary" asp-action="Decisions" asp-route-Page="@(tenderPage.Page - 1)" asp-route-PageSize="@tenderPage.PageSize" asp-route-Search="@Model.Filter.Search" asp-route-FromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-ToDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")">Previous</a>
+        }
+        <span aria-current="page">Page @tenderPage.Page of @totalPages</span>
+        @if (tenderPage.Page < totalPages)
+        { <a class="btn btn-outline-secondary" asp-action="Decisions" asp-route-Page="@(tenderPage.Page + 1)" asp-route-PageSize="@tenderPage.PageSize" asp-route-Search="@Model.Filter.Search" asp-route-FromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-ToDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")">Next</a> }
+    </nav>
+}

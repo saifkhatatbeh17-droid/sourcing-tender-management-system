@@ -1,0 +1,138 @@
+@model CommitteeTenderPage
+@section Styles { <partial name="_ReadStyles" /> }
+@{
+    var tender = Model.Tender;
+    var nominated = tender.Bids.FirstOrDefault(b => b.IsNominated);
+    ViewData["Title"] = $"Tender #{tender.TenderId}";
+}
+<div class="tc-tender">
+<nav class="mb-3" aria-label="Breadcrumb"><a asp-action="Dashboard">Top Committee dashboard</a><span class="text-secondary"> / Tender #@tender.TenderId</span></nav>
+<div class="workspace-heading">
+    <h1 class="text-break">@tender.Title</h1>
+    <a class="btn btn-outline-secondary" asp-action="Decisions">Pending tenders</a>
+</div>
+<p><span class="badge text-bg-secondary">@CommitteeDisplay.Status(tender.Status)</span><span class="ms-2">Tender #@tender.TenderId</span></p>
+<div class="tc-summary" aria-label="Committee decision summary">
+    <span><strong>@tender.Votes.Count(v => v.Decision == "Approved") / 4</strong> recorded approvals</span>
+    <span><strong>Nominated bid:</strong> @(nominated == null ? "Not available" : $"#{nominated.BidId} · {nominated.SupplierName}")</span>
+    <a href="#voting" class="btn btn-primary">Go to voting</a>
+</div>
+@if (TempData["VotingSuccess"] is string votingSuccess) { <p class="border rounded p-3" role="status">@votingSuccess</p> }
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+<nav class="workspace-toolbar" aria-label="Tender sections">
+    <a href="#voting">Voting</a><a href="#request">Purchase request</a><a href="#recommendation">Manager recommendation</a><a href="#bid-comparison">Bid comparison</a><a href="#evaluation-report">Evaluation report</a><a href="#committee">Committee records</a>
+</nav>
+<p><a asp-action="Clarifications" asp-route-tenderId="@tender.TenderId">View your clarifications for this tender</a></p>
+@if (tender.Status == "Awarded" || tender.Readiness.HasRejection)
+{
+    <section class="workspace-section" aria-labelledby="outcome-heading">
+        <h2 id="outcome-heading">Recorded decision</h2>
+        @if (tender.Readiness.HasRejection)
+        { <p>The committee recorded a rejection. The recorded votes and details are shown below for reference.</p> }
+        else
+        {
+            var winner = tender.Bids.FirstOrDefault(b => b.BidId == tender.AwardedBidId);
+            <dl class="row mb-0"><dt class="col-sm-3">Winning bid</dt><dd class="col-sm-9">#@tender.AwardedBidId @(winner == null ? "" : $"— {winner.SupplierName}")</dd>
+                <dt class="col-sm-3">Awarded at</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(tender.AwardedAt)</dd>
+                <dt class="col-sm-3">Decision notes</dt><dd class="col-sm-9">@CommitteeDisplay.Text(tender.AwardNotes)</dd></dl>
+        }
+    </section>
+}
+else if (tender.OpenClarifications > 0)
+{ <p class="border rounded p-3">Committee review is paused while @tender.OpenClarifications clarification(s) remain unresolved. Recorded votes are preserved.</p> }
+else if (!tender.Readiness.IsVotingOpen)
+{ <p class="border rounded p-3">@tender.Readiness.BlockingReason</p> }
+<partial name="_Voting" model="Model" />
+
+<section id="request" class="workspace-section" aria-labelledby="request-heading">
+    <h2 id="request-heading">Purchase request and tender</h2>
+    <dl class="row">
+        <dt class="col-sm-3">Request</dt><dd class="col-sm-9">#@tender.PurchaseRequest.RequestId · @tender.PurchaseRequest.Title</dd>
+        <dt class="col-sm-3">Department</dt><dd class="col-sm-9">@tender.PurchaseRequest.Department</dd>
+        <dt class="col-sm-3">Reason</dt><dd class="col-sm-9">@tender.PurchaseRequest.Reason</dd>
+        <dt class="col-sm-3">Priority</dt><dd class="col-sm-9">@tender.PurchaseRequest.Priority</dd>
+        <dt class="col-sm-3">Target date</dt><dd class="col-sm-9">@CommitteeDisplay.Date(tender.PurchaseRequest.TargetDate)</dd>
+        <dt class="col-sm-3">Tender description</dt><dd class="col-sm-9">@tender.Description</dd>
+        <dt class="col-sm-3">Terms</dt><dd class="col-sm-9">@CommitteeDisplay.Text(tender.Terms)</dd>
+        <dt class="col-sm-3">Opens</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(tender.OpensAt)</dd>
+        <dt class="col-sm-3">Submission deadline</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(tender.ClosesAt)</dd>
+    </dl>
+    @if (tender.PurchaseRequest.Items.Count == 0) { <p>No request items are recorded.</p> }
+    else
+    {
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Requested items"><table class="committee-read-table table mb-0">
+            <caption>Requested items and specifications.</caption>
+            <thead><tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Unit</th><th scope="col">Specifications</th></tr></thead>
+            <tbody>@foreach (var item in tender.PurchaseRequest.Items)
+            { <tr><th scope="row">@item.Name</th><td>@CommitteeDisplay.Quantity(item.Quantity)</td><td>@item.Unit</td><td>@item.Specifications</td></tr> }</tbody>
+        </table></div>
+    }
+    @if (tender.Documents.Count > 0)
+    {
+        <h3 class="fs-6 mt-4">Tender documents</h3>
+        <ul class="mb-0">@foreach (var document in tender.Documents) { <li>@document.OriginalFileName <span class="text-secondary">(@document.SizeBytes.ToString("N0") bytes)</span></li> }</ul>
+    }
+</section>
+
+<section id="recommendation" class="workspace-section" aria-labelledby="recommendation-heading">
+    <h2 id="recommendation-heading">Manager recommendation</h2>
+    <dl class="row mb-0">
+        <dt class="col-sm-3">Responsible manager</dt><dd class="col-sm-9">@(tender.ResponsibleManager?.FullName ?? "No single referring manager is recorded")</dd>
+        <dt class="col-sm-3">Nominated bid</dt><dd class="col-sm-9">@if (nominated != null)
+        { <a asp-action="TenderDetails" asp-route-id="@tender.TenderId" asp-route-bidId="@nominated.BidId" asp-fragment="selected-bid">@nominated.SupplierName · Bid #@nominated.BidId</a><span class="badge text-bg-primary ms-2">Manager nominated</span> }
+        else { <span>No submitted nomination is available.</span> }</dd>
+        <dt class="col-sm-3">Recommendation</dt><dd class="col-sm-9">@CommitteeDisplay.Text(tender.Report?.ManagerSummary)</dd>
+    </dl>
+    @if (!tender.Readiness.HasValidNomination) { <p class="text-secondary mt-2 mb-0">The nomination is missing or is not currently eligible for a committee decision.</p> }
+</section>
+
+<section id="bid-comparison" class="workspace-section" aria-labelledby="comparison-heading">
+    <h2 id="comparison-heading">Bid comparison</h2>
+    <partial name="_BidComparison" model="tender" />
+</section>
+@if (Model.SelectedBid is { } selectedBid)
+{
+    <section id="selected-bid" class="workspace-section" aria-labelledby="selected-bid-heading">
+        <h2 id="selected-bid-heading">Bid #@selectedBid.BidId · @selectedBid.SupplierName</h2>
+        @if (selectedBid.IsNominated) { <p><span class="badge text-bg-primary">Manager nominated</span></p> }
+        <partial name="_BidDetails" model="selectedBid" />
+    </section>
+}
+
+<section id="evaluation-report" class="workspace-section" aria-labelledby="report-heading">
+    <h2 id="report-heading">Unified evaluation report</h2>
+    @if (tender.Report is not { } report) { <p class="mb-0">No unified evaluation report is recorded for this tender.</p> }
+    else
+    {
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Report</dt><dd class="col-sm-9">#@report.ReportId · @CommitteeDisplay.Status(report.Status)</dd>
+            <dt class="col-sm-3">Submitted</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(report.SubmittedAt)</dd>
+            <dt class="col-sm-3">Committee summary</dt><dd class="col-sm-9">@CommitteeDisplay.Text(report.CommitteeSummary)</dd>
+            <dt class="col-sm-3">Officer summary</dt><dd class="col-sm-9">@CommitteeDisplay.Text(report.OfficerSummary)</dd>
+            <dt class="col-sm-3">Manager summary</dt><dd class="col-sm-9">@CommitteeDisplay.Text(report.ManagerSummary)</dd>
+        </dl>
+    }
+</section>
+
+<section id="committee" class="workspace-section" aria-labelledby="committee-heading">
+    <h2 id="committee-heading">Committee records</h2>
+    @if (tender.Members.Count == 0) { <p>No committee members are recorded.</p> }
+    else
+    {
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Committee records"><table class="committee-read-table table align-middle">
+            <caption>Assigned members and their recorded decisions. Reload to see updates.</caption>
+            <thead><tr><th scope="col">Member</th><th scope="col">Eligibility</th><th scope="col">Recorded decision</th><th scope="col">Recorded at</th></tr></thead>
+            <tbody>@foreach (var member in tender.Members)
+            {
+                var vote = tender.Votes.FirstOrDefault(v => v.UserId == member.UserId);
+                <tr><th scope="row">@member.FullName</th><td>@(member.IsEligible ? "Active member" : "Not currently eligible")</td><td>@(vote == null ? "No vote recorded" : CommitteeDisplay.Status(vote.Decision))</td><td>@CommitteeDisplay.Utc(vote?.DecidedAt)</td></tr>
+            }</tbody>
+        </table></div>
+    }
+    @foreach (var vote in tender.Votes)
+    { <p class="mb-2"><strong>@vote.MemberName · @CommitteeDisplay.Status(vote.Decision):</strong> @CommitteeDisplay.Text(vote.Justification)</p> }
+    @if (tender.Votes.Count == 0) { <p class="mb-0">No Top Committee votes have been recorded.</p> }
+</section>
+<a asp-action="Dashboard">Back to dashboard</a>
+</div>
+@section Scripts { <script src="~/js/top-committee-voting.js" asp-append-version="true"></script> }

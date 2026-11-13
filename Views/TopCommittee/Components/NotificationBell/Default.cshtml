@@ -1,0 +1,36 @@
+@model NotificationBellViewModel
+@* Controller-scoped override: other workspaces retain the shared bell view. *@
+<div class="dropdown">
+    <button type="button" class="btn btn-outline-secondary notification-bell" id="notification-bell"
+            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications, @Model.UnreadCount unread">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        @if (Model.UnreadCount > 0) { <span class="badge text-bg-primary">@Model.UnreadCount</span> }
+    </button>
+    <div class="dropdown-menu dropdown-menu-end notification-dropdown p-2" aria-labelledby="notification-bell">
+        <h2 class="fs-6 px-2 pt-2">Notifications</h2>
+        @if (Model.Items.Count == 0)
+        {
+            <p class="text-secondary px-2 mb-2">No notifications yet.</p>
+        }
+        else
+        {
+            <ul class="list-unstyled mb-0">
+            @foreach (var notification in Model.Items)
+            {
+                <li class="notification-item">
+                    <strong class="@(notification.IsRead ? "fw-normal" : "")">@notification.Title</strong>
+                    <p class="mb-1">@notification.Message</p>
+                    @if (Url.IsLocalUrl(notification.RelativeUrl))
+                    {
+                        <a href="@notification.RelativeUrl">View details</a>
+                    }
+                </li>
+            }
+            </ul>
+        }
+        <hr class="dropdown-divider" />
+        <a class="dropdown-item" asp-controller="TopCommittee" asp-action="Notifications">View all notifications</a>
+    </div>
+</div>

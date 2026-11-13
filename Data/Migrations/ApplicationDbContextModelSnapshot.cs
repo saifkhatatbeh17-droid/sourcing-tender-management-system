@@ -1308,7 +1308,7 @@ namespace SourcingTenderManagement.Data.Migrations
 
                             t.HasCheckConstraint("CK_TenderApprovals_2", "([Stage]='Manager' AND [CommitteeAssignmentId] IS NULL OR ([Stage]='Top' OR [Stage]='Evaluation') AND [CommitteeAssignmentId] IS NOT NULL)");
 
-                            t.HasCheckConstraint("CK_TenderApprovals_3", "([Stage]='Manager' OR [Decision]='Approved')");
+                            t.HasCheckConstraint("CK_TenderApprovals_3", "([Stage]='Manager' OR [Decision]='Approved' OR ([Stage]='Top' AND [Decision]='Rejected'))");
 
                             t.HasCheckConstraint("CK_TenderApprovals_4", "([Decision]='ReturnedForReview' OR [Decision]='Rejected' OR [Decision]='Approved')");
                         });

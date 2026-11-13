@@ -1,0 +1,9 @@
+@model CommitteeNotificationPage
+@{ViewData["Title"]="Committee Notifications";var pages=Math.Max(1,(int)Math.Ceiling(Model.Total/20d));}
+<div class="workspace-heading"><h1>Notifications</h1><a asp-action="Dashboard">Dashboard</a><a asp-action="Reports">Reports</a></div>
+<p>@Model.Unread unread · @Model.Total total. Reload to see updates.</p>
+@if(TempData["NotificationSuccess"] is string success){<p role="status" class="border rounded p-3">@success</p>}
+@if(Model.Unread>0){<form asp-action="MarkAllNotificationsRead" method="post" class="mb-4"><button class="btn btn-outline-primary">Mark all as read</button></form>}
+@if(Model.Items.Count==0){<section class="workspace-section"><h2>No notifications</h2><p>Committee updates will appear here when the responsible workflow records them.</p></section>}
+@foreach(var item in Model.Items){<section class="workspace-section"><div class="workspace-heading"><h2 class="fs-5 @(item.IsRead?"fw-normal":"fw-bold")">@item.Title</h2><span class="badge @(item.IsRead?"text-bg-secondary":"text-bg-primary")">@(item.IsRead?"Read":"Unread")</span></div><p>@item.Message</p><p class="small text-secondary">@CommitteeDisplay.Utc(item.CreatedAt)</p><div class="workspace-toolbar">@if(item.TenderId.HasValue){<a asp-action="TenderDetails" asp-route-id="@item.TenderId">View tender #@item.TenderId</a>}@if(!item.IsRead){<form asp-action="MarkNotificationRead" method="post"><input type="hidden" name="id" value="@item.Id" /><button class="btn btn-outline-primary">Mark as read</button></form>}</div></section>}
+<nav class="workspace-toolbar" aria-label="Notification pages"><span>Page @Model.Page of @pages</span>@foreach(var p in new[]{Model.Page-1,Model.Page+1}.Where(p=>p>=1&&p<=pages)){<a asp-action="Notifications" asp-route-page="@p">Page @p</a>}</nav>
