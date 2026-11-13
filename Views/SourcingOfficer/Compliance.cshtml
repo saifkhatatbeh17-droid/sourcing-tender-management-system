@@ -1,3 +1,134 @@
-@{ ViewData["Title"] = "Compliance Review"; }
+@using SourcingTenderManagement.Models.Entities
+@model List<Bid>
+@{
+    ViewData["Title"] = "Compliance Review";
+    var selectedBid = ViewBag.SelectedBid as Bid;
+}
+
 <h1>Compliance Review</h1>
-<!-- TEAM TODO: Implement SourcingOfficer / Compliance here. -->
+@if (TempData["ComplianceSuccess"] is string successMessage)
+{
+    <div class="alert alert-success" role="status">@successMessage</div>
+}
+@if (TempData["ComplianceError"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Compliance Review">
+    <button class="nav-link @(selectedBid == null ? "active" : "")" id="compliance-list-tab" data-bs-toggle="tab" data-bs-target="#compliance-list" type="button" role="tab" aria-controls="compliance-list" aria-selected="@(selectedBid == null ? "true" : "false")">Submitted Offers</button>
+    <button class="nav-link @(selectedBid != null ? "active" : "")" id="compliance-details-tab" data-bs-toggle="tab" data-bs-target="#compliance-details" type="button" role="tab" aria-controls="compliance-details" aria-selected="@(selectedBid != null ? "true" : "false")">Offer Review</button>
+</div>
+
+<div class="tab-content workspace-content">
+    <div class="tab-pane fade @(selectedBid == null ? "show active" : "")" id="compliance-list" role="tabpanel" aria-labelledby="compliance-list-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Offers for Compliance Review</h2>
+            @if (Model.Count == 0)
+            {
+                <p class="text-secondary">No submitted offers are available for your tenders.</p>
+            }
+            else
+            {
+                <div class="table-responsive"><table class="table">
+                    <thead><tr><th>Tender</th><th>Supplier</th><th>Submitted (UTC)</th><th>Bid Status</th><th>Compliance Status</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var bid in Model)
+                        {
+                            <tr>
+                                <td>@bid.Invitation.Tender.Title</td>
+                                <td>@bid.Invitation.SupplierProfile.CompanyName</td>
+                                <td>@bid.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@bid.Status</td>
+                                <td>@(bid.ComplianceStatus ?? "Pending review")</td>
+                                <td><a class="btn btn-outline-primary btn-sm" asp-action="Compliance" asp-route-id="@bid.BidId">Review</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table></div>
+            }
+        </section>
+    </div>
+
+    <div class="tab-pane fade @(selectedBid != null ? "show active" : "")" id="compliance-details" role="tabpanel" aria-labelledby="compliance-details-tab" tabindex="0">
+        <section class="workspace-section">
+            <h2>Offer and Tender Requirements</h2>
+            @if (selectedBid is null)
+            {
+                <p class="text-secondary">Select a submitted offer to review its compliance.</p>
+            }
+            else
+            {
+                <dl>
+                    <dt>Tender</dt><dd>@selectedBid.Invitation.Tender.Title</dd>
+                    <dt>Supplier</dt><dd>@selectedBid.Invitation.SupplierProfile.CompanyName</dd>
+                    <dt>Bid Status</dt><dd>@selectedBid.Status</dd>
+                    <dt>Compliance Status</dt><dd>@(selectedBid.ComplianceStatus ?? "Pending review")</dd>
+                    <dt>Previous Review Notes</dt><dd>@selectedBid.ComplianceNotes</dd>
+                </dl>
+
+                <h3>Purchase Request Requirements</h3>
+                @if (selectedBid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems.Count == 0)
+                {
+                    <p class="text-secondary">No requested items are stored for this Tender.</p>
+                }
+                else
+                {
+                    <ul>
+                        @foreach (var item in selectedBid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems)
+                        {
+                            <li>@item.ItemName — @item.Quantity @item.Unit: @item.Specifications</li>
+                        }
+                    </ul>
+                }
+
+                <h3>Supplier Offer</h3>
+                <p>@selectedBid.TechnicalDetails</p>
+                @if (selectedBid.BidItems.Count > 0)
+                {
+                    <div class="table-responsive"><table class="table">
+                        <thead><tr><th>Item</th><th>Quantity</th><th>Offered Specifications</th><th>Unit Price</th></tr></thead>
+                        <tbody>
+                            @foreach (var item in selectedBid.BidItems)
+                            {
+                                <tr><td>@item.PurchaseRequestItem.ItemName</td><td>@item.Quantity</td><td>@item.OfferedSpecifications</td><td>@item.UnitPrice.ToString("N2") @selectedBid.Currency</td></tr>
+                            }
+                        </tbody>
+                    </table></div>
+                }
+                @if (selectedBid.BidDocuments.Count > 0)
+                {
+                    <h3>Submitted Document Metadata</h3>
+                    <ul>@foreach (var document in selectedBid.BidDocuments) { <li>@document.OriginalFileName — @document.DocumentType (@document.ContentType)</li> }</ul>
+                }
+
+                var clarificationAnswered = selectedBid.Clarifications.Any(c => (c.Status == "Answered" || c.Status == "Resolved") && c.ClarificationResponses.Count > 0);
+                var canReview = (selectedBid.Status == "Submitted" || selectedBid.Status == "UnderReview")
+                    && selectedBid.ComplianceStatus != "Compliant"
+                    && selectedBid.ComplianceStatus != "NonCompliant"
+                    && (selectedBid.ComplianceStatus != "PendingClarification" || clarificationAnswered);
+                @if (canReview)
+                {
+                    <form asp-action="ReviewCompliance" method="post" class="mt-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@selectedBid.BidId" />
+                        <div class="mb-3">
+                            <label for="compliance-notes" class="form-label">Review Notes (optional)</label>
+                            <textarea id="compliance-notes" name="notes" maxlength="2000" rows="3" class="form-control">@selectedBid.ComplianceNotes</textarea>
+                        </div>
+                        <button type="submit" name="decision" value="Compliant" class="btn btn-success">Mark Compliant</button>
+                        <button type="submit" name="decision" value="NonCompliant" class="btn btn-outline-danger">Mark Non-Compliant</button>
+                    </form>
+                }
+                else if (selectedBid.ComplianceStatus == "PendingClarification")
+                {
+                    <p class="alert alert-info">Compliance review is waiting for a supplier clarification response.</p>
+                }
+                else
+                {
+                    <p class="text-secondary">This offer is not eligible for another compliance decision.</p>
+                }
+            }
+        </section>
+    </div>
+</div>

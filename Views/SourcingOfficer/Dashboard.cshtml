@@ -1,3 +1,28 @@
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<!-- TEAM TODO: Implement SourcingOfficer / Dashboard here. -->
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1>Sourcing Officer Dashboard</h1>
+<p class="text-secondary">Current work counts from the existing system records.</p>
+
+<div class="row g-3">
+    <div class="col-md-3"><section class="workspace-section h-100"><h2>Requests to Review</h2><p class="display-6">@ViewBag.PendingRequests</p><a asp-action="Requests" class="btn btn-outline-primary">Open Requests</a></section></div>
+    <div class="col-md-3"><section class="workspace-section h-100"><h2>Draft Tenders</h2><p class="display-6">@ViewBag.DraftTenders</p><a asp-action="Tenders" class="btn btn-outline-primary">Open Tenders</a></section></div>
+    <div class="col-md-3"><section class="workspace-section h-100"><h2>Published / Open</h2><p class="display-6">@ViewBag.PublishedTenders</p><a asp-action="Tenders" class="btn btn-outline-primary">Open Tenders</a></section></div>
+    <div class="col-md-3"><section class="workspace-section h-100"><h2>Invitations Sent</h2><p class="display-6">@ViewBag.InvitationsSent</p><a asp-action="Invitations" class="btn btn-outline-primary">Open Invitations</a></section></div>
+    <div class="col-md-3"><section class="workspace-section h-100"><h2>Submitted Offers</h2><p class="display-6">@ViewBag.SubmittedOffers</p><a asp-action="Offers" class="btn btn-outline-primary">Review Offers</a></section></div>
+    <div class="col-md-3"><section class="workspace-section h-100"><h2>Evaluations in Progress</h2><p class="display-6">@ViewBag.EvaluationsInProgress</p><a asp-action="Evaluations" class="btn btn-outline-primary">Track Evaluations</a></section></div>
+    <div class="col-md-3"><section class="workspace-section h-100"><h2>Offers for Compliance Review</h2><p class="display-6">@ViewBag.PendingCompliance</p><a asp-action="Compliance" class="btn btn-outline-primary">Review Compliance</a></section></div>
+    <div class="col-md-3"><section class="workspace-section h-100"><h2>Reports for Officer Review</h2><p class="display-6">@ViewBag.ReportsAwaitingOfficer</p><a asp-action="Evaluations" class="btn btn-outline-primary">Review Evaluations</a></section></div>
+    <div class="col-md-3"><section class="workspace-section h-100"><h2>Reports Awaiting Manager Review</h2><p class="display-6">@ViewBag.ReportsAwaitingManager</p><a asp-action="Reports" class="btn btn-outline-primary">View Reports</a></section></div>
+</div>
+
+<section class="workspace-section mt-3">
+    <h2>Sourcing Officer Workflow</h2>
+    <p>Review Purchase Requests, create and publish Tenders, invite Approved suppliers, review submitted offers, record compliance decisions, track committee evaluations, and submit the Officer report.</p>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-action="Comparison" class="btn btn-outline-primary">Offer Comparison</a>
+        <a asp-action="Clarifications" class="btn btn-outline-primary">Clarifications</a>
+        <a asp-action="Reports" class="btn btn-outline-primary">Reports</a>
+    </div>
+</section>
