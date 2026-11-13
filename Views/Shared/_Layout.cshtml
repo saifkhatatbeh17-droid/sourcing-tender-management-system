@@ -1,6 +1,19 @@
 @using SourcingTenderManagement.Data
 @using SourcingTenderManagement.Models
-@{ var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home"; }
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var profileController = User.IsInRole(RoleNames.Supplier) ? "Supplier" : "Account";
+    var editingProfile = currentController == "Account" && currentAction == "EditProfile";
+    var profileIsActive = editingProfile || (currentController == profileController && currentAction == "Profile");
+    var workspaceController = currentController;
+    if (profileIsActive && currentController == "Account")
+    {
+        workspaceController = User.IsInRole(RoleNames.Supplier)
+            ? RoleNames.Supplier
+            : RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
+    }
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,15 +54,17 @@
         {
             <a class="workspace-link" asp-controller="@role" asp-action="Dashboard">@role workspace</a>
         }
-        @if (PageNavigation.Menus.TryGetValue(currentController, out var menu) && User.IsInRole(currentController))
+        @if (PageNavigation.Menus.TryGetValue(workspaceController, out var menu) && User.IsInRole(workspaceController))
         {
             <hr />
             @foreach (var item in menu)
             {
-                var active = (ViewData["ActivePage"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString()) == item.Action;
-                <a class="page-link-item @(active ? "active" : "")" asp-controller="@currentController" asp-action="@item.Action" aria-current="@(active ? "page" : null)">@item.Title</a>
+                var active = (ViewData["ActivePage"]?.ToString() ?? currentAction) == item.Action;
+                <a class="page-link-item @(active ? "active" : "")" asp-controller="@workspaceController" asp-action="@item.Action" aria-current="@(active ? "page" : null)">@item.Title</a>
             }
         }
+        <hr />
+        <a class="page-link-item @(profileIsActive ? "active" : "")" asp-controller="@profileController" asp-action="Profile" aria-current="@(profileIsActive ? "page" : null)">My Profile</a>
     </aside>
 }
 <main id="main" class="main-content p-4" tabindex="-1">@RenderBody()</main>

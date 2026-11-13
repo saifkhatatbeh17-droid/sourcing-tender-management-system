@@ -230,6 +230,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
                 user.Id,
                 user.FullName,
                 user.Email,
+                user.PhoneNumber,
                 user.IsActive,
                 user.DepartmentId,
                 DepartmentName = user.Department == null ? null : user.Department.Name,
@@ -242,7 +243,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         return new UsersPageViewModel
         {
             Users = rows.Select(row => new AdminUserRowViewModel(
-                row.Id, row.FullName, row.Email, row.IsActive, row.DepartmentId, row.DepartmentName, row.Roles)).ToList(),
+                row.Id, row.FullName, row.Email, row.PhoneNumber, row.IsActive, row.DepartmentId, row.DepartmentName, row.Roles)).ToList(),
             Departments = departments,
             CreateUser = createUser ?? new CreateUserViewModel(),
             Search = search,
@@ -292,7 +293,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
             ModelState.AddModelError(nameof(model.CommitteeRole), "This account is not a committee member.");
         if (!ModelState.IsValid) return await InvalidCreateUser(model);
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, DepartmentId = model.DepartmentId, EmailConfirmed = true };
+        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, PhoneNumber = model.PhoneNumber?.Trim(), DepartmentId = model.DepartmentId, EmailConfirmed = true };
         var result = await users.CreateAsync(user, model.Password);
         if (result.Succeeded)
         {
@@ -365,6 +366,13 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
             user.FullName = model.FullName;
             user.DepartmentId = model.DepartmentId;
             user.IsActive = model.IsActive;
+
+            var phoneNumber = model.PhoneNumber?.Trim();
+            if (user.PhoneNumber != phoneNumber)
+            {
+                user.PhoneNumber = phoneNumber;
+                user.PhoneNumberConfirmed = false;
+            }
             var result = await users.UpdateAsync(user);
             if (result.Succeeded)
             {

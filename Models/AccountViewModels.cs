@@ -12,6 +12,7 @@ public class LoginViewModel
 }
 public class CreateUserViewModel
 {
+    [Phone, StringLength(32)] public string? PhoneNumber { get; set; }
     [Required, StringLength(150)] public string FullName { get; set; } = "";
     [Required, EmailAddress, StringLength(256)] public string Email { get; set; } = "";
     [Required, DataType(DataType.Password)] public string Password { get; set; } = "";

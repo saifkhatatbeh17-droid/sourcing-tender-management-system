@@ -42,6 +42,78 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return RedirectToAction(nameof(AccessDenied));
     }
 
+    [HttpGet, Authorize]
+    public async Task<IActionResult> Profile()
+    {
+        var userId = users.GetUserId(User);
+        var account = await db.Users.AsNoTracking()
+            .Include(user => user.Department)
+            .SingleOrDefaultAsync(user => user.Id == userId && user.IsActive);
+        if (account == null)
+        {
+            return Challenge();
+        }
+
+        var roles = await users.GetRolesAsync(account);
+        if (User.IsInRole(RoleNames.Supplier) && roles.Contains(RoleNames.Supplier, StringComparer.OrdinalIgnoreCase))
+        {
+            return RedirectToAction(nameof(SupplierController.Profile), "Supplier");
+        }
+
+        var profile = new AccountProfileViewModel(
+            account.FullName, account.Email, account.PhoneNumber, account.Department?.Name,
+            roles.OrderBy(role => role).ToList());
+
+        return View(profile);
+    }
+
+    [HttpGet, Authorize]
+    public async Task<IActionResult> EditProfile()
+    {
+        var account = await users.GetUserAsync(User);
+        if (account == null || !account.IsActive)
+        {
+            return Challenge();
+        }
+
+        return View(new EditProfileViewModel { PhoneNumber = account.PhoneNumber });
+    }
+
+    [HttpPost, Authorize, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditProfile(EditProfileViewModel input)
+    {
+        var account = await users.GetUserAsync(User);
+        if (account == null || !account.IsActive)
+        {
+            return Challenge();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(input);
+        }
+
+        var phoneNumber = string.IsNullOrWhiteSpace(input.PhoneNumber) ? null : input.PhoneNumber.Trim();
+        if (account.PhoneNumber != phoneNumber)
+        {
+            var result = await users.SetPhoneNumberAsync(account, phoneNumber);
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError("", error.Description);
+                }
+
+                return View(input);
+            }
+
+            await signIn.RefreshSignInAsync(account);
+        }
+
+        TempData["ProfileFeedback"] = "Phone number saved.";
+        return RedirectToAction(nameof(Profile));
+    }
+
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {

@@ -27,13 +27,14 @@ public class UsersPageViewModel
 }
 
 public sealed record AdminUserRowViewModel(
-    string Id, string FullName, string? Email, bool IsActive, int? DepartmentId,
+    string Id, string FullName, string? Email, string? PhoneNumber, bool IsActive, int? DepartmentId,
     string? DepartmentName, IReadOnlyList<string> Roles);
 
 public class EditUserViewModel
 {
     [Required] public string Id { get; set; } = "";
     [Required, StringLength(150)] public string FullName { get; set; } = "";
+    [Phone, StringLength(32)] public string? PhoneNumber { get; set; }
     public int? DepartmentId { get; set; }
     public bool IsActive { get; set; }
 }

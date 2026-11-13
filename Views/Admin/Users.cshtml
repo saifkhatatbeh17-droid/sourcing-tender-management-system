@@ -110,6 +110,7 @@ else
     {
         Id = account.Id,
         FullName = account.FullName,
+        PhoneNumber = account.PhoneNumber,
         IsActive = account.IsActive,
         DepartmentId = account.DepartmentId
     };
@@ -133,6 +134,11 @@ else
                     <div class="field">
                         <label for="edit-name-@account.Id">Full name</label>
                         <input id="edit-name-@account.Id" name="FullName" value="@input.FullName" class="form-control" required maxlength="150" />
+                    </div>
+                    <div class="field">
+                        <label for="edit-phone-@account.Id">Phone number (optional)</label>
+                        <input id="edit-phone-@account.Id" name="PhoneNumber" type="tel" value="@input.PhoneNumber"
+                               class="form-control" maxlength="32" autocomplete="tel" />
                     </div>
                     <div class="field">
                         <label for="edit-department-@account.Id">Department</label>

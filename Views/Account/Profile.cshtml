@@ -1,0 +1,48 @@
+@model AccountProfileViewModel
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="workspace-heading">
+    <h1>My Profile</h1>
+    <a asp-action="EditProfile" class="btn btn-outline-primary">Edit Phone Number</a>
+</div>
+
+@if (TempData["ProfileFeedback"] is string feedback)
+{
+    <div class="alert alert-success" role="status">@feedback</div>
+}
+
+<section class="workspace-section">
+    <h2>Account information</h2>
+    <dl class="row mb-0">
+        <dt class="col-sm-4">Full name</dt>
+        <dd class="col-sm-8 text-break">@(string.IsNullOrWhiteSpace(Model.FullName) ? "Not provided" : Model.FullName)</dd>
+
+        <dt class="col-sm-4">Email address</dt>
+        <dd class="col-sm-8 text-break">@(Model.Email ?? "Not provided")</dd>
+
+        <dt class="col-sm-4">Phone number</dt>
+        <dd class="col-sm-8 text-break">@(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "Not provided" : Model.PhoneNumber)</dd>
+
+        <dt class="col-sm-4">Department</dt>
+        <dd class="col-sm-8">@(Model.DepartmentName ?? "Not assigned")</dd>
+
+        <dt class="col-sm-4">Roles</dt>
+        <dd class="col-sm-8">
+            @if (Model.Roles.Count == 0)
+            {
+                <span>No roles assigned</span>
+            }
+            else
+            {
+                <ul class="list-unstyled mb-0">
+                    @foreach (var role in Model.Roles)
+                    {
+                        <li>@role</li>
+                    }
+                </ul>
+            }
+        </dd>
+    </dl>
+</section>
