@@ -1,50 +1,55 @@
 @model CommitteeEvaluationPage
-@if (Model.Members.Count == 0) { <p>Start the evaluation to open the four member forms.</p> }
-<div class="committee-grid">
-@foreach (var member in Model.Members)
+@if (Model.Members.Count == 0)
+{ <div class="ev-empty"><h3>Ready when you are</h3><p>Start this tender's evaluation from the header to open the four committee forms.</p></div> }
+else
 {
-    var mine = member.UserId == Model.UserId;
-    var approval = Model.Approvals.SingleOrDefault(a => a.UserId == member.UserId);
-    var editable = mine && !Model.Locked && approval == null;
-    var scoreIndex = 0;
-    <section class="committee-section">
-        <h3>@CommitteeEvaluationPage.MemberName(member.Position)</h3>
-        <p>@member.User.FullName</p>
-        <p><strong>@(mine ? "Your form" : "Read-only")</strong> · @(approval == null ? "Not approved" : "Approved")</p>
-        <form asp-action="SaveScores" method="post">
-            <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
-            @foreach (var offer in Model.Offers)
-            {
-                <h4 class="h6 mt-3">Offer #@offer.BidId — @offer.Invitation.SupplierProfile.CompanyName</h4>
-                @foreach (var criterion in Model.ForMember(member))
+    <div class="ev-section-heading"><div><h3>Member evaluations</h3><p>Fill in your scores, then approve. Saving a draft first is optional.</p></div><span class="ev-subtle">Scores range from 0 to 100</span></div>
+    <div class="ev-forms-grid">
+    @foreach (var member in Model.Members)
+    {
+        var mine = member.UserId == Model.UserId;
+        var approval = Model.Approvals.SingleOrDefault(a => a.UserId == member.UserId);
+        var editable = mine && !Model.Locked && approval == null;
+        var scoreIndex = 0;
+        <section class="ev-member-form @(mine ? "ev-my-form" : "")" aria-label="@CommitteeEvaluationPage.MemberName(member.Position)">
+            <header><div class="ev-member-heading"><span class="ev-member-number" aria-hidden="true">@member.Position.ToString("00")</span><span class="ev-form-badge">@(approval != null ? "Approved" : mine ? "Your form" : "Read-only")</span></div><h3>@CommitteeEvaluationPage.MemberName(member.Position)</h3><p>@member.User.FullName</p></header>
+            <form asp-action="SaveScores" method="post">
+                <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
+                <div class="ev-member-fields">
+                @foreach (var offer in Model.Offers)
                 {
-                    var saved = Model.Score(member, offer, criterion);
-                    var initial = saved ?? (criterion.Category == "Financial" && criterion.Name == "Price" ? Model.PriceScore(offer) : (decimal?)null);
-                    <div class="mb-2">
-                        <label for="score-@member.Position-@scoreIndex" class="form-label">@criterion.Name (@criterion.Weight%)</label>
+                    <fieldset class="ev-score-group"><legend><span>Offer #@offer.BidId</span>@offer.Invitation.SupplierProfile.CompanyName</legend>
+                    @foreach (var criterion in Model.ForMember(member))
+                    {
+                        var saved = Model.Score(member, offer, criterion);
+                        var initial = saved ?? (criterion.Category == "Financial" && criterion.Name == "Price" ? Model.PriceScore(offer) : (decimal?)null);
+                        <label for="score-@member.Position-@scoreIndex">@criterion.Name <span>@criterion.Weight.ToString("0.##")%</span></label>
+                        <div class="ev-score-input">
                         @if (editable)
                         {
-                            <input type="hidden" name="scores[@scoreIndex].BidId" value="@offer.BidId" />
-                            <input type="hidden" name="scores[@scoreIndex].CriterionId" value="@criterion.EvaluationCriterionId" />
-                            <input id="score-@member.Position-@scoreIndex" name="scores[@scoreIndex].Score" type="number" min="0" max="100" step="0.01" value="@initial?.ToString(System.Globalization.CultureInfo.InvariantCulture)" required class="form-control" />
+                            <input type="hidden" name="scores[@scoreIndex].BidId" value="@offer.BidId" /><input type="hidden" name="scores[@scoreIndex].CriterionId" value="@criterion.EvaluationCriterionId" />
+                            <input id="score-@member.Position-@scoreIndex" name="scores[@scoreIndex].Score" type="number" min="0" max="100" step="0.01" value="@initial?.ToString(System.Globalization.CultureInfo.InvariantCulture)" placeholder="0" required class="form-control" /><span>/ 100</span>
                         }
-                        else
-                        { <input id="score-@member.Position-@scoreIndex" value="@(saved?.ToString("0.##") ?? "Not saved")" readonly class="form-control" /> }
-                    </div>
-                    scoreIndex++;
+                        else { <input id="score-@member.Position-@scoreIndex" value="@(saved?.ToString("0.##") ?? "Not scored")" readonly class="form-control" /><span>@(saved.HasValue ? "/ 100" : "")</span> }
+                        </div>
+                        scoreIndex++;
+                    }
+                    </fieldset>
                 }
-            }
-            @if (member.Position == 3) { <p class="small">Price starts at lowest offer total ÷ this offer total × 100. Review before saving.</p> }
-            <label for="notes-@member.Position" class="form-label">Member notes</label>
-            <textarea id="notes-@member.Position" name="notes" maxlength="4000" readonly="@(!editable)" class="form-control mb-2">@Model.Evaluations.FirstOrDefault(e => e.CommitteeAssignmentId == member.CommitteeAssignmentId)?.Notes</textarea>
-            @if (editable)
-            {
-                <button class="btn btn-primary">Save my form</button>
-                <p class="small mt-3">Approve saves your current scores and locks only your form. You do not need to save first or wait for other members. All four approvals are required to send the evaluation to the officer.</p>
-                <button asp-action="Approve" class="btn btn-success">Approve</button>
-                <button type="button" class="btn btn-outline-danger" disabled title="Design only; committee rejection is outside this workflow.">Reject</button>
-            }
-        </form>
-    </section>
+                @if (member.Position == 3) { <p class="ev-field-help">Price suggestions use the lowest offer total divided by each offer total, multiplied by 100.</p> }
+                <label for="notes-@member.Position">@(mine ? "Your observations" : "Member observations")</label><textarea id="notes-@member.Position" name="notes" maxlength="4000" readonly="@(!editable)" placeholder="Add context for your scores…" class="form-control" rows="3">@Model.Evaluations.FirstOrDefault(e => e.CommitteeAssignmentId == member.CommitteeAssignmentId)?.Notes</textarea>
+                </div>
+                <footer class="ev-form-footer">
+                @if (editable)
+                {
+                    <p>Approve saves your scores and locks your form. Other members can approve independently.</p>
+                    <button asp-action="Approve" class="btn ev-button-primary ev-approve-button">Approve my evaluation <span aria-hidden="true">✓</span></button>
+                    <div class="ev-draft-actions"><button class="btn ev-button-secondary">Save draft</button><button type="button" class="btn ev-button-reject" disabled title="Design only. Rejection is outside the committee workflow.">Reject</button></div>
+                }
+                else { <p class="@(approval != null ? "ev-approved-note" : "")">@(approval != null ? "✓ This member has approved." : mine ? "This evaluation is read-only." : "Only this member can edit their form.")</p> }
+                </footer>
+            </form>
+        </section>
+    }
+    </div>
 }
-</div>

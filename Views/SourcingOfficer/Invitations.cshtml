@@ -63,7 +63,7 @@
 
     <div class="tab-pane fade" id="invitations-create" role="tabpanel" aria-labelledby="invitations-create-tab" tabindex="0">
         <section class="workspace-section">
-            <h2>Invite an Approved Supplier</h2>
+            <h2>Invite Approved Suppliers</h2>
             @if (eligibleTenders.Count == 0)
             {
                 <p class="text-secondary">You do not have any Published tenders available for invitations.</p>
@@ -85,18 +85,38 @@
                         }
                     </select>
                 </div>
-                <div class="mb-3">
-                    <label for="supplierProfileId" class="form-label">Approved Supplier</label>
-                    <select id="supplierProfileId" name="supplierProfileId" class="form-select" required disabled="@(approvedSuppliers.Count == 0)">
-                        <option value="">Select a supplier</option>
-                        @foreach (var supplier in approvedSuppliers)
-                        {
-                            <option value="@supplier.SupplierProfileId">@supplier.CompanyName</option>
-                        }
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary" disabled="@(eligibleTenders.Count == 0 || approvedSuppliers.Count == 0)">Send Invitation</button>
+                <fieldset class="mb-3" disabled="@(approvedSuppliers.Count == 0)">
+                    <legend class="fs-6">Approved Suppliers</legend>
+                    <div class="form-check mb-3">
+                        <input id="all-suppliers" name="allSuppliers" value="true" type="checkbox" class="form-check-input" />
+                        <label for="all-suppliers" class="form-check-label fw-semibold">Select all suppliers</label>
+                    </div>
+                    @foreach (var supplier in approvedSuppliers)
+                    {
+                        <div class="form-check mb-2">
+                            <input id="supplier-@supplier.SupplierProfileId" name="supplierProfileIds" value="@supplier.SupplierProfileId" type="checkbox" class="form-check-input supplier-choice" />
+                            <label for="supplier-@supplier.SupplierProfileId" class="form-check-label">@supplier.CompanyName</label>
+                        </div>
+                    }
+                    <p class="form-text">Choose one or more suppliers. Suppliers already invited to this tender will be skipped.</p>
+                </fieldset>
+                <button type="submit" class="btn btn-primary" disabled="@(eligibleTenders.Count == 0 || approvedSuppliers.Count == 0)">Send Invitations</button>
             </form>
         </section>
     </div>
 </div>
+@section Scripts {
+<script>
+    const allSuppliers = document.getElementById('all-suppliers');
+    const supplierChoices = [...document.querySelectorAll('.supplier-choice')];
+    allSuppliers.addEventListener('change', () => {
+        supplierChoices.forEach(choice => choice.checked = allSuppliers.checked);
+        allSuppliers.indeterminate = false;
+    });
+    supplierChoices.forEach(choice => choice.addEventListener('change', () => {
+        const selectedCount = supplierChoices.filter(input => input.checked).length;
+        allSuppliers.checked = selectedCount === supplierChoices.length;
+        allSuppliers.indeterminate = selectedCount > 0 && selectedCount < supplierChoices.length;
+    }));
+</script>
+}

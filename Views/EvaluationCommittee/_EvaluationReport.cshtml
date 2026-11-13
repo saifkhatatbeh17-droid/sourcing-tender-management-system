@@ -1,0 +1,29 @@
+@model CommitteeEvaluationPage
+@{ var report = Model.Tender?.EvaluationReport; }
+<div class="ev-section-heading"><div><h3>The committee's recommendation</h3><p>Compare the combined scores and review the report sent to the sourcing officer.</p></div><span class="ev-status">@Model.Approvals.Count of 4 approved</span></div>
+<section class="ev-comparison">
+@if (!Model.Ready)
+{ <div class="ev-empty"><h4>The comparison is taking shape</h4><p>All four members need to save or approve their scores before rankings appear. Offers must use the same currency.</p><button type="button" class="btn ev-button-secondary" data-open-evaluation-tab="forms-tab">View evaluation forms</button></div> }
+else
+{
+    <div class="table-responsive"><table class="table ev-ranking-table"><caption>Financial scores come from finance. Requirements scores average the other three members. Equal weighted scores are tied.</caption><thead><tr><th scope="col">Offer / supplier</th><th scope="col">Total</th><th scope="col">Financial</th><th scope="col">Requirements</th><th scope="col">Weighted score</th></tr></thead><tbody>
+    @foreach (var row in Model.Rank())
+    { <tr><th scope="row"><strong>@row.Supplier</strong><small>Offer #@row.BidId</small></th><td>@row.Total.ToString("N2") <small>@row.Currency</small></td><td>@row.Financial.ToString("0.##")</td><td>@row.Requirements.ToString("0.##")</td><td><strong class="ev-ranking-score">@row.Score.ToString("0.##")<small> / 100</small></strong></td></tr> }
+    </tbody></table></div>
+}
+</section>
+<div class="ev-report-grid"><section class="ev-report-body"><h3>Combined report</h3><p class="ev-field-help">You can prepare a recommendation before approval. Otherwise, the fourth approval completes the summary automatically. Tied leaders stay unselected.</p>
+@if (!Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId && m.Position == 1))
+{
+    <form asp-action="SaveReport" method="post"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><label for="recommended-offer">Recommended offer</label><select id="recommended-offer" name="recommendedBidId" required class="form-select"><option value="">Choose an offer</option>@foreach (var offer in Model.Offers) { <option value="@offer.BidId" selected="@(offer.BidId == report?.RecommendedBidId)">#@offer.BidId: @offer.Invitation.SupplierProfile.CompanyName</option> }</select><label for="committee-summary">Summary and recommendation reason</label><textarea id="committee-summary" name="summary" required maxlength="4000" rows="5" placeholder="Summarize the evaluation and explain the recommendation…" class="form-control">@report?.CommitteeSummary</textarea><button class="btn ev-button-primary">Save report</button></form>
+}
+else
+{ <dl class="ev-report-summary"><dt>Recommended offer</dt><dd>@(report?.RecommendedBidId is int bid ? "Offer #" + bid : "Not selected yet")</dd><dt>Committee summary</dt><dd>@(report?.CommitteeSummary ?? "The combined summary will appear here when it is prepared.")</dd></dl> }
+</section><aside class="ev-report-approvals"><h3>Approval record</h3><p>Four independent member approvals are required.</p>
+@foreach (var member in Model.Members)
+{
+    var approved = Model.Approvals.Any(a => a.UserId == member.UserId);
+    <div><span class="ev-check @(approved ? "ev-is-complete" : "")" aria-hidden="true">@(approved ? "✓" : member.Position.ToString())</span><span><strong>@CommitteeEvaluationPage.MemberName(member.Position)</strong><small>@(approved ? "Approved" : "Awaiting approval")</small></span></div>
+}
+@if (Model.Locked) { <p class="ev-notice ev-notice-success">Evaluation complete. Current tender status: @Model.Tender!.Status.</p> }
+</aside></div>

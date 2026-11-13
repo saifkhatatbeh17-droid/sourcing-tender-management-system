@@ -15,6 +15,24 @@ public static class TopCommitteeNotificationEvents
  internal static async Task DecisionAsync(ApplicationDbContext db,CommitteeVotingContext context,CancellationToken ct)
  {
   var tender=context.Access.Tender!;if(tender.Status is "Awarded" or "AwaitingManagerReview")await AddAsync(db,tender.TenderId,context.Access.Members.Where(m=>m.IsEligible).Select(m=>m.UserId),$"Tender #{tender.TenderId}: {(tender.Status=="Awarded"?"awarded":"rejected and returned to Manager")}",ct);
+  if (tender.Status == "Awarded" && tender.AwardedBidId.HasValue)
+  {
+   var offers = await db.Bids.Where(b => b.TenderId == tender.TenderId && b.SubmittedAt.HasValue && b.Status != "Draft" && b.Status != "Withdrawn")
+    .Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile).ToListAsync(ct);
+   foreach (var offer in offers)
+   {
+    var won = offer.BidId == tender.AwardedBidId;
+    offer.Status = won ? "Accepted" : "Rejected";
+    var recipient = offer.Invitation.SupplierProfile.UserId;
+    var url = $"/Supplier/Offer/{offer.BidId}";
+    var title = won ? "Your offer was selected" : "Your offer was not selected";
+    if (!db.Notifications.Local.Any(n => n.UserId == recipient && n.RelativeUrl == url && n.Title == title)
+     && !await db.Notifications.AnyAsync(n => n.UserId == recipient && n.RelativeUrl == url && n.Title == title, ct))
+     db.Notifications.Add(new Notification { UserId = recipient, Title = title, RelativeUrl = url,
+      Message = won ? $"Your offer #{offer.BidId} for {tender.Title} won the tender." : $"The tender {tender.Title} has been awarded. Your offer #{offer.BidId} was not selected.",
+      IsRead = false, CreatedAt = DateTime.UtcNow });
+   }
+  }
  }
  internal static async Task ClarificationsAsync(ApplicationDbContext db,CommitteeClarificationContext context,CancellationToken ct)
  {

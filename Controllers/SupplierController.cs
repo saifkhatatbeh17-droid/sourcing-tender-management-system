@@ -108,7 +108,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             .SingleOrDefaultAsync(i => i.InvitationId == invitationId && i.SupplierProfileId == profile.SupplierProfileId);
         if (inv == null) return NotFound();
         if (profile.Status != "Approved") return Forbid();
-        if (inv.Status != "Accepted" || inv.Tender.OpensAt > DateTime.UtcNow || inv.Tender.ClosesAt <= DateTime.UtcNow || inv.Tender.Status is not ("Open" or "Published")) return Forbid();
+        if (inv.Status != "Accepted" || inv.Tender.ClosesAt <= DateTime.UtcNow || inv.Tender.Status is not ("Open" or "Published")) return Forbid();
         Bid? bid = null;
         if (bidId.HasValue)
         {
@@ -133,7 +133,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             .Include(i => i.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
             .SingleOrDefaultAsync(i => i.InvitationId == model.InvitationId && i.SupplierProfileId == profile.SupplierProfileId);
         if (inv == null) return NotFound();
-        if (profile.Status != "Approved" || inv.Status != "Accepted" || inv.Tender.OpensAt > DateTime.UtcNow || inv.Tender.ClosesAt <= DateTime.UtcNow || inv.Tender.Status is not ("Open" or "Published")) return Forbid();
+        if (profile.Status != "Approved" || inv.Status != "Accepted" || inv.Tender.ClosesAt <= DateTime.UtcNow || inv.Tender.Status is not ("Open" or "Published")) return Forbid();
         if (model.BidId.HasValue && !await db.Bids.AnyAsync(b => b.BidId == model.BidId && b.InvitationId == inv.InvitationId && b.Status == "Draft")) return NotFound();
         var validItemIds = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(x => x.PurchaseRequestItemId).ToHashSet();
         if (model.Items.Count == 0 || model.Items.Any(i => !validItemIds.Contains(i.PurchaseRequestItemId))) ModelState.AddModelError(nameof(model.Items), "Offer items must match the tender request.");

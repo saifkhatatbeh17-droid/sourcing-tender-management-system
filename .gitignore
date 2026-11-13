@@ -7,3 +7,4 @@ appsettings.Local.json
 *.bak
 *.mdf
 *.ldf
+App_Data/private-files/

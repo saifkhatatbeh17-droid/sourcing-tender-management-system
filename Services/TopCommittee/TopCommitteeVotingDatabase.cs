@@ -24,7 +24,8 @@ public sealed class TopCommitteeVotingDatabase(ApplicationDbContext db, TopCommi
         if (definition == null) return false;
         var normalized = string.Concat(definition.Where(c => !char.IsWhiteSpace(c) && c is not ('[' or ']'))).ToLowerInvariant();
         // SQL Server can omit the redundant AND-group parentheses. Keep all other grouping strict.
-        return normalized is "(stage='manager'ordecision='approved'or(stage='top'anddecision='rejected'))"
+        return normalized is "(stage='manager'ordecision='approved')"
+            or "(stage='manager'ordecision='approved'or(stage='top'anddecision='rejected'))"
             or "(stage='manager'ordecision='approved'orstage='top'anddecision='rejected')";
     }
 

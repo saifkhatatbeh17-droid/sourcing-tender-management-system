@@ -60,3 +60,22 @@ body:has(.tc-workspace) header{border-color:#e2e8f0!important}
 @media(min-width:1100px){body:has(.tc-workspace) .main-content{padding:32px!important}.tc-pane-overview.active{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:start}}
 @media(max-width:650px){body:has(.tc-workspace) .sidebar{width:100%;padding:12px!important;display:flex;gap:6px;overflow-x:auto;align-items:center;flex-shrink:0}body:has(.tc-workspace) .sidebar hr,body:has(.tc-workspace) .sidebar .workspace-link{display:none}body:has(.tc-workspace) .page-link-item{white-space:nowrap;margin:0;padding:9px 12px}body:has(.tc-workspace) .main-content{padding:20px 14px!important}.tc-workspace .workspace-section{padding:18px}.tc-workspace .workspace-heading{align-items:flex-start;gap:10px}.tc-summary{gap:8px 14px;padding:14px}.tc-tab-nav .nav-link{padding:12px}.tc-workspace .table>:not(caption)>*>*{padding:12px}.tc-workspace .modal-body{padding:18px}}
 @media(prefers-reduced-motion:reduce){.tc-workspace .fade{transition:none!important}}
+
+/* Four independent approval forms. Only the signed-in member's form is editable. */
+.tc-workspace .tc-member-forms { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 24px; align-items: start; }
+.tc-workspace .tc-member-form { min-width: 0; padding: 20px; background: var(--tc-surface, #fff); border: 1px solid #dce3e9; border-radius: 12px; }
+.tc-workspace .tc-member-form-own { border-color: #1170cf; }
+.tc-workspace .tc-member-form h3 { font-size: 18px; line-height: 1.4; margin: 16px 0 8px; }
+.tc-workspace .tc-member-form header p { color: #566775; font-size: 14px; margin-bottom: 12px; }
+.tc-workspace .tc-member-access { font-size: 13px; color: #566775; }
+.tc-workspace .tc-member-form-own .tc-member-access { color: #0353a8; font-weight: 600; }
+.tc-workspace .tc-member-state { display: block; font-size: 14px; }
+.tc-workspace .tc-nominated-offer { margin: 20px 0; }
+.tc-workspace .tc-member-form label { display: block; font-size: 14px; margin-bottom: 8px; }
+.tc-workspace .tc-member-form textarea { font-size: 16px; resize: vertical; }
+.tc-workspace .tc-member-form textarea[readonly] { background: #f4f7f9; }
+.tc-workspace .tc-member-help { font-size: 13px; line-height: 1.6; color: #566775; margin: 16px 0 0; }
+.tc-workspace .tc-member-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.tc-workspace .tc-member-actions .btn { min-height: 44px; padding: 10px 20px; }
+@media (max-width: 1199px) { .tc-workspace .tc-member-forms { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px) { .tc-workspace .tc-member-forms { grid-template-columns: 1fr; } }
