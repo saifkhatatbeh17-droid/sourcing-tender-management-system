@@ -1,26 +1,142 @@
-@model List<SourcingTenderManagement.Models.Entities.Department>
-@{ ViewData["Title"] = "Departments"; }
-<h1>Departments</h1>
-<form asp-action="CreateDepartment" method="post" class="account-form mb-4">
-    <label for="department-name">Department Name</label>
-    <input id="department-name" name="name" required maxlength="100" class="form-control mb-2" />
-    <button class="btn btn-primary">Create Department</button>
-</form>
-<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Department</th><th>Status</th><th>Actions</th></tr></thead>
-<tbody>@foreach (var department in Model)
+@model DepartmentsPageViewModel
+@{
+    ViewData["Title"] = "Departments";
+}
+
+<div class="workspace-heading">
+    <h1>Departments</h1>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+            data-bs-target="#create-department">Create Department</button>
+</div>
+
+@if (TempData["DepartmentsFeedback"] is string feedback)
 {
-    <tr><td>@department.Name</td><td>@(department.IsActive ? "Active" : "Inactive")</td><td><button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#edit-department-@department.DepartmentId" aria-label="Edit @department.Name">Edit</button></td></tr>
-}</tbody></table></div>
-@foreach (var department in Model)
+    <div class="alert alert-success" role="status">@feedback</div>
+}
+
+@if (Model.Departments.Count == 0)
 {
-    <div class="modal fade" id="edit-department-@department.DepartmentId" tabindex="-1" aria-labelledby="department-title-@department.DepartmentId" aria-hidden="true">
-    <div class="modal-dialog"><div class="modal-content"><form asp-action="EditDepartment" method="post">
-        <div class="modal-header"><h2 class="modal-title fs-5" id="department-title-@department.DepartmentId">Edit Department</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-        <div class="modal-body">
-            <input type="hidden" name="DepartmentId" value="@department.DepartmentId" />
-            <div class="field"><label for="department-edit-name-@department.DepartmentId">Department Name</label><input id="department-edit-name-@department.DepartmentId" name="Name" value="@department.Name" required maxlength="100" class="form-control" /></div>
-            <div class="form-check"><input id="department-active-@department.DepartmentId" name="IsActive" type="checkbox" value="true" checked="@department.IsActive" class="form-check-input" /><label for="department-active-@department.DepartmentId" class="form-check-label">Active department</label><input type="hidden" name="IsActive" value="false" /></div>
+    <p class="workspace-section">No departments yet. Create a department to assign it to employee accounts.</p>
+}
+else
+{
+    <div class="table-responsive" role="region" aria-label="Departments" tabindex="0">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Department</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var department in Model.Departments)
+                {
+                    <tr>
+                        <th scope="row" class="text-break">@department.Name</th>
+                        <td>
+                            <span class="badge @(department.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                                @(department.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                                    data-bs-target="#edit-department-@department.DepartmentId"
+                                    aria-label="Edit @department.Name">Edit</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<div class="modal fade" id="create-department" tabindex="-1" aria-labelledby="create-department-title" aria-hidden="true">
+    <div class="modal-dialog">
+        <form asp-action="CreateDepartment" method="post" class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="create-department-title">Create Department</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="department-name" class="form-label">Department name</label>
+                <input id="department-name" name="name" value="@Model.CreateName" maxlength="100" required
+                       class="form-control @(Model.OpenCreate ? "is-invalid" : "")" aria-describedby="@(Model.OpenCreate ? "department-name-error" : null)" aria-invalid="@(Model.OpenCreate ? "true" : null)" />
+                @if (Model.OpenCreate)
+                {
+                    <div id="department-name-error" class="invalid-feedback" role="alert">
+                        @Html.ValidationMessage("Name")
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Department</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@foreach (var department in Model.Departments)
+{
+    var input = Model.EditInput?.DepartmentId == department.DepartmentId ? Model.EditInput : null;
+    var status = input?.IsActive ?? department.IsActive;
+
+    <div class="modal fade" id="edit-department-@department.DepartmentId" tabindex="-1"
+         aria-labelledby="edit-department-title-@department.DepartmentId" aria-hidden="true">
+        <div class="modal-dialog">
+            <form asp-action="EditDepartment" method="post" class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="edit-department-title-@department.DepartmentId">Edit Department</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="DepartmentId" value="@department.DepartmentId" />
+                    @if (input != null)
+                    {
+                        <div asp-validation-summary="All" class="text-danger mb-3" role="alert"></div>
+                    }
+                    <div class="mb-3">
+                        <label for="edit-name-@department.DepartmentId" class="form-label">Department name</label>
+                        <input id="edit-name-@department.DepartmentId" name="Name" value="@(input?.Name ?? department.Name)"
+                               required maxlength="100" class="form-control" />
+                    </div>
+                    <div>
+                        <label for="edit-status-@department.DepartmentId" class="form-label">Status</label>
+                        <select id="edit-status-@department.DepartmentId" name="IsActive" class="form-select"
+                                aria-describedby="status-help-@department.DepartmentId">
+                            <option value="true" selected="@status">Active</option>
+                            <option value="false" selected="@(!status)">Inactive</option>
+                        </select>
+                        <p id="status-help-@department.DepartmentId" class="form-text mb-0">
+                            Inactive departments keep their existing assignments and are unavailable for new assignments.
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save Changes</button></div>
-    </form></div></div></div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('shown.bs.modal', () => {
+                modal.querySelector('input[name="name"], input[name="Name"]')?.focus();
+            });
+        });
+
+        @if (Model.OpenCreate || Model.EditInput != null)
+        {
+            var modalId = Model.OpenCreate ? "create-department" : $"edit-department-{Model.EditInput!.DepartmentId}";
+            <text>
+                const departmentModal = document.getElementById('@modalId');
+                if (departmentModal) bootstrap.Modal.getOrCreateInstance(departmentModal).show();
+            </text>
+        }
+    </script>
 }
