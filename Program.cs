@@ -12,8 +12,8 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddE
 var connection = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DefaultConnection is missing.");
 builder.Services.AddControllersWithViews();
-builder.Services.AddPdfWatermarks();
 builder.Services.AddHostedService<SourcingTenderManagement.Services.TenderClosureService>();
+builder.Services.AddPdfWatermarks();
 builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidRecommendationService>(client => client.Timeout = TimeSpan.FromMinutes(5));
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
 builder.Services.AddTopCommitteeFoundation();
