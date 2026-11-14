@@ -1,5 +1,6 @@
 @model SourcingTenderManagement.Models.OfferFormViewModel
 @{ ViewData["Title"] = Model.BidId.HasValue ? "Continue offer draft" : "Prepare offer"; }
+<div class="supplier-workspace supplier-workspace--createoffer">
 <p class="eyebrow">TENDER OFFER · TND-@Model.TenderId.ToString("D6")</p><div class="supplier-page-heading"><div><h1>@(Model.BidId.HasValue ? "Continue your draft" : "Prepare an offer")</h1><p>@Model.TenderTitle · Closes @Model.ClosesAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</p></div></div>
 <div asp-validation-summary="All" class="alert alert-danger"></div>
 <form asp-action="SaveOffer" method="post" enctype="multipart/form-data" class="supplier-form"><input type="hidden" asp-for="InvitationId"/><input type="hidden" asp-for="TenderId"/><input type="hidden" asp-for="BidId"/><input type="hidden" asp-for="TenderTitle"/><input type="hidden" asp-for="ClosesAt"/>
@@ -13,3 +14,5 @@
 </script> }
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
+
+</div>

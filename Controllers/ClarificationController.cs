@@ -21,6 +21,8 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
     {
         var actor = await users.GetUserAsync(User);
         if (actor?.IsActive != true || !await CanUseInbox(actor.Id, ct)) return Forbid();
+        if (User.IsInRole(RoleNames.SourcingManager))
+            return RedirectToAction("Clarifications", "SourcingManager", new { id, tenderId = kind == "tender" ? recordId : null });
         var committeeThreads = TopCommitteeClarificationScope.Query(db);
         var threads = db.Clarifications.AsNoTracking().VisibleTo(actor.Id, User.IsInRole(RoleNames.SourcingOfficer));
         if (User.IsInRole(RoleNames.TopCommittee) && !User.IsInRole(RoleNames.SourcingManager))

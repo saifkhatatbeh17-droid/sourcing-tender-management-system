@@ -1,5 +1,6 @@
 @model SourcingTenderManagement.Models.Entities.Invitation
 @{ ViewData["Title"] = "Tender details"; var closed = Model.Tender.ClosesAt <= DateTime.UtcNow || Model.Tender.Status is not ("Open" or "Published"); var bid = Model.Bids.FirstOrDefault(); }
+<div class="supplier-workspace supplier-workspace--invitation">
 <p class="eyebrow">TND-@Model.TenderId.ToString("D6") · INVITATION #@Model.InvitationId.ToString("D6")</p><div class="supplier-page-heading"><div><h1>@Model.Tender.Title</h1><p>@Model.Tender.Description</p></div><span class="status-badge status-@Model.Status.ToLowerInvariant()">@Model.Status</span></div>
 @await Component.InvokeAsync("DetailsQr", new { controller = "Supplier", action = "Invitation", id = Model.InvitationId, label = "Tender" })
 @if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> } @if (TempData["Error"] is string error) { <div class="alert alert-danger">@error</div> }
@@ -18,4 +19,6 @@
     <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender"
        asp-route-recordId="@Model.TenderId" class="btn btn-outline-primary mt-3">Ask about this tender</a>
 }
-@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = Model.TenderId })
+<details class="supplier-conversation-history"><summary>Clarification history <span aria-hidden="true">⌄</span></summary>@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = Model.TenderId })</details>
+
+</div>

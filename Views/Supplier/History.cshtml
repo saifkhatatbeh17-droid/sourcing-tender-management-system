@@ -1,7 +1,8 @@
 @model List<SourcingTenderManagement.Models.Entities.Bid>
 @{ ViewData["Title"] = "Offer history"; }
+<div class="supplier-workspace supplier-workspace--history">
 <div class="workspace-page">
-<div class="workspace-page-header"><div><h1>Offer history</h1><p class="text-secondary">Your submitted offers and their current outcomes.</p></div><a asp-action="Offers" class="btn btn-outline-primary">All offers</a></div>
+<div class="supplier-page-heading"><div><h1>Offer history</h1><p class="text-secondary">Your submitted offers and their current outcomes.</p></div><a asp-action="Offers" class="btn btn-outline-primary">All offers</a></div>
 <section class="workspace-section">
 @if (Model.Count == 0) { <p class="text-secondary">No submitted offers yet.</p> }
 else
@@ -9,8 +10,12 @@ else
     <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Offer</th><th>Tender</th><th>Submitted (UTC)</th><th>Total</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr></thead><tbody>
     @foreach (var bid in Model)
     {
-        <tr><td>#@bid.BidId</td><td>@bid.Invitation.Tender.Title</td><td>@bid.SubmittedAt?.ToString("dd MMM yyyy · HH:mm")</td><td>@CommitteeEvaluationPage.Total(bid).ToString("N2") @bid.Currency</td><td>@bid.Status</td><td><a asp-action="Offer" asp-route-id="@bid.BidId">View offer</a> <span aria-hidden="true">·</span> <a asp-action="DownloadSummary" asp-route-id="@bid.BidId">My summary</a></td></tr>
+        <tr><td>#@bid.BidId</td><td>@bid.Invitation.Tender.Title</td><td>@bid.SubmittedAt?.ToString("dd MMM yyyy · HH:mm")</td><td>@CommitteeEvaluationPage.Total(bid).ToString("N2") @bid.Currency</td><td><span class="status-badge status-@bid.Status.ToLowerInvariant()">@bid.Status</span></td><td><a asp-action="Offer" asp-route-id="@bid.BidId">View offer</a> <span aria-hidden="true">·</span> <a asp-action="DownloadSummary" asp-route-id="@bid.BidId">My summary</a></td></tr>
     }
     </tbody></table></div>
 }
 </section></div>
+
+</div>
+
+@section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }

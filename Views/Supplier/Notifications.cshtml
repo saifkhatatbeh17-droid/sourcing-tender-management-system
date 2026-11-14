@@ -1,6 +1,9 @@
 @model IEnumerable<SourcingTenderManagement.Models.Entities.Notification>
 @{ ViewData["Title"] = "Notifications"; }
-<div class="supplier-page-heading"><div><p class="eyebrow">ACCOUNT UPDATES</p><h1>Notifications</h1><p>Updates related to your supplier account and tender participation.</p></div></div>
+<div class="supplier-workspace supplier-workspace--notifications">
+<div class="supplier-page-heading"><div><h1>Notifications</h1><p>Updates related to your supplier account and tender participation.</p></div></div>
 <section class="supplier-card">@if (!Model.Any()) { <div class="empty-state"><h2>You're all caught up</h2><p>New account and offer updates will be shown here.</p></div> } else { <div class="supplier-notifications">@foreach (var notification in Model) { <article class="notification-row @(notification.IsRead ? "" : "unread")"><span class="notice-dot"></span><div><strong>@notification.Title</strong><p>@notification.Message</p>@if (Url.IsLocalUrl(notification.RelativeUrl)) { <a href="@notification.RelativeUrl">Open related page</a> }</div><time>@notification.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</time></article> }</div> }</section>
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
+
+</div>
