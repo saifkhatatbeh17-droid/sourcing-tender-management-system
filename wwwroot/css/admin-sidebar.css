@@ -73,7 +73,7 @@
 .admin-navbar {
     min-height: 72px;
     border-bottom: 1px solid #d9e4f1;
-    background: linear-gradient(115deg, #f2f7fd, #fff 70%);
+    background: var(--color-surface, #fff);
     box-shadow: 0 3px 14px #103c3510;
 }
 
@@ -119,9 +119,7 @@ body:has(.admin-shell) {
     padding: clamp(1.5rem, 3vw, 2.75rem);
     border-radius: 24px;
     color: #fff;
-    background:
-        radial-gradient(circle at 94% -20%, transparent 0 150px, #ffffff12 151px 193px, #ffffff08 194px 235px, transparent 236px),
-        linear-gradient(115deg, #142b41 20%, #15464f 70%, #237769);
+    background: #123032;
     box-shadow: 0 14px 32px #173e4820;
 }
 
@@ -295,7 +293,7 @@ body:has(.admin-shell) {
 .admin-sidebar:not(.is-collapsed) .admin-sidebar-toggle { margin-inline-start: auto; }
 .admin-sidebar-item { min-width: 0; }
 .admin-navbar {
-    background: linear-gradient(to bottom, var(--admin-navbar-top, #dae5f3), var(--admin-canvas));
+    background: var(--admin-canvas);
     border: 0;
     box-shadow: none;
 }
@@ -459,8 +457,8 @@ html[data-theme="dark"] .admin-dashboard {
 .admin-shell .admin-review-controls[hidden] { display: none; }
 
 .admin-dashboard {
-    --dashboard-glass: linear-gradient(150deg, #fffffff0, #dce8f296);
-    --dashboard-glass-hover: linear-gradient(150deg, #fff, #d4e3f6);
+    --dashboard-glass: var(--color-surface, #fff);
+    --dashboard-glass-hover: var(--color-surface-alt, #f5f7f9);
     --dashboard-glass-shadow: 0 4px 12px #233e6026, inset 0 1px 0 #fffc;
 }
 
@@ -510,8 +508,8 @@ html[data-theme="dark"] .admin-dashboard {
 }
 
 html[data-theme="dark"] .admin-dashboard {
-    --dashboard-glass: linear-gradient(150deg, #424c5ed9, #2a303ebf);
-    --dashboard-glass-hover: linear-gradient(150deg, #4c5970, #333e51);
+    --dashboard-glass: var(--color-surface, #fff);
+    --dashboard-glass-hover: var(--color-surface-alt, #f5f7f9);
     --dashboard-glass-shadow: 0 5px 14px #0006, inset 0 1px 0 #ffffff28;
 }
 

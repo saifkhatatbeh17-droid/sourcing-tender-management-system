@@ -1,42 +1,36 @@
 @model CommitteeEvaluationPage
-@{ var report = Model.Tender?.EvaluationReport; }
-<h3>Offer comparison</h3>
-@if (!Model.Ready)
-{
-    <p>Save or approve all four member forms to calculate rankings. All offers must use the same currency.</p>
+@{
+    var tender = Model.Tender!;
+    var report = tender.EvaluationReport;
+    var recommended = Model.Offers.FirstOrDefault(b => b.BidId == report?.RecommendedBidId);
+    var approved = Model.Approvals.Count(a => a.Decision == "Approved");
 }
+<section class="cw-panel cw-report-document" aria-labelledby="report-title">
+    <header class="cw-report-title"><div><p class="cw-eyebrow">Tender #@tender.TenderId · Read-only report</p><h2 id="report-title">@tender.Title</h2></div><span class="cw-status">@CommitteeEvaluationPage.StatusLabel(tender.Status)</span></header>
+    @if (Model.Criteria.Count > 0)
+    {
+        <dl class="cw-report-weights"><div><dt>Financial weight</dt><dd>@Model.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight).ToString("0.##")<small>%</small></dd></div><div><dt>Technical weight</dt><dd>@Model.Criteria.Where(c => c.Category == "Requirements").Sum(c => c.Weight).ToString("0.##")<small>%</small></dd></div><div><dt>Committee approvals</dt><dd>@approved<small> / 4</small></dd></div></dl>
+    }
+    <section class="cw-recommended" aria-labelledby="recommendation-heading"><span class="cw-document" aria-hidden="true"><partial name="_AdminSidebarIcon" model='@("Offers")' /></span><div><h3 id="recommendation-heading">Recommended offer</h3>
+    @if(recommended != null) { <strong>@recommended.Invitation.SupplierProfile.CompanyName</strong><p>Offer #@recommended.BidId · @CommitteeEvaluationPage.Total(recommended).ToString("N2") @recommended.Currency · @recommended.DeliveryDays-day delivery</p> }
+    else { <strong>No offer recommended yet</strong><p>The recommendation appears once the committee prepares its report.</p> }
+    </div></section>
+    <section class="cw-report-copy" aria-labelledby="findings-heading"><header><h3 id="findings-heading">Committee report</h3><span class="cw-status">@(report == null ? "Not prepared" : CommitteeEvaluationPage.StatusLabel(report.Status))</span></header>
+    @if(!string.IsNullOrWhiteSpace(report?.CommitteeSummary)) { <p>@report.CommitteeSummary</p> }
+    else { <div class="cw-report-missing"><p>No report has been prepared for this tender. Generate and review it in the evaluation workspace before collecting approvals.</p></div> }
+    </section>
+    @if(!string.IsNullOrWhiteSpace(report?.OfficerSummary)) { <section class="cw-officer-note"><h3>Sourcing officer review</h3><p>@report.OfficerSummary</p></section> }
+    <footer class="cw-report-footer"><span>Shared weights and individual approvals</span><a class="cw-button cw-button-secondary" asp-action="Evaluations" asp-route-id="@tender.TenderId">Open evaluation <span aria-hidden="true">↗</span></a></footer>
+</section>
+<section class="cw-panel cw-approval-record" aria-labelledby="approval-record-heading"><header class="cw-panel-header"><div><h2 id="approval-record-heading">Approval record</h2><p>Each member approves the same shared evaluation.</p></div><span class="cw-status">@approved / 4 approved</span></header>
+@if(Model.Members.Count == 0) { <p class="cw-not-started">Approvals will appear after the committee evaluation is started.</p> }
 else
 {
-    <p>Financial criteria use the finance member's scores. Requirements use the average of the other three members. Criterion weights determine the combined result.</p>
-    <div class="table-responsive"><table class="table">
-        <caption>Committee scores out of 100. Equal scores are tied.</caption>
-        <thead><tr><th scope="col">Offer</th><th scope="col">Supplier</th><th scope="col">Total</th><th scope="col">Financial</th><th scope="col">Requirements</th><th scope="col">Weighted score</th></tr></thead>
-        <tbody>@foreach (var row in Model.Rank())
-        { <tr><td>#@row.BidId</td><td>@row.Supplier</td><td>@row.Total.ToString("N2") @row.Currency</td><td>@row.Financial.ToString("0.##")</td><td>@row.Requirements.ToString("0.##")</td><td>@row.Score.ToString("0.##")</td></tr> }</tbody>
-    </table></div>
+    <div class="cw-approval-grid">
+    @foreach(var member in Model.Members)
+    { var isApproved = Model.Approvals.Any(a => a.UserId == member.UserId && a.Decision == "Approved");
+      <div><span class="cw-approval-check @(isApproved ? "is-approved" : "")" aria-hidden="true">@(isApproved ? "✓" : "–")</span><span><strong>@CommitteeEvaluationPage.MemberName(member.Position) @(member.UserId == Model.UserId ? "(you)" : "")</strong><small>@(isApproved ? "Approved" : "Awaiting approval")</small></span></div>
+    }
+    </div>
 }
-<h3>Combined committee report</h3>
-<p>Preparing this report is optional before approval. The fourth approval automatically completes the summary and recommends the highest-scoring offer if none was selected. Tied leaders are listed without selecting a winner.</p>
-@if (!Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId && m.Position == 1))
-{
-    <form asp-action="SaveReport" method="post">
-        <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
-        <label for="recommended-offer" class="form-label">Recommended offer</label>
-        <select id="recommended-offer" name="recommendedBidId" required class="form-select mb-3">
-            <option value="">Choose an offer</option>
-            @foreach (var offer in Model.Offers) { <option value="@offer.BidId" selected="@(offer.BidId == report?.RecommendedBidId)">#@offer.BidId — @offer.Invitation.SupplierProfile.CompanyName</option> }
-        </select>
-        <label for="committee-summary" class="form-label">Summary and recommendation reason</label>
-        <textarea id="committee-summary" name="summary" required maxlength="4000" class="form-control mb-3">@report?.CommitteeSummary</textarea>
-        <button class="btn btn-primary">Save combined report</button>
-    </form>
-}
-else
-{
-    <p><strong>Recommended offer:</strong> @(report?.RecommendedBidId is int bid ? "#" + bid : "Not selected")</p>
-    <p><strong>Committee summary:</strong> @(report?.CommitteeSummary ?? "Not prepared yet.")</p>
-}
-<p class="mt-3"><strong>Report status:</strong> @(report?.Status ?? "Not started") · <strong>Approvals:</strong> @Model.Approvals.Count / 4</p>
-@foreach (var approval in Model.Approvals)
-{ <p>@CommitteeEvaluationPage.MemberName(Model.Members.Single(m => m.UserId == approval.UserId).Position) — Approved</p> }
-@if (report?.Status == "CommitteeApproved") { <p class="alert alert-success">The committee report has been sent to the sourcing officer. Tender status: @Model.Tender!.Status.</p> }
+</section>

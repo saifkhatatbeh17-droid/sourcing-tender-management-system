@@ -1,6 +1,6 @@
 :root { --navy: #12304a; --teal: #0f766e; }
 .supplier-details summary { cursor: pointer; }
-.supplier-hero { display:flex; align-items:center; justify-content:space-between; gap:1.5rem; padding:2rem; margin:-.5rem 0 1.5rem; border-radius:14px; color:white; background:linear-gradient(115deg,#103b52,#087e83); box-shadow:0 12px 30px #103b521c; }
+.supplier-hero { display:flex; align-items:center; justify-content:space-between; gap:1.5rem; padding:2rem; margin:-.5rem 0 1.5rem; border-radius:14px; color:white; background: #087e83; box-shadow:0 12px 30px #103b521c; }
 .supplier-hero h1 { margin:.2rem 0 .5rem; font-size:clamp(1.6rem,3vw,2.15rem); }
 .supplier-hero p { margin:0; color:#e3f1f1; }
 .supplier-hero .eyebrow { color:#aee7dc; }
