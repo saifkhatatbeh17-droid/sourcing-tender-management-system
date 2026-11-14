@@ -23,12 +23,20 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return View(await DepartmentRequests(user).OrderByDescending(r => r.CreatedAt).ToListAsync());
     }
 
-    public async Task<IActionResult> Requests()
+    public async Task<IActionResult> Requests(string? q, string? status)
     {
         var user = await users.GetUserAsync(User);
         if (user?.DepartmentId == null) return Forbid();
-        return View(await DepartmentRequests(user).Where(r => r.RequestedByUserId == user.Id)
-            .OrderByDescending(r => r.CreatedAt).ToListAsync());
+        var requests = DepartmentRequests(user).Include(r => r.RequestedByUser).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            q = q.Trim();
+            requests = requests.Where(r => r.Title.Contains(q) || r.PurchaseRequestId.ToString() == q);
+        }
+        if (!string.IsNullOrWhiteSpace(status)) requests = requests.Where(r => r.Status == status);
+        ViewBag.Query = q;
+        ViewBag.Status = status;
+        return View(await requests.OrderByDescending(r => r.CreatedAt).ToListAsync());
     }
 
     public async Task<IActionResult> Details(int id)
