@@ -9,7 +9,7 @@
         <h1 id="face-login-heading">You're signed in</h1>
         <p class="login-intro">Password sign-in is complete. Your optional Face ID check opens in a popup.</p>
         <button type="button" class="btn btn-outline-primary w-100 mb-3" data-bs-toggle="modal" data-bs-target="#face-login-modal">Open Face ID camera</button>
-        <a asp-controller="Account" asp-action="GoToDashboard" class="btn login-submit">Continue to workspace</a>
+        <a asp-controller="Account" asp-action="GoToDashboard" asp-route-returnUrl="@ViewData["ReturnUrl"]" class="btn login-submit">Continue to workspace</a>
         <p class="login-help mb-0">Face similarity is informational. You can continue without a match; your access is determined by your existing account and role.</p>
         <noscript><p class="text-danger mt-3">JavaScript is required for the camera popup. You can still continue to your workspace.</p></noscript>
     </section>

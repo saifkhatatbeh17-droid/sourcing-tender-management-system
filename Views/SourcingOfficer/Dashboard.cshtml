@@ -2,23 +2,27 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<h1>Sourcing Officer Dashboard</h1>
-<p class="text-secondary">Current work counts from the existing system records.</p>
+@section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
 
-<div class="row g-3">
-    <div class="col-md-3"><section class="workspace-section h-100"><h2>Requests to Review</h2><p class="display-6">@ViewBag.PendingRequests</p><a asp-action="Requests" class="btn btn-outline-primary">Open Requests</a></section></div>
-    <div class="col-md-3"><section class="workspace-section h-100"><h2>Draft Tenders</h2><p class="display-6">@ViewBag.DraftTenders</p><a asp-action="Tenders" class="btn btn-outline-primary">Open Tenders</a></section></div>
-    <div class="col-md-3"><section class="workspace-section h-100"><h2>Published / Open</h2><p class="display-6">@ViewBag.PublishedTenders</p><a asp-action="Tenders" class="btn btn-outline-primary">Open Tenders</a></section></div>
-    <div class="col-md-3"><section class="workspace-section h-100"><h2>Invitations Sent</h2><p class="display-6">@ViewBag.InvitationsSent</p><a asp-action="Invitations" class="btn btn-outline-primary">Open Invitations</a></section></div>
-    <div class="col-md-3"><section class="workspace-section h-100"><h2>Submitted Offers</h2><p class="display-6">@ViewBag.SubmittedOffers</p><a asp-action="Offers" class="btn btn-outline-primary">Review Offers</a></section></div>
-    <div class="col-md-3"><section class="workspace-section h-100"><h2>Evaluations in Progress</h2><p class="display-6">@ViewBag.EvaluationsInProgress</p><a asp-action="Evaluations" class="btn btn-outline-primary">Track Evaluations</a></section></div>
-    <div class="col-md-3"><section class="workspace-section h-100"><h2>Offers for Compliance Review</h2><p class="display-6">@ViewBag.PendingCompliance</p><a asp-action="Compliance" class="btn btn-outline-primary">Review Compliance</a></section></div>
-    <div class="col-md-3"><section class="workspace-section h-100"><h2>Reports for Officer Review</h2><p class="display-6">@ViewBag.ReportsAwaitingOfficer</p><a asp-action="Evaluations" class="btn btn-outline-primary">Review Evaluations</a></section></div>
-    <div class="col-md-3"><section class="workspace-section h-100"><h2>Reports Awaiting Manager Review</h2><p class="display-6">@ViewBag.ReportsAwaitingManager</p><a asp-action="Reports" class="btn btn-outline-primary">View Reports</a></section></div>
+<div class="so-page so-page--dashboard">
+<header class="so-page-header so-dashboard-hero"><div><p class="so-eyebrow">PHARMACARE · SOURCING OPERATIONS</p>
+<h1>Sourcing Officer Dashboard</h1>
+<p class="so-page-description">A live overview of your requests, tenders, supplier responses, and evaluation handoffs.</p></div><span class="so-hero-mark" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M8 35V24m10 11V13m11 22V19m11 16V8" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M5 40h38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></header>
+
+<div class="row g-3 so-dashboard-grid">
+    <div class="col-md-3"><article class="so-dashboard-card so-tone-blue"><div class="so-dashboard-card-top"><span class="so-dashboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h6"/></svg></span><span class="so-card-index">01</span></div><h2>Requests to Review</h2><strong class="so-stat-value">@ViewBag.PendingRequests</strong><a asp-action="Requests">Open Requests <span aria-hidden="true">→</span></a></article></div>
+    <div class="col-md-3"><article class="so-dashboard-card so-tone-violet"><div class="so-dashboard-card-top"><span class="so-dashboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16v13H4zM8 7V4h8v3M4 11h16M9 15h6"/></svg></span><span class="so-card-index">02</span></div><h2>Draft Tenders</h2><strong class="so-stat-value">@ViewBag.DraftTenders</strong><a asp-action="Tenders">Open Tenders <span aria-hidden="true">→</span></a></article></div>
+    <div class="col-md-3"><article class="so-dashboard-card so-tone-teal"><div class="so-dashboard-card-top"><span class="so-dashboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span><span class="so-card-index">03</span></div><h2>Published / Open</h2><strong class="so-stat-value">@ViewBag.PublishedTenders</strong><a asp-action="Tenders">Open Tenders <span aria-hidden="true">→</span></a></article></div>
+    <div class="col-md-3"><article class="so-dashboard-card so-tone-amber"><div class="so-dashboard-card-top"><span class="so-dashboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg></span><span class="so-card-index">04</span></div><h2>Invitations Sent</h2><strong class="so-stat-value">@ViewBag.InvitationsSent</strong><a asp-action="Invitations">Open Invitations <span aria-hidden="true">→</span></a></article></div>
+    <div class="col-md-3"><article class="so-dashboard-card so-tone-coral"><div class="so-dashboard-card-top"><span class="so-dashboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM15 3v5h5M8 13h8M8 17h5"/></svg></span><span class="so-card-index">05</span></div><h2>Submitted Offers</h2><strong class="so-stat-value">@ViewBag.SubmittedOffers</strong><a asp-action="Offers">Review Offers <span aria-hidden="true">→</span></a></article></div>
+    <div class="col-md-3"><article class="so-dashboard-card so-tone-blue"><div class="so-dashboard-card-top"><span class="so-dashboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2M4 4l3 1M20 4l-3 1"/></svg></span><span class="so-card-index">06</span></div><h2>Evaluations in Progress</h2><strong class="so-stat-value">@ViewBag.EvaluationsInProgress</strong><a asp-action="Evaluations">Track Evaluations <span aria-hidden="true">→</span></a></article></div>
+    <div class="col-md-3"><article class="so-dashboard-card so-tone-teal"><div class="so-dashboard-card-top"><span class="so-dashboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 20 6v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6zM8 12l3 3 5-6"/></svg></span><span class="so-card-index">07</span></div><h2>Offers for Compliance Review</h2><strong class="so-stat-value">@ViewBag.PendingCompliance</strong><a asp-action="Compliance">Review Compliance <span aria-hidden="true">→</span></a></article></div>
+    <div class="col-md-3"><article class="so-dashboard-card so-tone-violet"><div class="so-dashboard-card-top"><span class="so-dashboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3h14v18H5zM8 8h8M8 12h8M8 16h5"/></svg></span><span class="so-card-index">08</span></div><h2>Reports for Officer Review</h2><strong class="so-stat-value">@ViewBag.ReportsAwaitingOfficer</strong><a asp-action="Evaluations">Review Evaluations <span aria-hidden="true">→</span></a></article></div>
+    <div class="col-md-3"><article class="so-dashboard-card so-tone-amber"><div class="so-dashboard-card-top"><span class="so-dashboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg></span><span class="so-card-index">09</span></div><h2>Reports Awaiting Manager Review</h2><strong class="so-stat-value">@ViewBag.ReportsAwaitingManager</strong><a asp-action="Reports">View Reports <span aria-hidden="true">→</span></a></article></div>
 </div>
 
-<section class="workspace-section mt-3">
-    <h2>Sourcing Officer Workflow</h2>
+<section class="workspace-section mt-3 so-workflow-panel">
+    <div class="so-section-heading"><div><p class="so-eyebrow">YOUR WORKSPACE</p><h2>Sourcing Officer Workflow</h2></div></div>
     <p>Review Purchase Requests, create and publish Tenders, invite Approved suppliers, review submitted offers, record compliance decisions, track committee evaluations, and submit the Officer report.</p>
     <div class="d-flex flex-wrap gap-2">
         <a asp-action="Comparison" class="btn btn-outline-primary">Offer Comparison</a>
@@ -26,3 +30,4 @@
         <a asp-action="Reports" class="btn btn-outline-primary">Reports</a>
     </div>
 </section>
+</div>

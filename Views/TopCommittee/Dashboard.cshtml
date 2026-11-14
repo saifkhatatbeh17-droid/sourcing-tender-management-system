@@ -3,19 +3,21 @@
 @{ ViewData["Title"] = "Top Committee Dashboard"; }
 <div class="workspace-heading">
     <div><h1>Top Committee</h1><p class="text-secondary mt-2 mb-0">Review your assigned tenders and the committee's recorded decisions.</p></div>
-    <a class="btn btn-primary" asp-action="Decisions">View pending tenders</a>
-    <a asp-action="Notifications">Notifications</a>
+    <div class="tc-heading-actions">
+        <a class="btn" asp-action="Notifications">Notifications</a>
+        <a class="btn btn-primary" asp-action="Decisions">View pending tenders <span aria-hidden="true">→</span></a>
+    </div>
 </div>
-<dl class="row g-3 border-bottom pb-3 mb-4">
-    <div class="col-6 col-md"><dt class="fw-normal text-secondary">Assigned tenders</dt><dd class="fs-4 mb-0">@Model.AssignedTenders</dd></div>
-    <div class="col-6 col-md"><dt class="fw-normal text-secondary">Awaiting decision</dt><dd class="fs-4 mb-0">@Model.AwaitingDecision</dd></div>
-    <div class="col-6 col-md"><dt class="fw-normal text-secondary">Awarded</dt><dd class="fs-4 mb-0">@Model.AwardedTenders</dd></div>
-    <div class="col-6 col-md"><dt class="fw-normal text-secondary">Rejected</dt><dd class="fs-4 mb-0">@Model.RejectedTenders</dd></div>
-    <div class="col-6 col-md"><dt class="fw-normal text-secondary">Open clarifications</dt><dd class="fs-4 mb-0">@Model.OpenClarifications</dd></div>
+<dl class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-3 tc-metrics" aria-label="Your committee totals">
+    <div class="col"><div class="tc-metric"><dt>Assigned tenders</dt><dd>@Model.AssignedTenders.ToString("N0")</dd></div></div>
+    <div class="col"><div class="tc-metric"><dt>Awaiting decision</dt><dd>@Model.AwaitingDecision.ToString("N0")</dd></div></div>
+    <div class="col"><div class="tc-metric"><dt>Awarded</dt><dd>@Model.AwardedTenders.ToString("N0")</dd></div></div>
+    <div class="col"><div class="tc-metric"><dt>Rejected</dt><dd>@Model.RejectedTenders.ToString("N0")</dd></div></div>
+    <div class="col"><div class="tc-metric"><dt>Open clarifications</dt><dd>@Model.OpenClarifications.ToString("N0")</dd></div></div>
 </dl>
 @if (Model.AssignedTenders == 0)
 {
-    <section class="workspace-section" aria-labelledby="no-assignments">
+    <section class="workspace-section tc-empty" aria-labelledby="no-assignments">
         <h2 id="no-assignments">No tenders assigned yet</h2>
         <p class="mb-0">Tenders will appear here when you are assigned to their Top Committee. Contact your sourcing team if you expected an assignment.</p>
     </section>
@@ -23,7 +25,7 @@
 else
 {
     <section class="workspace-section" aria-labelledby="pending-heading">
-        <h2 id="pending-heading">Pending decisions</h2>
+        <div class="tc-section-heading"><h2 id="pending-heading">Pending decisions</h2><a asp-action="Decisions">View all <span aria-hidden="true">→</span></a></div>
         @if (Model.PendingTenders.Count == 0)
         { <p class="mb-0">None of your assigned tenders is awaiting a committee decision.</p> }
         else
@@ -45,14 +47,14 @@ else
                         </td>
                         <td>@if (tender.OpenClarifications > 0)
                         { <span class="badge text-bg-secondary">Paused</span><span class="d-block small mt-1">@tender.OpenClarifications open clarification(s)</span> }
-                        else { <span>Awaiting review</span> }</td>
+        else { <span class="badge text-bg-primary">Awaiting review</span> }</td>
                     </tr>
                 }</tbody>
             </table></div>
         }
     </section>
     <section class="workspace-section" aria-labelledby="recent-heading">
-        <h2 id="recent-heading">Recent decisions</h2>
+        <div class="tc-section-heading"><h2 id="recent-heading">Recent decisions</h2><a asp-action="History">View history <span aria-hidden="true">→</span></a></div>
         @if (Model.RecentDecisions.Count == 0) { <p class="mb-0">No completed decisions have been recorded for your assigned tenders.</p> }
         else
         {

@@ -32,8 +32,68 @@ public static class TopCommitteeNotificationEvents
       Message = won ? $"Your offer #{offer.BidId} for {tender.Title} won the tender." : $"The tender {tender.Title} has been awarded. Your offer #{offer.BidId} was not selected.",
       IsRead = false, CreatedAt = DateTime.UtcNow });
    }
+   // Reuse the locked award context and the caller's SaveChanges/commit. Never broadcast by role.
+   var request = await db.PurchaseRequests.AsNoTracking()
+       .SingleOrDefaultAsync(r => r.PurchaseRequestId == tender.PurchaseRequestId, ct);
+   var candidates = RelatedAwardCandidates(tender, context.Access.Managers, request);
+   var ids = candidates.Select(c => c.UserId).Distinct().ToArray();
+   var accounts = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id))
+       .Select(u => new AwardRecipientAccount(u.Id, u.IsActive, u.DepartmentId)).ToListAsync(ct);
+   var roles = await (from userRole in db.UserRoles.AsNoTracking()
+       join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+       where ids.Contains(userRole.UserId)
+       select new { userRole.UserId, Role = role.Name! }).ToListAsync(ct);
+   var existingRecipients = context.Access.Members.Where(m => m.IsEligible).Select(m => m.UserId)
+       .Concat(offers.Select(b => b.Invitation.SupplierProfile.UserId)).ToHashSet(StringComparer.Ordinal);
+   var notices = RelatedAwardNotices(tender, candidates, accounts,
+       roles.Select(r => (r.UserId, r.Role)), existingRecipients);
+   foreach (var notice in notices)
+       if (!db.Notifications.Local.Any(n => SameNotice(n, notice)) &&
+           !await db.Notifications.AnyAsync(n => n.UserId == notice.UserId && n.Title == notice.Title && n.RelativeUrl == notice.RelativeUrl, ct))
+           db.Notifications.Add(notice);
   }
  }
+ internal sealed record AwardRecipientCandidate(string UserId, string Role, string Url, string Message, int? DepartmentId = null);
+ internal sealed record AwardRecipientAccount(string UserId, bool IsActive, int? DepartmentId);
+
+ internal static IReadOnlyList<AwardRecipientCandidate> RelatedAwardCandidates(Tender tender,
+     IReadOnlyList<Models.TopCommittee.CommitteeManager> managers, PurchaseRequest? request)
+ {
+  var recipients = new List<AwardRecipientCandidate>();
+  if (tender.Status != "Awarded" || !tender.AwardedBidId.HasValue || !tender.AwardedAt.HasValue) return recipients;
+  if (managers.Count == 1 && managers[0].IsActive && managers[0].HasManagerRole)
+      recipients.Add(new(managers[0].UserId, Data.RoleNames.SourcingManager, "/SourcingManager/ChosenOffers",
+          $"Tender #{tender.TenderId} has been awarded. Review the award outcome in Chosen Offers."));
+  if (!string.IsNullOrWhiteSpace(tender.CreatedByUserId))
+      recipients.Add(new(tender.CreatedByUserId, Data.RoleNames.SourcingOfficer, $"/SourcingOfficer/Tenders?id={tender.TenderId}",
+          $"Tender #{tender.TenderId} has been awarded. Review the selected offer in your tender workspace."));
+  if (request != null && request.PurchaseRequestId == tender.PurchaseRequestId && !string.IsNullOrWhiteSpace(request.RequestedByUserId))
+      recipients.Add(new(request.RequestedByUserId, Data.RoleNames.Department, $"/Department/Details/{request.PurchaseRequestId}",
+          $"Tender #{tender.TenderId} for your purchase request #{request.PurchaseRequestId} has been awarded. View your request for reference.", request.DepartmentId));
+  return recipients;
+ }
+
+ internal static IReadOnlyList<Notification> RelatedAwardNotices(Tender tender,
+     IEnumerable<AwardRecipientCandidate> candidates, IEnumerable<AwardRecipientAccount> accounts,
+     IEnumerable<(string UserId, string Role)> roles, IEnumerable<string> existingRecipients)
+ {
+  var result = new List<Notification>();
+  if (tender.Status != "Awarded" || !tender.AwardedBidId.HasValue || !tender.AwardedAt.HasValue) return result;
+  var seen = existingRecipients.ToHashSet(StringComparer.Ordinal);
+  var active = accounts.Where(a => a.IsActive).ToDictionary(a => a.UserId, StringComparer.Ordinal);
+  var authorized = roles.ToHashSet();
+  foreach (var candidate in candidates)
+  {
+   if (!active.TryGetValue(candidate.UserId, out var account) || !authorized.Contains((candidate.UserId,candidate.Role)) ||
+       candidate.DepartmentId.HasValue && account.DepartmentId != candidate.DepartmentId) continue;
+   if (seen.Add(candidate.UserId)) result.Add(new Notification { UserId=candidate.UserId,
+       Title=$"Tender #{tender.TenderId}: awarded", Message=candidate.Message, RelativeUrl=candidate.Url,
+       IsRead=false, CreatedAt=DateTime.UtcNow });
+  }
+  return result;
+ }
+ internal static bool SameNotice(Notification left, Notification right) =>
+     left.UserId == right.UserId && left.Title == right.Title && left.RelativeUrl == right.RelativeUrl;
  internal static async Task ClarificationsAsync(ApplicationDbContext db,CommitteeClarificationContext context,CancellationToken ct)
  {
   db.ChangeTracker.DetectChanges();

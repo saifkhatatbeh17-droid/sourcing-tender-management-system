@@ -17,6 +17,7 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end admin-account-menu">
                 <li><a class="dropdown-item" asp-controller="@(User.IsInRole("Supplier") ? "Supplier" : "Account")" asp-action="Profile">Profile</a></li>
+                <li><a class="dropdown-item" asp-controller="FaceEnrollment" asp-action="Index">Biometric sign-in</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><form asp-controller="Account" asp-action="Logout" method="post"><button class="dropdown-item" type="submit">Sign out</button></form></li>
             </ul>

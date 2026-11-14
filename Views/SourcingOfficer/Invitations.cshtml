@@ -4,9 +4,16 @@
     ViewData["Title"] = "Supplier Invitations";
     var eligibleTenders = ViewBag.EligibleTenders as List<Tender> ?? [];
     var approvedSuppliers = ViewBag.ApprovedSuppliers as List<SupplierProfile> ?? [];
+    var pendingInvitations = Model.Count(invitation => invitation.Status == "Pending");
+    var invitedTenderCount = Model.Select(invitation => invitation.TenderId).Distinct().Count();
 }
 
+@section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
+
+<div class="so-page so-page--invitations">
+<header class="so-page-header"><div><p class="so-eyebrow">SUPPLIER OUTREACH</p>
 <h1>Supplier Invitations</h1>
+<p class="so-page-description">Review invitations already sent and invite approved suppliers to your Published tenders.</p></div><span class="so-page-header-icon" aria-hidden="true">IN</span></header>
 
 @if (TempData["InvitationSuccess"] is string successMessage)
 {
@@ -16,94 +23,46 @@
 {
     <div class="alert alert-danger" role="alert">@errorMessage</div>
 }
+<section class="so-summary-grid" aria-label="Invitation summary">
+    <article class="so-summary-card so-tone-blue"><span class="so-summary-label">Invitations</span><strong>@Model.Count</strong><span class="so-summary-note">Existing records</span></article>
+    <article class="so-summary-card so-tone-amber"><span class="so-summary-label">Pending</span><strong>@pendingInvitations</strong><span class="so-summary-note">Awaiting supplier response</span></article>
+    <article class="so-summary-card so-tone-violet"><span class="so-summary-label">Tenders represented</span><strong>@invitedTenderCount</strong><span class="so-summary-note">Across existing invitations</span></article>
+    <article class="so-summary-card so-tone-teal"><span class="so-summary-label">Eligible tenders</span><strong>@eligibleTenders.Count</strong><span class="so-summary-note">Published by you</span></article>
+</section>
+<nav class="so-jump-nav" aria-label="Invitation sections"><a id="invitations-list-tab" href="#invitations-list">Existing invitations</a><a id="invitations-create-tab" href="#invitations-create">Invite suppliers</a></nav>
 
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Supplier Invitations">
-    <button class="nav-link active" id="invitations-list-tab" data-bs-toggle="tab" data-bs-target="#invitations-list" type="button" role="tab" aria-controls="invitations-list" aria-selected="true">Invitations</button>
-    <button class="nav-link" id="invitations-create-tab" data-bs-toggle="tab" data-bs-target="#invitations-create" type="button" role="tab" aria-controls="invitations-create" aria-selected="false">Invite Supplier</button>
-</div>
-
-<div class="tab-content workspace-content">
-    <div class="tab-pane fade show active" id="invitations-list" role="tabpanel" aria-labelledby="invitations-list-tab" tabindex="0">
-        <section class="workspace-section">
-            <h2>Existing Invitations</h2>
-            @if (Model.Count == 0)
+<section id="invitations-list" class="workspace-section" aria-labelledby="invitations-list-tab">
+    <div class="so-section-heading"><div><p class="so-eyebrow">RECORDS</p><h2>Existing Invitations</h2></div><span class="so-section-count">@Model.Count</span></div>
+    @if (Model.Count == 0)
+    {
+        <div class="so-empty-state"><span class="so-empty-mark" aria-hidden="true">I</span><div><strong>No invitations yet</strong><p>Invitations you send will appear here.</p></div></div>
+    }
+    else
+    {
+        <div class="table-responsive"><table class="table">
+            <thead><tr><th scope="col">Tender</th><th scope="col">Supplier</th><th scope="col">Invitation Date (UTC)</th><th scope="col">Deadline (UTC)</th><th scope="col">Status</th></tr></thead>
+            <tbody>@foreach (var invitation in Model)
             {
-                <p class="text-secondary">No supplier invitations have been created yet.</p>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Tender</th>
-                                <th scope="col">Supplier</th>
-                                <th scope="col">Invitation Date (UTC)</th>
-                                <th scope="col">Deadline (UTC)</th>
-                                <th scope="col">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var invitation in Model)
-                            {
-                                <tr>
-                                    <td>@invitation.Tender.Title</td>
-                                    <td>@invitation.SupplierProfile.CompanyName</td>
-                                    <td>@invitation.SentAt.ToString("yyyy-MM-dd HH:mm")</td>
-                                    <td>@invitation.Tender.ClosesAt.ToString("yyyy-MM-dd HH:mm")</td>
-                                    <td>@invitation.Status</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </section>
-    </div>
-
-    <div class="tab-pane fade" id="invitations-create" role="tabpanel" aria-labelledby="invitations-create-tab" tabindex="0">
-        <section class="workspace-section">
-            <h2>Invite Approved Suppliers</h2>
-            @if (eligibleTenders.Count == 0)
-            {
-                <p class="text-secondary">You do not have any Published tenders available for invitations.</p>
-            }
-            @if (approvedSuppliers.Count == 0)
-            {
-                <p class="text-secondary">There are no Approved suppliers available.</p>
-            }
-
-            <form asp-action="CreateInvitation" method="post">
-                @Html.AntiForgeryToken()
-                <div class="mb-3">
-                    <label for="tenderId" class="form-label">Published Tender</label>
-                    <select id="tenderId" name="tenderId" class="form-select" required disabled="@(eligibleTenders.Count == 0)">
-                        <option value="">Select a tender</option>
-                        @foreach (var tender in eligibleTenders)
-                        {
-                            <option value="@tender.TenderId">@tender.Title (closes @tender.ClosesAt.ToString("yyyy-MM-dd HH:mm") UTC)</option>
-                        }
-                    </select>
-                </div>
-                <fieldset class="mb-3" disabled="@(approvedSuppliers.Count == 0)">
-                    <legend class="fs-6">Approved Suppliers</legend>
-                    <div class="form-check mb-3">
-                        <input id="all-suppliers" name="allSuppliers" value="true" type="checkbox" class="form-check-input" />
-                        <label for="all-suppliers" class="form-check-label fw-semibold">Select all suppliers</label>
-                    </div>
-                    @foreach (var supplier in approvedSuppliers)
-                    {
-                        <div class="form-check mb-2">
-                            <input id="supplier-@supplier.SupplierProfileId" name="supplierProfileIds" value="@supplier.SupplierProfileId" type="checkbox" class="form-check-input supplier-choice" />
-                            <label for="supplier-@supplier.SupplierProfileId" class="form-check-label">@supplier.CompanyName</label>
-                        </div>
-                    }
-                    <p class="form-text">Choose one or more suppliers. Suppliers already invited to this tender will be skipped.</p>
-                </fieldset>
-                <button type="submit" class="btn btn-primary" disabled="@(eligibleTenders.Count == 0 || approvedSuppliers.Count == 0)">Send Invitations</button>
-            </form>
-        </section>
-    </div>
+                <tr><td>@invitation.Tender.Title</td><td>@invitation.SupplierProfile.CompanyName</td><td>@invitation.SentAt.ToString("yyyy-MM-dd HH:mm")</td><td>@invitation.Tender.ClosesAt.ToString("yyyy-MM-dd HH:mm")</td><td><span class="so-status-badge" data-status="@invitation.Status">@invitation.Status</span></td></tr>
+            }</tbody>
+        </table></div>
+    }
+</section>
+<section id="invitations-create" class="so-action-panel so-action-panel--form" aria-labelledby="invitations-create-title">
+    <div class="so-section-heading"><div><p class="so-eyebrow">NEXT ACTION</p><h2 id="invitations-create-title">Invite Approved Suppliers</h2></div><span class="so-section-count">@eligibleTenders.Count tenders</span></div>
+    @if (eligibleTenders.Count == 0) { <p class="alert alert-info mb-3">You do not have any Published tenders available for invitations.</p> }
+    @if (approvedSuppliers.Count == 0) { <p class="alert alert-info mb-3">There are no Approved suppliers available.</p> }
+    <form asp-action="CreateInvitation" method="post" class="so-invitation-form">
+        @Html.AntiForgeryToken()
+        <div class="mb-3"><label for="tenderId" class="form-label">Published Tender</label><select id="tenderId" name="tenderId" class="form-select" required disabled="@(eligibleTenders.Count == 0)"><option value="">Select a tender</option>@foreach (var tender in eligibleTenders) { <option value="@tender.TenderId">@tender.Title (closes @tender.ClosesAt.ToString("yyyy-MM-dd HH:mm") UTC)</option> }</select></div>
+        <fieldset class="mb-3 so-supplier-picker" disabled="@(approvedSuppliers.Count == 0)"><legend class="fs-6">Approved Suppliers <span class="so-inline-count">@approvedSuppliers.Count</span></legend>
+            <div class="form-check mb-3"><input id="all-suppliers" name="allSuppliers" value="true" type="checkbox" class="form-check-input" /><label for="all-suppliers" class="form-check-label fw-semibold">Select all suppliers</label></div>
+            <div class="so-supplier-list">@foreach (var supplier in approvedSuppliers) { <div class="form-check"><input id="supplier-@supplier.SupplierProfileId" name="supplierProfileIds" value="@supplier.SupplierProfileId" type="checkbox" class="form-check-input supplier-choice" /><label for="supplier-@supplier.SupplierProfileId" class="form-check-label">@supplier.CompanyName</label></div> }</div>
+            <p class="form-text">Choose one or more suppliers. Suppliers already invited to this tender will be skipped.</p>
+        </fieldset>
+        <div class="so-action-buttons"><a class="btn btn-outline-secondary" href="#invitations-list">Back to invitations</a><button type="submit" class="btn btn-primary" disabled="@(eligibleTenders.Count == 0 || approvedSuppliers.Count == 0)">Send Invitations</button></div>
+    </form>
+</section>
 </div>
 @section Scripts {
 <script>

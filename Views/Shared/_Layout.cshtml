@@ -13,6 +13,7 @@
             ? RoleNames.Supplier
             : RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     }
+    var standaloneLogin = ViewData["StandaloneLogin"] is true;
     var isHomeLanding = ViewData["HomeLanding"] is true;
     if (!PageNavigation.Menus.ContainsKey(workspaceController) || !User.IsInRole(workspaceController))
         workspaceController = RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
@@ -59,7 +60,7 @@
 {
     <partial name="_WorkspaceNavbar" />
 }
-else
+else if (!standaloneLogin)
 {
 <header class="@(isHomeLanding ? "landing-header" : "border-bottom bg-white")">
     <nav class="container-fluid d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-nav" : "p-3")" aria-label="Main navigation">
@@ -85,7 +86,7 @@ else
             {
                 <a asp-controller="Account" asp-action="GoToDashboard">My Dashboard</a>
             }
-            <a asp-controller="FaceEnrollment" asp-action="Index">Manage Face ID</a>
+            <a asp-controller="FaceEnrollment" asp-action="Index">Biometric sign-in</a>
             @await Component.InvokeAsync("NotificationBell")
             @if (!showAdminSidebar)
             {
@@ -106,9 +107,9 @@ else
 {
     <partial name="_WorkspaceSidebar" />
 }
-<main id="main" class="main-content @(isHomeLanding ? "landing-main" : "p-4")" tabindex="-1">@RenderBody()</main>
+<main id="main" class="main-content @(standaloneLogin ? "login-main" : isHomeLanding ? "landing-main" : "p-4")" tabindex="-1">@RenderBody()</main>
 </div>
-@await RenderSectionAsync("Footer", required: false)
+@if (!standaloneLogin) { @await RenderSectionAsync("Footer", required: false) }
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 @if (showWorkspace) { <script src="~/js/workspace-sidebar.js" asp-append-version="true"></script> }
@@ -116,6 +117,8 @@ else
 {
     <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
 }
+
+<script src="~/js/voice-search.js" asp-append-version="true"></script>
 
 @await RenderSectionAsync("Scripts", required: false)
 </body>

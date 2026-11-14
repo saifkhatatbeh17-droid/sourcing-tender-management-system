@@ -5,7 +5,17 @@
     var selectedReport = ViewBag.SelectedReport as EvaluationReport;
 }
 
+@section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
+
+<div class="so-page so-page--reports">
+<header class="so-page-header"><div><p class="so-eyebrow">REPORT TRACKING</p>
 <h1>Sourcing Officer Reports</h1>
+<p class="so-page-description">Review committee findings, your recorded summary, and any Sourcing Manager notes for your Tenders.</p></div><span class="so-page-header-icon" aria-hidden="true">RP</span></header>
+<section class="so-summary-grid" aria-label="Report summary">
+    <article class="so-summary-card so-tone-blue"><span class="so-summary-label">Reports</span><strong>@Model.Count</strong><span class="so-summary-note">For your Tenders</span></article>
+    <article class="so-summary-card so-tone-violet"><span class="so-summary-label">Recommendations recorded</span><strong>@Model.Count(item => item.RecommendedBidId.HasValue)</strong><span class="so-summary-note">Report includes a recommended bid</span></article>
+    <article class="so-summary-card so-tone-teal"><span class="so-summary-label">Manager notes recorded</span><strong>@Model.Count(item => !string.IsNullOrWhiteSpace(item.ManagerSummary))</strong><span class="so-summary-note">Review notes are present</span></article>
+</section>
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Sourcing Officer Reports">
     <button class="nav-link @(selectedReport == null ? "active" : "")" id="reports-list-tab" data-bs-toggle="tab" data-bs-target="#reports-list" type="button" role="tab" aria-controls="reports-list" aria-selected="@(selectedReport == null ? "true" : "false")">Reports</button>
     <button class="nav-link @(selectedReport != null ? "active" : "")" id="reports-details-tab" data-bs-toggle="tab" data-bs-target="#reports-details" type="button" role="tab" aria-controls="reports-details" aria-selected="@(selectedReport != null ? "true" : "false")">Report Details</button>
@@ -28,7 +38,7 @@
                         {
                             <tr>
                                 <td>@report.Tender.Title</td>
-                                <td>@report.Status</td>
+                                <td><span class="so-status-badge" data-status="@report.Status">@report.Status</span></td>
                                 <td>@(string.IsNullOrWhiteSpace(report.CommitteeSummary) ? "Not recorded" : report.CommitteeSummary)</td>
                                 <td>@report.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
                                 <td>@(string.IsNullOrWhiteSpace(report.ManagerSummary) ? "Pending / not recorded" : report.ManagerSummary)</td>
@@ -51,7 +61,7 @@
             {
                 <dl>
                     <dt>Tender</dt><dd>@selectedReport.Tender.Title</dd>
-                    <dt>Status</dt><dd>@selectedReport.Status</dd>
+                    <dt>Status</dt><dd><span class="so-status-badge" data-status="@selectedReport.Status">@selectedReport.Status</span></dd>
                     <dt>Committee Summary</dt><dd>@selectedReport.CommitteeSummary</dd>
                     <dt>Sourcing Officer Summary</dt><dd>@selectedReport.OfficerSummary</dd>
                     <dt>Prepared By</dt><dd>@(selectedReport.PreparedByUser?.FullName ?? "Not recorded")</dd>
@@ -60,11 +70,12 @@
                     @if (selectedReport.Bid is { } recommendedBid)
                     {
                         <dt>Recommended Bid Supplier</dt><dd>@recommendedBid.Invitation.SupplierProfile.CompanyName</dd>
-                        <dt>Recommended Bid Status</dt><dd>@recommendedBid.Status</dd>
+                        <dt>Recommended Bid Status</dt><dd><span class="so-status-badge" data-status="@recommendedBid.Status">@recommendedBid.Status</span></dd>
                     }
                 </dl>
                 <p class="text-secondary">This report is a recommendation and review record. Final award decisions belong to the authorized later workflow stages.</p>
             }
         </section>
     </div>
+</div>
 </div>

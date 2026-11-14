@@ -5,7 +5,12 @@
     var selectedBid = ViewBag.SelectedBid as Bid;
 }
 
+@section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
+
+<div class="so-page so-page--compliance">
+<header class="so-page-header"><div><p class="so-eyebrow">ELIGIBILITY CHECK</p>
 <h1>Compliance Review</h1>
+<p class="so-page-description">Inspect submitted offers against the linked Purchase Request and record the applicable compliance decision.</p></div><span class="so-page-header-icon" aria-hidden="true">✓</span></header>
 @if (TempData["ComplianceSuccess"] is string successMessage)
 {
     <div class="alert alert-success" role="status">@successMessage</div>
@@ -14,6 +19,11 @@
 {
     <div class="alert alert-danger" role="alert">@errorMessage</div>
 }
+<section class="so-summary-grid" aria-label="Compliance summary">
+    <article class="so-summary-card so-tone-blue"><span class="so-summary-label">Offers in review list</span><strong>@Model.Count</strong><span class="so-summary-note">Submitted offers for your Tenders</span></article>
+    <article class="so-summary-card so-tone-teal"><span class="so-summary-label">Compliant</span><strong>@Model.Count(bid => bid.ComplianceStatus == "Compliant")</strong><span class="so-summary-note">Final compliance decision</span></article>
+    <article class="so-summary-card so-tone-coral"><span class="so-summary-label">Non-compliant</span><strong>@Model.Count(bid => bid.ComplianceStatus == "NonCompliant")</strong><span class="so-summary-note">Final compliance decision</span></article>
+</section>
 
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Compliance Review">
     <button class="nav-link @(selectedBid == null ? "active" : "")" id="compliance-list-tab" data-bs-toggle="tab" data-bs-target="#compliance-list" type="button" role="tab" aria-controls="compliance-list" aria-selected="@(selectedBid == null ? "true" : "false")">Submitted Offers</button>
@@ -39,8 +49,8 @@
                                 <td>@bid.Invitation.Tender.Title</td>
                                 <td>@bid.Invitation.SupplierProfile.CompanyName</td>
                                 <td>@bid.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td>@bid.Status</td>
-                                <td>@(bid.ComplianceStatus ?? "Pending review")</td>
+                                <td><span class="so-status-badge" data-status="@bid.Status">@bid.Status</span></td>
+                                <td><span class="so-status-badge" data-status="@(bid.ComplianceStatus ?? "Pending")">@(bid.ComplianceStatus ?? "Pending review")</span></td>
                                 <td><a class="btn btn-outline-primary btn-sm" asp-action="Compliance" asp-route-id="@bid.BidId">Review</a></td>
                             </tr>
                         }
@@ -62,8 +72,8 @@
                 <dl>
                     <dt>Tender</dt><dd>@selectedBid.Invitation.Tender.Title</dd>
                     <dt>Supplier</dt><dd>@selectedBid.Invitation.SupplierProfile.CompanyName</dd>
-                    <dt>Bid Status</dt><dd>@selectedBid.Status</dd>
-                    <dt>Compliance Status</dt><dd>@(selectedBid.ComplianceStatus ?? "Pending review")</dd>
+                    <dt>Bid Status</dt><dd><span class="so-status-badge" data-status="@selectedBid.Status">@selectedBid.Status</span></dd>
+                    <dt>Compliance Status</dt><dd><span class="so-status-badge" data-status="@(selectedBid.ComplianceStatus ?? "Pending")">@(selectedBid.ComplianceStatus ?? "Pending review")</span></dd>
                     <dt>Previous Review Notes</dt><dd>@selectedBid.ComplianceNotes</dd>
                 </dl>
 
@@ -131,4 +141,5 @@
             }
         </section>
     </div>
+</div>
 </div>

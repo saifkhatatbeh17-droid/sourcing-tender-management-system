@@ -1,5 +1,5 @@
 @model LoginViewModel
-@{ ViewData["Title"] = "Sign In"; }
+@{ ViewData["Title"] = "Sign In"; ViewData["StandaloneLogin"] = true; }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
@@ -8,36 +8,75 @@
 }
 
 <div class="login-page">
+    <div class="login-identity">
+        <div class="login-access-effect" aria-hidden="true"></div>
+        <a class="login-brand" asp-controller="Home" asp-action="Index" aria-label="Tiryaq home"><partial name="_PharmaBrand" /></a>
+        <div class="identity-art" aria-hidden="true">
+            <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div>
+            <div class="identity-core"><svg viewBox="0 0 80 80" fill="none"><path d="M40 9 65 20v19c0 17-14 27-25 33C29 66 15 56 15 39V20L40 9Z" stroke="currentColor" stroke-width="2"/><path d="m29 40 8 8 16-18" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="identity-story">
+            <h2 class="login-identity-copy">Sourcing and tender management</h2>
+        </div>
+        <div class="identity-status"><span class="status-dot"></span><span id="access-message" role="status" aria-live="polite">Ready to sign in</span></div>
+    </div>
     <section class="login-panel" aria-labelledby="login-heading">
-        <h1 id="login-heading">Sign in</h1>
-        <p class="login-intro">Access your sourcing and tender workspace.</p>
+        <div class="login-panel-top"><a asp-controller="Home" asp-action="Index">Back to home <span aria-hidden="true">↗</span></a></div>
+        <h1 id="login-heading">Welcome back<span>.</span></h1>
+        <p class="login-intro">Sign in to your Tiryaq workspace.</p>
 
-        <form asp-controller="Account" asp-action="Login" method="post" class="login-form">
+        <form asp-controller="Account" asp-action="Login" method="post" class="login-form" id="password-login">
+            <input name="ReturnUrl" value="@Model.ReturnUrl" type="hidden" />
             <div asp-validation-summary="ModelOnly" class="login-error" role="alert"></div>
 
             <div class="field">
                 <label asp-for="Email">Email address</label>
                 <input asp-for="Email" class="form-control" autocomplete="username" autocapitalize="none"
-                       spellcheck="false" aria-describedby="email-error" required />
+                       placeholder="you@company.com" spellcheck="false" aria-describedby="email-error" required />
                 <span asp-validation-for="Email" id="email-error" class="field-error"></span>
             </div>
 
             <div class="field">
                 <label asp-for="Password">Password</label>
-                <input asp-for="Password" class="form-control" autocomplete="current-password"
-                       aria-describedby="password-error" required />
+                <div class="login-password">
+                    <input asp-for="Password" class="form-control" autocomplete="current-password"
+                       placeholder="Enter your password" aria-describedby="password-error" required />
+                    <button class="login-password-toggle" type="button" aria-controls="Password" hidden>Show</button>
+                </div>
                 <span asp-validation-for="Password" id="password-error" class="field-error"></span>
             </div>
 
-            <button class="btn login-submit" type="submit">Sign in</button>
-            <button id="face-login-button" class="btn btn-outline-primary w-100 mt-3" type="submit"
-                    asp-controller="Account" asp-action="LoginWithFaceId" aria-describedby="face-login-help">Login with Face ID + Password</button>
-            <p id="face-login-help" class="small text-muted mt-2 mb-0">Enter your email and password first. After password sign-in, you can choose an optional camera similarity check. It is not an additional authentication factor.</p>
-            <p id="face-login-error" class="text-danger mt-2" role="alert" hidden></p>
-            <a id="face-login-continue" asp-controller="Account" asp-action="GoToDashboard" class="btn btn-outline-secondary w-100 mt-2" hidden>Continue to workspace</a>
+            <button class="btn login-submit" type="submit"><span>Sign in to workspace</span><span aria-hidden="true">↗</span></button>
         </form>
 
-        <p class="login-help">Employee accounts are provided by your administrator.</p>
+        <div class="login-divider">Other sign-in options</div>
+        <div class="login-methods">
+            <button id="face-login-button" class="btn login-method" type="submit" form="password-login"
+                    asp-controller="Account" asp-action="LoginWithFaceId" aria-describedby="face-login-help">
+                <span class="login-method-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3M8 9v1m8-1v1m-4-1v4m-3 3c1.5 1.5 4.5 1.5 6 0"/>
+                    </svg>
+                </span>
+                <span><strong>Face ID</strong><small id="face-login-help">Password + camera</small></span>
+            </button>
+            <form asp-controller="Passkeys" asp-action="SignInWithPasskey" method="post"
+                  data-passkey-form="login" data-options-url="@Url.Action("LoginOptions", "Passkeys")">
+                <input name="returnUrl" value="@Model.ReturnUrl" type="hidden" />
+                <button class="btn login-method" type="submit" aria-describedby="passkey-help">
+                    <span class="login-method-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                            <path d="M3 12a9 9 0 0 1 18 0v2M6 16v-4a6 6 0 0 1 12 0v3c0 2 .5 3.5 1.5 5M9 21c1-2 1-4 1-6v-3a2 2 0 0 1 4 0v3c0 2.5-.4 5-1.5 7M6 19c.6-1 .8-3 .8-4m9.7 5.5-.5 1"/>
+                        </svg>
+                    </span>
+                    <span><strong>Fingerprint</strong><small id="passkey-help">Device or phone passkey</small></span>
+                </button>
+                <p role="status" class="small mt-2 mb-0"></p>
+            </form>
+        </div>
+        <p id="face-login-error" class="text-danger mt-2" role="alert" hidden></p>
+        <a id="face-login-continue" asp-controller="Account" asp-action="GoToDashboard" asp-route-returnUrl="@Model.ReturnUrl" class="btn login-method mt-2" hidden>Continue to workspace</a>
+
         <div class="login-registration">
             <span>New supplier?</span>
             <a asp-controller="Account" asp-action="Register">Register your company</a>
@@ -50,5 +89,8 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/login-access.js" asp-append-version="true" defer></script>
+    <script src="~/js/login-visibility.js" asp-append-version="true" defer></script>
+    <script src="~/js/passkeys.js" asp-append-version="true" defer></script>
     <script src="~/js/face-login-inline.js" asp-append-version="true" defer></script>
 }
