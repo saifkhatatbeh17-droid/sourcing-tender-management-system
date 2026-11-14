@@ -8,11 +8,12 @@
 <aside class="admin-sidebar" aria-label="@ViewData["WorkspaceLabel"] navigation">
     <div class="admin-sidebar-top">
         <div class="admin-sidebar-header">
-            <div class="admin-sidebar-role">@ViewData["WorkspaceLabel"]</div>
+            <a class="pharma-brand workspace-brand" asp-controller="Home" asp-action="Index" aria-label="Tiryaq home"><partial name="_PharmaBrand" /></a>
             <button type="button" class="admin-sidebar-toggle" aria-label="Toggle sidebar menu" aria-controls="admin-sidebar-menu" aria-expanded="true" title="Toggle sidebar menu">
                 <partial name="_AdminSidebarIcon" model='@("Menu")' />
             </button>
         </div>
+        <div class="admin-sidebar-role">@ViewData["WorkspaceLabel"]</div>
         <nav id="admin-sidebar-menu" class="admin-sidebar-nav" aria-label="Workspace pages">
             @foreach (var role in roles)
             {

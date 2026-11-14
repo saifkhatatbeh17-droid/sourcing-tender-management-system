@@ -59,3 +59,12 @@ h1 { font-size: 1.8rem; margin-bottom: 1.5rem; } h2 { font-size: 1.15rem; }
 @media(max-width:650px) { .workspace-columns { grid-template-columns: 1fr; } .workspace-tabs .nav-link { padding: .6rem; } }
 @media(max-width:1000px) { .committee-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:650px) { .app-shell { flex-direction: column; } .sidebar { width: 100%; border-bottom: 1px solid var(--line); } .committee-grid { grid-template-columns: 1fr; } }
+/* Shared Tiryaq wordmark, using the supplied brand artwork. */
+.tiryaq-logo { display:block; width:180px; height:60px; overflow:hidden; border-radius:0; background:transparent; }
+.tiryaq-logo img { display:block; width:180px; height:60px; max-width:none; }
+/* Transparent artwork adapts to the surface behind it. */
+html[data-theme="dark"] .tiryaq-logo img { filter:brightness(0) invert(1); }
+.landing-header .tiryaq-logo img, .pharma-footer .tiryaq-logo img { filter:brightness(0) invert(1); }
+.workspace-shell .workspace-brand .tiryaq-logo img { filter:brightness(0); }
+/* Secondary brand accent: reserve coral for moments that need attention. */
+:root { --brand-highlight:#ff6b4a; --brand-highlight-hover:#f05c3c; --brand-highlight-ink:#123032; }

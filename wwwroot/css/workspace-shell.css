@@ -83,3 +83,22 @@ html body .workspace-navbar :is(nav > a, .notification-bell, .admin-account-togg
     .workspace-shell > .main-content { margin-inline-start: 0; }
 }
 @media(prefers-reduced-motion:no-preference) { .workspace-shell > .admin-sidebar { transition: width 180ms ease; } }
+/* Use the same Apex Pharma identity in every role workspace. */
+.workspace-shell .workspace-brand { gap:8px; min-width:0; color:#002e30; text-decoration:none; font-size:15px; white-space:nowrap; }
+.workspace-shell .workspace-brand .pharma-brand-icon { flex-basis:32px; width:32px; height:32px; border-radius:10px; }
+.workspace-shell .workspace-brand img { width:28px; height:28px; }
+.workspace-shell .admin-sidebar-header { gap:4px; }
+.workspace-shell .admin-sidebar-role { margin-top:18px; font-size:12px; font-weight:600; color:#004d50; }
+.workspace-shell .admin-sidebar-toggle { width:32px; height:32px; padding:7px; }
+@media(min-width:651px) {
+ .workspace-shell .admin-sidebar.is-collapsed .admin-sidebar-header { flex-direction:column; gap:12px; }
+ .workspace-shell .admin-sidebar.is-collapsed .workspace-brand > span:last-child { display:none; }
+}
+.workspace-shell .workspace-brand .tiryaq-logo { width:158px; height:53px; }
+.workspace-shell .workspace-brand .tiryaq-logo img { width:158px; height:53px; }
+@media(min-width:651px) {
+ .workspace-shell .admin-sidebar.is-collapsed .workspace-brand > .tiryaq-logo { display:block; position:relative; width:40px; height:44px; border-radius:10px; }
+ .workspace-shell .admin-sidebar.is-collapsed .workspace-brand .tiryaq-logo img { position:absolute; width:174px; height:58px; left:-23px; top:-7px; }
+}
+/* Notification counts share the brand's attention accent. */
+.workspace-navbar .notification-bell .badge { background:var(--brand-highlight) !important; color:var(--brand-highlight-ink); }
