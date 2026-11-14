@@ -1,11 +1,26 @@
 @model SourcingTenderManagement.Models.FaceEnrollment.FaceEnrollmentPage
-@{ ViewData["Title"] = "Face enrollment"; }
+@{ ViewData["Title"] = "Biometric sign-in"; }
 @section Styles { <link rel="stylesheet" href="~/css/face-enrollment.css" asp-append-version="true" /> }
 <section class="face-enrollment" aria-labelledby="face-title">
     <a asp-controller="Account" asp-action="GoToDashboard" class="btn btn-outline-secondary mb-3">Back to workspace</a>
-    <h1 id="face-title">Face enrollment</h1>
-    <p class="text-muted">Manage facial samples for your own account. Password sign-in remains unchanged.</p>
-    <div class="alert alert-info">This page saves enrollment only. Browser face detection is not proof of identity or server-verified anti-spoofing, and cannot sign you in.</div>
+    <h1 id="face-title">Biometric sign-in</h1>
+    <p class="text-muted">Set up a passkey or manage the camera check for your account.</p>
+
+    <section id="passkey" class="border rounded-3 p-4 my-4" aria-labelledby="passkey-heading">
+        <h2 id="passkey-heading">Fingerprint or passkey</h2>
+        <p class="text-muted">Use a fingerprint-capable device or choose a nearby phone when prompted.</p>
+        <form asp-controller="Passkeys" asp-action="Enroll" method="post"
+              data-passkey-form="enroll" data-options-url="@Url.Action("EnrollmentOptions", "Passkeys")">
+            <label for="passkey-password" class="form-label">Current password</label>
+            <input id="passkey-password" name="password" type="password" class="form-control mb-3"
+                   autocomplete="current-password" required />
+            <button class="btn btn-primary" type="submit">Add passkey</button>
+            <p role="status" class="small mt-2 mb-0"></p>
+        </form>
+    </section>
+
+    <h2>Face ID</h2>
+    <p class="text-muted">Enroll facial samples for the optional camera check after password sign-in.</p>
     @if (Context.Request.Query["saved"] == "1") { <p class="alert alert-success" role="status">Your face enrollment was saved.</p> }
     @if (Context.Request.Query["removed"] == "1") { <p class="alert alert-success" role="status">Your face enrollment was removed.</p> }
     <p><strong>Status:</strong> @(Model.Enrolled ? $"Enrolled · {Model.SampleCount} samples" : "Not enrolled")
@@ -21,7 +36,7 @@
         <form id="face-form" data-save-url="@Url.Action("Save")" data-delete-url="@Url.Action("Delete")"
               data-model-url="@Url.Content("~/lib/face-api/model")" data-row-version="@Model.RowVersion" data-enrolled="@Model.Enrolled.ToString().ToLowerInvariant()">
             @Html.AntiForgeryToken()
-            <h2>@(Model.Enrolled ? "Replace your enrollment" : "Enroll your face")</h2>
+            <h3>@(Model.Enrolled ? "Replace your enrollment" : "Enroll your face")</h3>
             <ol><li>Use a well-lit space and keep only your face in the camera.</li><li>Look ahead, then turn your head slightly between samples.</li><li>Keep the page open until all five samples are saved.</li></ol>
             <label for="face-password" class="form-label">Current password</label>
             <input id="face-password" class="form-control mb-3" type="password" autocomplete="current-password" maxlength="1024" required />
@@ -41,6 +56,7 @@
     </div>
 </section>
 @section Scripts {
+    <script src="~/js/passkeys.js" asp-append-version="true" defer></script>
     <script src="~/lib/face-api/face-api.js" asp-append-version="true" defer></script>
     <script src="~/js/face-enrollment.js" asp-append-version="true" defer></script>
 }
