@@ -17,6 +17,8 @@ public class CommitteeEvaluationPage
     public List<EvaluationCriterion> Criteria => Tender?.EvaluationCriteria.OrderBy(c => c.EvaluationCriterionId).ToList() ?? [];
     public List<TenderApproval> Approvals => Tender?.TenderApprovals.Where(a => a.Stage == "Evaluation").ToList() ?? [];
     public bool Locked => Tender?.Status != "UnderEvaluation";
+    public bool ReportReady => Tender?.EvaluationReport is { RecommendedBidId: not null, CommitteeSummary: not null } report
+        && !string.IsNullOrWhiteSpace(report.CommitteeSummary) && Offers.Any(b => b.BidId == report.RecommendedBidId);
     public bool WeightsReady => Members.Count == 4 && Offers.Count > 0
         && Criteria.All(c => c.Weight > 0) && Criteria.Sum(c => c.Weight) == 100
         && Criteria.Any(c => c.Category == "Financial") && Criteria.Any(c => c.Category == "Requirements")
@@ -31,6 +33,7 @@ public class CommitteeEvaluationPage
     public string SharedVersion => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
         System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new {
             Weights = Criteria.Select(c => new { c.EvaluationCriterionId, c.Weight }),
+            Report = new { Tender?.EvaluationReport?.RecommendedBidId, Tender?.EvaluationReport?.CommitteeSummary },
             Approvals = Approvals.OrderBy(a => a.UserId).Select(a => new { a.UserId, a.DecidedAt }) }))));
 
     public static string MemberName(int position) => position switch

@@ -737,89 +737,56 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
         return View();
     }
 
+    [NonAction]
+    public static string ReportReviewVersion(EvaluationReport report) => Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
+            System.Text.Json.JsonSerializer.Serialize(new { report.EvaluationReportId, report.CommitteeSummary, report.RecommendedBidId, report.Status, report.SubmittedAt }))));
+
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> SubmitOfficerReport(int tenderId, int? recommendedBidId, string? officerSummary)
+    public async Task<IActionResult> ReviewCommitteeReport(int tenderId, string decision, string? reason, string version)
     {
-        if (string.IsNullOrWhiteSpace(officerSummary) || officerSummary.Trim().Length > 4000)
-        {
-            TempData["EvaluationError"] = "Enter a Sourcing Officer summary of 1 to 4000 characters.";
-            return RedirectToAction(nameof(Evaluations), new { tenderId });
-        }
-
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var tender = await db.Tenders.AsNoTracking().SingleOrDefaultAsync(t =>
-            t.TenderId == tenderId && t.CreatedByUserId == userId);
-        if (tender == null) return NotFound();
-        if (tender.Status != "AwaitingOfficerSummary")
-        {
-            TempData["EvaluationError"] = "The Tender must be AwaitingOfficerSummary before you can submit it to the Sourcing Manager.";
-            return RedirectToAction(nameof(Evaluations), new { tenderId });
-        }
-
-        var evaluationAssignmentIds = await db.CommitteeAssignments.AsNoTracking()
-            .Where(a => a.TenderId == tenderId && a.CommitteeType == "Evaluation")
-            .Select(a => a.CommitteeAssignmentId)
-            .ToListAsync();
-        if (evaluationAssignmentIds.Count != 4)
-        {
-            TempData["EvaluationError"] = "Four Evaluation Committee assignments are required before Officer submission.";
-            return RedirectToAction(nameof(Evaluations), new { tenderId });
-        }
-
-        var approvedAssignmentCount = await db.TenderApprovals.AsNoTracking()
-            .Where(a => a.TenderId == tenderId && a.Stage == "Evaluation" && a.Decision == "Approved" &&
-                a.CommitteeAssignmentId.HasValue && evaluationAssignmentIds.Contains(a.CommitteeAssignmentId.Value))
-            .Select(a => a.CommitteeAssignmentId)
-            .Distinct()
-            .CountAsync();
-        if (approvedAssignmentCount != 4)
-        {
-            TempData["EvaluationError"] = "All four Evaluation Committee members must approve before Officer submission.";
-            return RedirectToAction(nameof(Evaluations), new { tenderId });
-        }
-
-        var report = await db.EvaluationReports.SingleOrDefaultAsync(r => r.TenderId == tenderId);
-        if (report == null || report.Status != "CommitteeApproved" || string.IsNullOrWhiteSpace(report.CommitteeSummary))
-        {
-            TempData["EvaluationError"] = "A completed CommitteeApproved Evaluation Report is required before Officer submission.";
-            return RedirectToAction(nameof(Evaluations), new { tenderId });
-        }
-
-        if (!recommendedBidId.HasValue)
-        {
-            TempData["EvaluationError"] = "Select a Compliant bid as the recommendation before submitting.";
-            return RedirectToAction(nameof(Evaluations), new { tenderId });
-        }
-
-        var recommendedBidExists = await db.Bids.AnyAsync(b =>
-            b.BidId == recommendedBidId.Value && b.TenderId == tenderId &&
-            b.Status == "Compliant" && b.ComplianceStatus == "Compliant");
-        if (!recommendedBidExists)
-        {
-            TempData["EvaluationError"] = "The recommended offer must be a Compliant bid belonging to this Tender.";
-            return RedirectToAction(nameof(Evaluations), new { tenderId });
-        }
-
+        IActionResult Error(string message) { TempData["EvaluationError"] = message; return RedirectToAction(nameof(Evaluations), new { tenderId }); }
+        if (!ModelState.IsValid || decision is not ("Approve" or "RequestEdits" or "Reject")) return Error("Choose a supported report decision.");
+        if (reason?.Length > 4000 || (decision != "Approve" && string.IsNullOrWhiteSpace(reason)))
+            return Error("Enter a reason of up to 4,000 characters when requesting edits or rejecting.");
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var updatedRows = await db.Tenders
-            .Where(t => t.TenderId == tenderId && t.CreatedByUserId == userId && t.Status == "AwaitingOfficerSummary")
-            .ExecuteUpdateAsync(update => update.SetProperty(t => t.Status, "AwaitingManagerReview"));
-        if (updatedRows != 1)
+        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};");
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var tender = await db.Tenders.Include(t => t.EvaluationReport).Include(t => t.CommitteeAssignments).Include(t => t.TenderApprovals)
+            .SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == userId);
+        if (tender == null) return NotFound();
+        var report = tender.EvaluationReport;
+        if (tender.Status != "AwaitingOfficerSummary" || report?.Status != "CommitteeApproved")
+            return Error("This report is no longer awaiting your review. Refresh the page.");
+        if (version != ReportReviewVersion(report)) return Error("The report changed. Refresh and review the current report before deciding.");
+        var members = tender.CommitteeAssignments.Where(a => a.CommitteeType == "Evaluation").ToList();
+        if (members.Count != 4 || members.Any(a => !tender.TenderApprovals.Any(p => p.Stage == "Evaluation" && p.Decision == "Approved" && p.CommitteeAssignmentId == a.CommitteeAssignmentId)))
+            return Error("All four committee members must approve the report first.");
+        if (string.IsNullOrWhiteSpace(report.CommitteeSummary) || !report.RecommendedBidId.HasValue ||
+            !await db.Bids.AnyAsync(b => b.BidId == report.RecommendedBidId && b.TenderId == tenderId && b.ComplianceStatus == "Compliant" && b.Status == "Compliant"))
+            return Error("The approved report must include an eligible recommended offer.");
+        report.OfficerSummary = decision == "Approve" ? "Approved by sourcing officer. Report and recommended offer forwarded unchanged." :
+            (decision == "RequestEdits" ? "Edits requested: " : "Rejected by sourcing officer: ") + reason!.Trim();
+        if (decision == "Approve")
         {
-            await transaction.RollbackAsync();
-            TempData["EvaluationError"] = "This Tender changed before submission. Refresh the page and review its current status.";
-            return RedirectToAction(nameof(Evaluations), new { tenderId });
+            tender.Status = "AwaitingManagerReview";
+            report.Status = "OfficerSubmitted";
+            report.SubmittedAt = DateTime.UtcNow;
         }
-
-        report.OfficerSummary = officerSummary.Trim();
-        report.RecommendedBidId = recommendedBidId.Value;
-        report.PreparedByUserId = userId;
-        report.Status = "OfficerSubmitted";
-        report.SubmittedAt = DateTime.UtcNow;
+        else if (decision == "RequestEdits")
+        {
+            tender.Status = "UnderEvaluation";
+            report.Status = "ReturnedForReview";
+            report.RecommendedBidId = null;
+            db.TenderApprovals.RemoveRange(tender.TenderApprovals.Where(a => a.Stage == "Evaluation"));
+            foreach (var evaluation in await db.Evaluations.Where(e => e.TenderId == tenderId).ToListAsync()) { evaluation.Status = "Submitted"; evaluation.ApprovedAt = null; }
+        }
+        else tender.Status = "Cancelled";
+        foreach (var recipient in decision == "Approve" ? await db.Users.Where(u => db.UserRoles.Any(ur => ur.UserId == u.Id && db.Roles.Any(r => r.Id == ur.RoleId && r.Name == RoleNames.SourcingManager))).Select(u => u.Id).ToListAsync() : members.Select(a => a.UserId).ToList())
+            db.Notifications.Add(new Notification { UserId = recipient, Title = "Committee report review", Message = $"{tender.Title}: officer decision — {decision}. Open the report to review the details.", RelativeUrl = decision == "Approve" ? "/SourcingManager/Submissions" : $"/EvaluationCommittee/Evaluations/{tenderId}", CreatedAt = DateTime.UtcNow });
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
-
-        TempData["EvaluationSuccess"] = "The Evaluation Report, Officer Summary, and recommendation were submitted to the Sourcing Manager.";
+        TempData["EvaluationSuccess"] = decision switch { "Approve" => "Approved. The unchanged report was sent to the Sourcing Manager.", "RequestEdits" => "Returned to the committee for edits and four fresh approvals.", _ => "Report rejected and tender cancelled." };
         return RedirectToAction(nameof(Evaluations), new { tenderId });
     }
     public async Task<IActionResult> Clarifications(int? id)

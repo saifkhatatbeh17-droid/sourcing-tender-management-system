@@ -1,0 +1,19 @@
+@model CommitteeEvaluationPage
+@{ var tender = Model.Tender; string StatusLabel(string status) => status switch { "UnderEvaluation" => "Under evaluation", "AwaitingOfficerSummary" => "Sent to sourcing officer", _ => System.Text.RegularExpressions.Regex.Replace(status, "([a-z])([A-Z])", "$1 $2") }; }
+<aside class="ev-tender-browser" aria-label="Choose tender">
+        <div class="ev-tender-browser-heading"><span>Tenders <small>@Model.Tenders.Count</small></span><div class="ev-tender-search-field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg><input type="search" id="tender-search" placeholder="Search tenders…" aria-label="Search tenders" class="form-control" /></div></div>
+        <div class="ev-tender-filters" role="group" aria-label="Filter tenders"><button type="button" class="is-active" data-tender-filter="all" aria-pressed="true">All</button><button type="button" data-tender-filter="UnderEvaluation" aria-pressed="false">Under evaluation</button></div>
+        <nav class="ev-tender-rail" aria-label="Tenders">
+        @foreach (var item in Model.Tenders)
+        {
+            var selected = item.TenderId == tender?.TenderId;
+            var shortStatus = item.Status switch { "AwaitingCommitteeDecision" => "Committee decision", "AwaitingOfficerSummary" => "With sourcing officer", _ => StatusLabel(item.Status) };
+            <a asp-controller="EvaluationCommittee" asp-action="Evaluations" asp-route-id="@item.TenderId" class="ev-tender-card @(selected ? "is-current" : "")" aria-current="@(selected ? "page" : null)" data-tender-status="@item.Status" data-tender-search="@item.TenderId @item.Title @StatusLabel(item.Status)">
+                <span class="ev-tender-card-top"><span class="ev-tender-number">#@item.TenderId</span>@if (selected) { <span class="ev-tender-selected">Selected <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m3 8 3 3 7-7" /></svg></span> }</span>
+                <strong>@item.Title</strong><span class="ev-tender-card-status" title="@StatusLabel(item.Status)"><span class="ev-tender-status-dot" aria-hidden="true"></span>@shortStatus</span>
+            </a>
+        }
+        </nav>
+        <p id="tender-search-empty" hidden role="status">No matching tenders. Try another search or filter.</p>
+        <div class="ev-tender-list-footer"><span id="tender-result-count" aria-live="polite">@Model.Tenders.Count tenders</span><span>Newest first</span></div>
+    </aside>

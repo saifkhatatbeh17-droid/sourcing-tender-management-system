@@ -42,6 +42,21 @@ else if (tender.OpenClarifications > 0)
 { <p class="border rounded p-3">Committee review is paused while @tender.OpenClarifications clarification(s) remain unresolved. Recorded votes are preserved.</p> }
 else if (!tender.Readiness.IsVotingOpen)
 { <p class="border rounded p-3">@tender.Readiness.BlockingReason</p> }
+<section class="workspace-section tc-importance" aria-labelledby="importance-heading">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div><h2 id="importance-heading">AI importance assessment</h2><p class="text-secondary mb-0">Assess the report’s operational impact, urgency, and risks.</p></div>
+        <form asp-action="AssessImportance" method="post" data-importance-form>
+            <input type="hidden" name="id" value="@tender.TenderId" />
+            <button class="btn btn-outline-primary" disabled="@(string.IsNullOrWhiteSpace(tender.Report?.CommitteeSummary))">Analyze report</button>
+        </form>
+    </div>
+    <p class="form-text mb-0" data-importance-status role="status">Advisory only. The committee makes the final decision.</p>
+    <div data-importance-result hidden>
+        <p class="mt-3"><strong>Suggested importance: <span data-importance-level></span></strong></p>
+        <p data-importance-reason></p>
+        <div data-importance-missing hidden><h3 class="fs-6">Information to verify</h3><ul class="mb-0"></ul></div>
+    </div>
+</section>
 <partial name="_Voting" model="Model" />
 
 <section id="request" class="workspace-section" aria-labelledby="request-heading">
@@ -135,3 +150,4 @@ else if (!tender.Readiness.IsVotingOpen)
 </section>
 <a asp-action="Dashboard">Back to dashboard</a>
 </div>
+@section Scripts { <script src="~/js/tender-importance.js" asp-append-version="true"></script> }
