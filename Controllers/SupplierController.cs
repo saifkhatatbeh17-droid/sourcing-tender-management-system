@@ -100,6 +100,18 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return View(await query.OrderByDescending(b => b.SubmittedAt ?? b.CreatedAt).ToListAsync());
     }
 
+    public async Task<IActionResult> History()
+    {
+        var profile = await MyProfile();
+        if (profile == null) return NotFound();
+        var offers = await db.Bids.AsNoTracking()
+            .Where(b => b.Invitation.SupplierProfileId == profile.SupplierProfileId && b.SubmittedAt != null)
+            .Include(b => b.Invitation).ThenInclude(i => i.Tender)
+            .Include(b => b.BidItems)
+            .OrderByDescending(b => b.SubmittedAt).ToListAsync();
+        return View(offers);
+    }
+
     [HttpGet]
     public async Task<IActionResult> CreateOffer(int invitationId, int? bidId)
     {
@@ -160,13 +172,21 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             model.Items = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(item => model.Items.FirstOrDefault(x => x.PurchaseRequestItemId == item.PurchaseRequestItemId) ?? new OfferLineViewModel { PurchaseRequestItemId = item.PurchaseRequestItemId, ItemName = item.ItemName, Unit = item.Unit, RequestedQuantity = item.Quantity, RequestedSpecifications = item.Specifications }).ToList();
             return View("CreateOffer", model);
         }
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var createdFiles = new List<string>();
+        var committed = false;
+        try
+        {
+            // Serialize submission with deadline closure and concurrent draft edits.
+            await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {inv.TenderId};");
+            if (!await db.Tenders.AnyAsync(t => t.TenderId == inv.TenderId && (t.Status == "Published" || t.Status == "Open") && t.ClosesAt > DateTime.UtcNow)) return Forbid();
+            if (model.BidId.HasValue && !await db.Bids.AnyAsync(b => b.BidId == model.BidId && b.InvitationId == inv.InvitationId && b.Status == "Draft")) return NotFound();
         var bid = model.BidId.HasValue ? await db.Bids.Include(b => b.BidItems).SingleAsync(b => b.BidId == model.BidId) : new Bid { InvitationId = inv.InvitationId, TenderId = inv.TenderId, CreatedAt = DateTime.UtcNow, Status = "Draft" };
         bid.Currency = (model.Currency ?? "JOD").ToUpperInvariant(); bid.DeliveryDays = model.DeliveryDays; bid.PaymentTerms = model.PaymentTerms?.Trim();
         bid.ValidUntil = model.ValidUntil; bid.TechnicalDetails = model.TechnicalDetails?.Trim();
         if (model.BidId.HasValue) db.BidItems.RemoveRange(bid.BidItems);
         else db.Bids.Add(bid);
         foreach (var line in model.Items) db.BidItems.Add(new BidItem { Bid = bid, PurchaseRequestItemId = line.PurchaseRequestItemId, Quantity = line.Quantity, UnitPrice = line.UnitPrice, OfferedSpecifications = line.Specifications ?? "" });
-        if (submissionCommand == "Submit") { bid.Status = "Submitted"; bid.SubmittedAt = DateTime.UtcNow; }
         await db.SaveChangesAsync();
         if (documents != null)
         {
@@ -174,20 +194,48 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             foreach (var file in documents.Where(f => f.Length > 0))
             {
                 var stored = Guid.NewGuid().ToString("N") + Path.GetExtension(file.FileName).ToLowerInvariant();
-                await using var stream = System.IO.File.Create(Path.Combine(folder, stored)); await file.CopyToAsync(stream);
+                var path = Path.Combine(folder, stored);
+                createdFiles.Add(path);
+                await using var stream = System.IO.File.Create(path); await file.CopyToAsync(stream);
                 db.BidDocuments.Add(new BidDocument { BidId = bid.BidId, DocumentType = "Supporting document", OriginalFileName = Path.GetFileName(file.FileName), StoredFileName = stored, ContentType = file.ContentType, FileSizeBytes = file.Length, UploadedAt = DateTime.UtcNow });
             }
             await db.SaveChangesAsync();
         }
         if (submissionCommand == "Submit")
         {
+            bid.Status = "Submitted"; bid.SubmittedAt = DateTime.UtcNow;
             var officers = (await users.GetUsersInRoleAsync(RoleNames.SourcingOfficer)).Where(u => u.IsActive).Select(u => u.Id).ToHashSet(StringComparer.Ordinal);
             officers.Add(inv.Tender.CreatedByUserId);
             foreach (var officerId in officers) db.Notifications.Add(new Notification { UserId = officerId, Title = "Supplier offer received", Message = $"{profile.CompanyName} submitted offer BID-{bid.BidId:D6} for {inv.Tender.Title}.", RelativeUrl = $"/SourcingOfficer/Offers?tenderId={inv.TenderId}", CreatedAt = DateTime.UtcNow });
-            await db.SaveChangesAsync(); TempData["Success"] = "Your offer was submitted successfully.";
+            await db.SaveChangesAsync();
         }
-        else TempData["Success"] = "Your draft was saved.";
+
+        await transaction.CommitAsync();
+        committed = true;
+        TempData["Success"] = submissionCommand == "Submit" ? "Your offer was submitted successfully." : "Your draft was saved.";
         return RedirectToAction(nameof(Offer), new { id = bid.BidId });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DbUpdateException)
+        {
+            await transaction.RollbackAsync();
+            HttpContext.RequestServices.GetRequiredService<ILogger<SupplierController>>().LogError(ex, "Offer save failed for invitation {InvitationId}", inv.InvitationId);
+            ModelState.AddModelError("", "Your offer was not saved. Please attach the files again and retry.");
+            model.TenderId = inv.TenderId; model.TenderTitle = inv.Tender.Title; model.ClosesAt = inv.Tender.ClosesAt;
+            foreach (var line in model.Items)
+            {
+                var item = inv.Tender.PurchaseRequest.PurchaseRequestItems.Single(i => i.PurchaseRequestItemId == line.PurchaseRequestItemId);
+                line.ItemName = item.ItemName; line.Unit = item.Unit; line.RequestedQuantity = item.Quantity; line.RequestedSpecifications = item.Specifications;
+            }
+            return View("CreateOffer", model);
+        }
+        finally
+        {
+            if (!committed)
+                foreach (var path in createdFiles)
+                    try { System.IO.File.Delete(path); }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    { HttpContext.RequestServices.GetRequiredService<ILogger<SupplierController>>().LogError(ex, "Could not clean up offer attachment {Path}", path); }
+        }
     }
 
     public async Task<IActionResult> Offer(int id)

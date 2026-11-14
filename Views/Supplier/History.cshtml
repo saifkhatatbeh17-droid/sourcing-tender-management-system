@@ -1,14 +1,16 @@
-@{ ViewData["Title"] = "History"; }
-<h1>History</h1>
-<div class="workspace-columns">
-    <section class="workspace-section">
-        <h2>Submitted Offers</h2>
-        <!-- TEAM TODO: Load only the signed-in supplier's submitted offers, their related tenders, submission dates, and current outcomes. Selecting an offer displays its personal summary alongside the list. -->
-    </section>
-    <section class="workspace-section">
-        <h2>Offer Summary</h2>
-        <!-- TEAM TODO: Display the selected supplier-owned offer's pricing, delivery terms, submitted specifications, documents, and status. Authorize ownership on both the detail and download endpoints. Never show competing offers or internal evaluation reports. -->
-        <button type="button" class="btn btn-outline-primary" disabled>Download My Summary</button>
-        <!-- TEAM TODO: Export the supplier's own offer summary. Suppliers do not send evaluation reports to other roles. -->
-    </section>
-</div>
+@model List<SourcingTenderManagement.Models.Entities.Bid>
+@{ ViewData["Title"] = "Offer history"; }
+<div class="workspace-page">
+<div class="workspace-page-header"><div><h1>Offer history</h1><p class="text-secondary">Your submitted offers and their current outcomes.</p></div><a asp-action="Offers" class="btn btn-outline-primary">All offers</a></div>
+<section class="workspace-section">
+@if (Model.Count == 0) { <p class="text-secondary">No submitted offers yet.</p> }
+else
+{
+    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Offer</th><th>Tender</th><th>Submitted (UTC)</th><th>Total</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr></thead><tbody>
+    @foreach (var bid in Model)
+    {
+        <tr><td>#@bid.BidId</td><td>@bid.Invitation.Tender.Title</td><td>@bid.SubmittedAt?.ToString("dd MMM yyyy · HH:mm")</td><td>@CommitteeEvaluationPage.Total(bid).ToString("N2") @bid.Currency</td><td>@bid.Status</td><td><a asp-action="Offer" asp-route-id="@bid.BidId">View offer</a> <span aria-hidden="true">·</span> <a asp-action="DownloadSummary" asp-route-id="@bid.BidId">My summary</a></td></tr>
+    }
+    </tbody></table></div>
+}
+</section></div>

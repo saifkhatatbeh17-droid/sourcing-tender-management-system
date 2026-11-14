@@ -184,6 +184,7 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
     public async Task<IActionResult> Tenders(int? id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await SourcingTenderManagement.Services.TenderClosureService.CloseExpired(db, DateTime.UtcNow, HttpContext.RequestAborted, userId);
         var ownedTenders = db.Tenders.AsNoTracking().Where(t => t.CreatedByUserId == userId);
         var model = new TendersPageViewModel
         {
@@ -396,6 +397,7 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
     public async Task<IActionResult> SendToEvaluation(int id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await SourcingTenderManagement.Services.TenderClosureService.CloseExpired(db, DateTime.UtcNow, HttpContext.RequestAborted, userId);
         var tender = await db.Tenders.AsNoTracking()
             .SingleOrDefaultAsync(t => t.TenderId == id && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
