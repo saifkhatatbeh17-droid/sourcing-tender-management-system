@@ -1,5 +1,5 @@
 @model CommitteeClarificationThread
-<section class="workspace-section" aria-labelledby="question-@Model.ClarificationId">
+<section class="workspace-section tc-conversation" aria-labelledby="question-@Model.ClarificationId">
     <div class="workspace-heading mb-2">
         <h3 class="fs-5 mb-0" id="question-@Model.ClarificationId">@Model.Subject</h3>
         <span class="badge @(Model.Status == "Resolved" ? "text-bg-success" : Model.Status == "Answered" ? "text-bg-primary" : "text-bg-secondary")">@Model.Status</span>

@@ -8,8 +8,8 @@
 <div class="tc-tender">
 <nav class="mb-3" aria-label="Breadcrumb"><a asp-action="Dashboard">Top Committee dashboard</a><span class="text-secondary"> / Tender #@tender.TenderId</span></nav>
 <div class="workspace-heading">
-    <h1 class="text-break">@tender.Title</h1>
-    <a class="btn btn-outline-secondary" asp-action="Decisions">Pending tenders</a>
+    <div><h1 class="text-break">@tender.Title</h1><p>Review the recommendation, compare offers, and record your decision.</p></div>
+    <div class="tc-heading-actions"><a class="btn btn-outline-secondary" asp-action="Decisions">Pending tenders</a></div>
 </div>
 <p><span class="badge text-bg-secondary">@CommitteeDisplay.Status(tender.Status)</span><span class="ms-2">Tender #@tender.TenderId</span></p>
 <div class="tc-summary" aria-label="Committee decision summary">

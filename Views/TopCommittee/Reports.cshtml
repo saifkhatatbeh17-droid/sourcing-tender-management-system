@@ -2,8 +2,7 @@
 @using SourcingTenderManagement.Services.TopCommittee
 @{ViewData["Title"]="Top Committee Reports";var f=Model.Filter;var pages=Math.Max(1,(int)Math.Ceiling(Model.Summary.Matching/20d));}
 @section Styles{<partial name="_ReadStyles" />}
-<div class="workspace-heading"><h1>Reports</h1><a asp-action="Dashboard">Dashboard</a><a asp-action="Notifications">Notifications</a></div>
-<p>Assigned tenders only. Date filters apply to tender creation in UTC. Decision filters apply to your recorded vote. Reload for current results.</p>
+<div class="workspace-heading"><div><h1>Reports</h1><p>Explore your assigned tenders and recorded decisions. Date filters use tender creation in UTC. Reload for current results.</p></div><div class="tc-heading-actions"><a class="btn" asp-action="Dashboard">Dashboard</a><a class="btn" asp-action="Notifications">Notifications</a></div></div>
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
 <form method="get" class="workspace-section"><div class="row g-3">
 <div class="col-md-4"><label for="report-search">Tender title</label><input id="report-search" name="Search" value="@f.Search" maxlength="200" class="form-control" /></div>
@@ -11,8 +10,20 @@
 <div class="col-md-4"><label for="report-decision">My decision</label><select id="report-decision" name="Decision" class="form-select"><option value="">All</option>@foreach(var d in new[]{"Approved","Rejected","NotVoted"}){<option value="@d" selected="@(f.Decision==d)">@(d=="NotVoted"?"Not voted":d)</option>}</select></div>
 <div class="col-md-4"><label for="report-from">Created from (UTC)</label><input id="report-from" name="FromDate" type="date" value="@f.FromDate?.ToString("yyyy-MM-dd")" class="form-control" /></div>
 <div class="col-md-4"><label for="report-to">Created through (UTC)</label><input id="report-to" name="ToDate" type="date" value="@f.ToDate?.ToString("yyyy-MM-dd")" class="form-control" /></div>
-<div class="col-md-4 align-self-end"><button class="btn btn-primary">Apply filters</button> <a asp-action="Reports">Reset</a></div></div></form>
-<section class="workspace-section"><h2>Summary</h2><p>Total assigned: @Model.Summary.Assigned · Matching: @Model.Summary.Matching · Pending: @Model.Summary.Pending · Awarded: @Model.Summary.Awarded · Rejected: @Model.Summary.Rejected · Manager review: @Model.Summary.Returned · My recorded decisions: @Model.Summary.MyDecisions</p><p class="mb-0">Counts follow filters; total assigned is unfiltered. Rejected tenders may also be in Manager review.</p></section>
+<div class="col-md-4 align-self-end d-flex flex-wrap gap-2"><button class="btn btn-primary">Apply filters</button> <a class="btn" asp-action="Reports">Reset</a></div></div></form>
+<section class="workspace-section" aria-labelledby="report-summary-heading">
+    <h2 id="report-summary-heading">Summary</h2>
+    <dl class="tc-report-summary">
+        <div><dt>Total assigned</dt><dd>@Model.Summary.Assigned</dd></div>
+        <div><dt>Matching</dt><dd>@Model.Summary.Matching</dd></div>
+        <div><dt>Pending</dt><dd>@Model.Summary.Pending</dd></div>
+        <div><dt>Awarded</dt><dd>@Model.Summary.Awarded</dd></div>
+        <div><dt>Rejected</dt><dd>@Model.Summary.Rejected</dd></div>
+        <div><dt>Manager review</dt><dd>@Model.Summary.Returned</dd></div>
+        <div><dt>My recorded decisions</dt><dd>@Model.Summary.MyDecisions</dd></div>
+    </dl>
+    <p class="small text-secondary mb-0">Counts follow filters; total assigned is unfiltered. Rejected tenders may also be in Manager review.</p>
+</section>
 <nav class="workspace-toolbar" aria-label="Exports">@foreach(var format in new[]{"pdf","xlsx"}){<a asp-action="ReportExport" asp-route-format="@format" asp-route-Search="@f.Search" asp-route-Status="@f.Status" asp-route-Decision="@f.Decision" asp-route-FromDate="@f.FromDate?.ToString("yyyy-MM-dd")" asp-route-ToDate="@f.ToDate?.ToString("yyyy-MM-dd")">Download @(format=="pdf"?"PDF":"Excel")</a>}</nav>
-@if(Model.Rows.Count==0){<section class="workspace-section"><h2>No matching tenders</h2><p>Adjust filters or check your committee assignments.</p></section>}else{<div class="table-responsive" role="region" aria-label="Tender report" tabindex="0"><table class="table committee-read-table"><caption>Persisted decisions. Generated @CommitteeDisplay.Utc(Model.GeneratedAt).</caption><thead><tr><th scope="col">Tender</th><th scope="col">Status</th><th scope="col">Nominated / awarded bid</th><th scope="col">Approvals</th><th scope="col">Final outcome</th><th scope="col">My decision</th><th scope="col">Decision date (UTC)</th></tr></thead><tbody>@foreach(var r in Model.Rows){<tr><th scope="row"><a asp-action="TenderDetails" asp-route-id="@r.TenderId">#@r.TenderId · @r.Title</a></th><td>@CommitteeDisplay.Status(r.Status)</td><td>@(r.NominatedBidId?.ToString()??"None") / @(r.AwardedBidId?.ToString()??"None")</td><td>@r.Approvals / 4</td><td>@TopCommitteeReportExport.Outcome(r)</td><td>@(r.MyDecision??"Not voted")</td><td>@CommitteeDisplay.Utc(r.DecisionAt)</td></tr>}</tbody></table></div>}
+@if(Model.Rows.Count==0){<section class="workspace-section tc-empty"><h2>No matching tenders</h2><p>Adjust filters or check your committee assignments.</p></section>}else{<div class="table-responsive" role="region" aria-label="Tender report" tabindex="0"><table class="table committee-read-table tc-report-table"><caption>Persisted decisions. Generated @CommitteeDisplay.Utc(Model.GeneratedAt).</caption><thead><tr><th scope="col">Tender</th><th scope="col">Status</th><th scope="col">Nominated / awarded bid</th><th scope="col">Approvals</th><th scope="col">Final outcome</th><th scope="col">My decision</th><th scope="col">My decision date (UTC)</th></tr></thead><tbody>@foreach(var r in Model.Rows){<tr><th scope="row"><a asp-action="TenderDetails" asp-route-id="@r.TenderId">#@r.TenderId · @r.Title</a></th><td>@CommitteeDisplay.Status(r.Status)</td><td>@(r.NominatedBidId?.ToString()??"None") / @(r.AwardedBidId?.ToString()??"None")</td><td>@r.Approvals / 4</td><td>@TopCommitteeReportExport.Outcome(r)</td><td>@(r.MyDecision??"Not voted")</td><td>@CommitteeDisplay.Utc(r.DecisionAt)</td></tr>}</tbody></table></div>}
 <nav class="workspace-toolbar" aria-label="Report pages"><span>Page @f.Page of @pages</span>@foreach(var pageNumber in new[]{f.Page-1,f.Page+1}.Where(p=>p>=1&&p<=pages)){<a asp-action="Reports" asp-route-Page="@pageNumber" asp-route-Search="@f.Search" asp-route-Status="@f.Status" asp-route-Decision="@f.Decision" asp-route-FromDate="@f.FromDate?.ToString("yyyy-MM-dd")" asp-route-ToDate="@f.ToDate?.ToString("yyyy-MM-dd")">Page @pageNumber</a>}</nav>
