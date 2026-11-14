@@ -19,13 +19,14 @@ public sealed class TopCommitteeReportExport
  }
  public byte[] Pdf(CommitteeReportPage p)
  {
-  lock(FontLock){if(GlobalFontSettings.FontResolver==null)GlobalFontSettings.FontResolver=new ReportFontResolver();}
+  EnsureReportFont();
   var doc=new Document();doc.Info.Title="Top Committee Report";doc.Styles["Normal"]!.Font.Name="CommitteeReport";doc.Styles["Normal"]!.Font.Size=9;var section=doc.AddSection();section.PageSetup.Orientation=Orientation.Landscape;section.PageSetup.PageFormat=PageFormat.A4;section.PageSetup.LeftMargin=Unit.FromCentimeter(1.5);section.PageSetup.RightMargin=Unit.FromCentimeter(1.5);
   var title=section.AddParagraph("Top Committee Report");title.Format.Font.Size=18;title.Format.Font.Bold=true;section.AddParagraph("Generated "+CommitteeDisplay.Utc(p.GeneratedAt));section.AddParagraph(Filters(p.Filter));section.AddParagraph($"Assigned: {p.Summary.Assigned} | Matching: {p.Summary.Matching} | Pending: {p.Summary.Pending} | Awarded: {p.Summary.Awarded} | Rejected: {p.Summary.Rejected} | Manager review: {p.Summary.Returned} | My decisions: {p.Summary.MyDecisions}").Format.SpaceAfter=12;
   var footer=section.Footers.Primary.AddParagraph();footer.AddText("Top Committee | Page ");footer.AddPageField();footer.AddText(" of ");footer.AddNumPagesField();
   if(p.Rows.Count==0)section.AddParagraph("No matching tenders.");else{var table=section.AddTable();table.Borders.Width=0.5;foreach(var w in new[]{1.3,5.1,3.4,2.0,2.0,1.6,2.3,2.3,3.0})table.AddColumn(Unit.FromCentimeter(w));var head=table.AddRow();head.HeadingFormat=true;head.Format.Font.Bold=true;head.Shading.Color=Colors.LightGray;for(int i=0;i<Headers.Length;i++)head.Cells[i].AddParagraph(Headers[i]);foreach(var r in p.Rows){var row=table.AddRow();var cells=new[]{r.TenderId.ToString(),r.Title,CommitteeDisplay.Status(r.Status),r.NominatedBidId?.ToString()??"None",r.AwardedBidId?.ToString()??"None",r.Approvals+" / 4",Outcome(r),r.MyDecision??"Not voted",CommitteeDisplay.Utc(r.DecisionAt)};for(int i=0;i<cells.Length;i++)row.Cells[i].AddParagraph(cells[i]);}}
   var renderer=new PdfDocumentRenderer{Document=doc};renderer.RenderDocument();using var stream=new MemoryStream();renderer.PdfDocument.Save(stream,false);return stream.ToArray();
  }
+ internal static void EnsureReportFont() { lock(FontLock){if(GlobalFontSettings.FontResolver==null)GlobalFontSettings.FontResolver=new ReportFontResolver();} }
  private sealed class ReportFontResolver:IFontResolver
  {
   public FontResolverInfo ResolveTypeface(string familyName,bool bold,bool italic)=>new("CommitteeReport",bold,italic);

@@ -141,6 +141,9 @@ public partial class SourcingManagerController : Controller
             return SubmissionMessage("This report changed. Review the latest submission before deciding.");
         }
 
+        if (HasOpenClarifications(tender.TenderId))
+            return SubmissionMessage("Both sides must resolve open clarifications before recording a decision.", input.ReportId);
+
         if (isApproval)
         {
             var recommendedBid = _context.Bids.Find(evaluationReport.RecommendedBidId);
@@ -289,6 +292,9 @@ public partial class SourcingManagerController : Controller
             return SubmissionMessage("The tender needs four distinct, active Top Committee members before referral.", input.ReportId);
         }
 
+        if (HasOpenClarifications(tender.TenderId))
+            return SubmissionMessage("Both sides must resolve open clarifications before referral.", input.ReportId);
+
         tender.Status = AwaitingCommitteeDecision;
         if (string.IsNullOrWhiteSpace(evaluationReport.ManagerSummary))
         {
@@ -348,6 +354,9 @@ public partial class SourcingManagerController : Controller
         var page = new ManagerReportPage(managerDecisions, search, decision);
         return View(page);
     }
+
+    private bool HasOpenClarifications(int tenderId) => _context.Clarifications.Any(c =>
+        c.Status != "Resolved" && (c.TenderId == tenderId || (c.Bid != null && c.Bid.TenderId == tenderId)));
 
     private IActionResult SubmissionMessage(string message, int? id = null)
     {

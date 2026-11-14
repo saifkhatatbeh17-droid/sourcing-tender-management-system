@@ -1,0 +1,45 @@
+@model DownloadableReport
+@{
+    ViewData["Title"] = "Report downloads";
+    var choices = (Dictionary<string, string>)ViewBag.Choices;
+    var paginate = User.IsInRole(SourcingTenderManagement.Data.RoleNames.Admin);
+}
+<h1>Report downloads</h1>
+<form asp-action="Index" method="get" class="workspace-toolbar">
+    <select name="report" class="form-select" aria-label="Report">
+        @foreach (var choice in choices)
+        {
+            <option value="@choice.Key" selected="@(ViewBag.Selected == choice.Key)">@choice.Value</option>
+        }
+    </select>
+    <input type="search" name="search" value="@ViewBag.Search" class="form-control" placeholder="Search report" aria-label="Search report" />
+    <button class="btn btn-outline-primary">View report</button>
+</form>
+<section class="workspace-section" data-paginated-report="@(paginate ? "true" : null)">
+    <div class="workspace-heading">
+        <h2>@Model.Title</h2>
+        <div>
+            <a asp-route-report="@ViewBag.Selected" asp-route-search="@ViewBag.Search" asp-route-format="pdf" class="btn btn-outline-primary">Download PDF</a>
+            <a asp-route-report="@ViewBag.Selected" asp-route-search="@ViewBag.Search" asp-route-format="xlsx" class="btn btn-outline-primary">Download Excel</a>
+        </div>
+    </div>
+    @if (Model.Rows.Count == 0) { <p>No matching records.</p> }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead><tr>@foreach (var column in Model.Columns) { <th scope="col">@column</th> }</tr></thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr data-admin-row="@(paginate ? "true" : null)">@foreach (var value in row) { <td class="text-break" style="white-space:pre-line">@value</td> }</tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (paginate)
+        {
+            <partial name="_AdminPager" />
+        }
+    }
+</section>

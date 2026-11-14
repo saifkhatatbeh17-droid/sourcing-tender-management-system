@@ -146,3 +146,10 @@
         </section>
     </div>
 </div>
+
+@if (selectedBid is { } clarificationRecord)
+{
+    <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid"
+       asp-route-recordId="@clarificationRecord.BidId" class="btn btn-outline-primary mt-3">Ask for clarification</a>
+    @await Component.InvokeAsync("ClarificationHistory", new { kind = "bid", recordId = clarificationRecord.BidId })
+}

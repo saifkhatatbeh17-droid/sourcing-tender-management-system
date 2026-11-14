@@ -4,25 +4,32 @@
         <h3 class="fs-5 mb-0" id="question-@Model.ClarificationId">@Model.Subject</h3>
         <span class="badge @(Model.Status == "Resolved" ? "text-bg-success" : Model.Status == "Answered" ? "text-bg-primary" : "text-bg-secondary")">@Model.Status</span>
     </div>
-    <p class="small"><a asp-action="Clarifications" asp-route-tenderId="@Model.TenderId">Tender #@Model.TenderId · @Model.TenderTitle</a><br />Sent @CommitteeDisplay.Utc(Model.CreatedAt) to @Model.ManagerName</p>
+    <p class="small"><a asp-action="TenderDetails" asp-route-id="@Model.TenderId">Tender #@Model.TenderId · @Model.TenderTitle</a><br />Sent @CommitteeDisplay.Utc(Model.CreatedAt) to @Model.ManagerName</p>
     <p class="committee-message">@Model.Description</p>
     @if (Model.Responses.Count == 0)
     { <p class="text-secondary">Waiting for the Sourcing Manager's response.</p> }
     else
     {
-        <h4 class="fs-6">Manager response</h4>
+        <h4 class="fs-6">Replies</h4>
         @foreach (var response in Model.Responses)
         {
             <p class="small text-secondary mb-1">@response.RespondedByName · @CommitteeDisplay.Utc(response.CreatedAt)</p>
-            <p class="committee-message">@response.Message</p>
+            <p class="committee-message">@(response.Message == "[Portal: resolution confirmed]" ? "Marked as resolved" : response.Message)</p>
         }
     }
     @if (Model.Status == "Resolved")
     { <p class="mb-0">Resolved @CommitteeDisplay.Utc(Model.ResolvedAt). This conversation is read-only.</p> }
     else if (Model.CanResolve)
     {
-        <p>You can resolve your question after reviewing the Manager's response. Voting remains paused until every open clarification is resolved.</p>
-        <form asp-action="ResolveClarification" method="post"><input type="hidden" name="id" value="@Model.ClarificationId" /><button class="btn btn-outline-primary" type="submit">Mark resolved</button></form>
+        <form asp-action="FollowUpClarification" method="post" class="mb-3">
+            <input type="hidden" name="id" value="@Model.ClarificationId" />
+            <input type="hidden" name="tenderId" value="@Model.TenderId" />
+            <label class="form-label" for="follow-up-@Model.ClarificationId">Follow-up question</label>
+            <textarea id="follow-up-@Model.ClarificationId" name="message" class="form-control mb-2" maxlength="4000" required></textarea>
+            <button class="btn btn-primary" type="submit">Send follow-up</button>
+        </form>
+        <p>Both you and the Sourcing Manager must confirm resolution before voting can resume.</p>
+        <form asp-action="ResolveClarification" method="post"><input type="hidden" name="id" value="@Model.ClarificationId" /><button class="btn btn-outline-primary" type="submit">Mark as resolved</button></form>
     }
     else if (Model.Status == "Answered")
     { <p class="text-secondary mb-0">Open this tender's clarifications to review whether your answered question can be resolved.</p> }

@@ -57,8 +57,31 @@ internal static class TopCommitteeClarificationRules
         if (question.RecipientUserId != managerId) throw new CommitteeTenderNotFoundException();
         RequireOpen(context);
         if (ResponsibleManager(context).UserId != managerId) throw new CommitteeTenderNotFoundException();
-        if (question.Status != "Pending" || question.ResolvedAt.HasValue || question.ClarificationResponses.Count != 0)
+        if (question.Status != "Pending" || question.ResolvedAt.HasValue)
             throw new CommitteeStateConflictException("This clarification has already been answered or resolved. Reload to view its current status.");
+        return question;
+    }
+
+    internal static Clarification RequireFollowUp(CommitteeClarificationContext context, string memberId, int clarificationId)
+    {
+        var question = RequireResolve(context, memberId, clarificationId);
+        var manager = ResponsibleManager(context);
+        var latestResponse = question.ClarificationResponses.Where(r => r.Message != ClarificationResolution.Confirmation).OrderByDescending(r => r.CreatedAt)
+            .ThenByDescending(r => r.ClarificationResponseId).FirstOrDefault();
+        if (latestResponse?.RespondedByUserId != manager.UserId)
+            throw new CommitteeStateConflictException("Wait for the Sourcing Manager to answer the last question.");
+        return question;
+    }
+
+    internal static Clarification RequireManagerConfirmation(CommitteeClarificationContext context, string managerId, int clarificationId)
+    {
+        RequireActor(context, RoleNames.SourcingManager);
+        var question = RequireQuestion(context, clarificationId);
+        RequireOpen(context);
+        if (question.RecipientUserId != managerId || ResponsibleManager(context).UserId != managerId)
+            throw new CommitteeTenderNotFoundException();
+        if (question.Status != "Answered" || question.ResolvedAt.HasValue)
+            throw new CommitteeStateConflictException("Answer the current question before confirming resolution.");
         return question;
     }
 

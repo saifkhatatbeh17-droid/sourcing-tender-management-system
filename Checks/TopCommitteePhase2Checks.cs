@@ -52,7 +52,7 @@ public static class TopCommitteePhase2Checks
             Check(controllerType.GetMethod(name)!.GetCustomAttribute<HttpGetAttribute>() != null, $"{name} must be GET-only.");
         Check(controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Where(m => m.GetCustomAttribute<HttpPostAttribute>() != null)
-            .All(m => m.Name is "CreateClarification" or "ResolveClarification" or "SubmitVote" or "MarkNotificationRead" or "MarkAllNotificationsRead"), "Only approved clarification and voting mutations may be introduced.");
+            .All(m => m.Name is "CreateClarification" or "ResolveClarification" or "FollowUpClarification" or "SubmitVote" or "AssessImportance" or "MarkNotificationRead" or "MarkAllNotificationsRead"), "Only approved Top Committee POSTs may be introduced.");
 
         var dashboardResult = (ViewResult)await Controller("Dashboard").Dashboard(default);
         Check(dashboardResult.Model is CommitteeDashboard, "Dashboard must use the Phase 1 read model.");

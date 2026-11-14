@@ -1,0 +1,141 @@
+@model List<SourcingTenderManagement.Models.Entities.Clarification>
+@using SourcingTenderManagement.Models.Entities
+@using SourcingTenderManagement.Data
+@{
+    ViewData["Title"] = "Clarification inbox";
+    var thread = ViewBag.Thread as Clarification;
+    var recipients = (List<ApplicationUser>)ViewBag.Recipients;
+}
+<h1>Clarification inbox</h1>
+@if (TempData["ClarificationError"] is string error)
+{
+    <p class="alert alert-warning" role="alert">@error</p>
+}
+@if (ViewBag.RecordUrl is string recordUrl)
+{
+    <p><a href="@recordUrl">Back to related record</a> · <a asp-action="Index">All conversations</a></p>
+}
+<p class="text-secondary">Both sides must mark the conversation as resolved. A new reply clears earlier confirmations.</p>
+<div class="workspace-columns">
+<section class="workspace-section">
+    <form method="get" asp-action="Index" class="workspace-toolbar">
+        <input type="hidden" name="kind" value="@ViewBag.Kind" />
+        <input type="hidden" name="recordId" value="@ViewBag.RecordId" />
+        <select name="direction" class="form-select" aria-label="Direction">
+            <option value="">All conversations</option>
+            <option value="sent" selected="@(ViewBag.Direction == "sent")">Sent</option>
+            <option value="received" selected="@(ViewBag.Direction == "received")">Received</option>
+        </select>
+        <select name="status" class="form-select" aria-label="Status">
+            <option value="">All statuses</option>
+            @foreach (var status in new[] { "Pending", "Answered", "Resolved" })
+            {
+                <option selected="@(ViewBag.Status == status)">@status</option>
+            }
+        </select>
+        <button class="btn btn-outline-primary">Filter</button>
+    </form>
+    <ul class="list-group list-group-flush">
+    @foreach (var item in Model)
+    {
+        <li class="list-group-item px-0"><a asp-action="Index" asp-route-id="@item.ClarificationId" asp-route-kind="@ViewBag.Kind" asp-route-recordId="@ViewBag.RecordId">@item.Subject</a> · @item.Status</li>
+    }
+    </ul>
+    @if (Model.Count == 0) { <p>No matching conversations.</p> }
+</section>
+<section class="workspace-section">
+    @if (thread != null)
+    {
+        <div class="workspace-heading">
+            <h2>@thread.Subject</h2>
+            @if (recipients.Count > 0)
+            {
+                <a class="btn btn-outline-primary" asp-action="Index" asp-route-kind="@ViewBag.Kind" asp-route-recordId="@ViewBag.RecordId">Ask another question</a>
+            }
+        </div>
+        <p>@thread.Status · @thread.SenderUser.FullName → @thread.RecipientUser.FullName</p>
+        <p><strong>@ViewBag.RecordTitle</strong> · @(thread.PurchaseRequestId is int requestId ? $"Request #{requestId}" : thread.BidId is int bidId ? $"Bid #{bidId}" : $"Tender #{thread.TenderId}")</p>
+        <p>@thread.CreatedAt.ToString("u")</p>
+        <p class="text-break" style="white-space:pre-wrap">@thread.Description</p>
+        @foreach (var reply in thread.ClarificationResponses.OrderBy(r => r.CreatedAt).ThenBy(r => r.ClarificationResponseId))
+        {
+            <hr />
+            <strong>@reply.RespondedByUser.FullName · @reply.CreatedAt.ToString("u")</strong>
+            <p class="text-break" style="white-space:pre-wrap">@(reply.Message == "[Portal: resolution confirmed]" ? "Marked as resolved" : reply.Message)</p>
+        }
+        @if (thread.Status == "Resolved")
+        {
+            <p class="text-secondary">This conversation is resolved.</p>
+        }
+        @if (thread.Status != "Resolved" && ViewBag.CanReply is not true && ViewBag.CanResolve is not true)
+        {
+                        @if (ViewBag.CanStartRequestReview is true)
+            {
+                <p>This request is awaiting an assigned reviewer. Start review to reply to the Department.</p>
+                <form asp-controller="SourcingOfficer" asp-action="StartReview" asp-route-id="@thread.PurchaseRequestId" method="post">
+                    <button class="btn btn-primary" type="submit">Start review</button>
+                </form>
+            }
+            else
+            {
+                <p class="text-secondary">The assigned reviewer or conversation participant can take the next action.</p>
+            }
+        }
+        @if (thread.Status != "Resolved" && ViewBag.CanReply is true)
+        {
+            <form asp-action="Update" asp-route-id="@thread.ClarificationId" method="post" class="mb-3">
+                <label for="reply">Reply</label>
+                <textarea id="reply" name="message" class="form-control mb-2" required maxlength="4000"></textarea>
+                <button class="btn btn-primary">Send reply</button>
+            </form>
+        }
+        @if (thread.Status != "Resolved" && ViewBag.HasConfirmed is true)
+        {
+            <p role="status">You marked this as resolved. Waiting for the other side.</p>
+        }
+        else if (thread.Status != "Resolved" && ViewBag.CanResolve is true)
+        {
+            @if (ViewBag.AwaitingConfirmation is true)
+            {
+                <p role="status">The other side marked this as resolved. Confirm to close the conversation.</p>
+            }
+            <form asp-action="Update" asp-route-id="@thread.ClarificationId" method="post">
+                <input type="hidden" name="resolve" value="true" />
+                <button class="btn btn-outline-primary">Mark as resolved</button>
+            </form>
+        }
+    }
+    else
+    {
+        <h2>New clarification</h2>
+        <form asp-action="Index" method="get" class="mb-3">
+            <label for="kind">Related record</label>
+            <select id="kind" name="kind" class="form-select mb-2">
+                <option value="request" selected="@(ViewBag.Kind == "request")">Purchase request</option>
+                <option value="tender" selected="@(ViewBag.Kind == "tender")">Tender</option>
+                <option value="bid" selected="@(ViewBag.Kind == "bid")">Bid</option>
+            </select>
+            <label for="record-id">Record ID</label>
+            <input id="record-id" name="recordId" type="number" min="1" required value="@ViewBag.RecordId" class="form-control mb-2" />
+            <button class="btn btn-outline-primary">Find recipients</button>
+        </form>
+        @if (recipients.Count > 0)
+        {
+            <form asp-action="Create" method="post">
+                <input type="hidden" name="kind" value="@ViewBag.Kind" />
+                <input type="hidden" name="recordId" value="@ViewBag.RecordId" />
+                <label for="recipient">Recipient</label>
+                <select id="recipient" name="recipient" class="form-select mb-2" required>
+                @foreach (var recipient in recipients) { <option value="@recipient.Id">@recipient.FullName</option> }
+                </select>
+                <label for="subject">Subject</label>
+                <input id="subject" name="subject" class="form-control mb-2" required maxlength="200" />
+                <label for="question">Question</label>
+                <textarea id="question" name="description" class="form-control mb-2" required maxlength="4000"></textarea>
+                <button class="btn btn-primary">Send question</button>
+            </form>
+        }
+        else if (ViewBag.RecordId != null) { <p>No eligible recipients for this record.</p> }
+    }
+</section>
+</div>

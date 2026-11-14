@@ -22,6 +22,12 @@
     <div class="ev-tender-content">
     <input type="hidden" id="tender" value="@tender?.TenderId" />
     @if (tender != null) { <div class="ev-selected-tender"><div><span class="ev-tender-reference">Tender #@tender.TenderId</span><h2>@tender.Title</h2></div><span class="ev-status">@StatusLabel(tender.Status)</span></div> }
+    @if (tender != null)
+    {
+        @await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = tender.TenderId })
+        <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender"
+           asp-route-recordId="@tender.TenderId" class="btn btn-outline-primary mb-3">Ask for clarification</a>
+    }
     @if (tender == null)
     {
         <div class="ev-empty"><h2>Your next evaluation starts here</h2><p>Tenders will appear when the sourcing officer sends eligible offers to the committee.</p></div>

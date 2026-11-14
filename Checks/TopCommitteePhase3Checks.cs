@@ -95,7 +95,17 @@ public static class TopCommitteePhase3Checks
         Check(TopCommitteeClarificationScope.OpenCount(data.Context("member-3")) == 1, "Answered still pauses every member.");
         await Denied<CommitteeStateConflictException>(() => service.AnswerAsync(manager, created.ClarificationId, "Duplicate"), "Duplicate answer must fail.");
         await Denied<CommitteeTenderNotFoundException>(() => service.ResolveAsync(Actor("member-3", RoleNames.TopCommittee), created.ClarificationId), "Only the question creator may resolve.");
+        await service.ConfirmResolutionAsync(manager, created.ClarificationId);
+        await service.FollowUpAsync(member, created.ClarificationId, "Does that include transit?");
+        Check(question.Status == "Pending" && question.ClarificationResponses.Count == 3 &&
+            TopCommitteeClarificationScope.OpenCount(data.Context("member-1")) == 1,
+            "A follow-up must preserve the first answer and keep voting paused.");
+        await Denied<CommitteeStateConflictException>(() => service.ResolveAsync(member, created.ClarificationId), "Wait for the latest answer before resolving.");
+        await service.AnswerAsync(manager, created.ClarificationId, "Yes, it includes transit.");
+        Check(question.Status == "Answered" && question.ClarificationResponses.Count == 4, "The manager can answer again in the same conversation.");
         await service.ResolveAsync(member, created.ClarificationId);
+        Check(question.Status == "Answered" && TopCommitteeClarificationScope.OpenCount(data.Context("member-1")) == 1, "One confirmation keeps voting paused.");
+        await service.ConfirmResolutionAsync(manager, created.ClarificationId);
         Check(question.Status == "Resolved" && question.ResolvedAt.HasValue, "Resolve must preserve answer and record its timestamp.");
         await Denied<CommitteeStateConflictException>(() => service.ResolveAsync(member, created.ClarificationId), "Duplicate resolution must fail.");
         Check(TopCommitteeClarificationScope.OpenCount(data.Context("member-1")) == 0 && data.Tender.TenderApprovals.Count == 1,
@@ -106,10 +116,12 @@ public static class TopCommitteePhase3Checks
         var secondActor = Actor("member-3", RoleNames.TopCommittee);
         var second = await multipleService.CreateAsync(secondActor, Input("Second question"));
         await multipleService.AnswerAsync(manager, first.ClarificationId, "First answer");
+        await multipleService.ConfirmResolutionAsync(manager, first.ClarificationId);
         await multipleService.ResolveAsync(member, first.ClarificationId);
         Check(TopCommitteeClarificationScope.OpenCount(multiple.Context("member-4")) == 1, "Resolving one question cannot resume voting while another remains open.");
         await multipleService.AnswerAsync(manager, second.ClarificationId, "Second answer");
         await multipleService.ResolveAsync(secondActor, second.ClarificationId);
+        await multipleService.ConfirmResolutionAsync(manager, second.ClarificationId);
         Check(TopCommitteeClarificationScope.OpenCount(multiple.Context("member-4")) == 0, "Voting may resume only when every relevant question is resolved.");
         multiple.Tender.Clarifications.Add(new Clarification { ClarificationId = 99, TenderId = 1,
             SenderUserId = "outsider", RecipientUserId = "manager", Status = "Pending" });
@@ -141,14 +153,14 @@ public static class TopCommitteePhase3Checks
         var gates = await Task.WhenAll(createRace, eligibilityRace);
         Check(gates.Count(v => v) == 1, "Creation and future voting eligibility must not both pass competing state checks.");
 
-        foreach (var method in new[] { "CreateClarification", "ResolveClarification" })
+        foreach (var method in new[] { "CreateClarification", "FollowUpClarification", "ResolveClarification" })
         {
             var action = typeof(TopCommitteeController).GetMethod(method)!;
             Check(action.GetCustomAttribute<HttpPostAttribute>() != null && action.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>() != null,
                 $"{method} must be POST and anti-forgery protected.");
         }
         var postNames = typeof(TopCommitteeController).GetMethods().Where(m => m.GetCustomAttribute<HttpPostAttribute>() != null).Select(m => m.Name);
-        Check(postNames.All(n => n is "CreateClarification" or "ResolveClarification" or "SubmitVote" or "MarkNotificationRead" or "MarkAllNotificationsRead"), "Only approved clarification and Phase 4 voting POSTs may be introduced.");
+        Check(postNames.All(n => n is "CreateClarification" or "FollowUpClarification" or "ResolveClarification" or "SubmitVote" or "AssessImportance" or "MarkNotificationRead" or "MarkAllNotificationsRead"), "Only approved Top Committee POSTs may be introduced.");
 
         var queries = services.GetRequiredService<ITopCommitteeClarificationQueries>();
         await Denied<CommitteeAccessDeniedException>(() => queries.GetPageAsync(new ClaimsPrincipal(), null), "Anonymous conversation query must fail.");
@@ -161,7 +173,7 @@ public static class TopCommitteePhase3Checks
         Check(livePage.Tenders.Count > 0 || emptyHtml.Contains("No tenders assigned yet"), "Live empty state must be useful.");
         var uiPage = PreviewPage();
         var html = await TopCommitteePhase2Checks.RenderAsync(services, member, "Clarifications", uiPage);
-        Check(html.Contains("Pending") && html.Contains("Answered") && html.Contains("Resolved") && html.Contains("Manager response"), "Render all three states and the manager response.");
+        Check(html.Contains("Pending") && html.Contains("Answered") && html.Contains("Resolved") && html.Contains("Follow-up question"), "Render all three states and the manager response.");
         Check(html.Contains("CreateClarification") && html.Contains("ResolveClarification") && html.Contains("__RequestVerificationToken"), "Forms must render anti-forgery tokens and the correct actions.");
         Check(html.Contains("name=\"Create.Subject\"") && html.Contains("name=\"Create.TenderId\"") && !html.Contains("name=\"ManagerId\""), "Form binding must never choose the responsible manager.");
         Check(!html.Contains("<script>alert(1)</script>") && html.Contains("&lt;script&gt;"), "Questions and answers must be encoded.");

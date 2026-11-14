@@ -8,9 +8,15 @@
 <div class="workspace-content">
     <section class="workspace-section">
         <partial name="_PurchaseRequestDetails" model="Model" />
+        @if (Model.Status is "Submitted" or "UnderReview" or "Returned")
+        {
+            <a asp-controller="Clarification" asp-action="Index" asp-route-kind="request"
+               asp-route-recordId="@Model.PurchaseRequestId" class="btn btn-outline-primary">Ask for clarification</a>
+        }
         @if (ViewData["CanEdit"] is true)
         {
             <a asp-action="Edit" asp-route-id="@Model.PurchaseRequestId" class="btn btn-primary">Edit and Resubmit</a>
         }
     </section>
 </div>
+@await Component.InvokeAsync("ClarificationHistory", new { kind = "request", recordId = Model.PurchaseRequestId })

@@ -4,6 +4,7 @@
     ViewData["Title"] = "Request Review";
     var selectedRequest = ViewBag.SelectedRequest as PurchaseRequest;
     var currentUserId = ViewBag.CurrentUserId as string;
+    var hasOpenClarifications = ViewBag.HasOpenRequestClarifications is true;
 }
 <h1>Request Review</h1>
 @if (TempData["RequestSuccess"] is string requestSuccess)
@@ -45,7 +46,7 @@
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
-                            <tr><th>Title</th><th>Department</th><th>Priority</th><th>Target Date</th><th>Submitted</th><th>Assigned Reviewer</th><th></th></tr>
+                            <tr><th>Title</th><th>Department</th><th>Priority</th><th>Target Date</th><th>Submitted</th><th>Status</th><th>Assigned Reviewer</th><th></th></tr>
                         </thead>
                         <tbody>
                         @foreach (var request in Model)
@@ -56,6 +57,7 @@
                                 <td>@request.Priority</td>
                                 <td>@request.TargetDate</td>
                                 <td>@request.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@request.Status</td>
                                 <td>@(request.ReviewedByUser?.FullName ?? "Unassigned")</td>
                                 <td><a class="btn btn-outline-primary btn-sm" asp-action="Requests" asp-route-id="@request.PurchaseRequestId" asp-route-status="@ViewBag.StatusFilter">Review</a></td>
                             </tr>
@@ -114,6 +116,15 @@
                     </div>
                 }
 
+                @await Component.InvokeAsync("ClarificationHistory", new { kind = "request", recordId = selectedRequest.PurchaseRequestId })
+
+                @if (selectedRequest.Status == "UnderReview" && selectedRequest.ReviewedByUserId == currentUserId)
+                {
+                    <a asp-controller="Clarification" asp-action="Index" asp-route-kind="request"
+                       asp-route-recordId="@selectedRequest.PurchaseRequestId"
+                       class="btn btn-outline-primary mt-3">Ask for clarification</a>
+                }
+
                 @if (selectedRequest.Status == "Submitted" &&
                     (selectedRequest.ReviewedByUserId == null || selectedRequest.ReviewedByUserId == currentUserId))
                 {
@@ -122,6 +133,10 @@
                         <input type="hidden" name="id" value="@selectedRequest.PurchaseRequestId" />
                         <button type="submit" class="btn btn-primary">Start Review</button>
                     </form>
+                }
+                else if (selectedRequest.Status == "UnderReview" && hasOpenClarifications)
+                {
+                    <p class="alert alert-info mt-3" role="status">Resolve all open clarifications to continue the review.</p>
                 }
                 else if (selectedRequest.Status == "UnderReview" && selectedRequest.ReviewedByUserId == currentUserId)
                 {

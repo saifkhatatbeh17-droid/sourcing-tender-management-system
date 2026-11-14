@@ -18,7 +18,7 @@
         workspaceController = RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     var showWorkspace = !isHomeLanding && User.Identity?.IsAuthenticated == true
         && ViewData["HideWorkspaceSidebar"] is not true && PageNavigation.Menus.ContainsKey(workspaceController)
-        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
+        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "Clarification" or "Reporting" or "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
     var showAdminSidebar = showWorkspace && workspaceController == "Admin";
     ViewData["WorkspaceController"] = workspaceController;
     ViewData["WorkspaceLabel"] = workspaceController == "Admin" ? "Administration" : System.Text.RegularExpressions.Regex.Replace(workspaceController, "([a-z])([A-Z])", "$1 $2");

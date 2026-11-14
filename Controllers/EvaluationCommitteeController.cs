@@ -19,7 +19,7 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
     public async Task<IActionResult> Dashboard() => View(await LoadPage(null));
     public async Task<IActionResult> Evaluations(int? id) => View(await LoadPage(id));
     public async Task<IActionResult> Reports(int? id) => View(await LoadPage(id));
-    public IActionResult Clarifications() => View();
+    public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
 
     private async Task<CommitteeEvaluationPage> LoadPage(int? id)
     {
@@ -233,17 +233,20 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
     });
 
     [HttpPost, ValidateAntiForgeryToken]
-    public Task<IActionResult> Approve(int id, string version) => Change(id, page =>
+    public Task<IActionResult> Approve(int id, string version) => Change(id, async page =>
     {
-        if (version != page.SharedVersion) return Task.FromResult<string?>("The evaluation changed. Reload and review the latest weights before approving.");
-        if (!page.WeightsReady) return Task.FromResult<string?>("Four members, eligible offers in one currency, and weights totaling 100% are required.");
-        if (!page.ReportReady) return Task.FromResult<string?>("Generate and review the AI report before approving.");
-        if (page.Approvals.Any(a => a.UserId == UserId)) return Task.FromResult<string?>("You have already approved this evaluation.");
+        if (version != page.SharedVersion) return "The evaluation changed. Reload and review the latest weights before approving.";
+        if (!page.WeightsReady) return "Four members, eligible offers in one currency, and weights totaling 100% are required.";
+        if (!page.ReportReady) return "Generate and review the AI report before approving.";
+        if (page.Approvals.Any(a => a.UserId == UserId)) return "You have already approved this evaluation.";
+        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
+            (c.TenderId == id || (c.Bid != null && c.Bid.TenderId == id))))
+            return "Both sides must resolve open clarifications before approving the evaluation.";
         var member = page.Members.Single(m => m.UserId == UserId);
         db.TenderApprovals.Add(new TenderApproval { TenderId = id, UserId = UserId, CommitteeAssignmentId = member.CommitteeAssignmentId,
             Stage = "Evaluation", Decision = "Approved", DecidedAt = DateTime.UtcNow });
         CompleteWeightApproval(page);
-        return Task.FromResult<string?>(null);
+        return null;
     });
 
     internal static void CompleteWeightApproval(CommitteeEvaluationPage page)

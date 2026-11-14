@@ -2,6 +2,7 @@
 @section Styles { <partial name="_ReadStyles" /> }
 @{ ViewData["Title"] = "Committee Clarifications"; }
 <div class="workspace-heading"><h1>Clarifications</h1><a asp-action="Dashboard">Back to dashboard</a></div>
+<p><a asp-controller="Clarification" asp-action="Index">Questions from the Sourcing Manager</a></p>
 <p class="text-secondary">Your private questions to the Sourcing Manager and their responses. Reload to see updates.</p>
 @if (TempData["ClarificationSuccess"] is string success) { <p class="border rounded p-3" role="status">@success</p> }
 @if (TempData["ClarificationError"] is string failure) { <p class="text-danger border rounded p-3" role="alert">@failure</p> }

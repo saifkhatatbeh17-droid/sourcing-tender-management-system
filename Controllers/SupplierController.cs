@@ -242,21 +242,13 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return System.IO.File.Exists(path) ? PhysicalFile(path, document.ContentType, document.OriginalFileName) : NotFound();
     }
 
-    public async Task<IActionResult> Clarifications()
-    {
-        var profile = await MyProfile(); if (profile == null) return NotFound();
-        return View(await db.Clarifications.AsNoTracking().Where(c =>
-                (c.SenderUserId == UserId || c.RecipientUserId == UserId) &&
-                ((c.BidId != null && c.Bid!.Invitation.SupplierProfileId == profile.SupplierProfileId) ||
-                (c.TenderId != null && c.Tender!.Invitations.Any(i => i.SupplierProfileId == profile.SupplierProfileId))))
-            .Include(c => c.ClarificationResponses).ThenInclude(r => r.RespondedByUser).Include(c => c.Tender).OrderByDescending(c => c.CreatedAt).ToListAsync());
-    }
+    public IActionResult Clarifications(int? id) => RedirectToAction("Index", "Clarification", new { id });
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Reply(int id, string message)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
-        if (string.IsNullOrWhiteSpace(message) || message.Length > 4000) { TempData["Error"] = "Enter a message of up to 4,000 characters."; return RedirectToAction(nameof(Clarifications)); }
+        if (string.IsNullOrWhiteSpace(message) || message.Length > 4000 || message.Trim() == SourcingTenderManagement.Services.ClarificationResolution.Confirmation) { TempData["Error"] = "Enter a message of up to 4,000 characters."; return RedirectToAction(nameof(Clarifications)); }
         var clarification = await db.Clarifications.SingleOrDefaultAsync(c => c.ClarificationId == id &&
             (c.SenderUserId == UserId || c.RecipientUserId == UserId) &&
             ((c.BidId != null && c.Bid!.Invitation.SupplierProfileId == profile.SupplierProfileId) ||

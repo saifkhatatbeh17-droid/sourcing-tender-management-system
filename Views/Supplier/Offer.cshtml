@@ -38,3 +38,9 @@
 <div class="supplier-action-bar"><a asp-action="Offers" class="btn btn-outline-secondary">Back to my offers</a>@if (Model.Status == "Draft" && Model.Invitation.Status == "Accepted" && tender.ClosesAt > DateTime.UtcNow && tender.Status is ("Open" or "Published")) { <a asp-action="CreateOffer" asp-route-invitationId="@Model.InvitationId" asp-route-bidId="@Model.BidId" class="btn btn-primary">Continue draft</a> }</div>
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
+@if (Model.SubmittedAt.HasValue && Model.Status != "Withdrawn")
+{
+    <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid"
+       asp-route-recordId="@Model.BidId" class="btn btn-outline-primary mt-3">Ask for clarification</a>
+}
+@await Component.InvokeAsync("ClarificationHistory", new { kind = "bid", recordId = Model.BidId })
