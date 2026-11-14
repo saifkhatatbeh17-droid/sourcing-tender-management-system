@@ -1,7 +1,7 @@
 @model SourcingTenderManagement.Models.Entities.Bid
 @{
     var tender = Model.Invitation.Tender;
-    var total = Model.BidItems.Sum(i => i.Quantity * i.UnitPrice);
+    var total = CommitteeEvaluationPage.Total(Model);
     var reportStatus = tender.EvaluationReport?.Status;
     var stage = Model.Status == "Draft" ? 0
         : reportStatus is "TopApproved" || Model.Status is "Accepted" or "Rejected" ? 7
@@ -16,13 +16,14 @@
         : reportStatus == "ManagerApproved" ? "The Sourcing Manager approved the recommendation; the Top Committee is recording its final decision."
         : reportStatus == "OfficerSubmitted" ? "The Sourcing Officer approved the consolidated report; it is now with the Sourcing Manager."
         : reportStatus is "CommitteeApproved" or "ReturnedForReview" ? "The four-member evaluation report is with the Sourcing Officer for review and approval."
-        : tender.Status == "UnderEvaluation" ? "The Sourcing Officer approved this offer for evaluation. The four committee members are scoring it independently."
+        : tender.Status == "UnderEvaluation" ? "The evaluation committee is reviewing eligible offers and recording its shared decision."
         : Model.ComplianceStatus == "Compliant" || Model.Status == "Compliant" ? "The Sourcing Officer approved the requirements. Committee evaluation begins after the tender closes."
         : Model.ComplianceStatus == "NonCompliant" || Model.Status == "NonCompliant" ? "The Sourcing Officer marked this offer non-compliant. Check the officer's findings or clarifications."
         : Model.Status == "Submitted" ? "Your offer was sent to the Sourcing Officer for requirements and document review."
         : "This offer is a draft and has not entered the review workflow.";
     ViewData["Title"] = "Offer details";
 }
+<div class="supplier-workspace supplier-workspace--offer">
 <p class="eyebrow">SUPPLIER OFFER · BID-@Model.BidId.ToString("D6")</p><div class="supplier-page-heading"><div><h1>Offer details</h1><p>@tender.Title · TND-@tender.TenderId.ToString("D6")</p></div><span class="status-badge status-@Model.Status.ToLowerInvariant()">@Model.Status</span></div>
 @if (TempData["Success"] is string success) { <div class="alert alert-success" role="status">@success</div> }
 @if (TempData["Error"] is string error) { <div class="alert alert-warning" role="alert">@error</div> }
@@ -43,4 +44,6 @@
     <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid"
        asp-route-recordId="@Model.BidId" class="btn btn-outline-primary mt-3">Ask for clarification</a>
 }
-@await Component.InvokeAsync("ClarificationHistory", new { kind = "bid", recordId = Model.BidId })
+<details class="supplier-conversation-history"><summary>Clarification history <span aria-hidden="true">⌄</span></summary>@await Component.InvokeAsync("ClarificationHistory", new { kind = "bid", recordId = Model.BidId })</details>
+
+</div>

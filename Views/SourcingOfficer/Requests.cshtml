@@ -12,9 +12,9 @@
 @section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
 
 <div class="so-page so-page--requests">
-<header class="so-page-header"><div><p class="so-eyebrow">SOURCING WORKSPACE</p>
-<h1>Request Review</h1>
-<p class="so-page-description">Review purchase requests, inspect requested items, and record the review decision for requests assigned to you.</p></div><span class="so-page-header-icon" aria-hidden="true">PR</span></header>
+<header class="so-page-header"><div>
+<h1>Request review</h1>
+<p class="so-page-description">Review purchase requests and confirm the next sourcing step.</p></div></header>
 @if (TempData["RequestSuccess"] is string requestSuccess)
 {
     <div class="alert alert-success" role="status">@requestSuccess</div>
@@ -24,10 +24,10 @@
     <div class="alert alert-danger" role="alert">@requestError</div>
 }
 <section class="so-summary-grid" aria-label="Request summary">
-    <article class="so-summary-card so-tone-blue"><span class="so-summary-label">Requests in this view</span><strong>@Model.Count</strong><span class="so-summary-note">Based on the selected status filter</span></article>
-    <article class="so-summary-card so-tone-amber"><span class="so-summary-label">Submitted</span><strong>@submittedRequestCount</strong><span class="so-summary-note">Awaiting an officer review</span></article>
-    <article class="so-summary-card so-tone-violet"><span class="so-summary-label">Under review</span><strong>@underReviewRequestCount</strong><span class="so-summary-note">Currently being reviewed</span></article>
-    <article class="so-summary-card so-tone-teal"><span class="so-summary-label">Approved</span><strong>@approvedRequestCount</strong><span class="so-summary-note">Ready for the next sourcing step</span></article>
+    <article class="so-summary-card"><span class="so-summary-label">Requests in this view</span><strong>@Model.Count</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Submitted</span><strong>@submittedRequestCount</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Under review</span><strong>@underReviewRequestCount</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Approved</span><strong>@approvedRequestCount</strong></article>
 </section>
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Request Review">
     <button class="nav-link @(selectedRequest == null ? "active" : "")" id="review-0-tab" data-bs-toggle="tab" data-bs-target="#review-0" type="button" role="tab" aria-controls="review-0" aria-selected="@(selectedRequest == null ? "true" : "false")">Requests</button>
@@ -36,7 +36,7 @@
 <div class="tab-content workspace-content">
     <div class="tab-pane fade @(selectedRequest == null ? "show active" : "")" id="review-0" role="tabpanel" aria-labelledby="review-0-tab" tabindex="0">
         <section class="workspace-section">
-            <div class="so-section-heading"><div><p class="so-eyebrow">RECORDS</p><h2>Purchase Requests</h2></div><span class="so-section-count">@Model.Count</span></div>
+            <div class="so-section-heading"><div><h2>Purchase Requests</h2></div><span class="so-section-count">@Model.Count</span></div>
             <form asp-action="Requests" method="get" class="so-filter-form">
                 <div><label for="request-status" class="form-label">Filter by status</label>
                     <select id="request-status" name="status" class="form-select" style="max-width: 240px">
@@ -58,7 +58,7 @@
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
-                            <tr><th>Title</th><th>Department</th><th>Priority</th><th>Target Date</th><th>Submitted</th><th>Status</th><th>Status</th><th>Assigned Reviewer</th><th></th></tr>
+                            <tr><th>Title</th><th>Department</th><th>Priority</th><th>Target Date</th><th>Submitted</th><th>Status</th><th>Assigned Reviewer</th><th></th></tr>
                         </thead>
                         <tbody>
                         @foreach (var request in Model)
@@ -70,7 +70,7 @@
                                 <td>@request.TargetDate</td>
                                 <td>@request.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
                                 <td><span class="so-status-badge" data-status="@request.Status">@request.Status</span></td>
-                                <td>@request.Status</td><td>@(request.ReviewedByUser?.FullName ?? "Unassigned")</td>
+                                <td>@(request.ReviewedByUser?.FullName ?? "Unassigned")</td>
                                 <td><a class="btn btn-outline-primary btn-sm" asp-action="Requests" asp-route-id="@request.PurchaseRequestId" asp-route-status="@ViewBag.StatusFilter">Review</a></td>
                             </tr>
                         }
@@ -139,7 +139,10 @@
                         <button type="submit" class="btn btn-primary">Start Review</button>
                     </form>
                 }
-                else if (selectedRequest.Status == "UnderReview" && hasOpenClarifications) { <p class="alert alert-info mt-3" role="status">Resolve all open clarifications to continue the review.</p> }
+                else if (selectedRequest.Status == "UnderReview" && hasOpenClarifications)
+                {
+                    <div class="so-review-blocked mt-3" role="status"><div><strong>Approval is waiting for clarification</strong><p>An answer does not close the conversation. Both participants must confirm resolution before this request can be approved, returned or rejected.</p></div><div class="so-action-buttons"><button type="button" class="btn btn-primary" disabled aria-describedby="request-approval-blocked">Approve</button><a asp-controller="Clarification" asp-action="Index" asp-route-kind="request" asp-route-recordId="@selectedRequest.PurchaseRequestId" class="btn btn-outline-primary">Review &amp; resolve clarifications ↗</a></div><small id="request-approval-blocked">The decision buttons become available once every clarification is resolved.</small></div>
+                }
                 else if (selectedRequest.Status == "UnderReview" && selectedRequest.ReviewedByUserId == currentUserId)
                 {
                     <div class="workspace-section mt-3">

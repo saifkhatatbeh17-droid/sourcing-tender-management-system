@@ -12,7 +12,7 @@ function setup(mode = 'success') {
     let modalExists = false, modalShown = 0, authenticated = false;
     const password = { value: crypto.randomUUID() };
     const form = { reportValidity: () => mode !== 'invalid', querySelector: () => password, addEventListener: (name, fn) => { events[name] = fn; } };
-    const button = { form, formAction: 'http://localhost/Account/LoginWithFaceId', textContent: 'Login with Face ID + Password', disabled: false, type: 'submit', addEventListener: (name, fn) => { events[`button:${name}`] = fn; } };
+    const button = { setAttribute(name, value) { this[name] = String(value); }, removeAttribute(name) { delete this[name]; }, form, formAction: 'http://localhost/Account/LoginWithFaceId', textContent: 'Login with Face ID + Password', disabled: false, type: 'submit', addEventListener: (name, fn) => { events[`button:${name}`] = fn; } };
     const host = { dataset: { faceApiUrl: '/lib/face-api/face-api.js', verificationJs: '/js/face-verification.js', modalJs: '/js/face-login-modal.js', enrollmentJs: '/js/face-enrollment.js', setupJs: '/js/face-setup-modal.js' } };
     Object.defineProperty(host, 'innerHTML', { set: () => { modalExists = true; } });
     const error = { hidden: true, textContent: '' }, continuation = { hidden: true }, verificationForm = { dataset: {} }, setupElement = { dataset: {} };
@@ -20,8 +20,8 @@ function setup(mode = 'success') {
     const location = { href: 'http://localhost/Account/Login', origin: 'http://localhost' };
     const bootstrap = { Modal: { getOrCreateInstance: () => ({ show: () => { modalShown++; } }) } };
     const window = { location, bootstrap };
-    const context = { URL, FormData: class { constructor(value) { assert.equal(value, form); } }, Map, window, bootstrap,
-        document: {
+    const context = { CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options?.detail; } }, URL, FormData: class { constructor(value) { assert.equal(value, form); } }, Map, window, bootstrap,
+        document: { dispatchEvent() {},
             getElementById: id => id === 'face-setup-modal' ? (modalExists && mode === 'setup' ? setupElement : null) : id === 'face-login-modal' ? (modalExists && mode !== 'setup' ? {} : null) : id === 'verification-form' ? (modalExists && mode !== 'missing' && mode !== 'setup' ? verificationForm : null) : nodes[id],
             createElement: () => ({ remove() {} }), body: { appendChild: script => {
                 assert.ok(authenticated, 'scripts must not load before password success'); scripts.push(script.src);

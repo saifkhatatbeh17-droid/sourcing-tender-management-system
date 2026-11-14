@@ -4,12 +4,9 @@
         new DashboardMetric("Requests to review", Convert.ToString(ViewBag.PendingRequests) ?? "0", "Purchase requests awaiting review", true, "Requests"),
         new DashboardMetric("Draft tenders", Convert.ToString(ViewBag.DraftTenders) ?? "0", "Prepare and publish tenders", false, "Tenders"),
         new DashboardMetric("Reports for your review", Convert.ToString(ViewBag.ReportsAwaitingOfficer) ?? "0", "Committee reports ready for review", false, "Evaluations"),
-        new DashboardMetric("Published tenders", Convert.ToString(ViewBag.PublishedTenders) ?? "0", "Published and open tenders", false, "Tenders"),
-        new DashboardMetric("Invitations sent", Convert.ToString(ViewBag.InvitationsSent) ?? "0", "Supplier participation requests", false, "Invitations"),
         new DashboardMetric("Submitted offers", Convert.ToString(ViewBag.SubmittedOffers) ?? "0", "Supplier bids received", false, "Offers"),
         new DashboardMetric("Evaluations in progress", Convert.ToString(ViewBag.EvaluationsInProgress) ?? "0", "With the evaluation committee", false, "Evaluations"),
-        new DashboardMetric("Compliance reviews", Convert.ToString(ViewBag.PendingCompliance) ?? "0", "Offers awaiting a compliance decision", false, "Compliance"),
-        new DashboardMetric("With sourcing manager", Convert.ToString(ViewBag.ReportsAwaitingManager) ?? "0", "Reports awaiting manager review", false, "Reports")
+        new DashboardMetric("Compliance reviews", Convert.ToString(ViewBag.PendingCompliance) ?? "0", "Offers awaiting a compliance decision", false, "Compliance")
     };
 }
 <div class="unified-dashboard">

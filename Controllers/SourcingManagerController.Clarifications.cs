@@ -61,13 +61,14 @@ public partial class SourcingManagerController
             .Where(assignment => assignment.TenderId == selectedTenderId)
             .ToList();
 
-        var canReply = false;
-        if (selected != null && selected.RecipientUserId == ManagerId && selected.Status == "Pending")
-        {
-            var conversationTenderId = selected.TenderId ?? selected.Bid?.TenderId;
-            canReply = committeeAssignments.Any(assignment =>
-                assignment.TenderId == conversationTenderId && assignment.UserId == selected.SenderUserId);
-        }
+        var committeeQuestion = selected != null && SourcingTenderManagement.Services.TopCommittee.TopCommitteeClarificationScope.Query(_context)
+            .Any(c => c.ClarificationId == selected.ClarificationId);
+        var canReply = selected != null && selected.Status != "Resolved" &&
+            (!committeeQuestion || (selected.RecipientUserId == ManagerId && selected.Status == "Pending"));
+        var confirmations = SourcingTenderManagement.Services.ClarificationResolution.ConfirmedUsers(selected?.ClarificationResponses ?? []);
+        ViewBag.HasConfirmed = confirmations.Contains(ManagerId);
+        ViewBag.CanResolve = selected != null && selected.Status != "Resolved" && !confirmations.Contains(ManagerId) &&
+            (!committeeQuestion || (selected.RecipientUserId == ManagerId && selected.Status == "Answered"));
 
         var page = new ManagerClarificationPage(
             tenders, selectedTenderId, recipients, conversations, selected, ManagerId, canReply);

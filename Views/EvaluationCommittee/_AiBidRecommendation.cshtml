@@ -31,7 +31,15 @@
             <div class="ev-ai-explanation"><h5>Why this suggestion?</h5><p>@scenario.Reason</p></div>
         </div>
     }
-    else { <div class="ev-ai-ready"><span aria-hidden="true">↗</span><p>Compare the eligible offers to see a suggested supplier and the reasons behind it.</p></div> }
+    else
+    {
+        <div class="ev-ai-insight ev-ai-empty">
+            <span class="ev-ai-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4h14v16H5zM8 9h8M8 13h5M8 17h3"/><path d="m16 14 1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/></svg></span>
+            <h4>Your recommendation will appear here</h4>
+            <p>Set your percentages and compare offers to see the suggested supplier and why it fits.</p>
+            <div class="ev-ai-empty-preview" aria-hidden="true"><span></span><span></span><span></span></div>
+        </div>
+    }
     </div>
     @if (scenario != null)
     {

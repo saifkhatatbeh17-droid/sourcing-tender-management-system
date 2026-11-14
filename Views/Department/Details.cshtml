@@ -1,5 +1,7 @@
 @model SourcingTenderManagement.Models.Entities.PurchaseRequest
 @{ ViewData["Title"] = "Purchase Requests"; }
+@section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
+<div class="department-workspace department-document">
 <h1>Purchase Requests</h1>
 <div class="nav nav-tabs workspace-tabs" aria-label="Purchase Requests">
     <a class="nav-link" asp-action="Requests">My Requests</a>
@@ -21,3 +23,5 @@
     </section>
 </div>
 @await Component.InvokeAsync("ClarificationHistory", new { kind = "request", recordId = Model.PurchaseRequestId })
+
+</div>

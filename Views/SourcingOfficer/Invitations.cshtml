@@ -11,9 +11,9 @@
 @section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
 
 <div class="so-page so-page--invitations">
-<header class="so-page-header"><div><p class="so-eyebrow">SUPPLIER OUTREACH</p>
-<h1>Supplier Invitations</h1>
-<p class="so-page-description">Review invitations already sent and invite approved suppliers to your Published tenders.</p></div><span class="so-page-header-icon" aria-hidden="true">IN</span></header>
+<header class="so-page-header"><div>
+<h1>Supplier invitations</h1>
+<p class="so-page-description">Invite approved suppliers and follow their responses.</p></div><a class="btn btn-primary" href="#invitations-create">Invite suppliers <span aria-hidden="true">＋</span></a></header>
 
 @if (TempData["InvitationSuccess"] is string successMessage)
 {
@@ -24,15 +24,15 @@
     <div class="alert alert-danger" role="alert">@errorMessage</div>
 }
 <section class="so-summary-grid" aria-label="Invitation summary">
-    <article class="so-summary-card so-tone-blue"><span class="so-summary-label">Invitations</span><strong>@Model.Count</strong><span class="so-summary-note">Existing records</span></article>
-    <article class="so-summary-card so-tone-amber"><span class="so-summary-label">Pending</span><strong>@pendingInvitations</strong><span class="so-summary-note">Awaiting supplier response</span></article>
-    <article class="so-summary-card so-tone-violet"><span class="so-summary-label">Tenders represented</span><strong>@invitedTenderCount</strong><span class="so-summary-note">Across existing invitations</span></article>
-    <article class="so-summary-card so-tone-teal"><span class="so-summary-label">Eligible tenders</span><strong>@eligibleTenders.Count</strong><span class="so-summary-note">Published by you</span></article>
+    <article class="so-summary-card"><span class="so-summary-label">Invitations</span><strong>@Model.Count</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Pending</span><strong>@pendingInvitations</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Tenders represented</span><strong>@invitedTenderCount</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Eligible tenders</span><strong>@eligibleTenders.Count</strong></article>
 </section>
 <nav class="so-jump-nav" aria-label="Invitation sections"><a id="invitations-list-tab" href="#invitations-list">Existing invitations</a><a id="invitations-create-tab" href="#invitations-create">Invite suppliers</a></nav>
 
 <section id="invitations-list" class="workspace-section" aria-labelledby="invitations-list-tab">
-    <div class="so-section-heading"><div><p class="so-eyebrow">RECORDS</p><h2>Existing Invitations</h2></div><span class="so-section-count">@Model.Count</span></div>
+    <div class="so-section-heading"><div><h2>Existing Invitations</h2></div><span class="so-section-count">@Model.Count</span></div>
     @if (Model.Count == 0)
     {
         <div class="so-empty-state"><span class="so-empty-mark" aria-hidden="true">I</span><div><strong>No invitations yet</strong><p>Invitations you send will appear here.</p></div></div>
@@ -49,13 +49,16 @@
     }
 </section>
 <section id="invitations-create" class="so-action-panel so-action-panel--form" aria-labelledby="invitations-create-title">
-    <div class="so-section-heading"><div><p class="so-eyebrow">NEXT ACTION</p><h2 id="invitations-create-title">Invite Approved Suppliers</h2></div><span class="so-section-count">@eligibleTenders.Count tenders</span></div>
-    @if (eligibleTenders.Count == 0) { <p class="alert alert-info mb-3">You do not have any Published tenders available for invitations.</p> }
+    <div class="so-section-heading"><div><h2 id="invitations-create-title">Invite Approved Suppliers</h2></div><span class="so-section-count">@eligibleTenders.Count tenders</span></div>
+    @if (eligibleTenders.Count == 0)
+    {
+        <div class="so-invitation-unavailable"><h3>No tenders are ready for invitations</h3><p>Publish a tender with a future submission deadline first. Draft, expired and closed tenders cannot receive invitations.</p><a asp-action="Tenders" class="btn btn-primary">Manage &amp; publish tenders ↗</a></div>
+    }
     @if (approvedSuppliers.Count == 0) { <p class="alert alert-info mb-3">There are no Approved suppliers available.</p> }
     <form asp-action="CreateInvitation" method="post" class="so-invitation-form">
         @Html.AntiForgeryToken()
-        <div class="mb-3"><label for="tenderId" class="form-label">Published Tender</label><select id="tenderId" name="tenderId" class="form-select" required disabled="@(eligibleTenders.Count == 0)"><option value="">Select a tender</option>@foreach (var tender in eligibleTenders) { <option value="@tender.TenderId">@tender.Title (closes @tender.ClosesAt.ToString("yyyy-MM-dd HH:mm") UTC)</option> }</select></div>
-        <fieldset class="mb-3 so-supplier-picker" disabled="@(approvedSuppliers.Count == 0)"><legend class="fs-6">Approved Suppliers <span class="so-inline-count">@approvedSuppliers.Count</span></legend>
+        <div class="mb-3"><label for="tenderId" class="form-label">Published or open tender</label><select id="tenderId" name="tenderId" class="form-select" required disabled="@(eligibleTenders.Count == 0)"><option value="">@(eligibleTenders.Count == 0 ? "No eligible tenders — publish a tender first" : "Select a tender")</option>@foreach (var tender in eligibleTenders) { <option value="@tender.TenderId">@tender.Title (closes @tender.ClosesAt.ToString("yyyy-MM-dd HH:mm") UTC)</option> }</select></div>
+        <fieldset class="mb-3 so-supplier-picker" disabled="@(approvedSuppliers.Count == 0 || eligibleTenders.Count == 0)"><legend class="fs-6">Approved Suppliers <span class="so-inline-count">@approvedSuppliers.Count</span></legend>
             <div class="form-check mb-3"><input id="all-suppliers" name="allSuppliers" value="true" type="checkbox" class="form-check-input" /><label for="all-suppliers" class="form-check-label fw-semibold">Select all suppliers</label></div>
             <div class="so-supplier-list">@foreach (var supplier in approvedSuppliers) { <div class="form-check"><input id="supplier-@supplier.SupplierProfileId" name="supplierProfileIds" value="@supplier.SupplierProfileId" type="checkbox" class="form-check-input supplier-choice" /><label for="supplier-@supplier.SupplierProfileId" class="form-check-label">@supplier.CompanyName</label></div> }</div>
             <p class="form-text">Choose one or more suppliers. Suppliers already invited to this tender will be skipped.</p>

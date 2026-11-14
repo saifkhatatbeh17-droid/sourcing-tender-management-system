@@ -79,7 +79,9 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
                 throw new InvalidOperationException("Select the committee's offer before generating its report.");
             var fingerprint = BidRecommendationService.Fingerprint(page);
             var version = page.SharedVersion;
-            var result = await ai.Recommend(page, financialWeight, cancellationToken, writeReport ? tender.EvaluationReport!.RecommendedBidId : null);
+            var result = writeReport
+                ? await ai.FinalReport(page, financialWeight, cancellationToken)
+                : await ai.Recommend(page, financialWeight, cancellationToken);
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};", cancellationToken);
             var currentTender = await TenderQuery().AsNoTracking().SingleAsync(t => t.TenderId == id, cancellationToken);
@@ -274,6 +276,30 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
         db.TenderApprovals.Add(new TenderApproval { TenderId = id, UserId = UserId, CommitteeAssignmentId = member.CommitteeAssignmentId,
             Stage = "Evaluation", Decision = "Approved", DecidedAt = DateTime.UtcNow });
         return null;
+    });
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> RejectOffer(int id, string version, string? reason) => Change(id, page =>
+    {
+        if (version != page.SharedVersion) return Task.FromResult<string?>("The evaluation changed. Reload before making a decision.");
+        if (!page.SelectionReady) return Task.FromResult<string?>("Choose an offer before recording a decision.");
+        if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length > 3500)
+            return Task.FromResult<string?>("Provide a reason of up to 3,500 characters.");
+        var report = page.Tender!.EvaluationReport!;
+        var note = $"Rejected offer #{report.RecommendedBidId}: {reason.Trim()}";
+        var previous = page.Evaluations.Where(e => e.CommitteeAssignmentId == page.Members.Single(m => m.UserId == UserId).CommitteeAssignmentId && !string.IsNullOrWhiteSpace(e.Notes)).OrderByDescending(e => e.SubmittedAt).FirstOrDefault()?.Notes;
+        var combinedNote = string.IsNullOrEmpty(previous) ? note : $"{previous}\n\n{note}";
+        if (combinedNote.Length > 4000) return Task.FromResult<string?>("Shorten your existing committee comment or the rejection reason so the combined note fits within 4,000 characters.");
+        var entry = UpdateMemberComment(page, combinedNote);
+        if (db.Entry(entry).State == EntityState.Detached) db.Evaluations.Add(entry);
+        db.TenderApprovals.RemoveRange(page.Approvals);
+        foreach (var approval in page.Approvals.ToList()) page.Tender.TenderApprovals.Remove(approval);
+        report.RecommendedBidId = null;
+        report.CommitteeSummary = null;
+        report.SubmittedAt = null;
+        report.Status = "Draft";
+        TempData["EvaluationTab"] = "forms";
+        return Task.FromResult<string?>(null);
     });
 
     internal static void CompleteWeightApproval(CommitteeEvaluationPage page)
