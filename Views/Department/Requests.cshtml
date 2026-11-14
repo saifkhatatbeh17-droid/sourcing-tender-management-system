@@ -9,6 +9,6 @@
     <p><a asp-action="Create" class="btn btn-primary">Create Request</a></p>
     <section class="workspace-section">
         <h2>My Purchase Requests</h2>
-        <partial name="_PurchaseRequestList" model="Model" />
+        <partial name="_PurchaseRequestList" model="Model" view-data='new ViewDataDictionary(ViewData) { ["ShowQrLink"] = true }' />
     </section>
 </div>

@@ -19,12 +19,13 @@ public sealed class FaceSetupController(ApplicationDbContext db, FaceEnrollmentS
     }
 
     [HttpGet]
-    public async Task<IActionResult> Modal(CancellationToken ct)
+    public async Task<IActionResult> Modal(CancellationToken ct, string? returnUrl = null)
     {
         var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (id == null) return Forbid();
         try
         {
+            ViewData["ReturnUrl"] = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
             if (await FaceSetupFlow.ShouldPromptAsync(db, User, Request, ct))
                 return PartialView("_SetupModal", await enrollment.GetAsync(id, ct));
             return PartialView("~/Views/FaceLogin/_FaceIdModal.cshtml", await verification.GetAsync(id, ct));
