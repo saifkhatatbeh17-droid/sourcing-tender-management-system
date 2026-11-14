@@ -5,6 +5,7 @@ using SourcingTenderManagement.Services.TopCommittee;
 using SourcingTenderManagement.Services.FaceEnrollment;
 using SourcingTenderManagement.Services.FaceVerification;
 using SourcingTenderManagement.Services.FaceLogin;
+using SourcingTenderManagement.Services.PdfWatermark;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddEnvironmentVariables();
@@ -12,6 +13,7 @@ var connection = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DefaultConnection is missing.");
 builder.Services.AddControllersWithViews();
 builder.Services.AddHostedService<SourcingTenderManagement.Services.TenderClosureService>();
+builder.Services.AddPdfWatermarks();
 builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidRecommendationService>(client => client.Timeout = TimeSpan.FromMinutes(5));
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
 builder.Services.AddTopCommitteeFoundation();
