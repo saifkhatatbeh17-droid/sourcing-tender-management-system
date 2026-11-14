@@ -50,10 +50,22 @@
             target.scrollIntoView({ block: 'nearest' });
         });
     });
-    try {
-        const saved = document.getElementById(sessionStorage.getItem(key));
-        if (saved?.matches('[data-bs-toggle="tab"]')) bootstrap.Tab.getOrCreateInstance(saved).show();
-    } catch { /* Keep the default tab when storage is unavailable. */ }
+    const navigation = new URL(window.location.href);
+    const requestedTab = navigation.searchParams.get('tab');
+    if (['offers', 'forms', 'report'].includes(requestedTab)) {
+        const target = document.getElementById(`${requestedTab}-tab`);
+        if (target) {
+            bootstrap.Tab.getOrCreateInstance(target).show();
+            target.focus({ preventScroll: true });
+            navigation.searchParams.delete('tab');
+            history.replaceState(null, '', navigation);
+        }
+    } else {
+        try {
+            const saved = document.getElementById(sessionStorage.getItem(key));
+            if (saved?.matches('[data-bs-toggle="tab"]')) bootstrap.Tab.getOrCreateInstance(saved).show();
+        } catch { /* Keep the default tab when storage is unavailable. */ }
+    }
     page.querySelector('[data-ai-comparison]')?.addEventListener('submit', event => {
         const form = event.currentTarget;
         const technical = form.elements.requirementsWeight;

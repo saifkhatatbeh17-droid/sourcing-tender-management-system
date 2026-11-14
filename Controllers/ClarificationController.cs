@@ -45,6 +45,14 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         else if (recordId.HasValue)
         {
             ViewBag.RecordUrl = await RecordUrl(actor.Id, kind, recordId, ct);
+            if (ViewBag.RecordUrl != null)
+                ViewBag.RecordTitle = kind switch
+                {
+                    "request" => await db.PurchaseRequests.Where(r => r.PurchaseRequestId == recordId).Select(r => r.Title).FirstOrDefaultAsync(ct),
+                    "tender" => await db.Tenders.Where(t => t.TenderId == recordId).Select(t => t.Title).FirstOrDefaultAsync(ct),
+                    "bid" => await db.Bids.Where(b => b.BidId == recordId).Select(b => b.Invitation.Tender.Title).FirstOrDefaultAsync(ct),
+                    _ => null
+                };
         }
         if (recordId.HasValue) threads = threads.ForRecord(kind, recordId.Value);
         if (direction == "sent") threads = threads.Where(c => c.SenderUserId == actor.Id);
@@ -72,7 +80,38 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         ViewBag.Direction = direction;
         ViewBag.Status = status;
         ViewBag.Recipients = recordId.HasValue ? await Recipients(actor, kind, recordId.Value, ct) : [];
-        return View(await threads.OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.ClarificationId).ToListAsync(ct));
+        ViewBag.ActorId = actor.Id;
+        ViewBag.Records = selected == null && !recordId.HasValue ? await RecordChoices(actor.Id, ct) : [];
+        return View(await threads.Include(c => c.SenderUser).Include(c => c.RecipientUser)
+            .OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.ClarificationId).ToListAsync(ct));
+    }
+
+    private async Task<List<SourcingTenderManagement.Models.ClarificationRecordOption>> RecordChoices(string actorId, CancellationToken ct)
+    {
+        var officer = User.IsInRole(RoleNames.SourcingOfficer);
+        var department = User.IsInRole(RoleNames.Department);
+        var supplier = User.IsInRole(RoleNames.Supplier);
+        var evaluator = User.IsInRole(RoleNames.EvaluationCommittee);
+        var manager = User.IsInRole(RoleNames.SourcingManager);
+        var records = new List<SourcingTenderManagement.Models.ClarificationRecordOption>();
+        var requests = await db.PurchaseRequests.AsNoTracking().Where(r =>
+            (r.Status == "Submitted" || r.Status == "UnderReview" || r.Status == "Returned") &&
+            ((department && r.RequestedByUserId == actorId) || (officer && r.Status == "UnderReview" && r.ReviewedByUserId == actorId)))
+            .OrderByDescending(r => r.CreatedAt).Select(r => new { r.PurchaseRequestId, r.Title }).ToListAsync(ct);
+        records.AddRange(requests.Select(r => new SourcingTenderManagement.Models.ClarificationRecordOption("request", r.PurchaseRequestId, r.Title, $"Purchase request #{r.PurchaseRequestId}")));
+        var tenders = db.Tenders.AsNoTracking().Where(t =>
+            (officer && t.CreatedByUserId == actorId) ||
+            (supplier && t.Invitations.Any(i => i.SupplierProfile.UserId == actorId && (i.Status == "Pending" || i.Status == "Accepted"))) ||
+            (evaluator && t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == actorId)) ||
+            (manager && t.Status == "AwaitingManagerReview"));
+        var tenderChoices = await tenders.Where(t => t.Status == "Published" || t.Status == "Open" || t.Status == "Closed" || t.Status == "UnderEvaluation" || t.Status == "AwaitingOfficerSummary" || t.Status == "AwaitingManagerReview")
+            .OrderByDescending(t => t.CreatedAt).Select(t => new { t.TenderId, t.Title }).ToListAsync(ct);
+        records.AddRange(tenderChoices.Select(t => new SourcingTenderManagement.Models.ClarificationRecordOption("tender", t.TenderId, t.Title, $"Tender #{t.TenderId}")));
+        var bids = await db.Bids.AsNoTracking().Where(b => b.SubmittedAt != null && b.Status != "Withdrawn" &&
+            ((officer && b.Invitation.Tender.CreatedByUserId == actorId) || (supplier && b.Invitation.SupplierProfile.UserId == actorId)))
+            .OrderByDescending(b => b.SubmittedAt).Select(b => new { b.BidId, b.Invitation.Tender.Title, b.Invitation.SupplierProfile.CompanyName }).ToListAsync(ct);
+        records.AddRange(bids.Select(b => new SourcingTenderManagement.Models.ClarificationRecordOption("bid", b.BidId, b.Title, $"Offer #{b.BidId} · {b.CompanyName}")));
+        return records;
     }
 
     [HttpPost]

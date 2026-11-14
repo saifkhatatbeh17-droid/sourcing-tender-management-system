@@ -3,6 +3,7 @@
     var currentAction = ViewData["ActivePage"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString();
     var controller = ViewData["WorkspaceController"]?.ToString() ?? "Admin";
     var activeAction = ViewData["WorkspaceActiveAction"]?.ToString() ?? currentAction;
+    var sharedInbox = ViewContext.RouteData.Values["controller"]?.ToString() == "Clarification";
     var roles = SourcingTenderManagement.Data.RoleNames.Primary.Where(User.IsInRole).ToArray();
 }
 <aside class="admin-sidebar" aria-label="@ViewData["WorkspaceLabel"] navigation">
@@ -26,7 +27,7 @@
             <div class="workspace-branch-pages">
             @foreach (var item in PageNavigation.Menus[role])
             {
-                var isActive = controller == role && activeAction == item.Action;
+                var isActive = controller == role && activeAction == item.Action && !(sharedInbox && role == "SourcingManager");
                 <a class="admin-sidebar-item @(isActive ? "is-active" : null)" asp-controller="@role" asp-action="@item.Action"
                    aria-current="@(isActive ? "page" : null)" aria-label="@role — @item.Title" title="@role — @item.Title">
                     <partial name="_AdminSidebarIcon" model="item.Action" />
@@ -35,7 +36,7 @@
             }
             @if (role == "SourcingManager")
             {
-                <a class="admin-sidebar-item" asp-controller="Clarification" asp-action="Index">
+                <a class="admin-sidebar-item @(sharedInbox && controller == role ? "is-active" : null)" aria-current="@(sharedInbox && controller == role ? "page" : null)" asp-controller="Clarification" asp-action="Index">
                     <partial name="_AdminSidebarIcon" model='@("Clarifications")' /><span>Clarification inbox</span>
                 </a>
             }

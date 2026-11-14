@@ -24,6 +24,7 @@
     ViewData["WorkspaceController"] = workspaceController;
     ViewData["WorkspaceLabel"] = workspaceController == "Admin" ? "Administration" : System.Text.RegularExpressions.Regex.Replace(workspaceController, "([a-z])([A-Z])", "$1 $2");
     var activeAction = ViewData["ActivePage"]?.ToString() ?? currentAction;
+    if (currentController == "Clarification") activeAction = "Clarifications";
     activeAction = activeAction switch {
         "SupplierDetails" => "Suppliers", "CreateRequest" or "EditRequest" or "RequestDetails" => "Requests",
         "CreateOffer" or "Offer" => "Offers", "TenderDetails" when workspaceController == "TopCommittee" => "Decisions",
@@ -53,6 +54,7 @@
         <link rel="stylesheet" href="~/css/admin-root.css" asp-append-version="true" />
     }
     @if (showWorkspace) { <link rel="stylesheet" href="~/css/workspace-shell.css" asp-append-version="true" /> }
+    @if (showWorkspace && currentAction == "Dashboard") { <link rel="stylesheet" href="~/css/workspace-dashboard.css" asp-append-version="true" /> }
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>

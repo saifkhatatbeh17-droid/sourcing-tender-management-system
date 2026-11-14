@@ -17,6 +17,8 @@ public class CommitteeEvaluationPage
     public List<EvaluationCriterion> Criteria => Tender?.EvaluationCriteria.OrderBy(c => c.EvaluationCriterionId).ToList() ?? [];
     public List<TenderApproval> Approvals => Tender?.TenderApprovals.Where(a => a.Stage == "Evaluation").ToList() ?? [];
     public bool Locked => Tender?.Status != "UnderEvaluation";
+    public bool SelectionReady => Tender?.EvaluationReport is { RecommendedBidId: int bidId } report
+        && ((report.Status == "Draft" && string.IsNullOrWhiteSpace(report.CommitteeSummary)) || Locked) && Offers.Any(b => b.BidId == bidId);
     public static string StatusLabel(string status) => status switch
     {
         "UnderEvaluation" => "Under evaluation", "AwaitingOfficerSummary" => "With sourcing officer",

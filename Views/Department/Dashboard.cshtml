@@ -1,8 +1,11 @@
 @model IReadOnlyList<SourcingTenderManagement.Models.Entities.PurchaseRequest>
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<p><a asp-action="Create" class="btn btn-primary">Create Request</a></p>
-<section class="workspace-section">
-    <h2>Department Requests</h2>
-    <partial name="_PurchaseRequestList" model="Model" />
-</section>
+@{ ViewData["Title"] = "Department dashboard"; }
+<div class="unified-dashboard">
+    <header class="dashboard-heading"><div><h1>Department dashboard</h1><p>Your purchase requests, current reviews, and approved requirements.</p></div><a asp-action="Create" class="dashboard-cta">Create request <span aria-hidden="true">↗</span></a></header>
+    <section class="dashboard-metrics" aria-label="Request totals">
+        <partial name="_DashboardMetric" model='@(new DashboardMetric("Your requests", Model.Count.ToString("N0"), "All your purchase requests", true))' />
+        <partial name="_DashboardMetric" model='@(new DashboardMetric("In review", Model.Count(r => r.Status is "Submitted" or "UnderReview").ToString("N0"), "Submitted or being reviewed"))' />
+        <partial name="_DashboardMetric" model='@(new DashboardMetric("Approved requests", Model.Count(r => r.Status is "Approved" or "ConvertedToTender").ToString("N0"), "Approved or converted to tender"))' />
+    </section>
+    <section class="workspace-section"><h2>Department requests</h2><partial name="_PurchaseRequestList" model="Model" /></section>
+</div>

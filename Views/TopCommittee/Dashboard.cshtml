@@ -1,20 +1,20 @@
 @model CommitteeDashboard
 @section Styles { <partial name="_ReadStyles" /> }
 @{ ViewData["Title"] = "Top Committee Dashboard"; }
-<div class="workspace-heading">
-    <div><h1>Top Committee</h1><p class="text-secondary mt-2 mb-0">Review your assigned tenders and the committee's recorded decisions.</p></div>
-    <div class="tc-heading-actions">
+<div class="unified-dashboard"><div class="dashboard-heading">
+    <div><h1>Top committee dashboard</h1><p class="text-secondary mt-2 mb-0">Review your assigned tenders and the committee's recorded decisions.</p></div>
+    <div class="dashboard-heading-actions">
         <a class="btn" asp-action="Notifications">Notifications</a>
-        <a class="btn btn-primary" asp-action="Decisions">View pending tenders <span aria-hidden="true">→</span></a>
+        <a class="dashboard-cta" asp-action="Decisions">View pending tenders <span aria-hidden="true">→</span></a>
     </div>
 </div>
-<dl class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-3 tc-metrics" aria-label="Your committee totals">
-    <div class="col"><div class="tc-metric"><dt>Assigned tenders</dt><dd>@Model.AssignedTenders.ToString("N0")</dd></div></div>
-    <div class="col"><div class="tc-metric"><dt>Awaiting decision</dt><dd>@Model.AwaitingDecision.ToString("N0")</dd></div></div>
-    <div class="col"><div class="tc-metric"><dt>Awarded</dt><dd>@Model.AwardedTenders.ToString("N0")</dd></div></div>
-    <div class="col"><div class="tc-metric"><dt>Rejected</dt><dd>@Model.RejectedTenders.ToString("N0")</dd></div></div>
-    <div class="col"><div class="tc-metric"><dt>Open clarifications</dt><dd>@Model.OpenClarifications.ToString("N0")</dd></div></div>
-</dl>
+<section class="dashboard-metrics is-five" aria-label="Your committee totals">
+    <partial name="_DashboardMetric" model='@(new DashboardMetric("Awaiting decision", Model.AwaitingDecision.ToString("N0"), "Tenders ready for committee review", true))' />
+    <partial name="_DashboardMetric" model='@(new DashboardMetric("Assigned tenders", Model.AssignedTenders.ToString("N0"), "Your committee assignments"))' />
+    <partial name="_DashboardMetric" model='@(new DashboardMetric("Awarded", Model.AwardedTenders.ToString("N0"), "Recorded awards"))' />
+    <partial name="_DashboardMetric" model='@(new DashboardMetric("Rejected", Model.RejectedTenders.ToString("N0"), "Recorded rejections"))' />
+    <partial name="_DashboardMetric" model='@(new DashboardMetric("Open clarifications", Model.OpenClarifications.ToString("N0"), "Questions awaiting resolution"))' />
+</section>
 @if (Model.AssignedTenders == 0)
 {
     <section class="workspace-section tc-empty" aria-labelledby="no-assignments">
@@ -67,3 +67,5 @@ else
         }
     </section>
 }
+
+</div>

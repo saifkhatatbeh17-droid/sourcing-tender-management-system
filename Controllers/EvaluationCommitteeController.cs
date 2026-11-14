@@ -73,9 +73,13 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
                 throw new InvalidOperationException("Financial and technical percentages must total 100%.");
             if (writeReport && (page.Locked || !page.WeightsReady || financialWeight != page.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight)))
                 throw new InvalidOperationException("Generate the report with the agreed weights while the tender is under evaluation.");
+            if (writeReport && page.Approvals.Select(a => a.UserId).Distinct().Count() != 4)
+                throw new InvalidOperationException("All four committee members must approve before generating the final report.");
+            if (writeReport && !page.SelectionReady)
+                throw new InvalidOperationException("Select the committee's offer before generating its report.");
             var fingerprint = BidRecommendationService.Fingerprint(page);
             var version = page.SharedVersion;
-            var result = await ai.Recommend(page, financialWeight, cancellationToken);
+            var result = await ai.Recommend(page, financialWeight, cancellationToken, writeReport ? tender.EvaluationReport!.RecommendedBidId : null);
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};", cancellationToken);
             var currentTender = await TenderQuery().AsNoTracking().SingleAsync(t => t.TenderId == id, cancellationToken);
@@ -84,20 +88,24 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
                 throw new InvalidOperationException("The bids changed during analysis. Run the comparison again.");
             if (writeReport)
             {
-                var current = new CommitteeEvaluationPage { Tender = await TenderQuery().SingleAsync(t => t.TenderId == id, cancellationToken) };
+                var current = new CommitteeEvaluationPage { Tender = await TenderQuery().SingleAsync(t => t.TenderId == id, cancellationToken), UserId = UserId };
                 if (current.Locked || current.SharedVersion != version) throw new InvalidOperationException("The evaluation changed during generation. Reload and try again.");
+                if (current.Approvals.Select(a => a.UserId).Distinct().Count() != 4
+                    || await db.Clarifications.AnyAsync(c => c.Status != "Resolved" && (c.TenderId == id || (c.Bid != null && c.Bid.TenderId == id)), cancellationToken))
+                    throw new InvalidOperationException("Four approvals and resolved clarifications are required before sending the final report.");
                 if (string.IsNullOrWhiteSpace(result.Report) || result.Scenarios[0].RecommendedBidId == null)
                     throw new InvalidOperationException("The AI could not produce a report with a clear recommended offer. Review the bids and try again.");
+                if (!current.SelectionReady || result.Scenarios[0].RecommendedBidId != current.Tender!.EvaluationReport!.RecommendedBidId)
+                    throw new InvalidOperationException("The report must describe the committee-selected offer. No changes were saved.");
                 current.Tender!.EvaluationReport ??= new EvaluationReport { Status = "Draft" };
                 current.Tender.EvaluationReport.CommitteeSummary = result.Report.Trim();
-                current.Tender.EvaluationReport.RecommendedBidId = result.Scenarios[0].RecommendedBidId;
                 current.Tender.EvaluationReport.PreparedByUserId = UserId;
                 current.Tender.EvaluationReport.Status = "Draft";
                 current.Tender.EvaluationReport.SubmittedAt = null;
-                db.TenderApprovals.RemoveRange(current.Approvals);
-                TempData["CommitteeSuccess"] = "AI report saved. Review it before collecting the four approvals.";
+                CompleteWeightApproval(current);
+                TempData["CommitteeSuccess"] = "Final AI report generated and sent to the sourcing officer with the four approvals.";
             }
-            db.AiAnalyses.Add(new AiAnalysis { TenderId = id, RequestedByUserId = UserId,
+            if (!writeReport) db.AiAnalyses.Add(new AiAnalysis { TenderId = id, RequestedByUserId = UserId,
                 FinancialWeight = financialWeight, RequirementsWeight = requirementsWeight, ModelName = ai.Model, CreatedAt = DateTime.UtcNow,
                 ResultJson = JsonSerializer.Serialize(new SavedBidRecommendation(fingerprint, result), BidRecommendationService.Json) });
             await db.SaveChangesAsync(cancellationToken);
@@ -143,7 +151,7 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         TempData["CommitteeSuccess"] = "Saved successfully.";
-        return RedirectToAction(nameof(Evaluations), new { id });
+        return RedirectToAction(nameof(Evaluations), new { id, tab = TempData["EvaluationTab"]?.ToString() });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -233,25 +241,44 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
     });
 
     [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> SelectOffer(int id, int bidId, string version) => Change(id, page =>
+    {
+        if (version != page.SharedVersion) return Task.FromResult<string?>("The evaluation changed. Reload before selecting an offer.");
+        if (!page.Offers.Any(b => b.BidId == bidId)) return Task.FromResult<string?>("Select an eligible offer for this tender.");
+        TempData["EvaluationTab"] = "forms";
+        if (page.SelectionReady && page.Tender!.EvaluationReport!.RecommendedBidId == bidId) return Task.FromResult<string?>(null);
+        page.Tender!.EvaluationReport ??= new EvaluationReport();
+        var report = page.Tender.EvaluationReport;
+        report.RecommendedBidId = bidId;
+        report.CommitteeSummary = null;
+        report.PreparedByUserId = UserId;
+        report.SubmittedAt = null;
+        report.Status = "Draft";
+        db.TenderApprovals.RemoveRange(page.Approvals);
+        foreach (var approval in page.Approvals.ToList()) page.Tender.TenderApprovals.Remove(approval);
+        return Task.FromResult<string?>(null);
+    });
+
+    [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> Approve(int id, string version) => Change(id, async page =>
     {
         if (version != page.SharedVersion) return "The evaluation changed. Reload and review the latest weights before approving.";
         if (!page.WeightsReady) return "Four members, eligible offers in one currency, and weights totaling 100% are required.";
-        if (!page.ReportReady) return "Generate and review the AI report before approving.";
+        if (!page.SelectionReady) return "Select the committee's offer before approving.";
         if (page.Approvals.Any(a => a.UserId == UserId)) return "You have already approved this evaluation.";
         if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
             (c.TenderId == id || (c.Bid != null && c.Bid.TenderId == id))))
             return "Both sides must resolve open clarifications before approving the evaluation.";
         var member = page.Members.Single(m => m.UserId == UserId);
+        TempData["EvaluationTab"] = page.Approvals.Count == 3 ? "report" : "forms";
         db.TenderApprovals.Add(new TenderApproval { TenderId = id, UserId = UserId, CommitteeAssignmentId = member.CommitteeAssignmentId,
             Stage = "Evaluation", Decision = "Approved", DecidedAt = DateTime.UtcNow });
-        CompleteWeightApproval(page);
         return null;
     });
 
     internal static void CompleteWeightApproval(CommitteeEvaluationPage page)
     {
-        if (page.WeightsReady && page.ReportReady && page.Approvals.Select(a => a.UserId).Append(page.UserId).Distinct().Count() == 4)
+        if (page.WeightsReady && page.ReportReady && page.Approvals.Select(a => a.UserId).Distinct().Count() == 4)
         {
             page.Tender!.EvaluationReport ??= new EvaluationReport { PreparedByUserId = page.UserId };
             var report = page.Tender.EvaluationReport;

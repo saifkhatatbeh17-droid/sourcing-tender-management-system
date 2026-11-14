@@ -7,7 +7,7 @@
     var next = pending.FirstOrDefault() ?? active.FirstOrDefault();
 }
 @section Styles { <partial name="_CommitteePageStyles" /> }
-<div class="evaluation-page committee-workspace">
+<div class="evaluation-page committee-workspace unified-dashboard">
     <header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Committee dashboard</h1><p>Your tenders, shared evaluations, and next actions.</p></div><a class="cw-button cw-button-primary" asp-action="Evaluations" asp-route-id="@next?.TenderId">Open evaluations <span aria-hidden="true">↗</span></a></header>
     <dl class="cw-metrics">
         <div class="cw-metric-primary"><dt>Under evaluation</dt><dd>@active.Count</dd><span>Open for committee review</span><svg class="cw-brand-watermark" viewBox="305 78 470 540" aria-hidden="true"><image href="@Url.Content("~/images/tiryaq-logo.png")" width="2172" height="724" /></svg></div>
@@ -37,10 +37,10 @@
         </section>
         <aside class="cw-dashboard-aside">
             <section class="cw-next-action"><span class="cw-aside-icon" aria-hidden="true"><partial name="_AdminSidebarIcon" model='@("Evaluations")' /></span><h2>@(next == null ? "You’re up to date" : "Continue your review")</h2>
-            @if(next != null) { <p class="cw-next-title">@next.Title</p><p>Review the offers, agreed weights, and report before recording your approval.</p><a class="cw-text-link" asp-action="Evaluations" asp-route-id="@next.TenderId">Review tender <span aria-hidden="true">→</span></a> }
+            @if(next != null) { <p class="cw-next-title">@next.Title</p><p>Review the offers, agree on the weights, and approve the committee-selected offer.</p><a class="cw-text-link" asp-action="Evaluations" asp-route-id="@next.TenderId">Review tender <span aria-hidden="true">→</span></a> }
             else { <p>No open evaluations need your review. You can still view past reports and approvals.</p><a class="cw-text-link" asp-action="Reports">Browse reports <span aria-hidden="true">→</span></a> }
             </section>
-            <section class="cw-process-note"><h2>One shared evaluation</h2><ol><li>Agree on financial and technical weights.</li><li>Review the AI-drafted recommendation.</li><li>Each of the four members approves.</li></ol><p>The fourth approval sends the report to the sourcing officer.</p></section>
+            <section class="cw-process-note"><h2>One shared evaluation</h2><ol><li>Agree on financial and technical weights.</li><li>Choose an offer; AI advice is optional.</li><li>Each of the four members approves.</li></ol><p>After all four approvals, generate the final report and send it to the sourcing officer.</p></section>
         </aside>
     </div>
 </div>

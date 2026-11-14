@@ -61,25 +61,22 @@
     </style>
 }
 
-<div class="manager-shell">
+<div class="manager-shell unified-dashboard">
     <div class="manager-dashboard">
-        <div class="workspace-heading">
-            <h1>Sourcing Manager Dashboard</h1>
-            <a class="btn btn-primary" asp-action="Submissions">Review submissions <span aria-hidden="true">→</span></a>
+        <div class="dashboard-heading">
+            <div><h1>Sourcing manager dashboard</h1><p>Review recommendations, follow committee decisions, and respond to questions.</p></div>
+            <a class="dashboard-cta" asp-action="Submissions">Review submissions <span aria-hidden="true">→</span></a>
         </div>
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3">
+        <section class="dashboard-metrics is-four" aria-label="Manager activity">
             @foreach (var metric in metrics)
             {
-                <div class="col">
-                    <a class="manager-metric" asp-action="@metric.Action" asp-route-decision="@metric.Decision">
-                        <dl class="mb-0">
-                            <dt>@metric.Label</dt>
-                            <dd>@metric.Count.ToString("N0")</dd>
-                        </dl>
-                    </a>
-                </div>
+                <article class="dashboard-metric @(metric.Action == "Submissions" && metric.Label == "Awaiting manager review" ? "is-primary" : "")">
+                    <h2>@metric.Label</h2><strong>@metric.Count.ToString("N0")</strong><p>@(metric.Label == "Awaiting manager review" ? "Reports ready for your decision" : "Current workspace total")</p>
+                    <a asp-action="@metric.Action" asp-route-decision="@metric.Decision">View details <span aria-hidden="true">↗</span><span class="visually-hidden"> — @metric.Label</span></a>
+                    @if (metric.Label == "Awaiting manager review") { <partial name="_DashboardMark" /> }
+                </article>
             }
-        </div>
+        </section>
         <div class="d-grid gap-3 mt-4">
             @foreach (var metric in metrics)
             {
