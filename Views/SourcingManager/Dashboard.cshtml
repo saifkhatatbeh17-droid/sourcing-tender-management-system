@@ -12,25 +12,92 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
+    <style>
+        .manager-dashboard .manager-dashboard-list {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 18px;
+        }
+
+        .manager-dashboard .manager-dashboard-list summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-16);
+            padding: var(--space-16) var(--space-24);
+            border-radius: inherit;
+            font-weight: var(--font-weight-semibold);
+            cursor: pointer;
+            list-style: none;
+        }
+
+        .manager-dashboard .manager-dashboard-list summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .manager-dashboard .manager-dashboard-list summary:focus-visible {
+            outline: 2px solid var(--color-link);
+            outline-offset: 2px;
+        }
+
+        .manager-dashboard .manager-dashboard-list summary::after {
+            content: "";
+            flex: 0 0 9px;
+            height: 9px;
+            border-right: 2px solid var(--color-link);
+            border-bottom: 2px solid var(--color-link);
+            margin-right: 3px;
+            transform: translateY(-2px) rotate(45deg);
+        }
+
+        .manager-dashboard .manager-dashboard-list[open] summary::after {
+            transform: translateY(2px) rotate(225deg);
+        }
+
+        .manager-dashboard .manager-dashboard-list-body {
+            border-top: 1px solid var(--color-border);
+            padding: var(--space-16) var(--space-24);
+        }
+    </style>
 }
 
 <div class="manager-shell">
-    <div class="admin-dashboard">
+    <div class="manager-dashboard">
         <div class="workspace-heading">
             <h1>Sourcing Manager Dashboard</h1>
             <a class="btn btn-primary" asp-action="Submissions">Review submissions <span aria-hidden="true">→</span></a>
         </div>
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 admin-metrics">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3">
             @foreach (var metric in metrics)
             {
                 <div class="col">
-                    <a class="admin-metric manager-metric" asp-action="@metric.Action" asp-route-decision="@metric.Decision">
+                    <a class="manager-metric" asp-action="@metric.Action" asp-route-decision="@metric.Decision">
                         <dl class="mb-0">
                             <dt>@metric.Label</dt>
                             <dd>@metric.Count.ToString("N0")</dd>
                         </dl>
                     </a>
                 </div>
+            }
+        </div>
+        <div class="d-grid gap-3 mt-4">
+            @foreach (var metric in metrics)
+            {
+                <details class="manager-dashboard-list">
+                    <summary>@metric.Label</summary>
+                    <div class="manager-dashboard-list-body">
+                        @if (metric.Count == 0)
+                        {
+                            <p class="mb-0">No records in this category.</p>
+                        }
+                        else
+                        {
+                            <a class="btn btn-outline-primary" asp-action="@metric.Action" asp-route-decision="@metric.Decision">
+                                View @metric.Label.ToLowerInvariant()
+                            </a>
+                        }
+                    </div>
+                </details>
             }
         </div>
     </div>
