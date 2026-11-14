@@ -207,6 +207,28 @@ public partial class SourcingManagerController : Controller
     }
 
     [HttpPost]
+    public async Task<IActionResult> DraftReferral(int reportId,
+        [FromServices] SourcingTenderManagement.Services.Evaluation.BidRecommendationService ai, CancellationToken cancellationToken)
+    {
+        var report = await _context.EvaluationReports.AsNoTracking().Include(r => r.Tender)
+            .Include(r => r.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.SupplierProfile)
+            .Include(r => r.Bid).ThenInclude(b => b!.BidItems)
+            .SingleOrDefaultAsync(r => r.EvaluationReportId == reportId, cancellationToken);
+        if (report?.Status != ManagerApproved || report.Tender.Status != AwaitingManagerReview || report.Bid == null)
+            return BadRequest(new { error = "Only an approved recommendation awaiting referral can be summarized." });
+        try
+        {
+            var summary = await ai.DraftReferral(new { tender = report.Tender.Title, report.Tender.Description, report.Tender.Terms,
+                report.CommitteeSummary, report.OfficerSummary, report.ManagerSummary,
+                offer = new { report.Bid.BidId, supplier = report.Bid.Invitation.SupplierProfile.CompanyName,
+                    total = CommitteeEvaluationPage.Total(report.Bid), report.Bid.Currency, report.Bid.DeliveryDays, report.Bid.TechnicalDetails } }, cancellationToken);
+            return Json(new { summary });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or InvalidOperationException or KeyNotFoundException)
+        { return StatusCode(503, new { error = "Could not generate the summary. Check local Ollama and try again." }); }
+    }
+
+    [HttpPost]
     public IActionResult Forward(ManagerForwardInput input)
     {
         var reason = input.Reason?.Trim();

@@ -63,6 +63,25 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
             tender.Readiness.CanCurrentMemberVote && await votingReadiness.IsDatabaseReadyAsync(User, tender.TenderId, cancellationToken));
 
     [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> AssessImportance(int id,
+        [FromServices] SourcingTenderManagement.Services.Evaluation.BidRecommendationService ai, CancellationToken cancellationToken) => ReadAsync(async () =>
+    {
+        var tender = await queries.GetTenderDetailsAsync(User, id, cancellationToken);
+        if (tender.Report == null || string.IsNullOrWhiteSpace(tender.Report.CommitteeSummary))
+            return BadRequest(new { error = "A committee report is required before analysis." });
+        var bid = tender.Bids.FirstOrDefault(b => b.IsNominated);
+        try
+        {
+            var result = await ai.AssessImportance(new { tender.Title, tender.Description, tender.Terms,
+                purpose = tender.PurchaseRequest.Reason, tender.PurchaseRequest.Priority, tender.PurchaseRequest.TargetDate,
+                tender.Report, offer = bid == null ? null : new { bid.BidId, bid.SupplierName, bid.Total, bid.Currency, bid.DeliveryDays, bid.ComplianceStatus, bid.ComplianceNotes } }, cancellationToken);
+            return Json(result);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or InvalidOperationException or KeyNotFoundException)
+        { return StatusCode(503, new { error = "Could not assess importance. Check local Ollama and try again." }); }
+    });
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SubmitVote([Bind(Prefix = "Vote")] CommitteeVoteInput input, CancellationToken cancellationToken)
     {
         ViewData["ActivePage"] = nameof(Decisions);

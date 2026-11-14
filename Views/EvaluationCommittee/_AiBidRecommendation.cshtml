@@ -16,7 +16,7 @@
     @if (Model.AiOutdated) { <p class="ev-field-help">The bids have changed since the last comparison. Run a new comparison for the current offers.</p> }
     @if (result != null)
     {
-        <div class="ev-ai-scenarios" style="grid-template-columns: 1fr">
+        <div class="ev-ai-scenarios">
         @foreach (var scenario in result.Scenarios.Take(1))
         {
             var weight = scenario.FinancialWeight;

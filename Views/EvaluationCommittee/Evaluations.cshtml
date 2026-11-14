@@ -14,29 +14,14 @@
     <link rel="stylesheet" href="~/css/committee-evaluations-webex.css" asp-append-version="true" />
 }
 <div class="evaluation-page">
-    <div class="ev-theme-toolbar"><span>Committee workspace <span aria-hidden="true">/</span> Evaluations</span><div role="group" aria-label="Page appearance"><button type="button" data-evaluation-theme="light" aria-pressed="true">Light</button><button type="button" data-evaluation-theme="dark" aria-pressed="false">Dark</button></div></div>
     <header class="ev-page-heading">
         <div><h1>Tender evaluations</h1></div>
     </header>
     @if (TempData["CommitteeError"] is string error) { <div class="ev-notice ev-notice-error" role="alert">@error</div> }
     @if (TempData["CommitteeSuccess"] is string success) { <div class="ev-notice ev-notice-success" role="status">@success</div> }
-    <div class="ev-tender-workspace">
-<aside class="ev-tender-browser" aria-label="Choose tender">
-        <div class="ev-tender-browser-heading"><span>Tenders <small>@Model.Tenders.Count</small></span><input type="search" id="tender-search" placeholder="Find a tender…" aria-label="Search tenders" class="form-control" /></div>
-        <div class="ev-tender-filters" role="group" aria-label="Filter tenders"><button type="button" class="is-active" data-tender-filter="all" aria-pressed="true">All</button><button type="button" data-tender-filter="UnderEvaluation" aria-pressed="false">Under evaluation</button></div>
-        <nav class="ev-tender-rail" aria-label="Tenders">
-        @foreach (var item in Model.Tenders)
-        {
-            var selected = item.TenderId == tender?.TenderId;
-            <a asp-controller="EvaluationCommittee" asp-action="Evaluations" asp-route-id="@item.TenderId" class="ev-tender-card @(selected ? "is-current" : "")" aria-current="@(selected ? "page" : null)" data-tender-status="@item.Status" data-tender-search="@item.TenderId @item.Title @StatusLabel(item.Status)"><span class="ev-tender-card-top">#@item.TenderId <span>@(selected ? "✓ Current" : "→")</span></span><strong>@item.Title</strong><span class="ev-tender-card-status">@StatusLabel(item.Status)</span></a>
-        }
-        </nav>
-        <p id="tender-search-empty" hidden role="status">No matching tenders. Try another search or filter.</p>
-        <div class="ev-tender-list-footer"><span id="tender-result-count" aria-live="polite">@Model.Tenders.Count tenders</span><span>Newest first</span></div>
-    </aside>
     <div class="ev-tender-content">
     <input type="hidden" id="tender" value="@tender?.TenderId" />
-    @if (tender != null) { <div class="ev-selected-tender"><span>Tender #@tender.TenderId</span><h2>@tender.Title</h2><span class="ev-status">@StatusLabel(tender.Status)</span></div> }
+    @if (tender != null) { <div class="ev-selected-tender"><div><span class="ev-tender-reference">Tender #@tender.TenderId</span><h2>@tender.Title</h2></div><span class="ev-status">@StatusLabel(tender.Status)</span></div> }
     @if (tender == null)
     {
         <div class="ev-empty"><h2>Your next evaluation starts here</h2><p>Tenders will appear when the sourcing officer sends eligible offers to the committee.</p></div>
@@ -58,6 +43,9 @@
         {
             <div class="ev-workflow-note" role="status"><p>Read-only evaluation</p><button type="button" class="btn ev-button-secondary" data-open-evaluation-tab="report-tab">View report</button></div>
         }
+        <div class="ev-tender-workspace">
+        <partial name="_TenderBrowser" model="Model" />
+        <div class="ev-detail-area">
         <div class="nav ev-tabs" role="tablist" aria-label="Evaluation sections">
             <button class="nav-link active" id="offers-tab" data-bs-toggle="tab" data-bs-target="#offers" type="button" role="tab" aria-controls="offers" aria-selected="true">Tender &amp; offers <span>@offers.Count</span></button>
             <button class="nav-link" id="forms-tab" data-bs-toggle="tab" data-bs-target="#forms" type="button" role="tab" aria-controls="forms" aria-selected="false">Evaluation forms</button>
@@ -92,8 +80,9 @@
             <div class="tab-pane fade" id="forms" role="tabpanel" aria-labelledby="forms-tab" tabindex="0"><partial name="_MemberForms" model="Model" /></div>
             <div class="tab-pane fade" id="report" role="tabpanel" aria-labelledby="report-tab" tabindex="0"><partial name="_EvaluationReport" model="Model" /></div>
         </div>
+        </div>
+        </div>
     }
-    </div>
     </div>
 </div>
 @section Scripts { <script src="~/js/committee-evaluations.js" asp-append-version="true"></script> }

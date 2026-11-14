@@ -138,7 +138,9 @@
                         <input type="hidden" name="ReportId" value="@report.EvaluationReportId" />
                         <label class="form-label" for="forward-reason">Reason under the referral policy</label>
                         <textarea class="form-control mb-3" id="forward-reason" name="Reason" rows="3" maxlength="4000" required></textarea>
+                        <button type="button" class="btn btn-outline-secondary" data-draft-referral data-url="@Url.Action("DraftReferral")">Generate with AI</button>
                         <button type="submit" class="btn btn-primary">Forward to Top Committee</button>
+                        <p class="form-text" data-referral-feedback role="status">Review the draft and add the actual referral policy reason before forwarding.</p>
                     </form>
                 }
                 else
@@ -161,3 +163,6 @@
         }
     </div>
 </div>
+@section Scripts {
+    <script src="~/js/manager-referral.js" asp-append-version="true"></script>
+}

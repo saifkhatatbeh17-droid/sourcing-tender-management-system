@@ -1,7 +1,7 @@
-body:has(.evaluation-page) > header nav > a { text-decoration: none; color: var(--color-text-secondary); }
-body:has(.evaluation-page) > header nav > a:hover { color: var(--color-link); }
-body:has(.evaluation-page) > header nav > a:first-child { font-size: var(--font-size-body); color: var(--color-text) !important; }
-body:has(.evaluation-page) > header nav { min-height: var(--space-64); gap: var(--space-24) !important; }
+body:has(.evaluation-page) > header:not(.workspace-navbar) nav > a { text-decoration: none; color: var(--color-text-secondary); }
+body:has(.evaluation-page) > header:not(.workspace-navbar) nav > a:hover { color: var(--color-link); }
+body:has(.evaluation-page) > header:not(.workspace-navbar) nav > a:first-child { font-size: var(--font-size-body); color: var(--color-text) !important; }
+body:has(.evaluation-page) > header:not(.workspace-navbar) nav { min-height: var(--space-64); gap: var(--space-24) !important; }
 .app-shell:has(.evaluation-page) .workspace-link { font-size: var(--font-size-body); line-height: var(--line-height-body); color: var(--color-text); }
 .app-shell:has(.evaluation-page) .sidebar { font-size: var(--font-size-small); }
 .ev-description { margin-top: var(--space-16); font-size: var(--font-size-small); }
@@ -9,8 +9,8 @@ body:has(.evaluation-page) > header nav { min-height: var(--space-64); gap: var(
 .ev-description p { margin-top: var(--space-8); }
 /* Evaluations only. Values come from the shared root.css design system. */
 body:has(.evaluation-page) { background: var(--color-surface-alt); }
-body:has(.evaluation-page) > header { background: var(--color-surface) !important; }
-body:has(.evaluation-page) > header nav { font-size: var(--font-size-small); padding-inline: var(--space-24) !important; }
+body:has(.evaluation-page) > header:not(.workspace-navbar) { background: var(--color-surface) !important; }
+body:has(.evaluation-page) > header:not(.workspace-navbar) nav { font-size: var(--font-size-small); padding-inline: var(--space-24) !important; }
 .app-shell:has(.evaluation-page) .sidebar { width: 208px; background: var(--color-surface); border-color: var(--color-border) !important; }
 .app-shell:has(.evaluation-page) .page-link-item { padding: var(--space-12) var(--space-16); margin-block: var(--space-8); border-radius: var(--radius-small); color: var(--color-text-secondary); }
 .app-shell:has(.evaluation-page) .page-link-item.active { background: var(--color-selection); color: var(--color-link); box-shadow: inset 3px 0 var(--color-primary); font-weight: var(--font-weight-semibold); }
@@ -192,8 +192,8 @@ body:has(.evaluation-page) > header nav { font-size: var(--font-size-small); pad
     .ev-report-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 767px) {
-    body:has(.evaluation-page) > header nav > a:not(:first-child) { display: none; }
-    body:has(.evaluation-page) > header nav > a:first-child { flex-basis: 100%; }
+    body:has(.evaluation-page) > header:not(.workspace-navbar) nav > a:not(:first-child) { display: none; }
+    body:has(.evaluation-page) > header:not(.workspace-navbar) nav > a:first-child { flex-basis: 100%; }
     .app-shell:has(.evaluation-page) { flex-direction: column; }
     .app-shell:has(.evaluation-page) .sidebar { width: 100%; display: flex; flex-wrap: wrap; gap: var(--space-8); border-bottom: var(--border-width) solid var(--color-border); }
     .app-shell:has(.evaluation-page) .workspace-link { flex-basis: 100%; }
@@ -225,8 +225,8 @@ body:has(.evaluation-page) > header nav { font-size: var(--font-size-small); pad
     .ev-footer { flex-direction: column; padding-inline: var(--space-16); }
 }
 body:has(.evaluation-page) .notification-dropdown { background: var(--color-surface); color: var(--color-text); border-color: var(--color-border); }
-body:has(.evaluation-page) > header .btn-outline-secondary { color: var(--color-text-secondary); border-color: var(--color-input-border); min-height: var(--control-min-height); }
-body:has(.evaluation-page) > header .btn-outline-secondary:hover { color: var(--color-text); background: var(--color-surface-alt); }
+body:has(.evaluation-page) > header:not(.workspace-navbar) .btn-outline-secondary { color: var(--color-text-secondary); border-color: var(--color-input-border); min-height: var(--control-min-height); }
+body:has(.evaluation-page) > header:not(.workspace-navbar) .btn-outline-secondary:hover { color: var(--color-text); background: var(--color-surface-alt); }
 body:has(.evaluation-page) .notification-dropdown a { color: var(--color-link); }
 body:has(.evaluation-page) :focus-visible { outline-color: var(--color-focus); }
 .ev-ranking-table { --bs-table-color: var(--color-text); --bs-table-bg: transparent; --bs-table-border-color: var(--color-border); }

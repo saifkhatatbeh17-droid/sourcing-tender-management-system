@@ -12,7 +12,7 @@
     });
     const rail = document.querySelector('.ev-tender-rail');
     const activeTender = rail?.querySelector('[aria-current="page"]');
-    if (activeTender) rail.scrollTop = activeTender.offsetTop - rail.offsetTop;
+    if (activeTender) rail.scrollTop += activeTender.getBoundingClientRect().top - rail.getBoundingClientRect().top - 8;
     const tenderSearch = document.querySelector('#tender-search');
     let tenderFilter = 'all';
     function filterTenders() {
@@ -66,6 +66,11 @@
     });
     page.querySelector('[data-ai-comparison]')?.addEventListener('input', event => event.currentTarget.elements.requirementsWeight.setCustomValidity(''));
     const sharedForm = page.querySelector('#weights-editor');
+    page.querySelector('[data-ai-report]')?.addEventListener('submit', event => {
+        event.currentTarget.querySelector('button').disabled = true;
+        event.currentTarget.querySelector('[role="status"]').hidden = false;
+        try { sessionStorage.setItem(key, 'report-tab'); } catch { /* Storage may be disabled. */ }
+    });
     const editWeights = page.querySelector('#edit-weights');
     function closeWeights() {
         sharedForm.reset();

@@ -43,7 +43,7 @@
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Evaluation tracking">
     <button class="nav-link active" id="evaluation-progress-tab" data-bs-toggle="tab" data-bs-target="#evaluation-progress" type="button" role="tab" aria-controls="evaluation-progress" aria-selected="true">Evaluation Tracking</button>
     <button class="nav-link" id="evaluation-results-tab" data-bs-toggle="tab" data-bs-target="#evaluation-results" type="button" role="tab" aria-controls="evaluation-results" aria-selected="false">Submitted Scores</button>
-    <button class="nav-link" id="evaluation-report-tab" data-bs-toggle="tab" data-bs-target="#evaluation-report" type="button" role="tab" aria-controls="evaluation-report" aria-selected="false">Officer Summary</button>
+    <button class="nav-link" id="evaluation-report-tab" data-bs-toggle="tab" data-bs-target="#evaluation-report" type="button" role="tab" aria-controls="evaluation-report" aria-selected="false">Report Review</button>
 </div>
 <div class="tab-content workspace-content">
     <div class="tab-pane fade show active" id="evaluation-progress" role="tabpanel" aria-labelledby="evaluation-progress-tab" tabindex="0">
@@ -148,66 +148,68 @@
         </section>
     </div>
     <div class="tab-pane fade" id="evaluation-report" role="tabpanel" aria-labelledby="evaluation-report-tab" tabindex="0">
-        <section class="workspace-section">
-            <h2>Committee Report and Manager Review</h2>
-            @if (report is null)
-            {
-                <p class="text-secondary">No EvaluationReport has been recorded for this Tender.</p>
-            }
+        <section class="workspace-section officer-report-review">
+            <h2>Committee report review</h2>
+            @if (report is null) { <p>No committee report is available yet.</p> }
             else
             {
                 <dl>
-                    <dt>Report Status</dt><dd>@report.Status</dd>
-                    <dt>Committee Findings</dt><dd>@report.CommitteeSummary</dd>
-                    <dt>Manager Summary</dt><dd>@(report.ManagerSummary ?? "No manager response recorded.")</dd>
+                    <dt>Report status</dt><dd>@report.Status</dd>
+                    <dt>Recommended offer</dt><dd>@(recommendationBids.FirstOrDefault(b => b.BidId == report.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName ?? (report.RecommendedBidId.HasValue ? "Offer #" + report.RecommendedBidId : "No offer recommended"))</dd>
+                    <dt>Committee report</dt><dd style="white-space: pre-wrap">@report.CommitteeSummary</dd>
                 </dl>
-                @if (report.Status == "CommitteeApproved" && selectedTenderStatus == "AwaitingOfficerSummary" && allFourApprovalsRecorded)
+                @if (report.Status == "CommitteeApproved" && selectedTenderStatus == "AwaitingOfficerSummary" && allFourApprovalsRecorded && selectedTenderId.HasValue)
                 {
-                    @if (selectedTenderId.HasValue)
-                    {
-                        <form asp-action="SubmitOfficerReport" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="tenderId" value="@selectedTenderId.Value" />
-                            <div class="mb-3">
-                                <label for="recommendedBidId" class="form-label">Recommended Compliant Offer</label>
-                                <select id="recommendedBidId" name="recommendedBidId" class="form-select" required>
-                                    <option value="">Select a Compliant offer</option>
-                                    @foreach (var bid in recommendationBids)
-                                    {
-                                        <option value="@bid.BidId" selected="@(report.RecommendedBidId == bid.BidId)">@bid.Invitation.SupplierProfile.CompanyName — Bid #@bid.BidId</option>
-                                    }
-                                </select>
+                        <p class="text-secondary">Approve to forward this report and its recommended offer unchanged. Requesting edits returns it to the committee for four fresh approvals. Rejecting cancels the tender.</p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <form asp-action="ReviewCommitteeReport" method="post" data-report-approve>
+                                <input type="hidden" name="tenderId" value="@selectedTenderId.Value" />
+                                <input type="hidden" name="version" value="@SourcingTenderManagement.Controllers.SourcingOfficerController.ReportReviewVersion(report)" />
+                                <button type="submit" name="decision" value="Approve" class="btn btn-primary">Approve and forward</button>
+                            </form>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#officer-decision-modal" data-review-decision="RequestEdits">Request edits</button>
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#officer-decision-modal" data-review-decision="Reject">Reject</button>
+                        </div>
+                        <div class="modal fade" id="officer-decision-modal" tabindex="-1" aria-labelledby="officer-decision-title" aria-describedby="officer-decision-help" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <form asp-action="ReviewCommitteeReport" method="post" class="modal-content">
+                                    <input type="hidden" name="tenderId" value="@selectedTenderId.Value" />
+                                    <input type="hidden" name="version" value="@SourcingTenderManagement.Controllers.SourcingOfficerController.ReportReviewVersion(report)" />
+                                    <input type="hidden" name="decision" />
+                                    <div class="modal-header"><h2 id="officer-decision-title" class="modal-title fs-5">Request edits</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                                    <div class="modal-body">
+                                        <p id="officer-decision-help" class="text-secondary"></p>
+                                        <label for="officer-review-reason" class="form-label">Reason</label>
+                                        <textarea id="officer-review-reason" name="reason" rows="4" maxlength="4000" required class="form-control" placeholder="Explain your decision…"></textarea>
+                                    </div>
+                                    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary" data-confirm-review>Request edits</button></div>
+                                </form>
                             </div>
-                            <div class="mb-3">
-                                <label for="officerSummary" class="form-label">Sourcing Officer Summary</label>
-                                <textarea id="officerSummary" name="officerSummary" rows="5" maxlength="4000" class="form-control" required>@report.OfficerSummary</textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Submit Report to Sourcing Manager</button>
-                        </form>
-                    }
+                        </div>
                 }
-                else
-                {
-                    <h3>Sourcing Officer Summary</h3>
-                    <p>@(report.OfficerSummary ?? "No Officer summary is recorded.")</p>
-                    @if (report.RecommendedBidId.HasValue)
-                    {
-                        <p>Recommended bid: #@report.RecommendedBidId</p>
-                    }
-                    @if (report.Status == "CommitteeApproved" && selectedTenderStatus == "AwaitingOfficerSummary" && !allFourApprovalsRecorded)
-                    {
-                        <p class="text-secondary">Officer submission is unavailable until all four assigned Evaluation Committee members have an Approved decision.</p>
-                    }
-                    else if (report.Status == "CommitteeApproved" && selectedTenderStatus != "AwaitingOfficerSummary")
-                    {
-                        <p class="text-secondary">The report is CommitteeApproved, but submission is available only after the committee workflow sets Tender.Status to AwaitingOfficerSummary.</p>
-                    }
-                    else
-                    {
-                        <p class="text-secondary">The Officer summary and recommendation have been recorded. This page does not make an award decision.</p>
-                    }
-                }
+                else if (!string.IsNullOrWhiteSpace(report.OfficerSummary))
+                { <h3>Officer decision</h3><p style="white-space: pre-wrap">@report.OfficerSummary</p> }
+                else { <p class="text-secondary">Review actions are available after all four committee members approve the report.</p> }
+                @if (!string.IsNullOrWhiteSpace(report.ManagerSummary))
+                { <h3>Manager review</h3><p>@report.ManagerSummary</p> }
             }
         </section>
     </div>
 </div>
+@section Scripts {
+<script>
+const decisionModal = document.getElementById('officer-decision-modal');
+decisionModal?.addEventListener('show.bs.modal', event => {
+    const form = decisionModal.querySelector('form');
+    form.reset();
+    const rejecting = event.relatedTarget?.dataset.reviewDecision === 'Reject';
+    form.elements.decision.value = rejecting ? 'Reject' : 'RequestEdits';
+    decisionModal.querySelector('#officer-decision-title').textContent = rejecting ? 'Reject report' : 'Request edits';
+    decisionModal.querySelector('#officer-decision-help').textContent = rejecting ? 'This will reject the report and cancel the tender. Enter the reason to confirm.' : 'Explain what the committee should change. The report will need four fresh approvals.';
+    const submit = decisionModal.querySelector('[data-confirm-review]');
+    submit.textContent = rejecting ? 'Reject and cancel tender' : 'Send edit request';
+    submit.className = rejecting ? 'btn btn-danger' : 'btn btn-primary';
+});
+decisionModal?.addEventListener('shown.bs.modal', () => decisionModal.querySelector('textarea').focus());
+</script>
+}

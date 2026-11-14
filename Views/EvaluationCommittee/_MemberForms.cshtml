@@ -10,7 +10,11 @@ else
             <div class="ev-weight-value"><span>Price</span><strong>@Model.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight).ToString("0.##")%</strong></div>
             <div class="ev-weight-value"><span>Technical</span><strong>@Model.Criteria.Where(c => c.Category == "Requirements").Sum(c => c.Weight).ToString("0.##")%</strong></div>
             @if (editable) { <button type="button" class="btn ev-button-secondary" id="edit-weights" aria-expanded="false" aria-controls="weights-editor">Edit weights</button> }
-            else { <span class="ev-access-label">Read-only</span> }
+            else if (Model.Members.Any(m => m.UserId == Model.UserId))
+            {
+                <div class="ev-weights-locked"><button type="button" class="btn ev-button-secondary" disabled aria-describedby="weights-locked-reason">Edit weights</button><span id="weights-locked-reason">Locked after committee approval</span></div>
+            }
+            else { <span class="ev-access-label">Only assigned members can edit</span> }
         </div>
         @if (editable)
         {
@@ -24,6 +28,7 @@ else
         </form>
         }
     </section>
+
     <div class="ev-forms-heading"><h3>Committee approvals</h3><span class="ev-approval-summary">@Model.Approvals.Count / 4 approved</span></div>
     <div class="ev-forms-grid">
     @foreach (var member in Model.Members.OrderBy(m => m.Position))
@@ -35,13 +40,15 @@ else
             <div class="ev-approval-footer">
             @if (mine && !approved && !Model.Locked)
             {
-                <form asp-action="Approve" method="post" class="ev-approval-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" /><button class="btn ev-button-primary" disabled="@(!Model.WeightsReady)">Approve evaluation</button></form>
+                <form asp-action="Approve" method="post" class="ev-approval-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" /><button class="btn ev-button-primary" disabled="@(!Model.WeightsReady || !Model.ReportReady)">@(Model.ReportReady ? "Approve evaluation" : "Generate report first")</button></form>
             }
             else { <span class="ev-approval-readonly">@(mine && approved ? "Your approval is recorded" : "Read-only")</span> }
             </div>
         </section>
     }
     </div>
+
+
     <section class="ev-comments" aria-labelledby="committee-comments-heading">
         <h3 id="committee-comments-heading">Committee comments</h3>
         <div class="ev-comments-list">

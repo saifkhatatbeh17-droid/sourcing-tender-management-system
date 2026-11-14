@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Apex Pharma";
+    ViewData["Title"] = "Tiryaq";
     ViewData["HomeLanding"] = true;
 }
 
@@ -9,40 +9,67 @@
     <div class="landing-hero-content">
         <p class="landing-eyebrow">Pharmaceutical sourcing &amp; procurement</p>
         <h1 id="landing-title">Quality starts with better sourcing.</h1>
-        <p class="landing-intro">Apex Pharma connects qualified suppliers with our pharmaceutical procurement team, from tender invitation to final decision.</p>
+        <p class="landing-intro">Tiryaq connects qualified suppliers with our pharmaceutical procurement team, from tender invitation to final decision.</p>
         <div class="landing-hero-actions">
             <a class="landing-primary" asp-controller="Account" asp-action="Register">Register as a supplier <span aria-hidden="true">→</span></a>
-            <a class="landing-secondary" href="#how-it-works">How It Works</a>
+            <a class="landing-secondary" href="#how-it-works">Explore the process <span aria-hidden="true">↓</span></a>
         </div>
     </div>
     <button class="landing-video-toggle" type="button" aria-controls="landing-video" hidden>Play background video</button>
 </section>
 
-<section class="pharma-about" id="about" aria-labelledby="about-title">
-    <div class="pharma-about-inner">
-        <header class="pharma-about-heading">
-            <div>
-                <h2 id="about-title">About Apex Pharma</h2>
-                <p>Apex Pharma brings manufacturing and procurement together to source what our production teams need and build dependable supplier relationships.</p>
-            </div>
-            <a asp-action="About">More about Apex Pharma <span aria-hidden="true">↗</span></a>
-        </header>
-        <partial name="_CompanyOverview" />
+<section class="home-section home-about" id="about" aria-labelledby="about-title">
+    <div class="home-section-heading">
+        <p class="home-label">Built around quality</p>
+        <h2 id="about-title">Better sourcing.<br />Dependable supply.</h2>
+        <p>Our procurement team connects pharmaceutical manufacturing needs with qualified suppliers, clear requirements, and documented decisions.</p>
+        <a class="home-text-link" asp-action="About">Meet Tiryaq <span aria-hidden="true">↗</span></a>
+    </div>
+    <dl class="home-principles">
+        <div><dt><span aria-hidden="true">01</span> Quality comes first</dt><dd>Supplier documentation and offers are reviewed against the requirements of each purchase.</dd></div>
+        <div><dt><span aria-hidden="true">02</span> Production stays in focus</dt><dd>Delivery timelines and business needs help guide the sourcing decision.</dd></div>
+        <div><dt><span aria-hidden="true">03</span> Expectations stay clear</dt><dd>Specifications, submission deadlines, and tender updates are kept together.</dd></div>
+    </dl>
+</section>
+
+<section class="home-process" id="how-it-works" aria-labelledby="process-title">
+    <div class="home-section">
+        <header class="home-process-heading"><div><p class="home-label">The sourcing journey</p><h2 id="process-title">From a business need<br />to an informed decision.</h2></div><a class="home-text-link" asp-action="HowItWorks">Explore the full process <span aria-hidden="true">↗</span></a></header>
+        <figure class="home-process-film">
+            <video controls playsinline preload="none" poster="@Url.Content("~/media/tiryaq-how-it-works-poster.png")" aria-label="How Tiryaq sourcing works: six-stage animated walkthrough" aria-describedby="process-video-caption">
+                <source src="~/media/tiryaq-how-it-works-narrated.webm" type="video/webm" />
+                <track kind="captions" src="~/media/tiryaq-how-it-works.vtt" srclang="en" label="English" />
+                Your browser does not support this video. Read the six sourcing steps below.
+            </video>
+            <figcaption id="process-video-caption">A 34-second walkthrough with English narration. Captions and on-screen explanations are available when watching without sound.</figcaption>
+        </figure>
+        <ol class="home-steps">
+            <li><span class="home-step-number">01</span><h3>Identify needs</h3><p>Departments specify items, quantities, requirements, and target dates in a purchase request.</p></li>
+            <li><span class="home-step-number">02</span><h3>Create the tender</h3><p>The sourcing team turns approved requests into tenders with clear terms and deadlines.</p></li>
+            <li><span class="home-step-number">03</span><h3>Invite suppliers</h3><p>Invited suppliers review the requirements and submit their offers and documents.</p></li>
+            <li><span class="home-step-number">04</span><h3>Evaluate offers</h3><p>Reviewers check compliance and compare technical and financial requirements.</p></li>
+            <li><span class="home-step-number">05</span><h3>Review recommendations</h3><p>The Sourcing Manager reviews the recommendation, with Top Committee approval when required.</p></li>
+            <li><span class="home-step-number">06</span><h3>Award the tender</h3><p>The team records the award, closes the tender, and notifies the relevant parties.</p></li>
+        </ol>
     </div>
 </section>
 
-<partial name="_HowItWorksSection" />
-<partial name="_ContactSection" />
-
+<section class="home-section home-access" id="contact" aria-labelledby="access-title">
+    <div><p class="home-label">Your next step</p><h2 id="access-title">Let’s work together.</h2><p>Join our supplier network or return to your workspace to follow your tenders and next actions.</p><a class="home-text-link" asp-action="Contact">Contact information <span aria-hidden="true">↗</span></a></div>
+    <div class="home-access-links">
+        <a asp-controller="Account" asp-action="Register"><span><strong>Become a supplier</strong><small>Submit your company for registration and review.</small></span><span aria-hidden="true">↗</span></a>
+        <a asp-controller="Account" asp-action="Login"><span><strong>Access your workspace</strong><small>Sign in to manage your work and tender updates.</small></span><span aria-hidden="true">→</span></a>
+    </div>
+</section>
 @section Footer {
     <partial name="_PublicFooter" />
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/public-guide.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/home-polish.css" asp-append-version="true" />
 }
 @section Scripts {
     <script src="~/js/home.js" asp-append-version="true"></script>
-    <script src="~/js/sourcing-journey.js" asp-append-version="true"></script>
+
 }
