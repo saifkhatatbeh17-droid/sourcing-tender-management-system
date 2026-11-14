@@ -4,8 +4,16 @@
     ViewData["Title"] = "Request Review";
     var selectedRequest = ViewBag.SelectedRequest as PurchaseRequest;
     var currentUserId = ViewBag.CurrentUserId as string;
+    var submittedRequestCount = Model.Count(request => request.Status == "Submitted");
+    var underReviewRequestCount = Model.Count(request => request.Status == "UnderReview");
+    var approvedRequestCount = Model.Count(request => request.Status == "Approved");
 }
+@section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
+
+<div class="so-page so-page--requests">
+<header class="so-page-header"><div><p class="so-eyebrow">SOURCING WORKSPACE</p>
 <h1>Request Review</h1>
+<p class="so-page-description">Review purchase requests, inspect requested items, and record the review decision for requests assigned to you.</p></div><span class="so-page-header-icon" aria-hidden="true">PR</span></header>
 @if (TempData["RequestSuccess"] is string requestSuccess)
 {
     <div class="alert alert-success" role="status">@requestSuccess</div>
@@ -14,6 +22,12 @@
 {
     <div class="alert alert-danger" role="alert">@requestError</div>
 }
+<section class="so-summary-grid" aria-label="Request summary">
+    <article class="so-summary-card so-tone-blue"><span class="so-summary-label">Requests in this view</span><strong>@Model.Count</strong><span class="so-summary-note">Based on the selected status filter</span></article>
+    <article class="so-summary-card so-tone-amber"><span class="so-summary-label">Submitted</span><strong>@submittedRequestCount</strong><span class="so-summary-note">Awaiting an officer review</span></article>
+    <article class="so-summary-card so-tone-violet"><span class="so-summary-label">Under review</span><strong>@underReviewRequestCount</strong><span class="so-summary-note">Currently being reviewed</span></article>
+    <article class="so-summary-card so-tone-teal"><span class="so-summary-label">Approved</span><strong>@approvedRequestCount</strong><span class="so-summary-note">Ready for the next sourcing step</span></article>
+</section>
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Request Review">
     <button class="nav-link @(selectedRequest == null ? "active" : "")" id="review-0-tab" data-bs-toggle="tab" data-bs-target="#review-0" type="button" role="tab" aria-controls="review-0" aria-selected="@(selectedRequest == null ? "true" : "false")">Requests</button>
     <button class="nav-link @(selectedRequest != null ? "active" : "")" id="review-1-tab" data-bs-toggle="tab" data-bs-target="#review-1" type="button" role="tab" aria-controls="review-1" aria-selected="@(selectedRequest != null ? "true" : "false")">Request Details</button>
@@ -21,10 +35,9 @@
 <div class="tab-content workspace-content">
     <div class="tab-pane fade @(selectedRequest == null ? "show active" : "")" id="review-0" role="tabpanel" aria-labelledby="review-0-tab" tabindex="0">
         <section class="workspace-section">
-            <h2>Purchase Requests</h2>
-            <form asp-action="Requests" method="get" class="mb-3">
-                <label for="request-status" class="form-label">Filter by status</label>
-                <div class="d-flex flex-wrap gap-2">
+            <div class="so-section-heading"><div><p class="so-eyebrow">RECORDS</p><h2>Purchase Requests</h2></div><span class="so-section-count">@Model.Count</span></div>
+            <form asp-action="Requests" method="get" class="so-filter-form">
+                <div><label for="request-status" class="form-label">Filter by status</label>
                     <select id="request-status" name="status" class="form-select" style="max-width: 240px">
                         <option value="All" selected="@(ViewBag.StatusFilter == "All")">All</option>
                         <option value="Submitted" selected="@(ViewBag.StatusFilter == "Submitted")">Submitted</option>
@@ -33,8 +46,7 @@
                         <option value="Returned" selected="@(ViewBag.StatusFilter == "Returned")">Returned</option>
                         <option value="Rejected" selected="@(ViewBag.StatusFilter == "Rejected")">Rejected</option>
                     </select>
-                    <button type="submit" class="btn btn-outline-primary">Apply Filter</button>
-                </div>
+                </div><button type="submit" class="btn btn-primary">Apply Filter</button>
             </form>
             @if (Model.Count == 0)
             {
@@ -45,7 +57,7 @@
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
-                            <tr><th>Title</th><th>Department</th><th>Priority</th><th>Target Date</th><th>Submitted</th><th>Assigned Reviewer</th><th></th></tr>
+                            <tr><th>Title</th><th>Department</th><th>Priority</th><th>Target Date</th><th>Submitted</th><th>Status</th><th>Assigned Reviewer</th><th></th></tr>
                         </thead>
                         <tbody>
                         @foreach (var request in Model)
@@ -56,6 +68,7 @@
                                 <td>@request.Priority</td>
                                 <td>@request.TargetDate</td>
                                 <td>@request.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td><span class="so-status-badge" data-status="@request.Status">@request.Status</span></td>
                                 <td>@(request.ReviewedByUser?.FullName ?? "Unassigned")</td>
                                 <td><a class="btn btn-outline-primary btn-sm" asp-action="Requests" asp-route-id="@request.PurchaseRequestId" asp-route-status="@ViewBag.StatusFilter">Review</a></td>
                             </tr>
@@ -82,7 +95,7 @@
                     <dt>Reason</dt><dd>@selectedRequest.Reason</dd>
                     <dt>Priority</dt><dd>@selectedRequest.Priority</dd>
                     <dt>Target Date</dt><dd>@selectedRequest.TargetDate</dd>
-                    <dt>Status</dt><dd>@selectedRequest.Status</dd>
+                    <dt>Status</dt><dd><span class="so-status-badge" data-status="@selectedRequest.Status">@selectedRequest.Status</span></dd>
                     <dt>Assigned Reviewer</dt><dd>@(selectedRequest.ReviewedByUser?.FullName ?? "Unassigned")</dd>
                     @if (selectedRequest.ReviewedAt.HasValue)
                     {
@@ -159,4 +172,5 @@
             }
         </section>
     </div>
+</div>
 </div>
