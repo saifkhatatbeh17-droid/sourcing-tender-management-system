@@ -54,7 +54,8 @@
         if (busy) return;
         if (!signedIn && !form.reportValidity()) return;
         busy = true; button.disabled = true; error.hidden = true; error.textContent = '';
-        const label = button.textContent; button.textContent = signedIn ? 'Opening camera…' : 'Checking password…';
+        button.setAttribute('aria-busy', 'true');
+        document.dispatchEvent(new CustomEvent('login-access', { detail: 'pending' }));
         try {
             if (!signedIn) {
                 const response = await fetch(localUrl(button.formAction), { method: 'POST', credentials: 'same-origin', redirect: 'error',
@@ -67,8 +68,9 @@
                 button.type = 'button'; continueLink.hidden = false;
             }
             await openModal();
-        } catch (failure) { error.textContent = failure.message || 'Unable to open Face ID. Try again.'; error.hidden = false; }
-        finally { form.querySelector('input[name="Password"]').value = ''; button.textContent = label; button.disabled = false; busy = false; }
+            document.dispatchEvent(new CustomEvent('login-access', { detail: 'verified' }));
+        } catch (failure) { error.textContent = failure.message || 'Unable to open Face ID. Try again.'; error.hidden = false; document.dispatchEvent(new CustomEvent("login-access", { detail: "failed" })); }
+        finally { form.querySelector('input[name="Password"]').value = ''; button.removeAttribute("aria-busy"); button.disabled = false; busy = false; }
     }
     form.addEventListener('submit', event => {
         if (event.submitter !== button) return;

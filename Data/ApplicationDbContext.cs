@@ -33,6 +33,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        // Keep existing Identity column sizes when enabling passkey storage.
+        modelBuilder.Entity<Microsoft.AspNetCore.Identity.IdentityUserLogin<string>>(entity =>
+        {
+            entity.Property(login => login.LoginProvider).Metadata.SetMaxLength(null);
+            entity.Property(login => login.ProviderKey).Metadata.SetMaxLength(null);
+        });
+        modelBuilder.Entity<Microsoft.AspNetCore.Identity.IdentityUserToken<string>>(entity =>
+        {
+            entity.Property(token => token.LoginProvider).Metadata.SetMaxLength(null);
+            entity.Property(token => token.Name).Metadata.SetMaxLength(null);
+        });
+        modelBuilder.Entity<ApplicationUser>().Property(user => user.PhoneNumber).Metadata.SetMaxLength(null);
         modelBuilder.ApplyConfiguration(new Configurations.UserFaceCredentialConfiguration());
         modelBuilder.Entity<ApplicationUser>(entity =>
         {

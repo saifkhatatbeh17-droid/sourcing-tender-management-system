@@ -19,11 +19,13 @@ builder.Services.AddFaceVerification(builder.Configuration);
 builder.Services.AddFaceLogin();
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
 {
+    o.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     o.User.RequireUniqueEmail = true;
     o.Password.RequiredLength = 8;
     o.Lockout.MaxFailedAccessAttempts = 5;
     o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 }).AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
+builder.Services.Configure<IdentityPasskeyOptions>(o => o.UserVerificationRequirement = "required");
 builder.Services.ConfigureApplicationCookie(o =>
 {
     o.Cookie.Name = "SourcingTenderManagement.CodeFirst";
