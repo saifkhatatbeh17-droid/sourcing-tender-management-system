@@ -43,6 +43,7 @@
     <title>@ViewData["Title"] — Sourcing &amp; Tender Management</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/action-confirmation.css" asp-append-version="true" />
     @if (showAdminSidebar)
     {
         <link rel="stylesheet" href="~/css/admin-sidebar.css" asp-append-version="true" />
@@ -114,9 +115,11 @@ else if (!standaloneLogin)
 <main id="main" class="main-content @(standaloneLogin ? "login-main" : isHomeLanding ? "landing-main" : "p-4")" tabindex="-1">@RenderBody()</main>
 </div>
 @if (!standaloneLogin) { @await RenderSectionAsync("Footer", required: false) }
+<partial name="_ActionConfirmation" />
+<script src="~/js/action-confirmation.js" asp-append-version="true"></script>
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-@if (showWorkspace) { <script src="~/js/workspace-sidebar.js" asp-append-version="true"></script> }
+@if (showWorkspace) { <script src="~/js/workspace-sidebar.js" asp-append-version="true"></script><script src="~/js/supplier-picker.js" asp-append-version="true"></script> }
 @if (showAdminSidebar)
 {
     <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>

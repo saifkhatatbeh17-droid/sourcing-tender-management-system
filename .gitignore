@@ -8,3 +8,4 @@ appsettings.Local.json
 *.mdf
 *.ldf
 App_Data/private-files/
+.playwright-cli/

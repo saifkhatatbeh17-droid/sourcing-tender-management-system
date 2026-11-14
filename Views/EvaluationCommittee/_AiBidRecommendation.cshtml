@@ -6,19 +6,13 @@
     if (financial == 0 && Model.Criteria.Count == 0) financial = 60;
     var winner = Model.Offers.FirstOrDefault(b => b.BidId == scenario?.RecommendedBidId);
 }
-<section class="ev-ai-workspace" aria-labelledby="ai-heading">
-    <header class="ev-ai-workspace-heading"><div><span class="ev-ai-workspace-icon" aria-hidden="true">AI</span><div><h3 id="ai-heading">AI recommendation</h3><p>Compare the bids. You make the final choice.</p></div></div></header>
+<section id="ai-offers" tabindex="-1" class="ev-ai-workspace" aria-labelledby="ai-heading">
+    <header class="ev-ai-workspace-heading"><div><span class="ev-ai-workspace-icon" aria-hidden="true">AI</span><div><h3 id="ai-heading">AI recommendation</h3><p>Compare the bids. You make the final choice.</p></div></div>
+        @if (Model.Members.Count == 0 && !Model.Locked)
+        { <form asp-action="Start" method="post" class="ev-start-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><button class="btn ev-button-primary">Start evaluation<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5h8M8 3v4M6 5H4v16h16V5h-2M8 13l3 3 5-6"/></svg></button></form> }
+    </header>
     <div class="ev-ai-layout">
-    @if (Model.Members.Any(m => m.UserId == Model.UserId))
-    {
-        <form asp-action="RecommendBids" method="post" data-ai-comparison class="ev-ai-controls">
-            <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
-            <div class="ev-ai-controls-label"><strong>Set your priorities</strong><span>Weight the financial and technical fit.</span></div>
-            <label>Financial <span class="ev-ai-percent"><input type="number" name="financialWeight" min="0" max="100" step="1" required value="@financial.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" aria-label="Financial percentage" /><span>%</span></span></label>
-            <label>Technical <span class="ev-ai-percent"><input type="number" name="requirementsWeight" min="0" max="100" step="1" required value="@((100 - financial).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))" aria-label="Technical percentage" /><span>%</span></span></label>
-            <button class="btn ev-button-primary" disabled="@(Model.Offers.Count == 0)">@(result == null ? "Compare offers" : "Compare again") <span aria-hidden="true">↗</span></button><span role="status" class="ev-ai-loading" hidden>Comparing bids…</span>
-        </form>
-    }
+
     @if (TempData["AiError"] is string error) { <p class="ev-notice ev-notice-error" role="alert">@error</p> }
     @if (Model.AiOutdated) { <p class="ev-ai-stale">The offers have changed. Run a new comparison to refresh the advice.</p> }
     @if (scenario != null)
@@ -29,6 +23,13 @@
                 <span class="ev-ai-basis">@scenario.FinancialWeight.ToString("0.##")% financial / @((100 - scenario.FinancialWeight).ToString("0.##"))% technical</span>
             </div>
             <div class="ev-ai-explanation"><h5>Why this suggestion?</h5><p>@scenario.Reason</p></div>
+            @if (winner != null && !Model.AiOutdated && !Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId))
+            {
+                <form asp-action="SelectOffer" method="post" class="ev-ai-select">
+                    <input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="bidId" value="@winner.BidId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
+                    <span>You choose which offer goes to approval.</span><button class="btn ev-button-primary">@(Model.SelectionReady && Model.Tender!.EvaluationReport?.RecommendedBidId == winner.BidId ? "Continue to approvals" : "Select suggested offer") <span aria-hidden="true">→</span></button>
+                </form>
+            }
         </div>
     }
     else
@@ -40,18 +41,13 @@
             <div class="ev-ai-empty-preview" aria-hidden="true"><span></span><span></span><span></span></div>
         </div>
     }
+        <form asp-action="RecommendBids" method="post" data-ai-comparison class="ev-ai-controls">
+            <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
+            <div class="ev-ai-controls-label"><strong>Adjust comparison</strong><span>Choose how price and technical fit are balanced.</span></div>
+            <label>Financial <span class="ev-ai-percent"><input type="number" name="financialWeight" min="0" max="100" step="1" required value="@financial.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" aria-label="Financial percentage" /><span>%</span></span></label>
+            <label>Technical <span class="ev-ai-percent"><input type="number" name="requirementsWeight" min="0" max="100" step="1" required value="@((100 - financial).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))" aria-label="Technical percentage" /><span>%</span></span></label>
+            <button class="btn ev-button-primary" disabled="@(Model.Offers.Count == 0 || !Model.Members.Any(m => m.UserId == Model.UserId))">@(result == null ? "Compare offers" : "Compare again") <span aria-hidden="true">↗</span></button><span role="status" class="ev-ai-loading" hidden>Comparing bids…</span>
+            @if (Model.Members.Count == 0) { <p class="ev-ai-start-note">Start evaluation to enable comparison.</p> }
+        </form>
     </div>
-    @if (scenario != null)
-    {
-        <details class="ev-ai-tradeoffs"><summary>Compare all @Model.Offers.Count offers <span aria-hidden="true">⌄</span></summary><div class="ev-ai-tradeoff-grid">
-        @foreach (var comparison in result!.Comparisons)
-        {
-            var offer = Model.Offers.Single(b => b.BidId == comparison.BidId);
-            <article><header><span>Offer #@offer.BidId</span><h4>@offer.Invitation.SupplierProfile.CompanyName</h4></header><div><h5>Strengths</h5><p>@comparison.Strengths</p></div><div><h5>Tradeoffs</h5><p>@comparison.Tradeoffs</p></div></article>
-        }
-        </div>
-        @if (result!.MissingInformation.Length > 0) { <div class="ev-ai-missing"><h4>Information to verify</h4><ul>@foreach (var item in result.MissingInformation) { <li>@item</li> }</ul></div> }
-        </details>
-    }
-
 </section>

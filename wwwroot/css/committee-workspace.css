@@ -154,4 +154,7 @@
 @media(prefers-reduced-motion:reduce) {
  .cw-button,.cw-text-link,.cw-tender-row,.cw-report-link,.cw-tender-row .cw-row-arrow { transition:none; }
  .cw-tender-row:hover .cw-row-arrow { transform:none; }
-}
+}/* Dashboard entry action matches the evaluation workspace. */
+.committee-workspace.unified-dashboard .cw-page-header > .cw-button-primary { background:var(--brand-highlight,#ff6b4a); color:#000000; border-radius:10px; min-height:42px; padding:10px 16px; gap:12px; }
+.committee-workspace.unified-dashboard .cw-page-header > .cw-button-primary:hover { background:#f05c3c; color:#000000; }
+.committee-workspace.unified-dashboard .cw-page-header > .cw-button-primary:focus-visible { outline:2px solid var(--color-text); outline-offset:3px; }

@@ -1,183 +1,116 @@
 @using SourcingTenderManagement.Models.Entities
 @model List<PurchaseRequest>
 @{
-    ViewData["Title"] = "Request Review";
-    var selectedRequest = ViewBag.SelectedRequest as PurchaseRequest;
+    ViewData["Title"] = "Request review";
+    var request = ViewBag.SelectedRequest as PurchaseRequest;
     var currentUserId = ViewBag.CurrentUserId as string;
-    var hasOpenClarifications = ViewBag.HasOpenRequestClarifications is true;
-    var submittedRequestCount = Model.Count(request => request.Status == "Submitted");
-    var underReviewRequestCount = Model.Count(request => request.Status == "UnderReview");
-    var approvedRequestCount = Model.Count(request => request.Status == "Approved");
+    var blocked = ViewBag.HasOpenRequestClarifications is true;
+    var canDecide = request != null && ((request.Status == "UnderReview" && request.ReviewedByUserId == currentUserId) || (request.Status == "Submitted" && request.ReviewedByUserId == null));
+    string StatusLabel(string value) => value == "UnderReview" ? "Under review" : value;
 }
-@section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
-
-<div class="so-page so-page--requests">
-<header class="so-page-header"><div>
-<h1>Request review</h1>
-<p class="so-page-description">Review purchase requests and confirm the next sourcing step.</p></div></header>
-@if (TempData["RequestSuccess"] is string requestSuccess)
+@section Styles {
+    <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/request-review.css" asp-append-version="true" />
+}
+<div class="so-page rr-page">
+<header class="so-page-header"><div><h1>Request review</h1><p class="so-page-description">Understand the need. Review the requirements. Move it forward.</p></div>
+@if (request != null) { <a class="btn btn-outline-primary" asp-action="Requests" asp-route-status="@ViewBag.StatusFilter">← All requests</a> }
+</header>
+@if (TempData["RequestSuccess"] is string success) { <div class="alert alert-success" role="status">@success</div> }
+@if (TempData["RequestError"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
+@if (request == null)
 {
-    <div class="alert alert-success" role="status">@requestSuccess</div>
-}
-@if (TempData["RequestError"] is string requestError)
-{
-    <div class="alert alert-danger" role="alert">@requestError</div>
-}
-<section class="so-summary-grid" aria-label="Request summary">
-    <article class="so-summary-card"><span class="so-summary-label">Requests in this view</span><strong>@Model.Count</strong></article>
-    <article class="so-summary-card"><span class="so-summary-label">Submitted</span><strong>@submittedRequestCount</strong></article>
-    <article class="so-summary-card"><span class="so-summary-label">Under review</span><strong>@underReviewRequestCount</strong></article>
-    <article class="so-summary-card"><span class="so-summary-label">Approved</span><strong>@approvedRequestCount</strong></article>
-</section>
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Request Review">
-    <button class="nav-link @(selectedRequest == null ? "active" : "")" id="review-0-tab" data-bs-toggle="tab" data-bs-target="#review-0" type="button" role="tab" aria-controls="review-0" aria-selected="@(selectedRequest == null ? "true" : "false")">Requests</button>
-    <button class="nav-link @(selectedRequest != null ? "active" : "")" id="review-1-tab" data-bs-toggle="tab" data-bs-target="#review-1" type="button" role="tab" aria-controls="review-1" aria-selected="@(selectedRequest != null ? "true" : "false")">Request Details</button>
-</div>
-<div class="tab-content workspace-content">
-    <div class="tab-pane fade @(selectedRequest == null ? "show active" : "")" id="review-0" role="tabpanel" aria-labelledby="review-0-tab" tabindex="0">
-        <section class="workspace-section">
-            <div class="so-section-heading"><div><h2>Purchase Requests</h2></div><span class="so-section-count">@Model.Count</span></div>
-            <form asp-action="Requests" method="get" class="so-filter-form">
-                <div><label for="request-status" class="form-label">Filter by status</label>
-                    <select id="request-status" name="status" class="form-select" style="max-width: 240px">
-                        <option value="All" selected="@(ViewBag.StatusFilter == "All")">All</option>
-                        <option value="Submitted" selected="@(ViewBag.StatusFilter == "Submitted")">Submitted</option>
-                        <option value="UnderReview" selected="@(ViewBag.StatusFilter == "UnderReview")">Under Review</option>
-                        <option value="Approved" selected="@(ViewBag.StatusFilter == "Approved")">Approved</option>
-                        <option value="Returned" selected="@(ViewBag.StatusFilter == "Returned")">Returned</option>
-                        <option value="Rejected" selected="@(ViewBag.StatusFilter == "Rejected")">Rejected</option>
-                    </select>
-                </div><button type="submit" class="btn btn-primary">Apply Filter</button>
-            </form>
-            @if (Model.Count == 0)
-            {
-                <p class="text-secondary">No requests match this status filter.</p>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr><th>Title</th><th>Department</th><th>Priority</th><th>Target Date</th><th>Submitted</th><th>Status</th><th>Assigned Reviewer</th><th></th></tr>
-                        </thead>
-                        <tbody>
-                        @foreach (var request in Model)
-                        {
-                            <tr>
-                                <td>@request.Title</td>
-                                <td>@request.Department.Name</td>
-                                <td>@request.Priority</td>
-                                <td>@request.TargetDate</td>
-                                <td>@request.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td><span class="so-status-badge" data-status="@request.Status">@request.Status</span></td>
-                                <td>@(request.ReviewedByUser?.FullName ?? "Unassigned")</td>
-                                <td><a class="btn btn-outline-primary btn-sm" asp-action="Requests" asp-route-id="@request.PurchaseRequestId" asp-route-status="@ViewBag.StatusFilter">Review</a></td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </section>
-    </div>
-    <div class="tab-pane fade @(selectedRequest != null ? "show active" : "")" id="review-1" role="tabpanel" aria-labelledby="review-1-tab" tabindex="0">
-        <section class="workspace-section">
-            <h2>Request Details &amp; Review</h2>
-            @if (selectedRequest is null)
-            {
-                <p class="text-secondary">Select a submitted request to review its details.</p>
-            }
-            else
-            {
-                @await Component.InvokeAsync("DetailsQr", new { controller = "SourcingOfficer", action = "Details", id = selectedRequest.PurchaseRequestId, label = "Purchase request" })
-                <dl>
-                    <dt>Title</dt><dd>@selectedRequest.Title</dd>
-                    <dt>Department</dt><dd>@selectedRequest.Department.Name</dd>
-                    <dt>Requested By</dt><dd>@selectedRequest.RequestedByUser.FullName</dd>
-                    <dt>Reason</dt><dd>@selectedRequest.Reason</dd>
-                    <dt>Priority</dt><dd>@selectedRequest.Priority</dd>
-                    <dt>Target Date</dt><dd>@selectedRequest.TargetDate</dd>
-                    <dt>Status</dt><dd><span class="so-status-badge" data-status="@selectedRequest.Status">@selectedRequest.Status</span></dd>
-                    <dt>Assigned Reviewer</dt><dd>@(selectedRequest.ReviewedByUser?.FullName ?? "Unassigned")</dd>
-                    @if (selectedRequest.ReviewedAt.HasValue)
-                    {
-                        <dt>Last Reviewed (UTC)</dt><dd>@selectedRequest.ReviewedAt.Value.ToString("yyyy-MM-dd HH:mm")</dd>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(selectedRequest.ReviewNotes))
-                    {
-                        <dt>Review Notes</dt><dd>@selectedRequest.ReviewNotes</dd>
-                    }
-                </dl>
-
-                <h3>Requested Items</h3>
-                @if (selectedRequest.PurchaseRequestItems.Count == 0)
+    <section class="rr-card rr-inbox">
+        <header class="rr-inbox-heading"><div><h2>Purchase requests <span class="rr-count">@Model.Count</span></h2><p>Newest submissions first</p></div>
+            <form asp-action="Requests" method="get" class="rr-filter"><label class="visually-hidden" for="request-status">Request status</label><select id="request-status" name="status" class="form-select">
+            @foreach (var status in new[] { "All", "Submitted", "UnderReview", "Approved", "Returned", "Rejected" }) { <option value="@status" selected="@(ViewBag.StatusFilter == status)">@StatusLabel(status)</option> }
+            </select><button class="btn btn-outline-primary">Filter</button></form>
+        </header>
+        @if (Model.Count == 0) { <div class="rr-empty"><h3>No requests here yet</h3><p>New department submissions will appear here. Try another status filter.</p></div> }
+        @foreach (var item in Model)
+        {
+            <article class="rr-request-row">
+                <span class="rr-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"/></svg></span>
+                <div class="rr-row-title"><span>#@item.PurchaseRequestId · @item.Department.Name</span><h3><a asp-action="Requests" asp-route-id="@item.PurchaseRequestId" asp-route-status="@ViewBag.StatusFilter">@item.Title</a></h3><p>@item.Priority priority · Needed @item.TargetDate.ToString("dd MMM yyyy")</p></div>
+                <div class="rr-row-state"><span class="so-status-badge" data-status="@item.Status">@StatusLabel(item.Status)</span><time>@item.SubmittedAt?.ToString("dd MMM yyyy · HH:mm")</time></div>
+                <div class="rr-row-action">
+                @if (item.Status == "Approved" && item.ReviewedByUserId == currentUserId)
                 {
-                    <p class="text-secondary">No items were added to this request.</p>
+                    <span class="rr-action-caption">Ready for the next step</span>
+                    <a class="btn btn-primary rr-next-action" asp-action="Create" asp-route-purchaseRequestId="@item.PurchaseRequestId" aria-label="Prepare tender for request @item.PurchaseRequestId">Prepare tender <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
                 }
                 else
                 {
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead><tr><th>Item</th><th>Quantity</th><th>Unit</th><th>Specifications</th></tr></thead>
-                            <tbody>
-                            @foreach (var item in selectedRequest.PurchaseRequestItems)
-                            {
-                                <tr><td>@item.ItemName</td><td>@item.Quantity</td><td>@item.Unit</td><td>@item.Specifications</td></tr>
-                            }
-                            </tbody>
-                        </table>
-                    </div>
+                    @if (item.Status is "Submitted" or "UnderReview") { <span class="rr-action-caption">Your review is needed</span> }
+                    <a class="btn @(item.Status is "Submitted" or "UnderReview" ? "btn-primary rr-next-action" : "btn-outline-primary rr-history-action")" asp-action="Requests" asp-route-id="@item.PurchaseRequestId" asp-route-status="@ViewBag.StatusFilter" aria-label="Open request @item.PurchaseRequestId">@(item.Status is "Submitted" or "UnderReview" ? "Review & decide" : "View request") <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
                 }
-
-@await Component.InvokeAsync("ClarificationHistory", new { kind = "request", recordId = selectedRequest.PurchaseRequestId }) @if (selectedRequest.Status == "UnderReview" && selectedRequest.ReviewedByUserId == currentUserId) { <a asp-controller="Clarification" asp-action="Index" asp-route-kind="request" asp-route-recordId="@selectedRequest.PurchaseRequestId" class="btn btn-outline-primary mt-3">Ask for clarification</a> }
-                @if (selectedRequest.Status == "Submitted" &&
-                    (selectedRequest.ReviewedByUserId == null || selectedRequest.ReviewedByUserId == currentUserId))
+                </div>
+            </article>
+        }
+    </section>
+}
+else
+{
+    <section class="rr-request-heading"><div><span class="rr-eyebrow">PURCHASE REQUEST #@request.PurchaseRequestId</span><h2>@request.Title</h2><p>@request.Department.Name <span>·</span> Requested by @request.RequestedByUser.FullName</p></div><span class="so-status-badge" data-status="@request.Status">@StatusLabel(request.Status)</span></section>
+    <div class="rr-layout">
+        <div class="rr-main">
+            <section class="rr-card rr-requirements"><header><div><span class="rr-eyebrow">THE PURCHASE NEED</span><h3>Requirements &amp; specifications</h3></div><span class="rr-count">@request.PurchaseRequestItems.Count items</span></header>
+                <div class="rr-reason"><h4>Why it’s needed</h4><p>@request.Reason</p></div>
+                @if (request.PurchaseRequestItems.Count == 0) { <p class="rr-empty">No requested items were provided.</p> }
+                @foreach (var item in request.PurchaseRequestItems)
                 {
-                    <form asp-action="StartReview" method="post" class="mt-3">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@selectedRequest.PurchaseRequestId" />
-                        <button type="submit" class="btn btn-primary">Start Review</button>
-                    </form>
+                    <article class="rr-item"><div><h4>@item.ItemName</h4><p>@item.Specifications</p></div><span class="rr-quantity">@item.Quantity.ToString("0.###") <small>@item.Unit</small></span></article>
                 }
-                else if (selectedRequest.Status == "UnderReview" && hasOpenClarifications)
-                {
-                    <div class="so-review-blocked mt-3" role="status"><div><strong>Approval is waiting for clarification</strong><p>An answer does not close the conversation. Both participants must confirm resolution before this request can be approved, returned or rejected.</p></div><div class="so-action-buttons"><button type="button" class="btn btn-primary" disabled aria-describedby="request-approval-blocked">Approve</button><a asp-controller="Clarification" asp-action="Index" asp-route-kind="request" asp-route-recordId="@selectedRequest.PurchaseRequestId" class="btn btn-outline-primary">Review &amp; resolve clarifications ↗</a></div><small id="request-approval-blocked">The decision buttons become available once every clarification is resolved.</small></div>
-                }
-                else if (selectedRequest.Status == "UnderReview" && selectedRequest.ReviewedByUserId == currentUserId)
-                {
-                    <div class="workspace-section mt-3">
-                        <h3>Review Decision</h3>
-                        <form asp-action="ApproveRequest" method="post" class="mb-3">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@selectedRequest.PurchaseRequestId" />
-                            <div class="mb-2">
-                                <label for="approve-notes" class="form-label">Review notes (optional)</label>
-                                <textarea id="approve-notes" name="notes" class="form-control" rows="2" maxlength="2000"></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-success">Approve</button>
-                        </form>
-                        <form asp-action="ReturnRequest" method="post" class="mb-3">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@selectedRequest.PurchaseRequestId" />
-                            <div class="mb-2">
-                                <label for="return-reason-@selectedRequest.PurchaseRequestId" class="form-label">Return reason (required)</label>
-                                <textarea id="return-reason-@selectedRequest.PurchaseRequestId" name="reason" class="form-control" rows="3" maxlength="2000" required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-outline-primary">Return for Correction</button>
-                        </form>
-                        <form asp-action="RejectRequest" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@selectedRequest.PurchaseRequestId" />
-                        <div class="mb-3">
-                                <label for="reject-reason-@selectedRequest.PurchaseRequestId" class="form-label">Rejection reason (required)</label>
-                                <textarea id="reject-reason-@selectedRequest.PurchaseRequestId" name="reason" class="form-control" rows="3" maxlength="2000" required></textarea>
-                        </div>
-                            <button type="submit" class="btn btn-danger">Reject</button>
-                        </form>
-                    </div>
-                }
+            </section>
+            <section class="rr-card rr-conversation"><header><div><h3>Questions &amp; clarification</h3><p>Keep follow-ups connected to this request.</p></div>
+            @if (canDecide) { <a class="btn btn-outline-primary" asp-controller="Clarification" asp-action="Index" asp-route-kind="request" asp-route-recordId="@request.PurchaseRequestId">Ask a question ↗</a> }
+            </header>
+            @if (blocked) { <div class="rr-blocked" role="status"><strong>Open questions need resolution</strong><p>Both participants must confirm resolution before a decision can be recorded.</p><a asp-controller="Clarification" asp-action="Index" asp-route-kind="request" asp-route-recordId="@request.PurchaseRequestId">Review conversations →</a></div> }
+            <details open="@blocked"><summary>Conversation history</summary>@await Component.InvokeAsync("ClarificationHistory", new { kind = "request", recordId = request.PurchaseRequestId })</details>
+            </section>
+        </div>
+        <aside class="rr-side">
+            <section class="rr-card rr-facts"><h3>At a glance</h3><dl><div><dt>Priority</dt><dd>@request.Priority</dd></div><div><dt>Needed by</dt><dd>@request.TargetDate.ToString("dd MMM yyyy")</dd></div><div><dt>Submitted</dt><dd>@request.SubmittedAt?.ToString("dd MMM yyyy · HH:mm")</dd></div><div><dt>Reviewer</dt><dd>@(request.ReviewedByUser?.FullName ?? "Unassigned")</dd></div>
+            @if (request.ReviewedAt.HasValue) { <div><dt>Last reviewed</dt><dd>@request.ReviewedAt.Value.ToString("dd MMM yyyy · HH:mm")</dd></div> }</dl>
+            @await Component.InvokeAsync("DetailsQr", new { controller = "SourcingOfficer", action = "Details", id = request.PurchaseRequestId, label = "Purchase request" })
+            </section>
+            <section class="rr-card rr-decision"><h3>Your decision</h3>
+            @if (canDecide)
+            {
+                <p>Approve this purchase request to make it available for tender preparation.</p>
+                @if (blocked) { <p class="rr-decision-hint">Resolve the open questions to continue.</p> }
+                <form asp-action="ApproveRequest" method="post" id="request-approve-form">
+                    <input type="hidden" name="id" value="@request.PurchaseRequestId" />
+                    <button type="submit" class="btn btn-primary rr-approve" disabled="@blocked">Approve request</button>
+                </form>
+                <div class="rr-secondary-actions"><button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#request-return" disabled="@blocked">Request changes</button><button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#request-reject" disabled="@blocked">Reject</button></div>
             }
-        </section>
+            else if (request.Status == "Submitted" && (request.ReviewedByUserId == null || request.ReviewedByUserId == currentUserId))
+            {
+                <p>Take ownership of this request to review and record your decision.</p><form asp-action="StartReview" method="post"><input type="hidden" name="id" value="@request.PurchaseRequestId" /><button class="btn btn-primary rr-approve">Start review →</button></form>
+            }
+            else if (request.Status == "Approved" && request.ReviewedByUserId == currentUserId)
+            {
+                <span class="rr-decision-result">✓ Approved</span><p>Request approved. Prepare its tender when you’re ready.</p><a asp-action="Create" asp-route-purchaseRequestId="@request.PurchaseRequestId" class="btn btn-primary rr-approve">Prepare tender &amp; invite suppliers →</a>
+            }
+            else { <p>This request is @StatusLabel(request.Status). No review action is available.</p> }
+            @if (!string.IsNullOrWhiteSpace(request.ReviewNotes)) { <div class="rr-recorded-notes"><h4>Recorded review notes</h4><p>@request.ReviewNotes</p></div> }
+            </section>
+        </aside>
     </div>
+    @if (canDecide && !blocked)
+    {
+        @foreach (var action in new[] { (Key: "return", Action: "ReturnRequest", Title: "Request changes", Description: "Explain what the department needs to update before resubmitting."), (Key: "reject", Action: "RejectRequest", Title: "Reject request", Description: "Explain why this purchase request cannot proceed.") })
+        {
+            <div class="modal fade" id="request-@action.Key" tabindex="-1" aria-labelledby="request-@action.Key-title" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form asp-action="@action.Action" method="post"><input type="hidden" name="id" value="@request.PurchaseRequestId" />
+            <div class="modal-header"><h2 class="modal-title fs-5" id="request-@action.Key-title">@action.Title</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><p>@action.Description</p><label for="request-@action.Key-reason" class="form-label">Reason <span>(required)</span></label><textarea id="request-@action.Key-reason" name="reason" class="form-control" rows="4" maxlength="2000" required></textarea></div><div class="modal-footer"><button class="btn btn-outline-primary" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit">@action.Title</button></div>
+            </form></div></div></div>
+        }
+    }
+}
 </div>
-</div>
+@section Scripts {
+<script>
+document.querySelectorAll('.rr-page .modal').forEach(dialog => dialog.addEventListener('shown.bs.modal', () => dialog.querySelector('textarea')?.focus()));
+</script>
+}

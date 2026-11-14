@@ -1,0 +1,12 @@
+<dialog id="action-confirmation" class="action-confirmation" aria-labelledby="action-confirmation-title" aria-describedby="action-confirmation-description">
+    <div class="action-confirmation-body">
+        <span class="action-confirmation-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7zM8 12l3 3 5-6"/></svg></span>
+        <h2 id="action-confirmation-title">Confirm action</h2>
+        <p id="action-confirmation-description"></p>
+    </div>
+    <div class="action-confirmation-actions"><button type="button" data-action-cancel autofocus>Cancel</button><button type="button" data-action-proceed>Confirm</button></div>
+</dialog>
+@if (TempData["ActionSuccess"] is string actionSuccess)
+{
+    <div class="action-success" role="status"><span aria-hidden="true">✓</span><p>@actionSuccess</p><button type="button" aria-label="Dismiss confirmation" onclick="this.parentElement.remove()">×</button></div>
+}

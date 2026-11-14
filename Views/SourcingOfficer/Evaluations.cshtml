@@ -231,3 +231,12 @@ decisionModal?.addEventListener('show.bs.modal', event => {
 decisionModal?.addEventListener('shown.bs.modal', () => decisionModal.querySelector('textarea').focus());
 </script>
 }
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    if (new URLSearchParams(location.search).get('tab') === 'report') {
+        const tab = document.getElementById('evaluation-report-tab');
+        if (tab) { bootstrap.Tab.getOrCreateInstance(tab).show(); tab.scrollIntoView({block:'start'}); }
+    }
+});
+</script>

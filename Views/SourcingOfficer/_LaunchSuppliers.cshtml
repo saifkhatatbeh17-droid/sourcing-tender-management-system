@@ -1,0 +1,10 @@
+@using SourcingTenderManagement.Models.Entities
+@{ var suppliers = ViewBag.LaunchSuppliers as List<SupplierProfile> ?? []; }
+<fieldset class="tw-suppliers"><legend class="fs-6">Invite suppliers</legend><p class="text-secondary small">Choose the approved companies that can submit offers.</p>
+@if (suppliers.Count == 0) { <p role="status">No approved suppliers are available yet.</p> }
+@if (suppliers.Count > 0)
+{
+    <label class="tw-invite-all"><input type="checkbox" name="allSuppliers" value="true" data-invite-all /><span><strong>Invite all approved suppliers</strong><small>@suppliers.Count companies · existing invitations are skipped</small></span></label>
+}
+<div class="tw-supplier-options">@foreach (var supplier in suppliers) { <label><input type="checkbox" name="supplierProfileIds" value="@supplier.SupplierProfileId" /> <span>@supplier.CompanyName</span></label> }</div>
+</fieldset>

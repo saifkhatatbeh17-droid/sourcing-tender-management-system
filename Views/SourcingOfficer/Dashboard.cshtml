@@ -6,7 +6,7 @@
         new DashboardMetric("Reports for your review", Convert.ToString(ViewBag.ReportsAwaitingOfficer) ?? "0", "Committee reports ready for review", false, "Evaluations"),
         new DashboardMetric("Submitted offers", Convert.ToString(ViewBag.SubmittedOffers) ?? "0", "Supplier bids received", false, "Offers"),
         new DashboardMetric("Evaluations in progress", Convert.ToString(ViewBag.EvaluationsInProgress) ?? "0", "With the evaluation committee", false, "Evaluations"),
-        new DashboardMetric("Compliance reviews", Convert.ToString(ViewBag.PendingCompliance) ?? "0", "Offers awaiting a compliance decision", false, "Compliance")
+        new DashboardMetric("Offers needing review", Convert.ToString(ViewBag.PendingCompliance) ?? "0", "Offers awaiting a compliance decision", false, "Offers")
     };
 }
 <div class="unified-dashboard">
@@ -14,5 +14,5 @@
     <section class="dashboard-metrics" aria-label="Sourcing activity">
         @foreach (var metric in metrics) { <partial name="_DashboardMetric" model="metric" /> }
     </section>
-    <section class="workspace-section"><h2>Your workspace</h2><p class="text-secondary">Compare supplier offers, follow clarification conversations, and review recorded decisions.</p><div class="d-flex flex-wrap gap-2"><a asp-action="Comparison" class="btn btn-outline-primary">Offer comparison</a><a asp-action="Clarifications" class="btn btn-outline-primary">Clarifications</a><a asp-action="Reports" class="btn btn-outline-primary">Reports</a></div></section>
+    <section class="workspace-section"><h2>Your workspace</h2><p class="text-secondary">Compare supplier offers, follow clarification conversations, and review recorded decisions.</p><div class="d-flex flex-wrap gap-2"><a asp-action="Offers" class="btn btn-outline-primary">Review offers</a><a asp-action="Clarifications" class="btn btn-outline-primary">Clarifications</a><a asp-action="Reports" class="btn btn-outline-primary">Reports</a></div></section>
 </div>
