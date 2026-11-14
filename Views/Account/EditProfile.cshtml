@@ -1,19 +1,31 @@
 @model EditProfileViewModel
 @{
+    var managerProfile = !User.IsInRole(SourcingTenderManagement.Data.RoleNames.Supplier) &&
+        SourcingTenderManagement.Data.RoleNames.Primary.FirstOrDefault(User.IsInRole) ==
+            SourcingTenderManagement.Data.RoleNames.SourcingManager;
     ViewData["Title"] = "Edit Profile";
 }
 
-<h1>Edit Profile</h1>
+@section Styles {
+    @if (managerProfile)
+    {
+        <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
+    }
+}
 
-<section class="workspace-section">
-    <form asp-action="EditProfile" method="post">
-        <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-        <div class="mb-3">
-            <label asp-for="PhoneNumber" class="form-label"></label>
-            <input asp-for="PhoneNumber" type="tel" class="form-control" maxlength="32" autocomplete="tel" />
-            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-        </div>
-        <button type="submit" class="btn btn-primary">Save Phone Number</button>
-        <a asp-action="Profile" class="btn btn-link">Cancel</a>
-    </form>
-</section>
+<div class="@(managerProfile ? "manager-shell" : null)">
+    <div class="workspace-heading"><h1>Edit Profile</h1></div>
+
+    <section class="workspace-section">
+        <form asp-action="EditProfile" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="mb-3">
+                <label asp-for="PhoneNumber" class="form-label"></label>
+                <input asp-for="PhoneNumber" type="tel" class="form-control" maxlength="32" autocomplete="tel" />
+                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Phone Number</button>
+            <a asp-action="Profile" class="btn btn-link">Cancel</a>
+        </form>
+    </section>
+</div>

@@ -1,0 +1,126 @@
+.manager-shell {
+    --color-primary: #00a3a6;
+    --color-link: #007b7e;
+    --color-selection: #eef8f6;
+    color: var(--color-text);
+    font-family: var(--font-family);
+}
+
+[data-theme="dark"] .manager-shell {
+    --color-link: #67d4d3;
+    --color-selection: #112e2d;
+}
+
+.manager-shell .workspace-section,
+.manager-shell .manager-metric {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    padding: var(--space-24);
+}
+
+.manager-shell .manager-metric {
+    display: flex;
+    min-height: 120px;
+    align-items: center;
+}
+
+.manager-shell .manager-metric dt {
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-normal);
+}
+
+.manager-shell .manager-metric dd {
+    order: -1;
+    margin: 0;
+    font-size: var(--font-size-heading);
+    font-weight: var(--font-weight-semibold);
+}
+
+.manager-shell .table {
+    --bs-table-bg: var(--color-surface);
+    --bs-table-color: var(--color-text);
+    --bs-table-border-color: var(--color-border);
+}
+
+.manager-shell .table thead th {
+    background: var(--color-surface-alt);
+    color: var(--color-text-secondary);
+}
+
+.manager-shell .btn-primary {
+    --bs-btn-bg: var(--color-primary);
+    --bs-btn-border-color: var(--color-primary);
+    --bs-btn-color: #002e30;
+    --bs-btn-hover-bg: #009497;
+    --bs-btn-hover-border-color: #009497;
+    --bs-btn-hover-color: #002e30;
+}
+
+.manager-shell :is(.btn, .form-control, .form-select) {
+    border-radius: 18px;
+}
+
+.manager-shell {
+    max-width: var(--container-max-width);
+    margin-inline: auto;
+}
+
+.manager-shell .workspace-columns {
+    align-items: start;
+    gap: var(--space-16);
+}
+
+.manager-shell .manager-metric {
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.manager-shell .manager-metric dl {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.manager-shell .manager-metric:hover {
+    outline: 1px solid var(--color-primary);
+}
+
+.manager-shell .list-group {
+    --bs-list-group-bg: var(--color-surface);
+    --bs-list-group-color: var(--color-text);
+    --bs-list-group-border-color: var(--color-border);
+    --bs-list-group-action-color: var(--color-text);
+    --bs-list-group-action-hover-bg: var(--color-surface-alt);
+    --bs-list-group-action-hover-color: var(--color-text);
+    --bs-list-group-active-bg: var(--color-selection);
+    --bs-list-group-active-color: var(--color-link);
+    --bs-list-group-active-border-color: var(--color-primary);
+    --bs-list-group-border-radius: var(--radius-small);
+}
+
+.manager-shell .manager-text {
+    white-space: pre-wrap;
+}
+
+.manager-shell .manager-section-break {
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--space-24);
+    padding-top: var(--space-16);
+}
+
+.manager-shell .btn-outline-danger {
+    color: var(--bs-danger-text-emphasis);
+}
+
+.manager-shell .btn-outline-danger:hover {
+    color: var(--bs-danger-text-emphasis);
+    background-color: var(--bs-danger-bg-subtle);
+    border-color: var(--bs-danger-border-subtle);
+}
+
+@media (max-width: 1000px) {
+    .manager-shell .workspace-columns {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
