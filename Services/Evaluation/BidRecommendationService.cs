@@ -89,12 +89,12 @@ public class BidRecommendationService(HttpClient http, IConfiguration configurat
             .Select(weight => new { financialWeight = weight, requirementsWeight = 100 - weight }),
         offers = page.Offers.Select(b => new { b.BidId, supplier = b.Invitation.SupplierProfile.CompanyName,
             total = CommitteeEvaluationPage.Total(b), b.Currency, b.DeliveryDays, b.PaymentTerms, b.ValidUntil,
-            b.TechnicalDetails, b.TaxAmount, b.AdditionalCosts,
+            b.TechnicalDetails, b.TaxAmount, b.AdditionalCosts, b.ComplianceStatus, b.ComplianceNotes,
             items = b.BidItems.OrderBy(i => i.BidItemId).Select(i => new { i.PurchaseRequestItemId, i.Quantity, i.UnitPrice, i.OfferedSpecifications }) })
     }, Json);
     public static string Fingerprint(CommitteeEvaluationPage page) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(BidData(page))));
 
-    public async Task<BidRecommendation> Recommend(CommitteeEvaluationPage page, decimal financialWeight, CancellationToken cancellationToken)
+    public async Task<BidRecommendation> Recommend(CommitteeEvaluationPage page, decimal financialWeight, CancellationToken cancellationToken, int? selectedBidId = null)
     {
         if (page.Offers.Count == 0) throw new InvalidOperationException("No eligible bids are available to compare.");
         var input = BidData(page, financialWeight);
@@ -108,12 +108,12 @@ public class BidRecommendationService(HttpClient http, IConfiguration configurat
                     type = "object", additionalProperties = false,
                     properties = new {
                         financialWeight = new { type = "number", @enum = new[] { financialWeight } },
-                        recommendedBidId = new { type = new[] { "integer", "null" } }, reason = stringSchema
+                        recommendedBidId = new { type = new[] { "integer", "null" }, @enum = selectedBidId.HasValue ? new int?[] { selectedBidId } : page.Offers.Select(b => (int?)b.BidId).Append(null).ToArray() }, reason = stringSchema
                     }, required = new[] { "financialWeight", "recommendedBidId", "reason" }
                 } },
                 missingInformation = new { type = "array", items = stringSchema },
-                comparisons = new { type = "array", items = new { type = "object", additionalProperties = false,
-                    properties = new { bidId = new { type = "integer" }, strengths = stringSchema, tradeoffs = stringSchema },
+                comparisons = new { type = "array", minItems = page.Offers.Count, maxItems = page.Offers.Count, items = new { type = "object", additionalProperties = false,
+                    properties = new { bidId = new { type = "integer", @enum = page.Offers.Select(b => b.BidId).ToArray() }, strengths = stringSchema, tradeoffs = stringSchema },
                     required = new[] { "bidId", "strengths", "tradeoffs" } } }
             }, required = new[] { "scenarios", "missingInformation", "comparisons", "report" }
         };
@@ -129,9 +129,15 @@ public class BidRecommendationService(HttpClient http, IConfiguration configurat
                 For financial-only select the lowest complete offer total; use payment terms only to distinguish equal totals. For requirements-only ignore price,
                 compare technical fit, quality, warranty and delivery against the purchase requirements. For balanced weigh both.
                 Do not invent facts, specifications, exchange rates or warranties. Supplier statements are claims.
+                complianceStatus is the officer's recorded screening decision. A Compliant offer has passed that screening;
+                compare its documented cost and technical advantages without inventing a new failure or treating a longer warranty as a mandatory requirement.
+                Check requested quantities and specifications against BOTH item offeredSpecifications and technicalDetails.
+                If declining to recommend, identify the exact unresolved requirement or tied advantages from the input.
+                Different prices, delivery times, or warranties are tradeoffs, not evidence that requirements are misaligned.
                 If a scenario has insufficient evidence or a tie without a defensible winner, use null for its recommendedBidId.
                 If currencies differ, use null for the balanced and financial scenarios; requirements-only may still be compared.
                 Include all offers exactly once in comparisons. Do not generate committee scores, approve, award, or change workflow.
+                Include the recommended offer itself in comparisons, not just its alternatives.
                 Check every reason against the input before answering: fewer delivery days means faster delivery.
                 Never say a warranty or feature is missing if it is mentioned anywhere in that offer's specifications or technicalDetails.
                 In requirements-only reasons do not use price as a justification. Mention only facts relevant to that scenario.
@@ -155,7 +161,8 @@ public class BidRecommendationService(HttpClient http, IConfiguration configurat
                 Address any officer revision request using the available evidence. State what cannot be established; do not pad the report with unsupported conclusions.
                 Use concise English. Output JSON matching the supplied schema.
                 """,
-            prompt = "Compare these bids: " + input + "\nOfficer revision request: "
+            prompt = (selectedBidId.HasValue ? $"The committee has already selected bid {selectedBidId.Value}. Write the final report about THAT offer; do not select or substitute another bid. Explain its evidence-based benefits and tradeoffs honestly; if another bid is cheaper or stronger, disclose that rather than inventing advantages. recommendedBidId must equal {selectedBidId.Value}.\n" : "")
+                + "Compare these bids: " + input + "\nOfficer revision request: "
                 + (page.Tender!.EvaluationReport?.Status == "ReturnedForReview" ? page.Tender.EvaluationReport.OfficerSummary : "None")
                 + "\nJSON schema: " + JsonSerializer.Serialize(schema, Json)
         });

@@ -30,17 +30,38 @@ else
     </section>
 
     <div class="ev-forms-heading"><h3>Committee approvals</h3><span class="ev-approval-summary">@Model.Approvals.Count / 4 approved</span></div>
+    <div class="ev-selection-strip" aria-label="Committee-selected offer">
+        <span class="ev-selection-strip-label">Selected offer</span>
+        @if (Model.SelectionReady)
+        {
+            var selectedOffer = Model.Offers.Single(b => b.BidId == Model.Tender!.EvaluationReport!.RecommendedBidId);
+            <strong>@selectedOffer.Invitation.SupplierProfile.CompanyName</strong>
+            <span class="ev-selection-strip-facts">#@selectedOffer.BidId <span aria-hidden="true">·</span> @CommitteeEvaluationPage.Total(selectedOffer).ToString("N2") @selectedOffer.Currency <span aria-hidden="true">·</span> @selectedOffer.DeliveryDays-day delivery</span>
+        }
+        else { <span class="ev-selection-strip-facts">Choose an offer before approving.</span> }
+        @if (editable) { <button type="button" class="ev-reference-link" data-open-evaluation-tab="offers-tab" title="Changing the offer resets previous approvals">@(Model.SelectionReady ? "Change offer" : "Choose offer") <span aria-hidden="true">↗</span></button> }
+    </div>
+    @if (!Model.Locked && Model.Approvals.Count == 4)
+    { <p class="ev-notice ev-notice-success">All four approvals are recorded. Open Comparison &amp; report to generate the final report and send it to the sourcing officer.</p> }
     <div class="ev-forms-grid">
     @foreach (var member in Model.Members.OrderBy(m => m.Position))
     {
         var mine = member.UserId == Model.UserId;
         var approved = Model.Approvals.Any(a => a.UserId == member.UserId);
+        var standards = member.Position switch
+        {
+            1 => new[] { "The offer choice reflects the committee’s agreement.", "Evaluation percentages are agreed and total 100%.", "All member concerns and clarifications are resolved.", "The decision is supported by the tender and offer details." },
+            2 => new[] { "Requested items and quantities meet the department’s needs.", "The offer suits the intended use and operating needs.", "Delivery meets the department’s required timeframe.", "Any substitutions or exceptions are acceptable." },
+            3 => new[] { "Prices, quantities and calculations are consistent.", "Tax and additional costs are included in the total.", "Payment terms and financial conditions are acceptable.", "The total cost offers value against competing bids." },
+            _ => new[] { "Offered specifications meet the technical requirements.", "Equipment is compatible with the intended environment.", "Warranty, installation and support meet tender terms.", "Technical deviations are identified and acceptable." }
+        };
         <section class="ev-member-form ev-approval-card @(mine ? "is-yours" : "")">
             <header><div class="ev-member-heading"><span class="ev-form-badge @(approved ? "is-approved" : "")">@(approved ? "✓ Approved" : "Pending")</span><span class="ev-access-label">@(mine ? "Your approval" : "Read-only")</span></div><h3>@CommitteeEvaluationPage.MemberName(member.Position)</h3><p>@member.User.FullName @(mine ? "(you)" : "")</p></header>
+            <div class="ev-member-standards"><h4>Review standards</h4><ul>@foreach (var standard in standards) { <li>@standard</li> }</ul><button type="button" data-open-evaluation-tab="offers-tab" class="ev-reference-link">View tender &amp; offers ↗</button></div>
             <div class="ev-approval-footer">
             @if (mine && !approved && !Model.Locked)
             {
-                <form asp-action="Approve" method="post" class="ev-approval-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" /><button class="btn ev-button-primary" disabled="@(!Model.WeightsReady || !Model.ReportReady)">@(Model.ReportReady ? "Approve evaluation" : "Generate report first")</button></form>
+                <form asp-action="Approve" method="post" class="ev-approval-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" /><button class="btn ev-button-primary" disabled="@(!Model.WeightsReady || !Model.SelectionReady)">Approve</button></form><button type="button" class="btn ev-button-secondary ev-reject-button" data-bs-toggle="modal" data-bs-target="#reject-offer-modal" disabled="@(!Model.SelectionReady)">Reject</button>
             }
             else { <span class="ev-approval-readonly">@(mine && approved ? "Your approval is recorded" : "Read-only")</span> }
             </div>
@@ -49,6 +70,17 @@ else
     </div>
 
 
+    @if (editable && Model.SelectionReady)
+    {
+        <div class="modal fade" id="reject-offer-modal" tabindex="-1" aria-labelledby="reject-offer-heading" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content ev-reject-dialog">
+            <form asp-action="RejectOffer" method="post">
+                <input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
+                <div class="modal-header"><h3 class="modal-title" id="reject-offer-heading">Return the offer for review</h3><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body"><p>Your reason will be shared with the committee. The current selection and approvals will be cleared so the committee can choose again.</p><label for="rejection-reason">Reason for rejection</label><textarea id="rejection-reason" name="reason" class="form-control" rows="4" required maxlength="3500" placeholder="Explain which requirement or term needs review…"></textarea></div>
+                <div class="modal-footer"><button type="button" class="btn ev-button-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn ev-button-primary">Reject &amp; return for review</button></div>
+            </form>
+        </div></div></div>
+    }
     <section class="ev-comments" aria-labelledby="committee-comments-heading">
         <h3 id="committee-comments-heading">Committee comments</h3>
         <div class="ev-comments-list">

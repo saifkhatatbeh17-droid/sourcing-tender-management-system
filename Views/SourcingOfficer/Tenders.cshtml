@@ -12,22 +12,24 @@
 @section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
 
 <div class="so-page so-page--tenders">
-<header class="so-page-header"><div><p class="so-eyebrow">TENDER LIFECYCLE</p>
+<header class="so-page-header"><div>
 <h1>Tenders</h1>
-<p class="so-page-description">Create tenders from approved purchase requests, publish drafts, and follow the status of your tenders.</p></div><span class="so-page-header-icon" aria-hidden="true">TN</span></header>
+<p class="so-page-description">Prepare, publish and track your tenders.</p></div><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tender-create">Create tender <span aria-hidden="true">＋</span></button></header>
 <section class="so-summary-grid" aria-label="Tender summary">
-    <article class="so-summary-card so-tone-blue"><span class="so-summary-label">My Tenders</span><strong>@Model.Tenders.Count</strong><span class="so-summary-note">Tenders created by you</span></article>
-    <article class="so-summary-card so-tone-violet"><span class="so-summary-label">Draft</span><strong>@draftTenderCount</strong><span class="so-summary-note">Available for editing</span></article>
-    <article class="so-summary-card so-tone-teal"><span class="so-summary-label">Published</span><strong>@publishedTenderCount</strong><span class="so-summary-note">Open for supplier invitations</span></article>
-    <article class="so-summary-card so-tone-amber"><span class="so-summary-label">Approved requests</span><strong>@approvedRequests.Count</strong><span class="so-summary-note">Eligible for Tender creation</span></article>
+    <article class="so-summary-card"><span class="so-summary-label">My Tenders</span><strong>@Model.Tenders.Count</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Draft</span><strong>@draftTenderCount</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Published</span><strong>@publishedTenderCount</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Approved requests</span><strong>@approvedRequests.Count</strong></article>
 </section>
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Tenders">
 <button class="nav-link @(Model.SelectedTender == null ? "active" : "")" id="tenders-0-tab" data-bs-toggle="tab" data-bs-target="#tenders-0" type="button" role="tab" aria-controls="tenders-0" aria-selected="@(Model.SelectedTender == null ? "true" : "false")">Tenders</button>
 <button class="nav-link @(Model.SelectedTender != null ? "active" : "")" id="tenders-1-tab" data-bs-toggle="tab" data-bs-target="#tenders-1" type="button" role="tab" aria-controls="tenders-1" aria-selected="@(Model.SelectedTender != null ? "true" : "false")">Tender Details</button></div>
-<div class="tab-content workspace-content"><div class="tab-pane fade @(Model.SelectedTender == null ? "show active" : "")" id="tenders-0" role="tabpanel" aria-labelledby="tenders-0-tab" tabindex="0"><section class="workspace-section"><div class="so-section-heading"><div><p class="so-eyebrow">RECORDS</p><h2>Existing Tenders</h2></div><span class="so-section-count">@Model.Tenders.Count</span></div>@if (Model.Tenders.Count == 0) { <div class="so-empty-state"><span class="so-empty-mark" aria-hidden="true">T</span><div><strong>No tenders yet</strong><p>Create a Tender after a Purchase Request has been approved.</p></div></div> }
-<ul class="so-tender-list">@foreach (var tender in Model.Tenders) { <li><a asp-action="Tenders" asp-route-id="@tender.TenderId">@tender.Title</a> <span class="text-secondary">(<span class="so-status-badge" data-status="@tender.Status">@tender.Status</span>)</span><a asp-action="Tenders" asp-route-id="@tender.TenderId" asp-route-showQr="true" class="btn btn-sm btn-outline-primary">View QR code</a></li> }</ul></section><section class="so-action-panel"><div><p class="so-eyebrow">NEXT ACTION</p><h2>Create a Tender</h2><p>@(approvedRequests.Count > 0 ? "Start a draft from one of your eligible approved requests." : "A request must be approved and must not already have a Tender.")</p></div><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tender-create">Create Tender</button></section></div>
+<div class="tab-content workspace-content"><div class="tab-pane fade @(Model.SelectedTender == null ? "show active" : "")" id="tenders-0" role="tabpanel" aria-labelledby="tenders-0-tab" tabindex="0"><section class="workspace-section"><div class="so-section-heading"><div><h2>Existing Tenders</h2></div><span class="so-section-count">@Model.Tenders.Count</span></div>@if (Model.Tenders.Count == 0) { <div class="so-empty-state"><span class="so-empty-mark" aria-hidden="true">T</span><div><strong>No tenders yet</strong><p>Create a Tender after a Purchase Request has been approved.</p></div></div> }
+<div class="table-responsive"><table class="table"><thead><tr><th>Tender</th><th>Status</th><th>Deadline (UTC)</th><th><span class="visually-hidden">Actions</span></th></tr></thead><tbody>
+@foreach (var tender in Model.Tenders) { <tr><td><a class="so-record-title" asp-action="Tenders" asp-route-id="@tender.TenderId">@tender.Title</a><span class="so-record-ref">Tender #@tender.TenderId</span></td><td><span class="so-status-badge" data-status="@tender.Status">@tender.Status</span></td><td>@tender.ClosesAt.ToString("dd MMM yyyy · HH:mm")</td><td><a asp-action="Tenders" asp-route-id="@tender.TenderId" class="btn btn-sm btn-outline-primary">View tender ↗</a><a asp-action="Tenders" asp-route-id="@tender.TenderId" asp-route-showQr="true" class="so-qr-link">QR code</a></td></tr> }
+</tbody></table></div></section></div>
 <div class="tab-pane fade @(Model.SelectedTender != null ? "show active" : "")" id="tenders-1" role="tabpanel" aria-labelledby="tenders-1-tab" tabindex="0">
-<section class="workspace-section"><div class="so-section-heading"><div><p class="so-eyebrow">SELECTED RECORD</p><h2>Tender Details</h2></div></div>@if (TempData["TenderSuccess"] is string successMessage) { <div class="alert alert-success" role="status">@successMessage</div> }@if (TempData["TenderError"] is string tenderError) { <div class="alert alert-danger" role="alert">@tenderError</div> }@if (Model.SelectedTender is { } selected)
+<section class="workspace-section"><div class="so-section-heading"><div><h2>Tender Details</h2></div></div>@if (TempData["TenderSuccess"] is string successMessage) { <div class="alert alert-success" role="status">@successMessage</div> }@if (TempData["TenderError"] is string tenderError) { <div class="alert alert-danger" role="alert">@tenderError</div> }@if (Model.SelectedTender is { } selected)
 {
     @await Component.InvokeAsync("DetailsQr", new { controller = "SourcingOfficer", action = "Tenders", id = selected.TenderId, label = "Tender" })
     <dl><dt>Title</dt><dd>@selected.Title</dd><dt>Status</dt><dd><span class="so-status-badge" data-status="@selected.Status">@selected.Status</span></dd><dt>Description</dt><dd>@selected.Description</dd><dt>Terms</dt><dd>@selected.Terms</dd><dt>Submission deadline (UTC)</dt><dd>@selected.ClosesAt.ToString("yyyy-MM-dd HH:mm")</dd></dl>
@@ -41,7 +43,7 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
 <!-- TEAM TODO: Add announcement/closure processing here after the approved final decision. The officer does not choose a winner independently. --></section>
 @if (Model.SelectedTender is { } actionTender)
 {
-    <section class="so-action-panel"><div><p class="so-eyebrow">TENDER ACTIONS</p><h2>Available actions</h2><p>Actions depend on the current Tender status and existing workflow rules.</p></div><div class="so-action-buttons">
+    <section class="so-action-panel"><div><h2>Available actions</h2><p>Tenders close automatically at the submission deadline. Complete compliance review before sending them to evaluation.</p></div><div class="so-action-buttons">
         @if (actionTender.Status == "Draft")
         {
             <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@actionTender.TenderId">Edit Tender</a>
@@ -166,4 +168,9 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
             if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
         });
     </script>
+}
+
+@if (Model.SelectedTender is { } clarificationRecord)
+{
+    @await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = clarificationRecord.TenderId })
 }

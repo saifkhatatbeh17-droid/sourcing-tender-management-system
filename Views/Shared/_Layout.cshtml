@@ -19,12 +19,15 @@
         workspaceController = RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     var showWorkspace = !isHomeLanding && User.Identity?.IsAuthenticated == true
         && ViewData["HideWorkspaceSidebar"] is not true && PageNavigation.Menus.ContainsKey(workspaceController)
-        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
+        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "Clarification" or "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
     var showAdminSidebar = showWorkspace && workspaceController == "Admin";
     ViewData["WorkspaceController"] = workspaceController;
     ViewData["WorkspaceLabel"] = workspaceController == "Admin" ? "Administration" : System.Text.RegularExpressions.Regex.Replace(workspaceController, "([a-z])([A-Z])", "$1 $2");
     var activeAction = ViewData["ActivePage"]?.ToString() ?? currentAction;
+    if (currentController == "Clarification") activeAction = "Clarifications";
     activeAction = activeAction switch {
+        "Details" when workspaceController == "Department" => "Requests",
+        "Edit" when workspaceController == "Department" => "Create",
         "SupplierDetails" => "Suppliers", "CreateRequest" or "EditRequest" or "RequestDetails" => "Requests",
         "CreateOffer" or "Offer" => "Offers", "TenderDetails" when workspaceController == "TopCommittee" => "Decisions",
         "TenderDetails" => "Tenders", "Invitation" => "Invitations", _ => activeAction
@@ -53,6 +56,7 @@
         <link rel="stylesheet" href="~/css/admin-root.css" asp-append-version="true" />
     }
     @if (showWorkspace) { <link rel="stylesheet" href="~/css/workspace-shell.css" asp-append-version="true" /> }
+    @if (showWorkspace && currentAction == "Dashboard") { <link rel="stylesheet" href="~/css/workspace-dashboard.css" asp-append-version="true" /> }
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>

@@ -1,0 +1,114 @@
+@model List<SourcingTenderManagement.Models.Entities.Clarification>
+@using SourcingTenderManagement.Models.Entities
+@using SourcingTenderManagement.Data
+@using SourcingTenderManagement.Models
+@{
+    ViewData["Title"] = "Clarifications";
+    var thread = ViewBag.Thread as Clarification;
+    var recipients = (List<ApplicationUser>)ViewBag.Recipients;
+    var records = ViewBag.Records as List<ClarificationRecordOption> ?? [];
+    string? kind = ViewBag.Kind;
+    int? recordId = ViewBag.RecordId;
+    string? actorId = ViewBag.ActorId;
+    var composing = thread == null && (recordId.HasValue || Context.Request.Query["compose"] == "true");
+}
+@section Styles { <link rel="stylesheet" href="~/css/clarification-inbox.css" asp-append-version="true" /> }
+<div class="clarification-inbox">
+<header class="ci-heading"><div><h1>Clarifications</h1><p>Keep questions, answers, and decisions connected to the right tender.</p></div><a class="ci-button ci-primary" asp-action="Index" asp-route-compose="true"><span aria-hidden="true">＋</span> New clarification</a></header>
+@if (TempData["ClarificationError"] is string error) { <p class="ci-notice" role="alert">@error</p> }
+@if (ViewBag.RecordUrl is string recordUrl) { <div class="ci-context"><a href="@recordUrl">← Back to related record</a><a asp-action="Index">View full inbox</a></div> }
+<div class="ci-layout">
+<aside class="ci-sidebar" aria-label="Conversations">
+    <header><h2>Inbox <span class="ci-count">@Model.Count</span></h2></header>
+    <form method="get" asp-action="Index" class="ci-filters">
+        <input type="hidden" name="kind" value="@kind" /><input type="hidden" name="recordId" value="@recordId" />
+        @if (composing) { <input type="hidden" name="compose" value="true" /> }
+        <fieldset><legend class="visually-hidden">Conversation direction</legend>
+        @foreach (var option in new[] { (Value: "", Label: "All"), (Value: "received", Label: "Received"), (Value: "sent", Label: "Sent") })
+        { <label><input type="radio" name="direction" value="@option.Value" checked="@((ViewBag.Direction as string ?? "") == option.Value)" /><span>@option.Label</span></label> }
+        </fieldset>
+        <div class="ci-status-filter"><label for="inbox-status" class="visually-hidden">Conversation status</label><select id="inbox-status" name="status"><option value="">All statuses</option>@foreach (var state in new[] { "Pending", "Answered", "Resolved" }) { <option selected="@(ViewBag.Status == state)">@state</option> }</select><button class="ci-filter-button">Apply</button></div>
+    </form>
+    <nav class="ci-conversations" aria-label="Conversation list">
+    @foreach (var item in Model)
+    {
+        var sent = item.SenderUserId == actorId;
+        <a class="ci-conversation @(thread?.ClarificationId == item.ClarificationId ? "is-current" : "")" asp-action="Index" asp-route-id="@item.ClarificationId" asp-route-direction="@ViewBag.Direction" asp-route-status="@ViewBag.Status" aria-current="@(thread?.ClarificationId == item.ClarificationId ? "page" : null)">
+            <span class="ci-conversation-meta"><span>@(sent ? "To " + item.RecipientUser.FullName : item.SenderUser.FullName)</span><time datetime="@item.CreatedAt.ToString("o")">@item.CreatedAt.ToString("dd MMM")</time></span>
+            <strong>@item.Subject</strong><span class="ci-preview">@item.Description</span><span class="ci-status" data-status="@item.Status">@item.Status</span>
+        </a>
+    }
+    @if (Model.Count == 0) { <div class="ci-list-empty"><span aria-hidden="true">○</span><strong>No conversations here</strong><p>Questions you send or receive will appear here.</p></div> }
+    </nav>
+    <p class="ci-sidebar-note">A conversation closes once both participants confirm resolution.</p>
+</aside>
+<section class="ci-detail" aria-label="Conversation workspace">
+@if (thread != null)
+{
+    <header class="ci-thread-heading"><div><span class="ci-kicker">Conversation #@thread.ClarificationId</span><h2>@thread.Subject</h2><p>@thread.SenderUser.FullName <span aria-hidden="true">→</span> @thread.RecipientUser.FullName</p></div><span class="ci-status" data-status="@thread.Status">@thread.Status</span></header>
+    <div class="ci-record-strip"><span>@(thread.PurchaseRequestId is int requestId ? $"Request #{requestId}" : thread.BidId is int bidId ? $"Offer #{bidId}" : $"Tender #{thread.TenderId}")</span><strong>@ViewBag.RecordTitle</strong></div>
+    <div class="ci-messages">
+        <article class="ci-message @(thread.SenderUserId == actorId ? "is-mine" : "")"><header><strong>@thread.SenderUser.FullName</strong><time datetime="@thread.CreatedAt.ToString("o")">@thread.CreatedAt.ToString("dd MMM yyyy · HH:mm") UTC</time></header><p>@thread.Description</p></article>
+        @foreach (var reply in thread.ClarificationResponses.OrderBy(r => r.CreatedAt).ThenBy(r => r.ClarificationResponseId))
+        {
+            if (reply.Message == "[Portal: resolution confirmed]")
+            { <p class="ci-resolution-event">✓ @reply.RespondedByUser.FullName confirmed resolution <time>@reply.CreatedAt.ToString("dd MMM · HH:mm") UTC</time></p> }
+            else
+            { <article class="ci-message @(reply.RespondedByUserId == actorId ? "is-mine" : "")"><header><strong>@reply.RespondedByUser.FullName</strong><time datetime="@reply.CreatedAt.ToString("o")">@reply.CreatedAt.ToString("dd MMM yyyy · HH:mm") UTC</time></header><p>@reply.Message</p></article> }
+        }
+    </div>
+    <footer class="ci-thread-actions">
+    @if (thread.Status == "Resolved") { <p class="ci-notice">✓ This conversation is resolved.</p> }
+    else
+    {
+        @if (ViewBag.CanReply is true)
+        { <form asp-action="Update" asp-route-id="@thread.ClarificationId" method="post" class="ci-reply-form"><label for="reply">Your reply</label><textarea id="reply" name="message" rows="3" required maxlength="4000" placeholder="Write a clear response…"></textarea><div><small>A new reply resets earlier resolution confirmations.</small><button class="ci-button ci-primary">Send reply <span aria-hidden="true">→</span></button></div></form> }
+        @if (ViewBag.HasConfirmed is true) { <p class="ci-notice" role="status">You confirmed resolution. Waiting for the other participant.</p> }
+        else if (ViewBag.CanResolve is true)
+        { <div class="ci-resolve"><p>@(ViewBag.AwaitingConfirmation is true ? "The other participant confirmed resolution. Confirm to close this conversation." : "Everything clarified? Confirm resolution when the question is settled.")</p><form asp-action="Update" asp-route-id="@thread.ClarificationId" method="post"><input type="hidden" name="resolve" value="true" /><button class="ci-button ci-secondary">Mark as resolved</button></form></div> }
+        @if (ViewBag.CanReply is not true && ViewBag.CanResolve is not true)
+        {
+            if (ViewBag.CanStartRequestReview is true)
+            { <p class="ci-notice">Start reviewing this request to respond to the department.</p><form asp-controller="SourcingOfficer" asp-action="StartReview" asp-route-id="@thread.PurchaseRequestId" method="post"><button class="ci-button ci-primary">Start review</button></form> }
+            else { <p class="ci-notice">The assigned reviewer or conversation participant can take the next action.</p> }
+        }
+    }
+    </footer>
+}
+else if (composing)
+{
+    <header class="ci-thread-heading"><div><span class="ci-kicker">New conversation</span><h2>@(recordId.HasValue ? "Ask your question" : "What is your question about?")</h2><p>@(recordId.HasValue ? "Keep it specific so the recipient can respond clearly." : "Select a record by name. Your question stays linked to it.")</p></div></header>
+    @if (!recordId.HasValue)
+    {
+        <div class="ci-record-picker"><label for="record-search">Find a tender, offer, or request</label><div class="ci-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="record-search" type="search" placeholder="Search by name or number…" autocomplete="off" /></div>
+        <div class="ci-record-list">
+        @foreach (var record in records)
+        { <a asp-action="Index" asp-route-kind="@record.Kind" asp-route-recordId="@record.Id" class="ci-record-option" data-record-search="@record.Title @record.Detail"><span class="ci-record-icon" aria-hidden="true">@(record.Kind == "bid" ? "↗" : "≡")</span><span><small>@record.Detail</small><strong>@record.Title</strong></span><span aria-hidden="true">→</span></a> }
+        </div><p class="ci-picker-empty" hidden>No matching records. Try another name or number.</p>
+        @if (records.Count == 0) { <p class="ci-notice">No records are available here. Open a tender, request, or offer in your workspace and use its clarification action.</p> }
+        </div>
+    }
+    else
+    {
+        <div class="ci-compose-body"><div class="ci-record-strip"><span>@(kind == "bid" ? "Offer" : kind == "request" ? "Purchase request" : "Tender") #@recordId</span><strong>@ViewBag.RecordTitle</strong><a asp-action="Index" asp-route-compose="true">Change record</a></div>
+        @if (recipients.Count > 0)
+        {
+            <form asp-action="Create" method="post" class="ci-compose-form"><input type="hidden" name="kind" value="@kind" /><input type="hidden" name="recordId" value="@recordId" />
+                <fieldset class="ci-recipients"><legend>Send to</legend>@foreach (var recipient in recipients) { <label><input type="radio" name="recipient" value="@recipient.Id" required checked="@(recipients.Count == 1)" /><span><span class="ci-avatar" aria-hidden="true">@recipient.FullName.FirstOrDefault()</span><strong>@recipient.FullName</strong><span class="ci-recipient-check" aria-hidden="true">✓</span></span></label> }</fieldset>
+                <label for="subject">Subject</label><input id="subject" name="subject" required maxlength="200" placeholder="A short description of your question" />
+                <label for="question">Question</label><textarea id="question" name="description" rows="6" required maxlength="4000" placeholder="Explain what needs clarification and include any relevant details…"></textarea>
+                <div class="ci-compose-footer"><p>Both participants confirm resolution when the question is settled.</p><button class="ci-button ci-primary">Send question <span aria-hidden="true">→</span></button></div>
+            </form>
+        }
+        else { <div class="ci-empty-inline"><h3>No recipient available at this stage</h3><p>The record's current stage or assignments do not allow a new conversation.</p><a asp-action="Index" asp-route-compose="true" class="ci-button ci-secondary">Choose another record</a></div> }
+        </div>
+    }
+}
+else
+{
+    <div class="ci-welcome"><span class="ci-welcome-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4h18v13H9l-6 4V4Z"/><path d="M7 8h10M7 12h6"/></svg></span><h2>A clearer path to a decision</h2><p>Open a conversation to read and reply, or ask a new question about a tender, offer, or purchase request.</p><a class="ci-button ci-primary" asp-action="Index" asp-route-compose="true">New clarification <span aria-hidden="true">→</span></a><small>Keep each conversation focused on one question.</small></div>
+}
+</section>
+</div>
+</div>
+@section Scripts { <script src="~/js/clarification-inbox.js" asp-append-version="true"></script> }

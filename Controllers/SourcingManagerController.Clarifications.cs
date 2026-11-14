@@ -61,13 +61,14 @@ public partial class SourcingManagerController
             .Where(assignment => assignment.TenderId == selectedTenderId)
             .ToList();
 
-        var canReply = false;
-        if (selected != null && selected.RecipientUserId == ManagerId && selected.Status == "Pending")
-        {
-            var conversationTenderId = selected.TenderId ?? selected.Bid?.TenderId;
-            canReply = committeeAssignments.Any(assignment =>
-                assignment.TenderId == conversationTenderId && assignment.UserId == selected.SenderUserId);
-        }
+        var committeeQuestion = selected != null && SourcingTenderManagement.Services.TopCommittee.TopCommitteeClarificationScope.Query(_context)
+            .Any(c => c.ClarificationId == selected.ClarificationId);
+        var canReply = selected != null && selected.Status != "Resolved" &&
+            (!committeeQuestion || (selected.RecipientUserId == ManagerId && selected.Status == "Pending"));
+        var confirmations = SourcingTenderManagement.Services.ClarificationResolution.ConfirmedUsers(selected?.ClarificationResponses ?? []);
+        ViewBag.HasConfirmed = confirmations.Contains(ManagerId);
+        ViewBag.CanResolve = selected != null && selected.Status != "Resolved" && !confirmations.Contains(ManagerId) &&
+            (!committeeQuestion || (selected.RecipientUserId == ManagerId && selected.Status == "Answered"));
 
         var page = new ManagerClarificationPage(
             tenders, selectedTenderId, recipients, conversations, selected, ManagerId, canReply);
@@ -101,8 +102,15 @@ public partial class SourcingManagerController
             CreatedAt = DateTime.UtcNow
         };
         _context.Clarifications.Add(clarification);
-        NotifyCommittee(recipientAssignment, "New clarification", input.TenderId);
-
+        _context.SaveChanges();
+        _context.Notifications.Add(new Notification
+        {
+            UserId = clarification.RecipientUserId,
+            Title = "New clarification",
+            Message = "Open the conversation to respond.",
+            RelativeUrl = Url.Action("Index", "Clarification", new { id = clarification.ClarificationId }),
+            CreatedAt = DateTime.UtcNow
+        });
         _context.SaveChanges();
         transaction.Commit();
 
@@ -112,7 +120,7 @@ public partial class SourcingManagerController
     [HttpPost]
     public IActionResult ReplyToClarification(ManagerClarificationReply input)
     {
-        if (!ModelState.IsValid)
+        if (!ModelState.IsValid || input.Message.Trim() == SourcingTenderManagement.Services.ClarificationResolution.Confirmation)
         {
             return ClarificationMessage("Enter a response of up to 4,000 characters.", id: input.Id);
         }
@@ -175,13 +183,7 @@ public partial class SourcingManagerController
             return NotFound();
         }
 
-        clarification.Status = "Resolved";
-        clarification.ResolvedAt = DateTime.UtcNow;
-
-        _context.SaveChanges();
-        transaction.Commit();
-
-        return ClarificationMessage("Clarification resolved.", id: id);
+        return RedirectToAction("Index", "Clarification", new { id });
     }
 
     private IQueryable<CommitteeAssignment> EligibleClarificationRecipients()

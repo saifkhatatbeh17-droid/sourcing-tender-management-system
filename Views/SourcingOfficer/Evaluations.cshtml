@@ -18,9 +18,9 @@
 @section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
 
 <div class="so-page so-page--evaluations">
-<header class="so-page-header"><div><p class="so-eyebrow">COMMITTEE HANDOFF</p>
-<h1>Evaluations & Recommendations</h1>
-<p class="so-page-description">Track committee assignments and submitted scores, then review the committee report when it reaches your stage.</p></div><span class="so-page-header-icon" aria-hidden="true">EV</span></header>
+<header class="so-page-header"><div>
+<h1>Committee evaluations</h1>
+<p class="so-page-description">Follow committee approvals and review completed recommendations.</p></div>@if (selectedTenderId is int referenceId) { <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender" asp-route-recordId="@referenceId" class="btn btn-outline-primary">Ask for clarification ↗</a> }</header>
 @if (TempData["EvaluationSuccess"] is string evaluationSuccess)
 {
     <div class="alert alert-success" role="status">@evaluationSuccess</div>
@@ -30,13 +30,13 @@
     <div class="alert alert-danger" role="alert">@evaluationError</div>
 }
 <section class="so-summary-grid" aria-label="Evaluation summary">
-    <article class="so-summary-card so-tone-blue"><span class="so-summary-label">Committee assignments</span><strong>@assignments.Count</strong><span class="so-summary-note">For the selected Tender</span></article>
-    <article class="so-summary-card so-tone-violet"><span class="so-summary-label">Evaluation records</span><strong>@evaluations.Count</strong><span class="so-summary-note">Submitted committee scores</span></article>
-    <article class="so-summary-card so-tone-teal"><span class="so-summary-label">Approved positions</span><strong>@evaluationApprovals.Count(approval => approval.Stage == "Evaluation" && approval.Decision == "Approved")</strong><span class="so-summary-note">Evaluation-stage approvals</span></article>
-    <article class="so-summary-card so-tone-amber"><span class="so-summary-label">Criteria</span><strong>@criteria.Count</strong><span class="so-summary-note">Stored for this Tender</span></article>
+    <article class="so-summary-card"><span class="so-summary-label">Committee assignments</span><strong>@assignments.Count</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Evaluation records</span><strong>@evaluations.Count</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Approved positions</span><strong>@evaluationApprovals.Count(approval => approval.Stage == "Evaluation" && approval.Decision == "Approved")</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Criteria</span><strong>@criteria.Count</strong></article>
 </section>
-<section class="workspace-section">
-    <div class="so-section-heading"><div><p class="so-eyebrow">TENDER FILTER</p><h2>Choose a Tender</h2></div></div>
+<section class="workspace-section so-selector-panel">
+
     <form asp-action="Evaluations" method="get" class="row g-3 align-items-end so-filter-form">
         <div class="col-md-8">
             <label for="tenderId" class="form-label">Tender</label>
@@ -48,13 +48,18 @@
                 }
             </select>
         </div>
-        <div class="col-md-4"><button type="submit" class="btn btn-primary" disabled="@(tenders.Count == 0)">View Evaluation Progress</button></div>
+        <div class="col-md-4"><button type="submit" class="btn btn-primary" disabled="@(tenders.Count == 0)">View progress</button></div>
     </form>
 </section>
 
+@if (selectedTenderId is int clarificationTenderId)
+{
+<details class="so-clarification-history"><summary>Clarification history <span aria-hidden="true">⌄</span></summary>@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = clarificationTenderId })</details>
+}
+
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Evaluation tracking">
     <button class="nav-link active" id="evaluation-progress-tab" data-bs-toggle="tab" data-bs-target="#evaluation-progress" type="button" role="tab" aria-controls="evaluation-progress" aria-selected="true">Evaluation Tracking</button>
-    <button class="nav-link" id="evaluation-results-tab" data-bs-toggle="tab" data-bs-target="#evaluation-results" type="button" role="tab" aria-controls="evaluation-results" aria-selected="false">Submitted Scores</button>
+    <button class="nav-link" id="evaluation-results-tab" data-bs-toggle="tab" data-bs-target="#evaluation-results" type="button" role="tab" aria-controls="evaluation-results" aria-selected="false">Notes &amp; records</button>
     <button class="nav-link" id="evaluation-report-tab" data-bs-toggle="tab" data-bs-target="#evaluation-report" type="button" role="tab" aria-controls="evaluation-report" aria-selected="false">Report Review</button>
 </div>
 <div class="tab-content workspace-content">
@@ -109,7 +114,7 @@
                     </table></div>
                 }
             }
-            <p class="text-secondary">The Sourcing Officer waits for the committee workflow to set Tender.Status to AwaitingOfficerSummary; this page does not approve committee decisions or change that status.</p>
+            <p class="text-secondary">The committee report reaches you after all four members approve and the final report is generated.</p>
         </section>
         <section class="workspace-section">
             <h2>Evaluation Criteria</h2>

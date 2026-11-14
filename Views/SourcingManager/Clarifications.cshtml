@@ -8,108 +8,51 @@
     <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
 }
 
-<div class="manager-shell">
-    <div class="workspace-heading">
-        <h1>Clarifications</h1>
-    </div>
-    @if (TempData["ManagerMessage"] is string message)
+<div class="manager-shell manager-refresh">
+<header class="mr-heading"><div><h1>Clarifications<span>.</span></h1><p>Keep committee questions and answers connected to the right tender.</p></div><a asp-action="Clarifications" asp-route-tenderId="@Model.SelectedTenderId" asp-route-compose="true" class="btn btn-primary">New question ＋</a></header>
+@if (TempData["ClarificationError"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
+@if (TempData["ManagerMessage"] is string message) { <div class="alert alert-info" role="status">@message</div> }
+<div class="mr-inbox">
+    <aside class="workspace-section mr-conversations"><div class="mr-list-heading"><h2>Conversations</h2><span class="mr-count">@Model.Conversations.Count</span></div>
+    @if (Model.Conversations.Count == 0) { <p class="mr-muted">No committee questions yet.</p> }
+    <nav aria-label="Committee conversations">
+    @foreach (var item in Model.Conversations)
     {
-        <div class="alert alert-info" role="status">@message</div>
+        <a class="mr-conversation @(item == conversation ? "is-current" : "")" asp-action="Clarifications" asp-route-id="@item.ClarificationId" asp-route-tenderId="@Model.SelectedTenderId" aria-current="@(item == conversation ? "page" : null)"><small>@(item.SenderUserId == Model.UserId ? "Sent" : "Received") · @item.CreatedAt.ToString("dd MMM")</small><strong>@item.Subject</strong><span class="mr-status">@item.Status</span></a>
     }
-    <div class="workspace-columns">
-        <section class="workspace-section">
-            <h2>New question</h2>
-            @if (Model.Tenders.Count == 0)
-            {
-                <p>No tenders have eligible committee contacts at their current stage.</p>
-            }
-            else
-            {
-                <form method="get" asp-action="Clarifications" class="mb-3">
-                    <input type="hidden" name="id" value="@conversation?.ClarificationId" />
-                    <label class="form-label" for="tender">Tender</label>
-                    <div class="input-group">
-                        <select class="form-select" id="tender" name="tenderId">
-                            @foreach (var tender in Model.Tenders)
-                            {
-                                <option value="@tender.TenderId" selected="@(tender.TenderId == Model.SelectedTenderId)">@tender.Title</option>
-                            }
-                        </select>
-                        <button class="btn btn-outline-primary" type="submit">Load contacts</button>
-                    </div>
-                </form>
-            }
+    </nav></aside>
+    <section class="workspace-section mr-conversation-content">
+    @if (conversation != null)
+    {
+        <div class="mr-thread-heading"><span class="mr-status">@conversation.Status</span><h2>@conversation.Subject</h2><p>@(conversation.Tender?.Title ?? conversation.Bid?.Invitation.Tender.Title ?? conversation.PurchaseRequest?.Title)</p><small>@conversation.SenderUser.FullName → @conversation.RecipientUser.FullName</small></div>
+        <div class="mr-message"><header><strong>@conversation.SenderUser.FullName</strong><time>@conversation.CreatedAt.ToString("dd MMM yyyy · HH:mm") UTC</time></header><p>@conversation.Description</p></div>
+        @foreach (var reply in conversation.ClarificationResponses.Where(r => r.Message != SourcingTenderManagement.Services.ClarificationResolution.Confirmation).OrderBy(r => r.CreatedAt))
+        { <div class="mr-message"><header><strong>@reply.RespondedByUser.FullName</strong><time>@reply.CreatedAt.ToString("dd MMM yyyy · HH:mm") UTC</time></header><p>@reply.Message</p></div> }
+        @if (Model.CanReply)
+        { <form asp-controller="Clarification" asp-action="Update" method="post" class="mr-reply"><input type="hidden" name="Id" value="@conversation.ClarificationId" /><label for="response" class="form-label">Your response</label><textarea id="response" name="Message" class="form-control" rows="3" required maxlength="4000" placeholder="Write a response…"></textarea><button type="submit" class="btn btn-primary">Send response ↗</button></form> }
+        <div class="mr-thread-actions">
+        @if (ViewBag.HasConfirmed is true) { <p class="mr-muted">You confirmed resolution. Waiting for the other participant.</p> }
+        else if (ViewBag.CanResolve is true)
+        { <p class="mr-muted">Confirm resolution when the question is settled. Both participants must confirm to close it.</p><form asp-controller="Clarification" asp-action="Update" method="post"><input type="hidden" name="id" value="@conversation.ClarificationId" /><button type="submit" name="resolve" value="true" class="btn btn-outline-primary">Confirm resolution</button></form> }
+        </div>
+    }
+    else
+    {
+        <div class="mr-compose-heading"><span class="mr-reference">Committee correspondence</span><h2>Ask a new question</h2><p>Choose the tender, select a committee member and explain what needs clarification.</p></div>
+        @if (Model.Tenders.Count == 0) { <div class="mr-empty"><h2>No eligible tenders</h2><p>Committee contacts become available when a tender reaches the appropriate review stage.</p></div> }
+        else
+        {
+            <form method="get" asp-action="Clarifications" class="mr-contact-picker"><label for="tender" class="form-label">Related tender</label><div><select id="tender" name="tenderId" class="form-select">@foreach (var tender in Model.Tenders) { <option value="@tender.TenderId" selected="@(tender.TenderId == Model.SelectedTenderId)">@tender.Title</option> }</select><button type="submit" class="btn btn-outline-primary">Load contacts</button></div></form>
             @if (Model.Recipients.Count > 0)
             {
-                <form method="post" asp-action="CreateClarification">
-
-                    <input type="hidden" name="TenderId" value="@Model.SelectedTenderId" />
-                    <label class="form-label" for="recipient">Committee member</label>
-                    <select class="form-select mb-3" id="recipient" name="RecipientId" required>
-                        <option value="">Choose a member</option>
-                        @foreach (var recipient in Model.Recipients)
-                        {
-                            <option value="@recipient.UserId">@recipient.User.FullName (@(recipient.CommitteeType == "Top" ? "Top Committee" : "Evaluation Committee"))</option>
-                        }
-                    </select>
-                    <label class="form-label" for="subject">Subject</label>
-                    <input class="form-control mb-3" id="subject" name="Subject" maxlength="200" required />
-                    <label class="form-label" for="description">Question</label>
-                    <textarea class="form-control mb-3" id="description" name="Description" maxlength="4000" rows="3" required></textarea>
-                    <button class="btn btn-primary" type="submit">Send question</button>
-                </form>
+                <form asp-action="CreateClarification" method="post" class="mr-compose"><input type="hidden" name="TenderId" value="@Model.SelectedTenderId" />
+                <fieldset><legend>Committee member</legend><div class="mr-recipients">@foreach (var recipient in Model.Recipients) { <label><input type="radio" name="RecipientId" value="@recipient.UserId" required /><span><strong>@recipient.User.FullName</strong><small>@(recipient.CommitteeType == "Top" ? "Top Committee" : "Evaluation Committee")</small></span></label> }</div></fieldset>
+                <label for="subject" class="form-label">Subject</label><input id="subject" name="Subject" class="form-control" required maxlength="200" placeholder="What needs clarification?" />
+                <label for="description" class="form-label">Question</label><textarea id="description" name="Description" class="form-control" rows="4" required maxlength="4000" placeholder="Include enough detail for the committee member to respond."></textarea>
+                <button type="submit" class="btn btn-primary">Send question ↗</button></form>
             }
-
-            <h2 class="mt-4">Conversations</h2>
-            @if (Model.Conversations.Count == 0)
-            {
-                <p>No questions yet.</p>
-            }
-            <div class="list-group">
-                @foreach (var item in Model.Conversations)
-                {
-                    <a class="list-group-item list-group-item-action @(item == conversation ? "active" : "")"
-                       href="@Url.Action("Clarifications", new { id = item.ClarificationId, tenderId = Model.SelectedTenderId })">
-                        @item.Subject
-                        <small class="d-block">@(item.SenderUserId == Model.UserId ? "Sent" : "Received") · @item.Status</small>
-                    </a>
-                }
-            </div>
-        </section>
-        @if (conversation is not null)
-        {
-            <section class="workspace-section">
-                <h2>@conversation.Subject</h2>
-                <p>@(conversation.Tender?.Title ?? conversation.Bid?.Invitation.Tender.Title ?? conversation.PurchaseRequest?.Title)</p>
-                <p><strong>@conversation.Status</strong> · @conversation.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</p>
-                <p><strong>From</strong> @conversation.SenderUser.FullName <strong>To</strong> @conversation.RecipientUser.FullName</p>
-                <p class="text-break manager-text">@conversation.Description</p>
-                @foreach (var reply in conversation.ClarificationResponses)
-                {
-                    <article class="border-top pt-3">
-                        <p><strong>@reply.RespondedByUser.FullName</strong> · @reply.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</p>
-                        <p class="text-break manager-text">@reply.Message</p>
-                    </article>
-                }
-                @if (Model.CanReply)
-                {
-                    <form method="post" asp-action="ReplyToClarification">
-
-                        <input type="hidden" name="Id" value="@conversation.ClarificationId" />
-                        <label class="form-label" for="response">Response</label>
-                        <textarea class="form-control mb-3" id="response" name="Message" rows="3" maxlength="4000" required></textarea>
-                        <button class="btn btn-primary" type="submit">Send response</button>
-                    </form>
-                }
-                @if (conversation.Status == "Answered" && conversation.SenderUserId == Model.UserId)
-                {
-                    <form method="post" asp-action="ResolveClarification">
-
-                        <input type="hidden" name="id" value="@conversation.ClarificationId" />
-                        <button class="btn btn-outline-primary" type="submit">Mark as resolved</button>
-                    </form>
-                }
-            </section>
+            else { <p class="mr-muted">No committee contacts are available for this tender.</p> }
         }
-    </div>
-</div>
+    }
+    </section>
+</div></div>

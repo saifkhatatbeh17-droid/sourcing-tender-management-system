@@ -1,8 +1,18 @@
 @model IEnumerable<SourcingTenderManagement.Models.Entities.Invitation>
 @{ ViewData["Title"] = "Tender invitations"; var selected = ViewBag.Status as string; }
-<div class="supplier-page-heading"><div><p class="eyebrow">TENDER PARTICIPATION</p><h1>Tender invitations</h1><p>Review invitations sent to your company and respond before the submission deadline.</p></div></div>
+<div class="supplier-workspace supplier-workspace--invitations">
+<div class="supplier-page-heading"><div><h1>Tender invitations</h1><p>Review invitations sent to your company and respond before the submission deadline.</p></div></div>
 <form method="get" class="supplier-filters"><label for="status">Status</label><select id="status" name="status" class="form-select"><option value="">All invitations</option>@foreach (var s in new[] { "Pending", "Accepted", "Declined", "Expired" }) { <option value="@s" selected="@(selected == s)">@s</option> }</select><button class="btn btn-outline-primary">Filter</button>@if (!string.IsNullOrEmpty(selected)) { <a asp-action="Invitations" class="btn btn-link">Clear</a> }</form>
 @if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> } @if (TempData["Error"] is string error) { <div class="alert alert-danger">@error</div> }
-<section class="supplier-card">@if (!Model.Any()) { <div class="empty-state"><span class="empty-mark">✦</span><h2>No invitations found</h2><p>Invitations that match this filter will appear here.</p></div> } else { <div class="table-responsive"><table class="table supplier-table align-middle"><thead><tr><th>Invitation</th><th>Tender</th><th>Invitation date</th><th>Closing date</th><th>Status</th><th>Actions</th></tr></thead><tbody>@foreach (var i in Model) { var expired = i.Tender.ClosesAt <= DateTime.UtcNow && i.Status == "Pending"; <tr><td>#INV-@i.InvitationId.ToString("D6")</td><td><strong>@i.Tender.Title</strong><small class="d-block text-muted">TND-@i.TenderId.ToString("D6")</small></td><td>@i.SentAt.ToLocalTime().ToString("dd MMM yyyy")</td><td>@i.Tender.ClosesAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</td><td><span class="status-badge status-@(expired ? "expired" : i.Status.ToLowerInvariant())">@(expired ? "Expired" : i.Status)</span></td><td><a class="btn btn-sm btn-outline-primary" asp-action="Invitation" asp-route-id="@i.InvitationId">View details</a></td></tr> }</tbody></table></div> }</section>
+<section class="supplier-card supplier-invitation-list"><div class="supplier-card-heading"><h2>Invitations to your company</h2><span class="supplier-count">@Model.Count()</span></div>
+@if (!Model.Any()) { <div class="empty-state"><span class="empty-mark" aria-hidden="true">↗</span><h2>No invitations found</h2><p>New invitations and the tenders you’re participating in will appear here.</p></div> }
+@foreach (var invitation in Model)
+{
+    var expired = invitation.Tender.ClosesAt <= DateTime.UtcNow && invitation.Status == "Pending";
+    <article class="supplier-invitation-row"><div class="supplier-invitation-main"><span class="supplier-reference">Invitation #@invitation.InvitationId · Tender #@invitation.TenderId</span><a class="supplier-record-title" asp-action="Invitation" asp-route-id="@invitation.InvitationId">@invitation.Tender.Title</a><span class="supplier-record-note">Received @invitation.SentAt.ToLocalTime().ToString("dd MMM yyyy")</span></div><div class="supplier-deadline"><span>Submission deadline</span><strong>@invitation.Tender.ClosesAt.ToLocalTime().ToString("dd MMM yyyy")</strong><small>@invitation.Tender.ClosesAt.ToLocalTime().ToString("HH:mm")</small></div><span class="status-badge status-@(expired ? "expired" : invitation.Status.ToLowerInvariant())">@(expired ? "Expired" : invitation.Status)</span><a class="btn btn-outline-primary" asp-action="Invitation" asp-route-id="@invitation.InvitationId">View tender ↗</a></article>
+}
+</section>
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
+
+</div>

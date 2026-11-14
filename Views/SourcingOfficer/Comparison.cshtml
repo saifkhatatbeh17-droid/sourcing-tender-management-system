@@ -17,16 +17,16 @@
 @section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
 
 <div class="so-page so-page--comparison">
-<header class="so-page-header"><div><p class="so-eyebrow">OFFER REVIEW</p>
-<h1>Comparison & Analysis</h1>
-<p class="so-page-description">Compare the selected Tender’s submitted bid totals and stored criteria. The rule-based view is informational and does not make an award decision.</p></div><span class="so-page-header-icon" aria-hidden="true">↔</span></header>
+<header class="so-page-header"><div>
+<h1>Offer comparison</h1>
+<p class="so-page-description">Compare pricing, delivery and technical details across bids.</p></div></header>
 <section class="so-summary-grid" aria-label="Comparison summary">
-    <article class="so-summary-card so-tone-blue"><span class="so-summary-label">Bids in comparison</span><strong>@totals.Count</strong><span class="so-summary-note">For the selected Tender</span></article>
-    <article class="so-summary-card so-tone-teal"><span class="so-summary-label">Compliant bids</span><strong>@compliantTotals.Count</strong><span class="so-summary-note">Eligible for the displayed price order</span></article>
-    <article class="so-summary-card so-tone-violet"><span class="so-summary-label">Lowest compliant total</span><strong class="so-summary-value-small">@(lowestCompliant == null ? "—" : lowestCompliant.Total.ToString("N2") + " " + lowestCompliant.Bid.Currency)</strong><span class="so-summary-note">Within this Tender’s compliant bids</span></article>
+    <article class="so-summary-card"><span class="so-summary-label">Bids in comparison</span><strong>@totals.Count</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Compliant bids</span><strong>@compliantTotals.Count</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Lowest compliant total</span><strong class="so-summary-value-small">@(lowestCompliant == null ? "—" : lowestCompliant.Total.ToString("N2") + " " + lowestCompliant.Bid.Currency)</strong></article>
 </section>
-<section class="workspace-section">
-    <div class="so-section-heading"><div><p class="so-eyebrow">FILTER</p><h2>Select a Tender</h2></div></div>
+<section class="workspace-section so-selector-panel">
+
     <form asp-action="Comparison" method="get" class="row g-3 align-items-end so-filter-form">
         <div class="col-md-8">
             <label for="tenderId" class="form-label">Tender</label>
@@ -41,7 +41,7 @@
                 }
             </select>
         </div>
-        <div class="col-md-4"><button type="submit" class="btn btn-primary" disabled="@(tenders.Count == 0)">Load Comparison</button></div>
+        <div class="col-md-4"><button type="submit" class="btn btn-primary" disabled="@(tenders.Count == 0)">View comparison</button></div>
     </form>
 </section>
 

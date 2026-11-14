@@ -1,42 +1,57 @@
 @model CommitteeEvaluationPage
-@{ var result = Model.AiRecommendation; var financial = result?.Scenarios.FirstOrDefault()?.FinancialWeight ?? 60; }
-<section class="ev-ai-panel" aria-labelledby="ai-heading">
-    <div class="ev-ai-heading"><div class="ev-ai-title"><span class="ev-ai-mark" aria-hidden="true">AI</span><div><h3 id="ai-heading">AI recommendation</h3><p>Set your percentages to find the best offer</p></div></div>
+@{
+    var result = Model.AiRecommendation;
+    var scenario = result?.Scenarios.FirstOrDefault();
+    var financial = scenario?.FinancialWeight ?? Model.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight);
+    if (financial == 0 && Model.Criteria.Count == 0) financial = 60;
+    var winner = Model.Offers.FirstOrDefault(b => b.BidId == scenario?.RecommendedBidId);
+}
+<section class="ev-ai-workspace" aria-labelledby="ai-heading">
+    <header class="ev-ai-workspace-heading"><div><span class="ev-ai-workspace-icon" aria-hidden="true">AI</span><div><h3 id="ai-heading">AI recommendation</h3><p>Compare the bids. You make the final choice.</p></div></div></header>
+    <div class="ev-ai-layout">
     @if (Model.Members.Any(m => m.UserId == Model.UserId))
     {
-        <form asp-action="RecommendBids" method="post" data-ai-comparison class="ev-ai-weight-form">
+        <form asp-action="RecommendBids" method="post" data-ai-comparison class="ev-ai-controls">
             <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
-            <label>Financial %<input class="form-control" type="number" name="financialWeight" min="0" max="100" step="1" required value="@financial" /></label>
-            <label>Technical %<input class="form-control" type="number" name="requirementsWeight" min="0" max="100" step="1" required value="@(100 - financial)" /></label>
-            <button class="btn ev-button-primary" disabled="@(Model.Offers.Count == 0)">Find best offer</button><span role="status" class="ev-ai-loading" hidden>Comparing bids…</span>
+            <div class="ev-ai-controls-label"><strong>Set your priorities</strong><span>Weight the financial and technical fit.</span></div>
+            <label>Financial <span class="ev-ai-percent"><input type="number" name="financialWeight" min="0" max="100" step="1" required value="@financial.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" aria-label="Financial percentage" /><span>%</span></span></label>
+            <label>Technical <span class="ev-ai-percent"><input type="number" name="requirementsWeight" min="0" max="100" step="1" required value="@((100 - financial).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))" aria-label="Technical percentage" /><span>%</span></span></label>
+            <button class="btn ev-button-primary" disabled="@(Model.Offers.Count == 0)">@(result == null ? "Compare offers" : "Compare again") <span aria-hidden="true">↗</span></button><span role="status" class="ev-ai-loading" hidden>Comparing bids…</span>
         </form>
     }
-    </div>
     @if (TempData["AiError"] is string error) { <p class="ev-notice ev-notice-error" role="alert">@error</p> }
-    @if (Model.AiOutdated) { <p class="ev-field-help">The bids have changed since the last comparison. Run a new comparison for the current offers.</p> }
-    @if (result != null)
+    @if (Model.AiOutdated) { <p class="ev-ai-stale">The offers have changed. Run a new comparison to refresh the advice.</p> }
+    @if (scenario != null)
     {
-        <div class="ev-ai-scenarios">
-        @foreach (var scenario in result.Scenarios.Take(1))
-        {
-            var weight = scenario.FinancialWeight;
-            var winner = Model.Offers.FirstOrDefault(b => b.BidId == scenario.RecommendedBidId);
-            <article class="ev-ai-result">
-                <div class="ev-ai-scenario-heading"><h4>Recommended offer</h4><span>@weight% financial / @(100 - weight)% technical</span></div>
-                <h5>@(winner == null ? "No clear recommendation" : winner.Invitation.SupplierProfile.CompanyName)</h5>
-                @if (winner != null) { <p class="ev-ai-offer-facts"><strong>@CommitteeEvaluationPage.Total(winner).ToString("N2") @winner.Currency</strong><span>Offer #@winner.BidId · @winner.DeliveryDays-day delivery</span></p> }
-                <p class="ev-ai-reason">@scenario.Reason</p>
-            </article>
-        }
+        <div class="ev-ai-insight">
+            <div class="ev-ai-pick"><span class="ev-ai-pick-label">@(winner == null ? "Needs a closer look" : "Suggested offer")</span><h4>@(winner?.Invitation.SupplierProfile.CompanyName ?? "No clear recommendation")</h4>
+                @if (winner != null) { <p><strong>@CommitteeEvaluationPage.Total(winner).ToString("N2") <small>@winner.Currency</small></strong><span>Offer #@winner.BidId · @winner.DeliveryDays-day delivery</span></p> }
+                <span class="ev-ai-basis">@scenario.FinancialWeight.ToString("0.##")% financial / @((100 - scenario.FinancialWeight).ToString("0.##"))% technical</span>
+            </div>
+            <div class="ev-ai-explanation"><h5>Why this suggestion?</h5><p>@scenario.Reason</p></div>
         </div>
-        <details class="ev-ai-details"><summary>Compare strengths &amp; tradeoffs</summary>
-        @foreach (var comparison in result.Comparisons)
+    }
+    else
+    {
+        <div class="ev-ai-insight ev-ai-empty">
+            <span class="ev-ai-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4h14v16H5zM8 9h8M8 13h5M8 17h3"/><path d="m16 14 1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/></svg></span>
+            <h4>Your recommendation will appear here</h4>
+            <p>Set your percentages and compare offers to see the suggested supplier and why it fits.</p>
+            <div class="ev-ai-empty-preview" aria-hidden="true"><span></span><span></span><span></span></div>
+        </div>
+    }
+    </div>
+    @if (scenario != null)
+    {
+        <details class="ev-ai-tradeoffs"><summary>Compare all @Model.Offers.Count offers <span aria-hidden="true">⌄</span></summary><div class="ev-ai-tradeoff-grid">
+        @foreach (var comparison in result!.Comparisons)
         {
             var offer = Model.Offers.Single(b => b.BidId == comparison.BidId);
-            <article><h4>@offer.Invitation.SupplierProfile.CompanyName <span class="ev-subtle">#@offer.BidId</span></h4><p><strong>Strengths:</strong> @comparison.Strengths</p><p><strong>Tradeoffs:</strong> @comparison.Tradeoffs</p></article>
+            <article><header><span>Offer #@offer.BidId</span><h4>@offer.Invitation.SupplierProfile.CompanyName</h4></header><div><h5>Strengths</h5><p>@comparison.Strengths</p></div><div><h5>Tradeoffs</h5><p>@comparison.Tradeoffs</p></div></article>
         }
-        @if (result.MissingInformation.Length > 0) { <h4>Information to verify</h4><ul>@foreach (var item in result.MissingInformation) { <li>@item</li> }</ul> }
+        </div>
+        @if (result!.MissingInformation.Length > 0) { <div class="ev-ai-missing"><h4>Information to verify</h4><ul>@foreach (var item in result.MissingInformation) { <li>@item</li> }</ul></div> }
         </details>
-        <p class="ev-field-help">AI suggestions · Review against the bids before deciding.</p>
     }
+
 </section>

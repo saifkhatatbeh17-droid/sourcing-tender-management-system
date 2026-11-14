@@ -1,8 +1,18 @@
 @model IReadOnlyList<SourcingTenderManagement.Models.Entities.PurchaseRequest>
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<p><a asp-action="Create" class="btn btn-primary">Create Request</a></p>
-<section class="workspace-section">
-    <h2>Department Requests</h2>
-    <partial name="_PurchaseRequestList" model="Model" />
-</section>
+@{ ViewData["Title"] = "Department dashboard"; }
+@section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
+<div class="unified-dashboard">
+    <header class="dashboard-heading"><div><h1>Department dashboard</h1><p>Your purchase requests, current reviews, and approved requirements.</p></div><a asp-action="Create" class="dashboard-cta">Create request <span aria-hidden="true">↗</span></a></header>
+    <section class="dashboard-metrics" aria-label="Request totals">
+        <partial name="_DashboardMetric" model='@(new DashboardMetric("Department requests", Model.Count.ToString("N0"), "All department purchase requests", true))' />
+        <partial name="_DashboardMetric" model='@(new DashboardMetric("In review", Model.Count(r => r.Status is "Submitted" or "UnderReview").ToString("N0"), "Submitted or being reviewed"))' />
+        <partial name="_DashboardMetric" model='@(new DashboardMetric("Approved requests", Model.Count(r => r.Status is "Approved" or "ConvertedToTender").ToString("N0"), "Approved or converted to tender"))' />
+    </section>
+    <section class="workspace-section department-recent"><div class="dr-recent-heading"><div><h2>Latest requests</h2><p class="text-secondary">The five most recent department requests.</p></div><a asp-action="Requests">Requests history ↗</a></div>
+    @if (Model.Count == 0) { <p class="text-secondary">No department requests yet.</p> }
+    @foreach (var request in Model.Take(5))
+    {
+        <a class="dr-recent-row" asp-action="Details" asp-route-id="@request.PurchaseRequestId"><div><span class="dr-reference">#@request.PurchaseRequestId · @request.CreatedAt.ToString("dd MMM yyyy")</span><strong>@request.Title</strong></div><span class="dr-status" data-status="@request.Status">@System.Text.RegularExpressions.Regex.Replace(request.Status, "([a-z])([A-Z])", "$1 $2")</span><span aria-hidden="true">↗</span></a>
+    }
+    </section>
+</div>

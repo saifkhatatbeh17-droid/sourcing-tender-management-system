@@ -13,13 +13,13 @@
 @section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
 
 <div class="so-page so-page--offers">
-<header class="so-page-header"><div><p class="so-eyebrow">BID REVIEW</p>
-<h1>Received Offers</h1>
-<p class="so-page-description">Filter submitted supplier offers and inspect their items, documents, and compliance information.</p></div><span class="so-page-header-icon" aria-hidden="true">OF</span></header>
+<header class="so-page-header"><div>
+<h1>Received offers</h1>
+<p class="so-page-description">Find supplier bids and review their documents and pricing.</p></div></header>
 <section class="so-summary-grid" aria-label="Offer summary">
-    <article class="so-summary-card so-tone-blue"><span class="so-summary-label">Offers in this view</span><strong>@Model.Count</strong><span class="so-summary-note">After the selected filters</span></article>
-    <article class="so-summary-card so-tone-violet"><span class="so-summary-label">Tenders represented</span><strong>@Model.Select(bid => bid.Invitation.TenderId).Distinct().Count()</strong><span class="so-summary-note">Across visible offers</span></article>
-    <article class="so-summary-card so-tone-teal"><span class="so-summary-label">Compliant</span><strong>@Model.Count(bid => bid.ComplianceStatus == "Compliant")</strong><span class="so-summary-note">Compliance decision recorded</span></article>
+    <article class="so-summary-card"><span class="so-summary-label">Offers in this view</span><strong>@Model.Count</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Tenders represented</span><strong>@Model.Select(bid => bid.Invitation.TenderId).Distinct().Count()</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Compliant</span><strong>@Model.Count(bid => bid.ComplianceStatus == "Compliant")</strong></article>
 </section>
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Received Offers">
     <button class="nav-link @(selectedBid == null ? "active" : "")" id="offers-list-tab" data-bs-toggle="tab" data-bs-target="#offers-list" type="button" role="tab" aria-controls="offers-list" aria-selected="@(selectedBid == null ? "true" : "false")">Offers</button>
@@ -120,7 +120,7 @@
                     <dt>Additional Costs</dt><dd>@selectedBid.AdditionalCosts.ToString("N2") @selectedBid.Currency</dd>
                 </dl>
 
-                <h3>Offered Items</h3>
+                <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid" asp-route-recordId="@selectedBid.BidId" class="btn btn-outline-primary mb-3">Ask for clarification</a>@await Component.InvokeAsync("ClarificationHistory", new { kind = "bid", recordId = selectedBid.BidId })<h3>Offered Items</h3>
                 @if (selectedBid.BidItems.Count == 0)
                 {
                     <p class="text-secondary">No item prices are stored for this offer.</p>

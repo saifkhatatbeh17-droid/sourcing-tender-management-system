@@ -212,3 +212,4 @@ document.querySelectorAll('[data-local-filter]').forEach(filter => {
 });
 const applications = document.getElementById('supplier-results');
 if (applications && !document.querySelector('[data-local-filter]')) applyLocalPage(applications);
+document.querySelectorAll('[data-paginated-report]').forEach(report => applyLocalPage(report));

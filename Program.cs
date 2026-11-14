@@ -11,6 +11,7 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddE
 var connection = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DefaultConnection is missing.");
 builder.Services.AddControllersWithViews();
+builder.Services.AddHostedService<SourcingTenderManagement.Services.TenderClosureService>();
 builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidRecommendationService>(client => client.Timeout = TimeSpan.FromMinutes(5));
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
 builder.Services.AddTopCommitteeFoundation();
@@ -88,6 +89,11 @@ using (var scope = app.Services.CreateScope())
         if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
         await transaction.CommitAsync();
         Console.WriteLine("Administrator created. No default password is stored in this project.");
+        return;
+    }
+    if (args.Contains("--supplier-workflow-checks"))
+    {
+        await SourcingTenderManagement.Checks.SupplierWorkflowChecks.RunAsync(scope.ServiceProvider, app.Environment);
         return;
     }
     if (args.Contains("--self-test"))

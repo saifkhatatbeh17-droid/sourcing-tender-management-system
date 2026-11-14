@@ -12,26 +12,21 @@
     };
 }
 
-<div class="admin-dashboard">
-    <div class="workspace-heading">
+<div class="admin-dashboard unified-dashboard">
+    <div class="dashboard-heading">
         <div>
-            <h1>Admin Dashboard</h1>
+            <h1>Admin dashboard</h1>
             <p>Manage users, departments, and supplier approvals.</p>
         </div>
-        <a class="btn admin-applications-button" asp-action="SupplierApplications">Review supplier applications <span aria-hidden="true">→</span></a>
+        <a class="dashboard-cta" asp-action="SupplierApplications">Review supplier applications <span aria-hidden="true">→</span></a>
     </div>
 
-    <dl class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4 admin-metrics" aria-label="System totals">
+    <section class="dashboard-metrics is-five" aria-label="System totals">
         @foreach (var metric in metrics)
         {
-            <div class="col">
-                <div class="admin-metric">
-                    <dt>@metric.Label</dt>
-                    <dd>@metric.Count.ToString("N0")</dd>
-                </div>
-            </div>
+            <partial name="_DashboardMetric" model='@(new DashboardMetric(metric.Label, metric.Count.ToString("N0"), "System total", metric.Label == "Users"))' />
         }
-    </dl>
+    </section>
 
     <div class="admin-dashboard-panels">
         <section class="workspace-section" aria-labelledby="pending-applications-heading">

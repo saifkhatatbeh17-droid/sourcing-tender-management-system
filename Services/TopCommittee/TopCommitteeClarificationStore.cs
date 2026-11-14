@@ -63,7 +63,44 @@ internal sealed class TopCommitteeClarificationStore(ApplicationDbContext readCo
         public async Task SaveAsync(CancellationToken cancellationToken)
         {
             await TopCommitteeNotificationEvents.ClarificationsAsync(db,context,cancellationToken);
+            var newQuestions = db.ChangeTracker.Entries<Clarification>()
+                .Where(entry => entry.State == EntityState.Added).Select(entry => entry.Entity).ToList();
+            var followUps = db.ChangeTracker.Entries<Clarification>()
+                .Where(entry => entry.State == EntityState.Modified && entry.Entity.Status == "Pending" &&
+                    entry.Property(c => c.Status).OriginalValue == "Answered")
+                .Select(entry => entry.Entity).ToList();
+            var confirmations = db.ChangeTracker.Entries<ClarificationResponse>()
+                .Where(entry => entry.State == EntityState.Added && entry.Entity.Message == ClarificationResolution.Confirmation)
+                .Select(entry => entry.Entity).ToList();
+            foreach (var confirmation in confirmations)
+            {
+                var question = context.Tender!.Clarifications.Single(c => c.ClarificationId == confirmation.ClarificationId);
+                var managerConfirmed = confirmation.RespondedByUserId == question.RecipientUserId;
+                db.Notifications.Add(new Notification
+                {
+                    UserId = managerConfirmed ? question.SenderUserId : question.RecipientUserId,
+                    Title = question.Status == "Resolved" ? "Committee clarification resolved" : "Confirm committee clarification resolution",
+                    Message = "Open the conversation to review its status.",
+                    RelativeUrl = managerConfirmed
+                        ? $"/TopCommittee/Clarifications?tenderId={question.TenderId}#question-{question.ClarificationId}"
+                        : $"/Clarification/Index/{question.ClarificationId}",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
             await db.SaveChangesAsync(cancellationToken);
+            foreach (var question in newQuestions.Concat(followUps))
+            {
+                db.Notifications.Add(new Notification
+                {
+                    UserId = question.RecipientUserId,
+                    Title = "Committee clarification needs a reply",
+                    Message = "Open the conversation to respond.",
+                    RelativeUrl = $"/Clarification/Index/{question.ClarificationId}",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            if (newQuestions.Count + followUps.Count > 0)
+                await db.SaveChangesAsync(cancellationToken);
         }
     }
 }

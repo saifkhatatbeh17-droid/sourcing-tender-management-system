@@ -3,6 +3,7 @@
     var currentAction = ViewData["ActivePage"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString();
     var controller = ViewData["WorkspaceController"]?.ToString() ?? "Admin";
     var activeAction = ViewData["WorkspaceActiveAction"]?.ToString() ?? currentAction;
+    var sharedInbox = ViewContext.RouteData.Values["controller"]?.ToString() == "Clarification";
     var roles = SourcingTenderManagement.Data.RoleNames.Primary.Where(User.IsInRole).ToArray();
 }
 <aside class="admin-sidebar" aria-label="@ViewData["WorkspaceLabel"] navigation">

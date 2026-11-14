@@ -3,7 +3,7 @@
 @if (!string.IsNullOrWhiteSpace(report?.OfficerSummary)) { <p class="ev-notice" role="status">Officer review: @report.OfficerSummary</p> }
 @if (TempData["AiError"] is string aiError) { <p class="ev-notice ev-notice-error" role="alert">@aiError</p> }
 <div class="ev-section-heading"><div><h3>The committee's recommendation</h3><p>Review the overall evaluation weights and the report sent to the sourcing officer.</p></div><span class="ev-status">@Model.Approvals.Count of 4 approved</span></div>
-<div class="ev-report-grid"><section class="ev-report-body"><h3>Combined report</h3><p class="ev-field-help">The AI drafts the report using the agreed committee weights. Review it before approval; regenerating clears previous approvals.</p>
+<div class="ev-report-grid"><section class="ev-report-body"><h3>Combined report</h3><p class="ev-field-help">After all four members approve, generate the final AI report to send the recommendation to the sourcing officer.</p>
 @if (!Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId))
 {
     <form asp-action="RecommendBids" method="post" data-ai-report>
@@ -11,10 +11,10 @@
         <input type="hidden" name="writeReport" value="true" />
         <input type="hidden" name="financialWeight" value="@Model.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight).ToString(System.Globalization.CultureInfo.InvariantCulture)" />
         <input type="hidden" name="requirementsWeight" value="@Model.Criteria.Where(c => c.Category == "Requirements").Sum(c => c.Weight).ToString(System.Globalization.CultureInfo.InvariantCulture)" />
-        <button class="btn ev-button-primary" disabled="@(!Model.WeightsReady)">@(Model.ReportReady ? "Regenerate AI report" : "Generate AI report")</button><span role="status" hidden>Writing report…</span>
+        <button class="btn ev-button-primary" disabled="@(!Model.WeightsReady || !Model.SelectionReady || Model.Approvals.Count != 4)">Generate final report &amp; send</button><span role="status" hidden>Writing report…</span>
     </form>
 }
-<dl class="ev-report-summary"><dt>Recommended offer</dt><dd>@(Model.Offers.FirstOrDefault(b => b.BidId == report?.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName ?? "No offer recommended yet")</dd><dt>Committee report</dt><dd class="ev-report-text">@(report?.CommitteeSummary ?? "Generate the AI report, then review it with the committee before approving.")</dd></dl>
+<dl class="ev-report-summary"><dt>Committee-selected offer</dt><dd>@(Model.Offers.FirstOrDefault(b => b.BidId == report?.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName ?? "No final report yet")</dd><dt>Committee report</dt><dd class="ev-report-text">@(report?.CommitteeSummary ?? "The final report becomes available after all four members approve the selected offer and shared weights.")</dd></dl>
 </section><aside class="ev-report-approvals"><h3>Approval record</h3><p>Four independent member approvals are required.</p>
 @foreach (var member in Model.Members)
 {

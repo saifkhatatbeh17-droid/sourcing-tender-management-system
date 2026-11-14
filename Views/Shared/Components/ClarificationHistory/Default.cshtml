@@ -1,0 +1,35 @@
+@model IReadOnlyList<SourcingTenderManagement.Models.Entities.Clarification>
+
+<section class="workspace-section mt-3">
+    <h3>@ViewData["Title"]</h3>
+    @if (Model.Count == 0)
+    {
+        <p class="text-secondary mb-0">No clarifications yet.</p>
+    }
+    else
+    {
+        <ul class="list-group list-group-flush">
+            @foreach (var thread in Model)
+            {
+                <li class="list-group-item px-0 d-flex flex-wrap justify-content-between gap-2">
+                    <div>
+                        <a asp-controller="Clarification" asp-action="Index" asp-route-id="@thread.ClarificationId"
+                           asp-route-kind="@ViewData["Kind"]" asp-route-recordId="@ViewData["RecordId"]">@thread.Subject</a>
+                        <div class="small text-secondary">@thread.SenderUser.FullName → @thread.RecipientUser.FullName · @thread.CreatedAt.ToString("u")</div>
+                        <details class="mt-2">
+                            <summary>Read conversation (@thread.ClarificationResponses.Count replies)</summary>
+                            <p class="text-break mt-2" style="white-space: pre-wrap">@thread.Description</p>
+                            @foreach (var reply in thread.ClarificationResponses.OrderBy(r => r.CreatedAt).ThenBy(r => r.ClarificationResponseId))
+                            {
+                                <div class="small text-secondary">@reply.RespondedByUser.FullName · @reply.CreatedAt.ToString("u")</div>
+                                <p class="text-break" style="white-space: pre-wrap">@(reply.Message == "[Portal: resolution confirmed]" ? "Marked as resolved" : reply.Message)</p>
+                            }
+                            <a asp-controller="Clarification" asp-action="Index" asp-route-id="@thread.ClarificationId">Open conversation</a>
+                        </details>
+                    </div>
+                    <span class="align-self-start badge rounded-pill @(thread.Status == "Resolved" ? "text-bg-secondary" : "text-bg-primary")">@thread.Status</span>
+                </li>
+            }
+        </ul>
+    }
+</section>

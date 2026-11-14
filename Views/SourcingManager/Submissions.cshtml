@@ -39,7 +39,7 @@
         {
             var recommendedOffer = Model.Offers.FirstOrDefault(offer => offer.BidId == report.RecommendedBidId);
             <section class="workspace-section">
-                <h2>@report.Tender.Title</h2>
+                <h2>@report.Tender.Title</h2><a class="btn btn-outline-primary" asp-controller="Clarification" asp-action="Index" asp-route-kind="tender" asp-route-recordId="@report.TenderId">Ask for clarification</a>@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = report.TenderId })
                 <p><strong>Recommended supplier</strong> @(recommendedOffer?.Invitation.SupplierProfile.CompanyName ?? "Unavailable")</p>
                 <h3 class="h5">Committee report</h3>
                 <p class="text-break manager-text">@(report.CommitteeSummary ?? "No summary was provided.")</p>

@@ -21,7 +21,25 @@
     @if (TempData["CommitteeSuccess"] is string success) { <div class="ev-notice ev-notice-success" role="status">@success</div> }
     <div class="ev-tender-content">
     <input type="hidden" id="tender" value="@tender?.TenderId" />
-    @if (tender != null) { <div class="ev-selected-tender"><div><span class="ev-tender-reference">Tender #@tender.TenderId</span><h2>@tender.Title</h2></div><span class="ev-status">@StatusLabel(tender.Status)</span></div> }
+    @if (tender != null)
+    {
+        <div class="ev-selected-tender">
+            <div><span class="ev-tender-reference">Tender #@tender.TenderId</span><h2>@tender.Title</h2></div>
+            <div class="ev-tender-header-actions">
+                <span class="ev-status">@StatusLabel(tender.Status)</span>
+                <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender" asp-route-recordId="@tender.TenderId" class="btn ev-button-secondary ev-ask-clarification">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 8h8M8 12h5"/></svg>Ask for clarification
+                </a>
+            </div>
+        </div>
+    }
+    @if (tender != null)
+    {
+        <details class="ev-clarification-history">
+            <summary><span>Clarification history</span><span class="ev-clarification-toggle" aria-hidden="true">⌄</span></summary>
+            <div>@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = tender.TenderId })</div>
+        </details>
+    }
     @if (tender == null)
     {
         <div class="ev-empty"><h2>Your next evaluation starts here</h2><p>Tenders will appear when the sourcing officer sends eligible offers to the committee.</p></div>
@@ -53,18 +71,24 @@
         </div>
         <div class="tab-content ev-tab-content">
             <div class="tab-pane fade show active" id="offers" role="tabpanel" aria-labelledby="offers-tab" tabindex="0">
-                <partial name="_AiBidRecommendation" model="Model" />
-                <details class="ev-requirements"><summary>Purchase requirements &amp; specifications</summary><div class="ev-requirements-content"><p>@tender.Description</p><div class="ev-requested-items">
+                <section class="ev-tender-brief" aria-labelledby="tender-brief-heading">
+                    <header><span class="ev-brief-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 12h6M9 16h6"/></svg></span><div><span class="ev-brief-kicker">Tender brief</span><h3 id="tender-brief-heading">Purchase requirements &amp; specifications</h3></div><span class="ev-brief-count">@tender.PurchaseRequest.PurchaseRequestItems.Count requested item(s)</span></header>
+                    <div class="ev-brief-body"><div class="ev-brief-overview"><h4>What we need</h4><p class="ev-brief-description">@tender.Description</p></div>
+                    <div class="ev-brief-items">
                 @foreach (var item in tender.PurchaseRequest.PurchaseRequestItems)
-                { <div><span class="ev-quantity">@item.Quantity.ToString("0.###") @item.Unit</span><h4>@item.ItemName</h4><p>@item.Specifications</p></div> }
-                </div></div></details>
+                { <article><div><h4>@item.ItemName</h4><span>@item.Quantity.ToString("0.###") @item.Unit</span></div><p>@item.Specifications</p></article> }
+                    </div>
+                    </div><details class="ev-brief-terms"><summary>Tender terms &amp; dates <span aria-hidden="true">⌄</span></summary><dl><div><dt>Terms</dt><dd>@(string.IsNullOrWhiteSpace(tender.Terms) ? "No additional terms provided." : tender.Terms)</dd></div><div><dt>Opened (UTC)</dt><dd>@tender.OpensAt.ToString("dd MMM yyyy · HH:mm")</dd></div><div><dt>Submission deadline (UTC)</dt><dd>@tender.ClosesAt.ToString("dd MMM yyyy · HH:mm")</dd></div></dl></details>
+                </section>
+                <partial name="_AiBidRecommendation" model="Model" />
                 <div class="ev-section-heading"><div><h3>Eligible offers <span class="ev-subtle">(@offers.Count)</span></h3></div><span class="ev-subtle">Totals include tax &amp; additional costs</span></div>
                 @if (offers.Count == 0) { <div class="ev-empty"><h4>No eligible offers yet</h4><p>The sourcing officer needs to complete compliance review.</p></div> }
                 <div class="ev-offer-grid">
                 @foreach (var offer in offers)
                 {
                     var lowest = currenciesMatch && CommitteeEvaluationPage.Total(offer) == offers.Min(CommitteeEvaluationPage.Total);
-                    <article class="ev-offer-card @(lowest ? "ev-lowest-offer" : "")">
+                    var selected = Model.SelectionReady && tender.EvaluationReport?.RecommendedBidId == offer.BidId;
+                    <article class="ev-offer-card @(selected ? "ev-offer-selected" : "")" aria-label="@offer.Invitation.SupplierProfile.CompanyName">
                         <div class="ev-offer-top"><span class="ev-subtle">Offer #@offer.BidId</span><span class="ev-offer-label">@(lowest ? "Lowest price" : "Compliant")</span></div>
                         <h4>@offer.Invitation.SupplierProfile.CompanyName</h4>
                         <p class="ev-price">@CommitteeEvaluationPage.Total(offer).ToString("N2") <span>@offer.Currency</span></p>
@@ -73,6 +97,15 @@
                         <details class="ev-offer-details"><summary>View item breakdown <span aria-hidden="true">+</span></summary>
                         @foreach (var item in offer.BidItems) { <div><strong>@item.Quantity.ToString("0.###") × @item.UnitPrice.ToString("N2") @offer.Currency</strong><p>@item.OfferedSpecifications</p></div> }
                         <p>Tax: @offer.TaxAmount.ToString("N2") @offer.Currency<br />Additional costs: @offer.AdditionalCosts.ToString("N2") @offer.Currency</p></details>
+                        @if (!Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId))
+                        {
+                            <form asp-action="SelectOffer" method="post" class="ev-offer-selection">
+                                <input type="hidden" name="id" value="@tender.TenderId" /><input type="hidden" name="bidId" value="@offer.BidId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
+                                @if (selected) { <span class="ev-selected-label"><span aria-hidden="true">✓</span> Committee-selected offer</span> }
+                                <button class="btn @(selected ? "ev-button-secondary" : "ev-button-primary")">@(selected ? "Continue to approvals" : "Select this offer")<span class="visually-hidden"> — @offer.Invitation.SupplierProfile.CompanyName</span><span aria-hidden="true"> →</span></button>
+                            </form>
+                        }
+                        else if (selected) { <p class="ev-selected-label">✓ Committee-selected offer</p> }
                     </article>
                 }
                 </div>

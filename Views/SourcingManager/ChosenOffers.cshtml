@@ -7,36 +7,18 @@
     <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
 }
 
-<div class="manager-shell">
-    <div class="workspace-heading">
-        <h1>Chosen Offers</h1>
+<div class="manager-shell manager-refresh">
+<header class="mr-heading"><div><h1>Chosen offers<span>.</span></h1><p>Final awarded tenders and the suppliers selected for delivery.</p></div><span class="mr-count">@Model.Count awarded</span></header>
+<section class="workspace-section">
+@if (Model.Count == 0)
+{ <div class="mr-empty"><span aria-hidden="true">✓</span><h2>No awarded offers yet</h2><p>Confirmed supplier awards will appear here when the final decision is recorded.</p><a asp-action="Submissions" class="btn btn-outline-primary">Review submissions ↗</a></div> }
+else
+{
+    <div class="mr-awards">
+    @foreach (var tender in Model)
+    {
+        <article class="mr-award"><div><span class="mr-reference">Tender #@tender.TenderId</span><h2>@tender.Title</h2><span class="mr-status">Awarded</span></div><div class="mr-award-supplier"><span>Chosen supplier</span><strong>@(tender.Bid?.Invitation.SupplierProfile.CompanyName ?? "Not recorded")</strong><small>Recorded @tender.AwardedAt?.ToString("dd MMM yyyy · HH:mm") UTC</small></div>@if (!string.IsNullOrWhiteSpace(tender.AwardNotes)) { <details><summary>Award notes <span aria-hidden="true">⌄</span></summary><p class="manager-text">@tender.AwardNotes</p></details> }</article>
+    }
     </div>
-
-    <section class="workspace-section" aria-label="ChosenOffers">
-        @if (Model.Count == 0)
-        {
-            <p>No evaluated tenders have been awarded.</p>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr><th scope="col">Tender</th><th scope="col">Chosen supplier</th><th scope="col">Awarded (UTC)</th><th scope="col">Award notes</th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var tender in Model)
-                        {
-                            <tr>
-                                <td>@tender.Title</td>
-                                <td>@tender.Bid?.Invitation.SupplierProfile.CompanyName</td>
-                                <td>@tender.AwardedAt?.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td class="text-break manager-text">@tender.AwardNotes</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-    </section>
-</div>
+}
+</section></div>

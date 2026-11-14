@@ -5,6 +5,8 @@
     var earliestTargetDate = PurchaseRequestForm.EarliestTargetDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     ViewData["Title"] = editing ? "Edit Purchase Request" : "Create Purchase Request";
 }
+@section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
+<div class="department-workspace department-document">
 <h1>@ViewData["Title"]</h1>
 @if (ViewData["ReviewNotes"] is string notes)
 {
@@ -85,6 +87,7 @@
     </fieldset>
 </template>
 
+</div>
 @section Scripts {
     <script>
         const items = document.getElementById('request-items');

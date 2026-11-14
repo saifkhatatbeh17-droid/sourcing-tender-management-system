@@ -1,14 +1,19 @@
 @model IReadOnlyList<SourcingTenderManagement.Models.Entities.PurchaseRequest>
-@{ ViewData["Title"] = "Purchase Requests"; }
-<h1>Purchase Requests</h1>
-<div class="nav nav-tabs workspace-tabs" aria-label="Purchase Requests">
-    <a class="nav-link active" asp-action="Requests" aria-current="page">My Requests</a>
-    <span class="nav-link disabled">Request Details</span>
-</div>
-<div class="workspace-content">
-    <p><a asp-action="Create" class="btn btn-primary">Create Request</a></p>
-    <section class="workspace-section">
-        <h2>My Purchase Requests</h2>
-        <partial name="_PurchaseRequestList" model="Model" view-data='new ViewDataDictionary(ViewData) { ["ShowQrLink"] = true }' />
-    </section>
-</div>
+@{ ViewData["Title"] = "Requests history"; }
+@section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
+<div class="department-workspace">
+<header class="dr-heading"><div><h1>Requests history<span>.</span></h1><p>Every department request, its current status and review details.</p></div><a asp-action="Create" class="dr-primary">New request <span aria-hidden="true">＋</span></a></header>
+<section class="dr-panel">
+    <form method="get" asp-action="Requests" class="dr-filters"><div><label for="request-query">Find a request</label><input id="request-query" name="q" value="@ViewBag.Query" class="form-control" placeholder="Search by title or request number" /></div><div><label for="request-status">Status</label><select id="request-status" name="status" class="form-select"><option value="">All statuses</option>@foreach (var state in new[] { "Draft", "Submitted", "UnderReview", "Returned", "Approved", "Rejected", "ConvertedToTender" }) { <option value="@state" selected="@(ViewBag.Status as string == state)">@System.Text.RegularExpressions.Regex.Replace(state, "([a-z])([A-Z])", "$1 $2")</option> }</select></div><button type="submit" class="dr-primary">Search</button>@if (!string.IsNullOrEmpty(ViewBag.Query as string) || !string.IsNullOrEmpty(ViewBag.Status as string)) { <a asp-action="Requests" class="dr-text-link">Clear</a> }</form>
+    <div class="dr-list-heading"><h2>Department requests</h2><span>@Model.Count result(s)</span></div>
+    @if (Model.Count == 0) { <div class="dr-empty"><h3>No matching requests</h3><p>Try a different search or create a new purchase request.</p></div> }
+    else
+    {
+        <div class="dr-history-list">
+        @foreach (var request in Model)
+        {
+            <article class="dr-history-row"><div class="dr-record"><span class="dr-reference">Request #@request.PurchaseRequestId · @request.CreatedAt.ToString("dd MMM yyyy")</span><a asp-action="Details" asp-route-id="@request.PurchaseRequestId" class="dr-record-title">@request.Title</a><span class="dr-record-meta">@request.RequestedByUser.FullName · Required @request.TargetDate.ToString("dd MMM yyyy") · @request.Priority priority</span></div><span class="dr-status" data-status="@request.Status">@System.Text.RegularExpressions.Regex.Replace(request.Status, "([a-z])([A-Z])", "$1 $2")</span><a asp-action="Details" asp-route-id="@request.PurchaseRequestId" class="dr-open" aria-label="View @request.Title">View request <span aria-hidden="true">↗</span></a></article>
+        }
+        </div>
+    }
+</section></div>
