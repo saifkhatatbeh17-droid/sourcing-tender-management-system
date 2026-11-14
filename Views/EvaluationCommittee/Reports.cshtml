@@ -1,9 +1,25 @@
 @model CommitteeEvaluationPage
-@{ ViewData["Title"] = "Combined Reports"; }
-<h1>Combined Reports</h1>
-<p>Open a tender to review its combined report, scores, and committee approvals.</p>
-@foreach (var tender in Model.Tenders)
-{
-    <p><a asp-action="Evaluations" asp-route-id="@tender.TenderId">@tender.Title</a> — @tender.Status</p>
-}
-@if (Model.Tender != null && Model.Members.Count > 0) { <h2>@Model.Tender.Title</h2><partial name="_CombinedReport" model="Model" /> }
+@{ ViewData["Title"] = "Combined reports"; }
+@section Styles { <partial name="_CommitteePageStyles" /> }
+@section Scripts { <script src="~/js/committee-reports.js" asp-append-version="true"></script> }
+<div class="evaluation-page committee-workspace">
+    <header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Combined reports</h1><p>Read the recommendation, agreed weights, and approval record for each tender.</p></div><a class="cw-button cw-button-secondary" asp-action="Evaluations">Back to evaluations <span aria-hidden="true">↗</span></a></header>
+    @if(Model.Tenders.Count == 0)
+    { <section class="cw-panel cw-empty"><partial name="_AdminSidebarIcon" model='@("Reports")' /><h2>No reports to show yet</h2><p>Your tender reports will appear here as evaluations get started.</p><a class="cw-text-link" asp-action="Evaluations">Go to evaluations <span aria-hidden="true">→</span></a></section> }
+    else
+    {
+        <div class="cw-report-layout">
+            <aside class="cw-panel cw-report-browser" aria-label="Choose report">
+                <header class="cw-panel-header"><h2>Tender reports</h2><span class="cw-count">@Model.Tenders.Count</span></header>
+                <nav aria-label="Tender reports">
+                @foreach(var tender in Model.Tenders)
+                { <a asp-action="Reports" asp-route-id="@tender.TenderId" class="cw-report-link @(Model.Tender?.TenderId == tender.TenderId ? "is-current" : "")" aria-current="@(Model.Tender?.TenderId == tender.TenderId ? "page" : null)"><small>Tender #@tender.TenderId <span aria-hidden="true">@(Model.Tender?.TenderId == tender.TenderId ? "✓" : "↗")</span></small><strong>@tender.Title</strong><span>@CommitteeEvaluationPage.StatusLabel(tender.Status)</span></a> }
+                </nav>
+            </aside>
+            <div class="cw-report-detail">
+            @if(Model.Tender != null) { <partial name="_CombinedReport" model="Model" /> }
+            else { <section class="cw-panel cw-empty"><h2>Select a tender</h2><p>Choose a tender to read its report and approval record.</p></section> }
+            </div>
+        </div>
+    }
+</div>

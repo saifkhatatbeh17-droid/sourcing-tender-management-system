@@ -102,3 +102,6 @@ html body .workspace-navbar :is(nav > a, .notification-bell, .admin-account-togg
 }
 /* Notification counts share the brand's attention accent. */
 .workspace-navbar .notification-bell .badge { background:var(--brand-highlight) !important; color:var(--brand-highlight-ink); }
+@media(min-width:651px) {
+ .workspace-shell .admin-sidebar.is-collapsed .workspace-brand > span.tiryaq-logo:last-child { display:block; }
+}

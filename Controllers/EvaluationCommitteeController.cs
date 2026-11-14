@@ -25,6 +25,7 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
     {
         var page = new CommitteeEvaluationPage { UserId = UserId };
         page.Tenders = await db.Tenders.AsNoTracking()
+            .AsSplitQuery().Include(t => t.EvaluationReport).Include(t => t.CommitteeAssignments).Include(t => t.TenderApprovals)
             .Where(t => t.Status == "UnderEvaluation" || t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == UserId))
             .OrderByDescending(t => t.CreatedAt).ToListAsync();
         var selected = id ?? page.Tenders.FirstOrDefault()?.TenderId;

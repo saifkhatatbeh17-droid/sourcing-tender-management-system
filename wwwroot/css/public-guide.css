@@ -15,7 +15,7 @@
 .public-guide h3 { font-size: clamp(1.2rem, 2.5vw, 1.7rem); }
 .public-guide p, .public-guide dd { max-width: 64ch; margin: 0 0 .8rem; color: var(--guide-copy); line-height: 1.65; }
 .public-guide .guide-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: clamp(1.5rem, 5vw, 4rem); }
-.public-guide .guide-hero { padding: var(--guide-pad); border-radius: 1.4rem; background: linear-gradient(130deg, #edf7f4, #f5f9fa); }
+.public-guide .guide-hero { padding: var(--guide-pad); border-radius: 1.4rem; background: var(--color-surface, #fff); }
 .public-guide .guide-kicker { color: var(--guide-teal); font-size: .78rem; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
 .public-guide .guide-headline { margin-bottom: 1rem; color: var(--guide-teal); font-size: clamp(1.2rem, 3vw, 1.75rem); font-weight: 750; line-height: 1.25; }
 .public-guide .guide-art { display: block; width: 100%; height: auto; max-width: 28rem; justify-self: center; }
@@ -54,7 +54,7 @@
     inset-inline: 2.4rem -.8rem;
     height: 2px;
     content: "";
-    background: linear-gradient(90deg, #178a7b 50%, #bedbd4 50%) right / 200% 100%;
+    background: #178a7b;
     transition: background-position 420ms ease;
 }
 .public-guide .guide-stage:is(:hover, :focus-within) .guide-stage-marker::after { background-position: left; }
