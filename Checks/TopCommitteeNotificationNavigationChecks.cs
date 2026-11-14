@@ -22,11 +22,11 @@ public static class TopCommitteeNotificationNavigationChecks
         var existingMenus = new Dictionary<string, string>
         {
             [RoleNames.Admin] = "Dashboard,Users,Departments,SupplierApplications,Suppliers",
-            [RoleNames.Department] = "Dashboard,Requests,Clarifications",
+            [RoleNames.Department] = "Dashboard,Create,Requests,Clarifications",
             [RoleNames.SourcingOfficer] = "Dashboard,Requests,Tenders,Invitations,Offers,Compliance,Comparison,Evaluations,Clarifications,Reports",
             [RoleNames.EvaluationCommittee] = "Dashboard,Evaluations,Reports,Clarifications",
             [RoleNames.SourcingManager] = "Dashboard,Submissions,ChosenOffers,Reports,Clarifications",
-            [RoleNames.Supplier] = "Dashboard,Profile,Invitations,Offers,Clarifications,History"
+            [RoleNames.Supplier] = "Dashboard,Invitations,Offers,Clarifications,History"
         };
         var engine = services.GetRequiredService<IRazorViewEngine>();
         foreach (var role in RoleNames.Primary)

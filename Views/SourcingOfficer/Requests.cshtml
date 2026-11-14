@@ -139,7 +139,10 @@
                         <button type="submit" class="btn btn-primary">Start Review</button>
                     </form>
                 }
-                else if (selectedRequest.Status == "UnderReview" && hasOpenClarifications) { <p class="alert alert-info mt-3" role="status">Resolve all open clarifications to continue the review.</p> }
+                else if (selectedRequest.Status == "UnderReview" && hasOpenClarifications)
+                {
+                    <div class="so-review-blocked mt-3" role="status"><div><strong>Approval is waiting for clarification</strong><p>An answer does not close the conversation. Both participants must confirm resolution before this request can be approved, returned or rejected.</p></div><div class="so-action-buttons"><button type="button" class="btn btn-primary" disabled aria-describedby="request-approval-blocked">Approve</button><a asp-controller="Clarification" asp-action="Index" asp-route-kind="request" asp-route-recordId="@selectedRequest.PurchaseRequestId" class="btn btn-outline-primary">Review &amp; resolve clarifications ↗</a></div><small id="request-approval-blocked">The decision buttons become available once every clarification is resolved.</small></div>
+                }
                 else if (selectedRequest.Status == "UnderReview" && selectedRequest.ReviewedByUserId == currentUserId)
                 {
                     <div class="workspace-section mt-3">

@@ -465,7 +465,7 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
 
         ViewBag.EligibleTenders = await db.Tenders
             .AsNoTracking()
-            .Where(t => t.CreatedByUserId == userId && t.Status == "Published")
+            .Where(t => t.CreatedByUserId == userId && (t.Status == "Published" || t.Status == "Open") && t.ClosesAt > DateTime.UtcNow)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
 
@@ -489,9 +489,9 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var tender = await db.Tenders.AsNoTracking().SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
-        if (tender.Status != "Published")
+        if (tender.Status is not ("Published" or "Open") || tender.ClosesAt <= DateTime.UtcNow)
         {
-            TempData["InvitationError"] = "Invitations can only be created for your Published tenders.";
+            TempData["InvitationError"] = "Choose one of your published or open tenders whose submission deadline has not passed.";
             return RedirectToAction(nameof(Invitations));
         }
         var selectedIds = supplierProfileIds.Distinct().ToList();

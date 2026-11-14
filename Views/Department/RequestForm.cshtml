@@ -95,13 +95,16 @@
 
         function renumberItems() {
             Array.from(items.children).forEach((row, index) => {
-                row.querySelectorAll('input, textarea').forEach(field => {
+                row.querySelectorAll('input:not([type=hidden]), textarea').forEach(field => {
                     const property = field.dataset.field ?? field.name.split('.').pop();
                     const label = row.querySelector(`label[for="${field.id}"]`) ??
                         row.querySelector(`label[data-for="${property}"]`);
                     field.name = `Items[${index}].${property}`;
                     field.id = `Items_${index}__${property}`;
-                    label.htmlFor = field.id;
+                    if (label) label.htmlFor = field.id;
+                });
+                row.querySelectorAll('input[type=hidden][name=__Invariant]').forEach(field => {
+                    field.value = `Items[${index}].${field.value.split('.').pop()}`;
                 });
                 row.querySelector('[data-remove]').disabled = items.children.length === 1;
             });
