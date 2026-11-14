@@ -79,7 +79,9 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
                 throw new InvalidOperationException("Select the committee's offer before generating its report.");
             var fingerprint = BidRecommendationService.Fingerprint(page);
             var version = page.SharedVersion;
-            var result = await ai.Recommend(page, financialWeight, cancellationToken, writeReport ? tender.EvaluationReport!.RecommendedBidId : null);
+            var result = writeReport
+                ? await ai.FinalReport(page, financialWeight, cancellationToken)
+                : await ai.Recommend(page, financialWeight, cancellationToken);
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};", cancellationToken);
             var currentTender = await TenderQuery().AsNoTracking().SingleAsync(t => t.TenderId == id, cancellationToken);
