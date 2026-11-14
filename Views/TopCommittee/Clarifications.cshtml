@@ -1,15 +1,14 @@
 @model CommitteeClarificationsPage
 @section Styles { <partial name="_ReadStyles" /> }
 @{ ViewData["Title"] = "Committee Clarifications"; }
-<div class="workspace-heading"><h1>Clarifications</h1><a asp-action="Dashboard">Back to dashboard</a></div>
-<p class="text-secondary">Your private questions to the Sourcing Manager and their responses. Reload to see updates.</p>
+<div class="workspace-heading"><div><h1>Clarifications</h1><p>Your private questions to the Sourcing Manager and their responses. Reload to see updates.</p></div><div class="tc-heading-actions"><a class="btn" asp-action="Dashboard">Back to dashboard</a></div></div>
 @if (TempData["ClarificationSuccess"] is string success) { <p class="border rounded p-3" role="status">@success</p> }
 @if (TempData["ClarificationError"] is string failure) { <p class="text-danger border rounded p-3" role="alert">@failure</p> }
 @if (Model.Error != null) { <p class="text-danger" role="alert">@Model.Error</p> }
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
 @if (Model.Tenders.Count == 0)
 {
-    <section class="workspace-section"><h2>No tenders assigned yet</h2><p class="mb-0">Clarifications become available when you are assigned to a tender's Top Committee.</p></section>
+    <section class="workspace-section tc-empty"><h2>No tenders assigned yet</h2><p class="mb-0">Clarifications become available when you are assigned to a tender's Top Committee.</p></section>
 }
 else
 {
@@ -46,7 +45,7 @@ else
 }
 <h2 class="mt-4 mb-3">Your conversations</h2>
 @if (Model.Threads.Count == 0)
-{ <p>No private clarifications are recorded for @(Model.Create.TenderId > 0 ? "this tender" : "your assigned tenders").</p> }
+{ <section class="workspace-section tc-empty"><h3>No conversations yet</h3><p class="mb-0">No private clarifications are recorded for @(Model.Create.TenderId > 0 ? "this tender" : "your assigned tenders").</p></section> }
 else
 {
     @foreach (var thread in Model.Threads)

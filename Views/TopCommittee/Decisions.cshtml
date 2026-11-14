@@ -5,8 +5,7 @@
     var tenderPage = Model.Tenders;
     var totalPages = Math.Max(1, (int)Math.Ceiling((double)tenderPage.TotalCount / tenderPage.PageSize));
 }
-<div class="workspace-heading"><h1>Pending tenders</h1><a asp-action="Dashboard">Back to dashboard</a></div>
-<p class="text-secondary">Only your assigned tenders awaiting a Top Committee decision are listed.</p>
+<div class="workspace-heading"><div><h1>Decisions</h1><p>Review your assigned tenders awaiting a Top Committee decision.</p></div><div class="tc-heading-actions"><a class="btn" asp-action="Dashboard">Back to dashboard</a></div></div>
 <form asp-action="Decisions" method="get" class="workspace-section" aria-label="Filter pending tenders">
     <div asp-validation-summary="All" class="text-danger" role="alert"></div>
     <div class="row g-3 align-items-end">
@@ -21,7 +20,7 @@
 { <p>Correct the filter values and select Apply to load the tender list.</p> }
 else if (tenderPage.TotalCount == 0)
 {
-    <section class="workspace-section"><h2>No pending tenders found</h2><p class="mb-0">You may not have a pending assignment, or no tender matches these filters. Reset the filters to check all pending assignments.</p></section>
+    <section class="workspace-section tc-empty"><h2>No pending tenders found</h2><p class="mb-0">You may not have a pending assignment, or no tender matches these filters. Reset the filters to check all pending assignments.</p></section>
 }
 else
 {
@@ -31,8 +30,8 @@ else
         <tbody>@foreach (var tender in tenderPage.Items)
         {
             <tr><th scope="row"><a asp-action="TenderDetails" asp-route-id="@tender.TenderId">@tender.Title</a><span class="d-block text-secondary small">Tender #@tender.TenderId</span></th>
-                <td>@CommitteeDisplay.Utc(tender.CreatedAt)</td><td>@CommitteeDisplay.Text(tender.NominatedSupplier)</td><td>@tender.RecordedApprovals / 4</td>
-                <td>@(tender.OpenClarifications > 0 ? $"Paused: {tender.OpenClarifications} open clarification(s)" : "Awaiting committee review")</td></tr>
+                <td class="tc-date">@CommitteeDisplay.Utc(tender.CreatedAt)</td><td>@CommitteeDisplay.Text(tender.NominatedSupplier)</td><td>@tender.RecordedApprovals / 4</td>
+                <td><span class="badge @(tender.OpenClarifications > 0 ? "text-bg-warning" : "text-bg-primary")">@(tender.OpenClarifications > 0 ? $"Paused: {tender.OpenClarifications} open clarification(s)" : "Awaiting committee review")</span></td></tr>
         }</tbody>
     </table></div>
     @if (tenderPage.Items.Count == 0) { <p>This page has no results. Use Previous or return to the first page.</p> }

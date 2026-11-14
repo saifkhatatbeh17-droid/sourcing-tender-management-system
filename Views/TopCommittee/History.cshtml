@@ -6,8 +6,10 @@
     var pages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, f.PageSize)));
 }
 @section Styles { <partial name="_ReadStyles" /> }
-<div class="workspace-heading"><h1>Decision History</h1><a asp-action="Dashboard">Dashboard</a><a asp-action="Decisions">Pending tenders</a></div>
-<p>Your recorded votes, newest first. Your approval is an individual decision; an award requires the collective decision. All times are UTC.</p>
+<div class="workspace-heading">
+    <div><h1>Tender history</h1><p>Your recorded votes, newest first. An award requires the collective decision. All times are UTC.</p></div>
+    <div class="tc-heading-actions"><a class="btn" asp-action="Dashboard">Dashboard</a><a class="btn btn-primary" asp-action="Decisions">Pending tenders</a></div>
+</div>
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
 <form method="get" asp-action="History" class="workspace-section">
     <div class="row g-3">
@@ -30,15 +32,15 @@
             { <option value="@size" selected="@(f.PageSize == size)">@size</option> }
             </select>
         </div>
-        <div class="col-md-8 align-self-end"><button class="btn btn-primary">Apply filters</button><a asp-action="History" class="ms-2">Reset</a></div>
+        <div class="col-md-8 align-self-end d-flex flex-wrap gap-2"><button class="btn btn-primary">Apply filters</button><a asp-action="History" class="btn">Reset</a></div>
     </div>
 </form>
 <p>@Model.Total matching recorded decision(s). Outcomes and bid references reflect the current persisted tender; refresh for updates.</p>
 @if (Model.Rows.Count == 0)
 {
-    <section class="workspace-section"><h2>No recorded decisions on this page</h2>
+    <section class="workspace-section tc-empty"><h2>No recorded decisions on this page</h2>
         <p>Only your votes on currently assigned tenders appear here. Adjust the filters, return to the first page, or review your pending tenders.</p>
-        <a asp-action="History">Show all my decisions</a>
+        <a asp-action="History" class="btn btn-primary">Show all my decisions</a>
     </section>
 }
 else
@@ -51,7 +53,7 @@ else
             @foreach (var row in Model.Rows)
             {
                 <tr>
-                    <td><strong>@row.Decision</strong><br /><time datetime="@row.DecidedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")">@CommitteeDisplay.Utc(row.DecidedAt)</time></td>
+                    <td><span class="badge @(row.Decision == "Approved" ? "text-bg-success" : "text-bg-danger")">@row.Decision</span><br /><time class="small text-secondary" datetime="@row.DecidedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")">@CommitteeDisplay.Utc(row.DecidedAt)</time></td>
                     <th scope="row"><a asp-action="TenderDetails" asp-route-id="@row.TenderId">#@row.TenderId · @row.Title</a></th>
                     <td>@CommitteeDisplay.Status(row.Status)</td>
                     <td>@row.Outcome<br /><span>@row.Approvals / 4 recorded approvals</span></td>
