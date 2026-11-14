@@ -11,7 +11,11 @@ namespace SourcingTenderManagement.Controllers;
 public sealed class FaceLoginController(FaceVerificationService verification) : Controller
 {
     [HttpGet]
-    public Task<IActionResult> Index(CancellationToken ct) => ReadAsync(ct, false);
+    public Task<IActionResult> Index(CancellationToken ct, string? returnUrl = null)
+    {
+        ViewData["ReturnUrl"] = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
+        return ReadAsync(ct, false);
+    }
 
     [HttpGet]
     public Task<IActionResult> Modal(CancellationToken ct) => ReadAsync(ct, true);

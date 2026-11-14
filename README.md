@@ -139,3 +139,7 @@ Only local HTTP endpoints are accepted. The recommendation and chosen percentage
 ### Committee evaluation basis
 
 The shared form edits one price weight and one technical-requirements weight for the entire tender. Both must be positive, have at most two decimals, and sum to 100%. Assigned committee members share these weights; changing them clears existing evaluation approvals. Four distinct member approvals complete the report and advance the tender to `AwaitingOfficerSummary`. No manually entered per-supplier scores are required, and approval does not automatically select a supplier. Existing historical score records remain available in older reports. AI comparisons are advisory and use separate percentages. Members can post or update a shared committee comment without clearing approvals.
+
+## QR links for tender and purchase request details
+
+QR codes use the address the user opened the site with by default. For deployment behind a proxy, set `Links__PublicOrigin` to the site's reachable origin (for example, `https://tenders.example.com`). For a local phone test, use the computer's reachable network address and port. A `localhost` link opens on the device that scans the code.

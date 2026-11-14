@@ -15,7 +15,7 @@
                 }
                 else
                 {
-                    <form id="verification-form" method="post" data-success-redirect="@Url.Action("GoToDashboard", "Account")" data-verify-url="@Url.Action("Verify", "FaceVerification")"
+                    <form id="verification-form" method="post" data-success-redirect="@Url.Action("GoToDashboard", "Account", new { returnUrl = ViewData["ReturnUrl"] })" data-verify-url="@Url.Action("Verify", "FaceVerification")"
                           data-model-url="@Url.Content("~/lib/face-api/model")"
                           data-model-identifier="@SourcingTenderManagement.Services.FaceEnrollment.FaceEnrollmentService.ModelIdentifier">
                         @Html.AntiForgeryToken()
@@ -42,7 +42,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <a asp-controller="Account" asp-action="GoToDashboard" class="btn btn-primary">Continue to workspace</a>
+                <a asp-controller="Account" asp-action="GoToDashboard" asp-route-returnUrl="@ViewData["ReturnUrl"]" class="btn btn-primary">Continue to workspace</a>
             </div>
         </div>
     </div>

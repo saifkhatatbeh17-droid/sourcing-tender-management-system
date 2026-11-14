@@ -6,7 +6,7 @@
             <p id="setup-description" class="text-muted">Register your face for future sign-ins.</p>
             <form id="face-form" method="post" data-save-url="@Url.Action("Save", "FaceEnrollment")" data-delete-url="@Url.Action("Delete", "FaceEnrollment")"
                   data-model-url="@Url.Content("~/lib/face-api/model")" data-row-version="@Model.RowVersion" data-enrolled="false"
-                  data-success-redirect="@Url.Action("GoToDashboard", "Account")" data-decline-url="@Url.Action("Decline", "FaceSetup")">
+                  data-success-redirect="@Url.Action("GoToDashboard", "Account", new { returnUrl = ViewData["ReturnUrl"] })" data-decline-url="@Url.Action("Decline", "FaceSetup")">
                 @Html.AntiForgeryToken()
                 <div class="face-setup-preview"><video id="face-video" autoplay muted playsinline aria-label="Face setup camera preview"></video><span class="face-setup-frame" aria-hidden="true"></span></div>
                 <p id="face-feedback" class="small mt-3" role="status" aria-live="polite">Camera is off. Keep one face in view when you start.</p>

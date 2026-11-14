@@ -9,14 +9,22 @@ namespace SourcingTenderManagement.Controllers;
 public class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     ApplicationDbContext db) : Controller
 {
-    public IActionResult Login() => User.Identity?.IsAuthenticated == true
-        ? RedirectToAction(nameof(GoToDashboard))
-        : View(new LoginViewModel());
+    [HttpGet]
+    public IActionResult Login(string? returnUrl)
+    {
+        var model = new LoginViewModel { ReturnUrl = SafeReturnUrl(returnUrl) };
+        return User.Identity?.IsAuthenticated == true ? ContinueAfterLogin(model) : View(model);
+    }
+
+    private string? SafeReturnUrl(string? returnUrl) => Url.IsLocalUrl(returnUrl) ? returnUrl : null;
+
+    private RedirectToActionResult ContinueAfterLogin(LoginViewModel model) =>
+        RedirectToAction(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) });
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
-        if (User.Identity?.IsAuthenticated == true) return RedirectToAction(nameof(GoToDashboard));
+        if (User.Identity?.IsAuthenticated == true) return ContinueAfterLogin(model);
         if (!ModelState.IsValid) return View(model);
         var user = await users.FindByEmailAsync(model.Email);
         if (user != null && user.IsActive)
@@ -26,7 +34,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             {
                 Response.Cookies.Delete(SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieName,
                     SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieOptions(Request));
-                return RedirectToAction(nameof(GoToDashboard));
+                return ContinueAfterLogin(model);
             }
         }
         ModelState.AddModelError("", "Unable to sign in. Check your email and password, or try again later.");
@@ -42,8 +50,9 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         var result = await Login(model);
         if (result is RedirectToActionResult { ActionName: nameof(GoToDashboard) })
         {
-            if (inline) return Ok(new { modalUrl = Url.Action("Modal", "FaceSetup") });
-            return RedirectToAction("Index", "FaceLogin");
+            var route = new { returnUrl = SafeReturnUrl(model.ReturnUrl) };
+            if (inline) return Ok(new { modalUrl = Url.Action("Modal", "FaceSetup", route) });
+            return RedirectToAction("Index", "FaceLogin", route);
         }
         if (inline) return BadRequest(new { message = "Unable to sign in. Check your email and password, or try again later." });
         // Preserve the current Login validation and generic errors under the original view name.
@@ -52,7 +61,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     }
 
     [Authorize]
-    public async Task<IActionResult> GoToDashboard()
+    public async Task<IActionResult> GoToDashboard(string? returnUrl = null)
     {
         if (User.IsInRole(RoleNames.Supplier))
         {
@@ -60,6 +69,8 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             if (!await db.SupplierProfiles.AnyAsync(s => s.UserId == userId && s.Status == "Approved"))
                 return RedirectToAction(nameof(RegistrationStatus));
         }
+        if (SafeReturnUrl(returnUrl) is { } destination)
+            return LocalRedirect(destination);
         if (await SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.ShouldPromptAsync(db, User, Request))
             return RedirectToAction("Index", "FaceSetup");
         foreach (var role in RoleNames.Primary)
@@ -140,11 +151,13 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     }
 
     [HttpPost, Authorize, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Logout()
+    public async Task<IActionResult> Logout(string? returnUrl = null)
     {
         await signIn.SignOutAsync();
         Response.Cookies.Delete(SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieName,
             SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieOptions(Request));
+        if (SafeReturnUrl(returnUrl) is { } destination)
+            return RedirectToAction(nameof(Login), new { returnUrl = destination });
         return RedirectToAction("Index", "Home");
     }
 
@@ -229,5 +242,9 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return RedirectToAction(nameof(RegistrationStatus));
     }
 
-    public IActionResult AccessDenied() { Response.StatusCode = 403; return View(); }
+    public IActionResult AccessDenied(string? returnUrl = null)
+    {
+        Response.StatusCode = 403;
+        return View(model: SafeReturnUrl(returnUrl));
+    }
 }

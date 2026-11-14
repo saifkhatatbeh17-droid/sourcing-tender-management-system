@@ -1,0 +1,29 @@
+@model SourcingTenderManagement.ViewComponents.DetailsQrViewModel
+@{ var showQr = Context.Request.Query["showQr"] == "true"; }
+
+<details class="details-qr mb-3" open="@showQr">
+    <summary class="btn btn-outline-primary btn-sm details-qr-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2 2h4v4H2zM10 2h4v4h-4zM2 10h4v4H2zM10 9v3h3v2h1M9 14h1M13 9h1" />
+        </svg>
+        QR code
+    </summary>
+    <div class="details-qr-panel">
+        <img class="details-qr-image" src="@Model.ImageData" width="192" height="192" alt="QR code for these @Model.Label.ToLowerInvariant() details" />
+        <div>
+            <p class="fw-semibold mb-1">Scan to open details</p>
+            <p class="small mb-2">Use your phone’s camera. Sign in with an account that has access to this record.</p>
+            <p class="small mb-2 text-break">
+                Scan address <a href="@Model.ScanUrl">@Model.ScanUrl</a>
+            </p>
+            @if (Model.IsLoopback)
+            {
+                <p class="small mb-2">This link uses a local address. To scan on a phone, open the site using an address the phone can reach.</p>
+            }
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-primary btn-sm" href="@Model.ImageData" download="record-details-qr.png">Download PNG</a>
+                <a class="btn btn-outline-primary btn-sm" href="@Model.DetailsUrl">Open details</a>
+            </div>
+        </div>
+    </div>
+</details>
