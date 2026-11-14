@@ -199,7 +199,7 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
             if (model.SelectedTender == null) return NotFound();
         }
 
-        ViewBag.CanSendToEvaluation = model.SelectedTender is { Status: "Closed" } selectedTender &&
+        ViewBag.CanSendToEvaluation = model.SelectedTender is { Status: "Published" or "Open" or "Closed" } selectedTender &&
             await HasCompletedComplianceForEvaluation(selectedTender.TenderId);
 
         ViewBag.ApprovedPurchaseRequests = await db.PurchaseRequests
@@ -402,9 +402,9 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
             .SingleOrDefaultAsync(t => t.TenderId == id && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
 
-        if (tender.Status != "Closed")
+        if (tender.Status is not ("Published" or "Open" or "Closed"))
         {
-            TempData["TenderError"] = "Only your Closed tenders can be sent to Evaluation.";
+            TempData["TenderError"] = "Only your published, open or closed tenders can be sent to Evaluation.";
             return RedirectToAction(nameof(Tenders), new { id });
         }
 
@@ -427,7 +427,7 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
         }
 
         var updatedRows = await db.Tenders
-            .Where(t => t.TenderId == id && t.CreatedByUserId == userId && t.Status == "Closed" &&
+            .Where(t => t.TenderId == id && t.CreatedByUserId == userId && (t.Status == "Published" || t.Status == "Open" || t.Status == "Closed") &&
                 !t.Clarifications.Any(c => c.Status != "Resolved") &&
                 !db.Clarifications.Any(c => c.Bid != null && c.Bid.TenderId == id && c.Status != "Resolved"))
             .ExecuteUpdateAsync(update => update.SetProperty(t => t.Status, "UnderEvaluation"));
