@@ -33,6 +33,12 @@
                     <span>@item.Title</span>
                 </a>
             }
+            @if (role == "SourcingManager")
+            {
+                <a class="admin-sidebar-item" asp-controller="Clarification" asp-action="Index">
+                    <partial name="_AdminSidebarIcon" model='@("Clarifications")' /><span>Clarification inbox</span>
+                </a>
+            }
             </div></details>
             }
         </nav>

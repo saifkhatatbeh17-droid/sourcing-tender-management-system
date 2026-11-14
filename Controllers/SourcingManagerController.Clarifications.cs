@@ -101,8 +101,15 @@ public partial class SourcingManagerController
             CreatedAt = DateTime.UtcNow
         };
         _context.Clarifications.Add(clarification);
-        NotifyCommittee(recipientAssignment, "New clarification", input.TenderId);
-
+        _context.SaveChanges();
+        _context.Notifications.Add(new Notification
+        {
+            UserId = clarification.RecipientUserId,
+            Title = "New clarification",
+            Message = "Open the conversation to respond.",
+            RelativeUrl = Url.Action("Index", "Clarification", new { id = clarification.ClarificationId }),
+            CreatedAt = DateTime.UtcNow
+        });
         _context.SaveChanges();
         transaction.Commit();
 
@@ -112,7 +119,7 @@ public partial class SourcingManagerController
     [HttpPost]
     public IActionResult ReplyToClarification(ManagerClarificationReply input)
     {
-        if (!ModelState.IsValid)
+        if (!ModelState.IsValid || input.Message.Trim() == SourcingTenderManagement.Services.ClarificationResolution.Confirmation)
         {
             return ClarificationMessage("Enter a response of up to 4,000 characters.", id: input.Id);
         }
@@ -175,13 +182,7 @@ public partial class SourcingManagerController
             return NotFound();
         }
 
-        clarification.Status = "Resolved";
-        clarification.ResolvedAt = DateTime.UtcNow;
-
-        _context.SaveChanges();
-        transaction.Commit();
-
-        return ClarificationMessage("Clarification resolved.", id: id);
+        return RedirectToAction("Index", "Clarification", new { id });
     }
 
     private IQueryable<CommitteeAssignment> EligibleClarificationRecipients()

@@ -80,6 +80,7 @@
         {
             <section class="workspace-section">
                 <h2>@conversation.Subject</h2>
+                <p><a asp-controller="Clarification" asp-action="Index" asp-route-id="@conversation.ClarificationId">Open conversation in inbox</a></p>
                 <p>@(conversation.Tender?.Title ?? conversation.Bid?.Invitation.Tender.Title ?? conversation.PurchaseRequest?.Title)</p>
                 <p><strong>@conversation.Status</strong> · @conversation.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</p>
                 <p><strong>From</strong> @conversation.SenderUser.FullName <strong>To</strong> @conversation.RecipientUser.FullName</p>
@@ -106,7 +107,7 @@
                     <form method="post" asp-action="ResolveClarification">
 
                         <input type="hidden" name="id" value="@conversation.ClarificationId" />
-                        <button class="btn btn-outline-primary" type="submit">Mark as resolved</button>
+                        <button class="btn btn-outline-primary" type="submit" name="resolve" value="true">Mark as resolved</button>
                     </form>
                 }
             </section>

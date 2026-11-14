@@ -9,9 +9,15 @@
     <section class="workspace-section">
         @await Component.InvokeAsync("DetailsQr", new { controller = "Department", action = "Details", id = Model.PurchaseRequestId, label = "Purchase request" })
         <partial name="_PurchaseRequestDetails" model="Model" />
+        @if (Model.Status is "Submitted" or "UnderReview" or "Returned")
+        {
+            <a asp-controller="Clarification" asp-action="Index" asp-route-kind="request"
+               asp-route-recordId="@Model.PurchaseRequestId" class="btn btn-outline-primary">Ask for clarification</a>
+        }
         @if (ViewData["CanEdit"] is true)
         {
             <a asp-action="Edit" asp-route-id="@Model.PurchaseRequestId" class="btn btn-primary">Edit and Resubmit</a>
         }
     </section>
 </div>
+@await Component.InvokeAsync("ClarificationHistory", new { kind = "request", recordId = Model.PurchaseRequestId })

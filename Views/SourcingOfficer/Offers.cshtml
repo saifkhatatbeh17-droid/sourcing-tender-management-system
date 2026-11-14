@@ -120,7 +120,7 @@
                     <dt>Additional Costs</dt><dd>@selectedBid.AdditionalCosts.ToString("N2") @selectedBid.Currency</dd>
                 </dl>
 
-                <h3>Offered Items</h3>
+                <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid" asp-route-recordId="@selectedBid.BidId" class="btn btn-outline-primary mb-3">Ask for clarification</a>@await Component.InvokeAsync("ClarificationHistory", new { kind = "bid", recordId = selectedBid.BidId })<h3>Offered Items</h3>
                 @if (selectedBid.BidItems.Count == 0)
                 {
                     <p class="text-secondary">No item prices are stored for this offer.</p>

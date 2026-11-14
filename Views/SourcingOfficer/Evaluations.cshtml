@@ -52,6 +52,13 @@
     </form>
 </section>
 
+@if (selectedTenderId is int clarificationTenderId)
+{
+    <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender"
+       asp-route-recordId="@clarificationTenderId" class="btn btn-outline-primary mt-3">Ask for clarification</a>
+    @await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = clarificationTenderId })
+}
+
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Evaluation tracking">
     <button class="nav-link active" id="evaluation-progress-tab" data-bs-toggle="tab" data-bs-target="#evaluation-progress" type="button" role="tab" aria-controls="evaluation-progress" aria-selected="true">Evaluation Tracking</button>
     <button class="nav-link" id="evaluation-results-tab" data-bs-toggle="tab" data-bs-target="#evaluation-results" type="button" role="tab" aria-controls="evaluation-results" aria-selected="false">Submitted Scores</button>

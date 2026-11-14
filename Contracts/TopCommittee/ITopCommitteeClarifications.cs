@@ -7,6 +7,7 @@ namespace SourcingTenderManagement.Contracts.TopCommittee;
 public interface ITopCommitteeClarifications
 {
     Task<CommitteeClarificationResult> CreateAsync(ClaimsPrincipal actor, CommitteeCreateClarification input, CancellationToken cancellationToken = default);
+    Task<CommitteeClarificationResult> FollowUpAsync(ClaimsPrincipal actor, int clarificationId, string message, CancellationToken cancellationToken = default);
     Task<CommitteeClarificationResult> ResolveAsync(ClaimsPrincipal actor, int clarificationId, CancellationToken cancellationToken = default);
 }
 
@@ -18,6 +19,7 @@ public interface ITopCommitteeClarificationQueries
 // Manager team calls this from its own authorized, anti-forgery-protected action. No manager UI is added here.
 public interface ITopCommitteeManagerAnswers
 {
+    Task<CommitteeClarificationResult> ConfirmResolutionAsync(ClaimsPrincipal manager, int clarificationId, CancellationToken cancellationToken = default);
     Task<CommitteeClarificationResult> AnswerAsync(ClaimsPrincipal manager, int clarificationId, string answer, CancellationToken cancellationToken = default);
 }
 

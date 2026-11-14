@@ -127,7 +127,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return RedirectToAction(nameof(Details), new { id });
     }
 
-    public IActionResult Clarifications() => View();
+    public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
 
     private IQueryable<PurchaseRequest> DepartmentRequests(ApplicationUser user) =>
         db.PurchaseRequests.AsNoTracking().Include(r => r.Department).Where(r => r.DepartmentId == user.DepartmentId);

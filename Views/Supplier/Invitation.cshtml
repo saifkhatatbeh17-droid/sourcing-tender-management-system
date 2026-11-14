@@ -12,3 +12,10 @@
 @if (Model.Status == "Accepted" && closed && bid?.Status == "Draft") { <span class="text-muted">Submission period has ended.</span> }</div></section>
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
+
+@if (Model.Status is "Pending" or "Accepted")
+{
+    <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender"
+       asp-route-recordId="@Model.TenderId" class="btn btn-outline-primary mt-3">Ask about this tender</a>
+}
+@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = Model.TenderId })

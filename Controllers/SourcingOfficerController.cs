@@ -41,13 +41,13 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
 
         return View();
     }
-    public async Task<IActionResult> Requests(int? id, string status = "Submitted")
+    public async Task<IActionResult> Requests(int? id, string status = "All")
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return Forbid();
 
         var availableStatuses = new[] { "All", "Submitted", "UnderReview", "Approved", "Returned", "Rejected" };
-        if (!availableStatuses.Contains(status)) status = "Submitted";
+        if (!availableStatuses.Contains(status)) status = "All";
 
         IQueryable<PurchaseRequest> requestQuery = ReviewableRequests(userId)
             .AsNoTracking()
@@ -72,6 +72,9 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
                 .SingleOrDefaultAsync(r => r.PurchaseRequestId == id.Value);
 
             if (selectedRequest == null) return NotFound();
+
+            ViewBag.HasOpenRequestClarifications = await db.Clarifications.AnyAsync(c =>
+                c.PurchaseRequestId == id && c.Status != "Resolved");
         }
 
         ViewBag.SelectedRequest = selectedRequest;
@@ -114,7 +117,7 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
         }
 
         TempData["RequestSuccess"] = "The request is now assigned to you for review.";
-        return RedirectToAction(nameof(Requests), new { id, status = "UnderReview" });
+        return RedirectToAction(nameof(Requests), new { id });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -140,7 +143,7 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
             TempData["RequestError"] = notesRequired
                 ? "Enter a reason of 1 to 2000 characters for Return or Reject."
                 : "Review notes cannot exceed 2000 characters.";
-            return RedirectToAction(nameof(Requests), new { id, status = "UnderReview" });
+            return RedirectToAction(nameof(Requests), new { id });
         }
 
         var request = await db.PurchaseRequests.AsNoTracking()
@@ -157,15 +160,18 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
 
         var reviewedAt = DateTime.UtcNow;
         var updatedRows = await db.PurchaseRequests
-            .Where(r => r.PurchaseRequestId == id && r.Status == "UnderReview" && r.ReviewedByUserId == userId)
+            .Where(r => r.PurchaseRequestId == id && r.Status == "UnderReview" && r.ReviewedByUserId == userId &&
+                !r.Clarifications.Any(c => c.Status != "Resolved"))
             .ExecuteUpdateAsync(update => update
                 .SetProperty(r => r.Status, decision)
                 .SetProperty(r => r.ReviewNotes, r => cleanNotes ?? r.ReviewNotes)
                 .SetProperty(r => r.ReviewedAt, reviewedAt));
         if (updatedRows != 1)
         {
-            TempData["RequestError"] = "This request changed before your decision was saved. Review its current status.";
-            return RedirectToAction(nameof(Requests), new { id, status = "UnderReview" });
+            TempData["RequestError"] = await db.Clarifications.AnyAsync(c => c.PurchaseRequestId == id && c.Status != "Resolved")
+                ? "Resolve all open clarifications before recording a review decision."
+                : "This request changed before your decision was saved. Review its current status.";
+            return RedirectToAction(nameof(Requests), new { id });
         }
 
         TempData["RequestSuccess"] = $"Purchase Request {decision.ToLowerInvariant()} successfully.";
@@ -419,11 +425,13 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
         }
 
         var updatedRows = await db.Tenders
-            .Where(t => t.TenderId == id && t.CreatedByUserId == userId && t.Status == "Closed")
+            .Where(t => t.TenderId == id && t.CreatedByUserId == userId && t.Status == "Closed" &&
+                !t.Clarifications.Any(c => c.Status != "Resolved") &&
+                !db.Clarifications.Any(c => c.Bid != null && c.Bid.TenderId == id && c.Status != "Resolved"))
             .ExecuteUpdateAsync(update => update.SetProperty(t => t.Status, "UnderEvaluation"));
         if (updatedRows != 1)
         {
-            TempData["TenderError"] = "This Tender changed before the handoff. Refresh the page and review its current status.";
+            TempData["TenderError"] = "Resolve all open tender and offer clarifications before handoff, then confirm the tender is still closed.";
             return RedirectToAction(nameof(Tenders), new { id });
         }
 
@@ -634,10 +642,9 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
             TempData["ComplianceError"] = "A final compliance decision has already been recorded.";
             return RedirectToAction(nameof(Compliance), new { id });
         }
-        if (bid.ComplianceStatus == "PendingClarification" &&
-            !bid.Clarifications.Any(c => (c.Status == "Answered" || c.Status == "Resolved") && c.ClarificationResponses.Count > 0))
+        if (bid.Clarifications.Any(c => c.Status != "Resolved"))
         {
-            TempData["ComplianceError"] = "Wait for a supplier response before completing this compliance review.";
+            TempData["ComplianceError"] = "Both sides must resolve open offer clarifications before completing compliance review.";
             return RedirectToAction(nameof(Compliance), new { id });
         }
 
@@ -767,6 +774,10 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
             return Error("The approved report must include an eligible recommended offer.");
         report.OfficerSummary = decision == "Approve" ? "Approved by sourcing officer. Report and recommended offer forwarded unchanged." :
             (decision == "RequestEdits" ? "Edits requested: " : "Rejected by sourcing officer: ") + reason!.Trim();
+        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
+            (c.TenderId == tenderId || (c.Bid != null && c.Bid.TenderId == tenderId))))
+            return Error("Both sides must resolve open tender and offer clarifications before completing report review.");
+
         if (decision == "Approve")
         {
             tender.Status = "AwaitingManagerReview";
@@ -789,43 +800,12 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
         TempData["EvaluationSuccess"] = decision switch { "Approve" => "Approved. The unchanged report was sent to the Sourcing Manager.", "RequestEdits" => "Returned to the committee for edits and four fresh approvals.", _ => "Report rejected and tender cancelled." };
         return RedirectToAction(nameof(Evaluations), new { tenderId });
     }
-    public async Task<IActionResult> Clarifications(int? id)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var ownTenderIds = db.Tenders.AsNoTracking()
-            .Where(t => t.CreatedByUserId == userId)
-            .Select(t => t.TenderId);
-        var ownRequestIds = db.PurchaseRequests.AsNoTracking().Select(r => r.PurchaseRequestId);
-        var clarifications = await db.Clarifications.AsNoTracking()
-            .Where(c => (c.SenderUserId == userId || c.RecipientUserId == userId) &&
-                ((c.TenderId.HasValue && ownTenderIds.Contains(c.TenderId.Value)) ||
-                 (c.BidId.HasValue && db.Bids.Any(b => b.BidId == c.BidId.Value && ownTenderIds.Contains(b.TenderId))) ||
-                 (c.PurchaseRequestId.HasValue && ownRequestIds.Contains(c.PurchaseRequestId.Value))))
-            .Include(c => c.SenderUser).ThenInclude(u => u.SupplierProfileUser)
-            .Include(c => c.RecipientUser).ThenInclude(u => u.SupplierProfileUser)
-            .Include(c => c.Tender)
-            .Include(c => c.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.SupplierProfile)
-            .Include(c => c.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.Tender)
-            .Include(c => c.PurchaseRequest).ThenInclude(r => r!.Department)
-            .Include(c => c.ClarificationResponses).ThenInclude(r => r.RespondedByUser)
-            .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync();
-
-        Clarification? selectedClarification = null;
-        if (id.HasValue)
-        {
-            selectedClarification = clarifications.SingleOrDefault(c => c.ClarificationId == id.Value);
-            if (selectedClarification == null) return NotFound();
-        }
-        ViewBag.SelectedClarification = selectedClarification;
-        ViewBag.CurrentUserId = userId;
-        return View(clarifications);
-    }
+    public IActionResult Clarifications(int? id) => RedirectToAction("Index", "Clarification", new { id });
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ReplyClarification(int id, string? message)
     {
-        if (string.IsNullOrWhiteSpace(message) || message.Trim().Length > 4000)
+        if (string.IsNullOrWhiteSpace(message) || message.Trim().Length > 4000 || message.Trim() == SourcingTenderManagement.Services.ClarificationResolution.Confirmation)
         {
             TempData["ClarificationError"] = "Enter a response of 1 to 4000 characters.";
             return RedirectToAction(nameof(Clarifications), new { id });

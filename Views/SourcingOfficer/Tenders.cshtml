@@ -167,3 +167,8 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
         });
     </script>
 }
+
+@if (Model.SelectedTender is { } clarificationRecord)
+{
+    @await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = clarificationRecord.TenderId })
+}

@@ -23,7 +23,17 @@
 <nav class="workspace-toolbar" aria-label="Tender sections">
     <a href="#voting">Voting</a><a href="#request">Purchase request</a><a href="#recommendation">Manager recommendation</a><a href="#bid-comparison">Bid comparison</a><a href="#evaluation-report">Evaluation report</a><a href="#committee">Committee records</a>
 </nav>
-<p><a asp-action="Clarifications" asp-route-tenderId="@tender.TenderId">View your clarifications for this tender</a></p>
+<section class="workspace-section" aria-labelledby="tender-clarifications">
+    <div class="workspace-heading">
+        <h2 id="tender-clarifications">Clarification history</h2>
+        <a asp-action="Clarifications" asp-route-tenderId="@tender.TenderId">Open tender clarifications</a>
+    </div>
+    @foreach (var thread in tender.MyClarifications)
+    {
+        <p><a asp-action="Clarifications" asp-route-tenderId="@tender.TenderId" asp-fragment="question-@thread.ClarificationId">@thread.Subject</a> · @thread.Status</p>
+    }
+</section>
+@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = tender.TenderId, title = "Questions from the Sourcing Manager" })
 @if (tender.Status == "Awarded" || tender.Readiness.HasRejection)
 {
     <section class="workspace-section" aria-labelledby="outcome-heading">

@@ -148,14 +148,31 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> FollowUpClarification(int id, int tenderId, string? message, CancellationToken cancellationToken) =>
+        await ReadAsync(async () =>
+        {
+            try
+            {
+                var result = await clarifications.FollowUpAsync(User, id, message ?? "", cancellationToken);
+                TempData["ClarificationSuccess"] = "Follow-up sent.";
+                return RedirectToAction(nameof(Clarifications), null, new { tenderId = result.TenderId }, fragment: $"question-{id}");
+            }
+            catch (Exception error) when (error is ValidationException or CommitteeStateConflictException)
+            {
+                TempData["ClarificationError"] = error.Message;
+                return RedirectToAction(nameof(Clarifications), null, new { tenderId }, fragment: $"question-{id}");
+            }
+        });
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ResolveClarification(int id, CancellationToken cancellationToken) =>
         await ReadAsync(async () =>
         {
             try
             {
                 var result = await clarifications.ResolveAsync(User, id, cancellationToken);
-                TempData["ClarificationSuccess"] = "Clarification resolved. Voting can resume when no other open clarifications remain.";
-                return RedirectToAction(nameof(Clarifications), new { tenderId = result.TenderId });
+                TempData["ClarificationSuccess"] = "Resolution confirmed. Voting can resume when both sides confirm every open clarification.";
+                return RedirectToAction(nameof(Clarifications), null, new { tenderId = result.TenderId }, fragment: $"question-{id}");
             }
             catch (CommitteeStateConflictException error)
             {

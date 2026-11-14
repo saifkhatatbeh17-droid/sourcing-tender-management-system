@@ -53,6 +53,7 @@ internal sealed class TopCommitteeClarificationService(ITopCommitteeClarificatio
     {
         var managerId = Actor(manager, RoleNames.SourcingManager);
         var message = Text(answer, 4000, "Answer");
+        if (message == ClarificationResolution.Confirmation) throw new ValidationException("Enter an answer.");
         var tenderId = await store.FindTenderAsync(managerId, RoleNames.SourcingManager, clarificationId, cancellationToken)
             ?? throw new CommitteeTenderNotFoundException();
         return await store.ExecuteAsync(managerId, tenderId, async (session, ct) =>
@@ -66,6 +67,53 @@ internal sealed class TopCommitteeClarificationService(ITopCommitteeClarificatio
         }, cancellationToken);
     }
 
+    public async Task<CommitteeClarificationResult> FollowUpAsync(ClaimsPrincipal actor, int clarificationId, string message,
+        CancellationToken cancellationToken = default)
+    {
+        var memberId = Actor(actor, RoleNames.TopCommittee);
+        var reply = Text(message, 4000, "Reply");
+        if (reply == ClarificationResolution.Confirmation) throw new ValidationException("Enter a reply.");
+        var tenderId = await store.FindTenderAsync(memberId, RoleNames.TopCommittee, clarificationId, cancellationToken)
+            ?? throw new CommitteeTenderNotFoundException();
+        return await store.ExecuteAsync(memberId, tenderId, async (session, ct) =>
+        {
+            var question = TopCommitteeClarificationRules.RequireFollowUp(session.Context, memberId, clarificationId);
+            session.Add(new ClarificationResponse { ClarificationId = clarificationId, RespondedByUserId = memberId,
+                Message = reply, CreatedAt = DateTime.UtcNow });
+            question.Status = "Pending";
+            await session.SaveAsync(ct);
+            return new CommitteeClarificationResult(tenderId, clarificationId);
+        }, cancellationToken);
+    }
+
+    public async Task<CommitteeClarificationResult> ConfirmResolutionAsync(ClaimsPrincipal manager, int clarificationId,
+        CancellationToken cancellationToken = default)
+    {
+        var managerId = Actor(manager, RoleNames.SourcingManager);
+        var tenderId = await store.FindTenderAsync(managerId, RoleNames.SourcingManager, clarificationId, cancellationToken)
+            ?? throw new CommitteeTenderNotFoundException();
+        return await store.ExecuteAsync(managerId, tenderId, async (session, ct) =>
+        {
+            var question = TopCommitteeClarificationRules.RequireManagerConfirmation(session.Context, managerId, clarificationId);
+            Confirm(session, question, managerId, question.SenderUserId);
+            await session.SaveAsync(ct);
+            return new CommitteeClarificationResult(tenderId, clarificationId);
+        }, cancellationToken);
+    }
+
+    private static void Confirm(ICommitteeClarificationSession session, Clarification question, string actor, string other)
+    {
+        var confirmations = ClarificationResolution.ConfirmedUsers(question.ClarificationResponses);
+        if (confirmations.Contains(actor))
+            throw new CommitteeStateConflictException("You already marked this clarification as resolved.");
+        session.Add(ClarificationResolution.CreateConfirmation(question.ClarificationId, actor));
+        if (confirmations.Contains(other))
+        {
+            question.Status = "Resolved";
+            question.ResolvedAt = DateTime.UtcNow;
+        }
+    }
+
     public async Task<CommitteeClarificationResult> ResolveAsync(ClaimsPrincipal actor, int clarificationId,
         CancellationToken cancellationToken = default)
     {
@@ -75,8 +123,7 @@ internal sealed class TopCommitteeClarificationService(ITopCommitteeClarificatio
         return await store.ExecuteAsync(memberId, tenderId, async (session, ct) =>
         {
             var question = TopCommitteeClarificationRules.RequireResolve(session.Context, memberId, clarificationId);
-            question.Status = "Resolved";
-            question.ResolvedAt = DateTime.UtcNow;
+            Confirm(session, question, memberId, question.RecipientUserId);
             await session.SaveAsync(ct);
             return new CommitteeClarificationResult(tenderId, clarificationId);
         }, cancellationToken);
