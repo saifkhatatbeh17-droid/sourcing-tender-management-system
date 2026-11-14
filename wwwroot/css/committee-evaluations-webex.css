@@ -27,7 +27,7 @@ html[data-theme="dark"] body:has(.evaluation-page) { --color-background:#101817;
 .ev-tender-browser-heading > span { display:flex; justify-content:space-between; align-items:center; font-size:16px; font-weight:600; }
 .ev-tender-browser-heading small { font-size:12px; padding:2px 8px; border-radius:8px; background:var(--color-surface-alt); color:var(--color-text-secondary); }
 .ev-tender-search-field { position:relative; }
-.ev-tender-search-field svg { position:absolute; width:17px; height:17px; left:12px; top:50%; transform:translateY(-50%); color:var(--color-text-secondary); pointer-events:none; }
+.ev-tender-search-field .ev-tender-search-icon { position:absolute; width:17px; height:17px; left:12px; top:50%; transform:translateY(-50%); color:var(--color-text-secondary); pointer-events:none; }
 .evaluation-page .ev-tender-search-field input { padding-left:37px; background:var(--color-surface-alt); border-color:transparent; font-size:14px; }
 .evaluation-page .ev-tender-search-field input:focus { background:var(--color-surface); border-color:var(--accent); }
 .ev-tender-filters { display:flex; gap:4px; margin:14px 4px 18px; padding:4px; background:var(--color-surface-alt); border-radius:12px; }
