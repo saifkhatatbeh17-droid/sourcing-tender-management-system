@@ -8,15 +8,17 @@
     var members = ViewBag.WorkspaceMembers as List<CommitteeAssignment> ?? [];
     var approvals = ViewBag.WorkspaceApprovals as List<TenderApproval> ?? [];
     var invitations = ViewBag.WorkspaceInvitations as List<Invitation> ?? [];
-    var canInvite = tender != null && (tender.Status == "Draft" || ((tender.Status is "Published" or "Open") && tender.ClosesAt > DateTime.UtcNow));
+    var now = DateTime.UtcNow;
+    var canInvite = tender?.CanCancel(now) == true;
     var editable = tender?.Status is "Published" or "Open" or "Closed";
+    var activeOfferCount = Model.Count(b => b.Status != "Withdrawn");
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/offer-review.css" asp-append-version="true" />
 }
 <div class="so-page offer-review">
-<header class="so-page-header"><div><h1>Tender workspace</h1><p class="so-page-description">Publish and invite, review offers, and follow the committee decision in one place.</p></div><a class="btn btn-primary" asp-action="Create">Prepare tender ＋</a></header>
+<header class="so-page-header"><div><h1>Tender workspace</h1><p class="so-page-description">Publish and invite, review offers, and follow the committee decision in one place.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-primary" asp-action="Tenders">Manage tenders</a><a class="btn btn-primary" asp-action="Create">Prepare tender ＋</a></div></header>
 @if (TempData["TenderSuccess"] is string success) { <div class="alert alert-success" role="status">@success</div> }
 @if (TempData["TenderError"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
 @if (TempData["EvaluationSuccess"] is string reviewSuccess) { <div class="alert alert-success" role="status">@reviewSuccess</div> }
@@ -32,9 +34,16 @@
 else
 {
     <section class="offer-context">
-        <div><span class="text-secondary">Tender #@tender.TenderId</span><h2>@tender.Title</h2><p>@Model.Count offers · @Model.Count(b => b.ComplianceStatus == "Compliant") compliant</p></div>
+        <div><span class="text-secondary">Tender #@tender.TenderId</span><h2>@tender.Title</h2><p>@(tender.Category ?? "Uncategorized")</p><p>@Model.Count offers · @Model.Count(b => b.Status != "Withdrawn" && b.ComplianceStatus == "Compliant") compliant</p><p>Tender deadline · @tender.ClosesAt.ToString("dd MMM yyyy, HH:mm") UTC</p></div>
         <span class="so-status-badge">@SourcingTenderManagement.Models.CommitteeEvaluationPage.StatusLabel(tender.Status)</span>
     </section>
+    @if (tender.CanCancel(now))
+    {
+        <form asp-action="CancelTender" asp-route-id="@tender.TenderId" method="post" class="mb-3"
+              onsubmit="return confirm('Cancel this tender for all invited suppliers?');">
+            <button type="submit" class="btn btn-outline-danger">Cancel tender</button>
+        </form>
+    }
     @if (tender.Status == "UnderEvaluation")
     {
         <section class="workspace-section"><h2>Committee review in progress</h2><p>The committee is ready to choose an offer. @approvals.Count(a => a.Decision == "Approved") of 4 members have approved.</p><div class="tw-member-status">@foreach (var member in members) { <span>@SourcingTenderManagement.Models.CommitteeEvaluationPage.MemberName(member.Position) · @(approvals.Any(a => a.CommitteeAssignmentId == member.CommitteeAssignmentId && a.Decision == "Approved") ? "Approved" : "Pending")</span> }</div></section>
@@ -55,7 +64,6 @@ else
                 <span class="tw-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16v13H4zM4 7l3-4h10l3 4M8 12h8M10 16h4"/></svg></span>
                 <h3>@(tender.Status == "Draft" ? "Ready when you are" : "Waiting for the first offer")</h3>
                 <p>@(tender.Status == "Draft" ? "Publish this tender and invite suppliers to begin." : invitations.Count == 0 ? "Invite suppliers using the Suppliers button above." : $"{invitations.Count} suppliers invited. Their submitted offers will appear here.")</p>
-                @if (tender.Status != "Draft") { <span class="tw-deadline">Submission deadline · @tender.ClosesAt.ToString("dd MMM yyyy, HH:mm") UTC</span> }
             </section>
         }
         <div class="offer-review-list">
@@ -68,7 +76,7 @@ else
                 <details open="@(ViewBag.SelectedBidId == bid.BidId)"><summary>Review requirements, pricing & documents</summary>
                     <div class="offer-detail-columns"><section><h4>What was requested</h4><p>@bid.Invitation.Tender.Description</p>
                     @foreach (var item in bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems) { <p><strong>@item.ItemName · @item.Quantity @item.Unit</strong><br />@item.Specifications</p> }
-                    </section><section><h4>What this supplier offers</h4><p>@bid.TechnicalDetails</p><p><strong>Payment:</strong> @bid.PaymentTerms</p><p><strong>Valid until:</strong> @bid.ValidUntil?.ToString("dd MMM yyyy")</p>
+                    </section><section><h4>What this supplier offers</h4><p>@bid.TechnicalDetails</p><p><strong>Payment:</strong> @bid.PaymentTerms</p><p><strong>Tender deadline:</strong> @tender.ClosesAt.ToString("dd MMM yyyy, HH:mm") UTC</p>
                     @foreach (var item in bid.BidItems) { <p><strong>@item.PurchaseRequestItem.ItemName</strong><br />@item.OfferedSpecifications<br />@item.Quantity × @item.UnitPrice.ToString("N2") @bid.Currency</p> }
                     @if (bid.BidDocuments.Count > 0) { <h4>Submitted documents</h4><ul>@foreach (var document in bid.BidDocuments) { <li>@document.OriginalFileName — @document.DocumentType</li> }</ul> }
                     </section></div>
@@ -78,18 +86,21 @@ else
                     {
                         <fieldset><legend>Compliance decision</legend><label><input type="radio" name="decisions[@bid.BidId]" value="Compliant" required /> Compliant</label><label><input type="radio" name="decisions[@bid.BidId]" value="NonCompliant" required /> Non-compliant</label></fieldset>
                     }
-                    else { <span class="so-status-badge">@(bid.ComplianceStatus == "NonCompliant" ? "Non-compliant" : bid.ComplianceStatus ?? bid.Status)</span> }
-                    <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid" asp-route-recordId="@bid.BidId">Ask a question ↗</a>
+                    else { <span class="so-status-badge">@(tender.Status == "Cancelled" ? "Cancelled" : bid.Status == "Withdrawn" ? "Withdrawn" : bid.ComplianceStatus == "NonCompliant" ? "Non-compliant" : bid.ComplianceStatus ?? bid.Status)</span> }
+                    @if (tender.Status != "Cancelled" && bid.Status != "Withdrawn")
+                    {
+                        <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid" asp-route-recordId="@bid.BidId">Ask a question ↗</a>
+                    }
                 </footer>
             </article>
         }
         </div>
-        @if (editable && Model.Count > 0)
+        @if (editable && activeOfferCount > 0)
         {
-            <div class="offer-handoff"><div><strong>Ready for the committee?</strong><p>Saves all decisions and sends compliant offers together. No deadline wait or separate closure step. New submissions stop after sending.</p></div><button class="btn btn-primary" disabled="@(questions.Count > 0 || Model.Count == 0)">Send to committee →</button></div>
+            <div class="offer-handoff"><div><strong>Ready for the committee?</strong><p>After the tender deadline, this saves your decisions and sends compliant offers to the committee.</p></div><button class="btn btn-primary" disabled="@(questions.Count > 0 || now < tender.ClosesAt)">Send to committee →</button></div>
         }
     </form>
-    <div class="modal fade tw-dialog" id="tender-requirements" tabindex="-1" aria-labelledby="tender-requirements-title" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="tender-requirements-title">Purchase requirements</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><h3 class="fs-6">@tender.Title</h3><p class="tw-preserve">@tender.Description</p>@if (!string.IsNullOrWhiteSpace(tender.Terms)) { <h3 class="fs-6">Tender terms</h3><p class="tw-preserve">@tender.Terms</p> }<div class="tw-window"><span>Opens @tender.OpensAt.ToString("dd MMM yyyy, HH:mm") UTC</span><span>Closes @tender.ClosesAt.ToString("dd MMM yyyy, HH:mm") UTC</span></div></div></div></div></div>
+    <div class="modal fade tw-dialog" id="tender-requirements" tabindex="-1" aria-labelledby="tender-requirements-title" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="tender-requirements-title">Purchase requirements</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><h3 class="fs-6">@tender.Title</h3><p class="tw-preserve">@tender.Description</p>@if (!string.IsNullOrWhiteSpace(tender.Terms)) { <h3 class="fs-6">Tender terms</h3><p class="tw-preserve">@tender.Terms</p> }<div class="tw-window"><span>Opens @tender.OpensAt.ToString("dd MMM yyyy, HH:mm") UTC</span><span>Tender deadline @tender.ClosesAt.ToString("dd MMM yyyy, HH:mm") UTC</span></div></div></div></div></div>
     <div class="modal fade tw-dialog" id="tender-suppliers" tabindex="-1" aria-labelledby="tender-suppliers-title" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="tender-suppliers-title">@(tender.Status == "Draft" ? "Publish & invite suppliers" : "Supplier invitations")</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">
         @if (invitations.Count > 0)
         {

@@ -10,7 +10,7 @@ else
     <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Offer</th><th>Tender</th><th>Submitted (UTC)</th><th>Total</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr></thead><tbody>
     @foreach (var bid in Model)
     {
-        <tr><td>#@bid.BidId</td><td>@bid.Invitation.Tender.Title</td><td>@bid.SubmittedAt?.ToString("dd MMM yyyy · HH:mm")</td><td>@CommitteeEvaluationPage.Total(bid).ToString("N2") @bid.Currency</td><td><span class="status-badge status-@bid.Status.ToLowerInvariant()">@bid.Status</span></td><td><a asp-action="Offer" asp-route-id="@bid.BidId">View offer</a> <span aria-hidden="true">·</span> <a asp-action="DownloadSummary" asp-route-id="@bid.BidId">My summary</a></td></tr>
+        <tr><td>#@bid.BidId</td><td>@bid.Invitation.Tender.Title</td><td>@bid.SubmittedAt?.ToString("dd MMM yyyy · HH:mm")</td><td>@CommitteeEvaluationPage.Total(bid).ToString("N2") @bid.Currency</td><td><span class="status-badge status-@(bid.Invitation.Tender.Status == "Cancelled" ? "cancelled" : bid.Status.ToLowerInvariant())">@(bid.Invitation.Tender.Status == "Cancelled" ? "Cancelled" : bid.Status)</span></td><td><a asp-action="Offer" asp-route-id="@bid.BidId">View offer</a> <span aria-hidden="true">·</span> <a asp-action="DownloadSummary" asp-route-id="@bid.BidId" class="btn btn-sm btn-outline-primary" aria-label="Download personal summary PDF"><partial name="_ReportDownloadIcon" /> Download PDF</a></td></tr>
     }
     </tbody></table></div>
 }

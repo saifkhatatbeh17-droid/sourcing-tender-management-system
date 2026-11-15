@@ -24,7 +24,7 @@
     </dl>
     <p class="small text-secondary mb-0">Counts reflect your filters; total assigned includes all your assignments. Rejected tenders may also appear under Manager review.</p>
 </section>
-<nav class="workspace-toolbar" aria-label="Exports">@foreach(var format in new[]{"pdf","xlsx"}){<a asp-action="ReportExport" asp-route-format="@format" asp-route-Search="@f.Search" asp-route-Status="@f.Status" asp-route-Decision="@f.Decision" asp-route-FromDate="@f.FromDate?.ToString("yyyy-MM-dd")" asp-route-ToDate="@f.ToDate?.ToString("yyyy-MM-dd")">Download @(format=="pdf"?"PDF":"Excel")</a>}</nav>
+<nav class="workspace-toolbar" aria-label="Exports">@foreach(var format in new[]{"pdf","xlsx"}){<a class="btn btn-outline-primary btn-sm" asp-action="ReportExport" asp-route-format="@format" asp-route-Search="@f.Search" asp-route-Status="@f.Status" asp-route-Decision="@f.Decision" asp-route-FromDate="@f.FromDate?.ToString("yyyy-MM-dd")" asp-route-ToDate="@f.ToDate?.ToString("yyyy-MM-dd")"><partial name="_ReportDownloadIcon" /> Download @(format=="pdf"?"PDF":"Excel")</a>}</nav>
 @if (Model.Rows.Count == 0)
 {
     <section class="workspace-section tc-empty"><h2>No matching tenders</h2><p>Adjust the filters or check your committee assignments.</p></section>

@@ -52,11 +52,19 @@ public partial class SourcingManagerController : Controller
     }
 
     [HttpGet]
-    public IActionResult Submissions(int? id)
+    public IActionResult Submissions(int? id, int? rejectedTenderId = null, bool showRejections = false)
     {
+        var rejections = ManagedRejections();
+        if (rejectedTenderId.HasValue)
+        {
+            if (!rejections.Any(t => t.TenderId == rejectedTenderId)) return NotFound();
+            rejections = rejections.Where(t => t.TenderId == rejectedTenderId);
+        }
+        ViewBag.RejectedTenders = rejections.OrderByDescending(t => t.CreatedAt).ToList();
+        ViewBag.OpenRejections = showRejections || rejectedTenderId.HasValue;
         var evaluationReports = _context.EvaluationReports
             .Include(report => report.Tender)
-            .Where(report => report.Tender.Status == AwaitingManagerReview &&
+            .Where(report => !report.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") && report.Tender.Status == AwaitingManagerReview &&
                 (report.Status == "OfficerSubmitted" ||
                  report.Status == "CommitteeApproved" ||
                  report.Status == ManagerApproved))
@@ -136,7 +144,7 @@ public partial class SourcingManagerController : Controller
 
         var tender = _context.Tenders.Find(evaluationReport.TenderId);
 
-        if (tender == null || tender.Status != AwaitingManagerReview)
+        if (tender == null || _context.TenderApprovals.Any(a => a.TenderId == tender.TenderId && a.Stage == "Top" && a.Decision == "Rejected") || tender.Status != AwaitingManagerReview)
         {
             return SubmissionMessage("This report changed. Review the latest submission before deciding.");
         }
@@ -217,7 +225,7 @@ public partial class SourcingManagerController : Controller
             .Include(r => r.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.SupplierProfile)
             .Include(r => r.Bid).ThenInclude(b => b!.BidItems)
             .SingleOrDefaultAsync(r => r.EvaluationReportId == reportId, cancellationToken);
-        if (report?.Status != ManagerApproved || report.Tender.Status != AwaitingManagerReview || report.Bid == null)
+        if (report == null || _context.TenderApprovals.Any(a => a.TenderId == report.TenderId && a.Stage == "Top" && a.Decision == "Rejected") || report.Status != ManagerApproved || report.Tender.Status != AwaitingManagerReview || report.Bid == null)
             return BadRequest(new { error = "Only an approved recommendation awaiting referral can be summarized." });
         try
         {
@@ -251,7 +259,7 @@ public partial class SourcingManagerController : Controller
 
         var tender = _context.Tenders.Find(evaluationReport.TenderId);
 
-        if (tender == null || tender.Status != AwaitingManagerReview)
+        if (tender == null || _context.TenderApprovals.Any(a => a.TenderId == tender.TenderId && a.Stage == "Top" && a.Decision == "Rejected") || tender.Status != AwaitingManagerReview)
         {
             return SubmissionMessage("Only an approved recommendation awaiting referral can be forwarded.");
         }

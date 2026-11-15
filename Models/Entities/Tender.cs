@@ -7,11 +7,16 @@ namespace SourcingTenderManagement.Models.Entities;
 public class Tender
 {
     public int TenderId { get; set; }
+    public int? ReplacesTenderId { get; set; }
+    public Tender? ReplacesTender { get; set; }
+    public string? RejectionForwardedByUserId { get; set; }
+    public DateTime? RejectionForwardedAt { get; set; }
 
     public int PurchaseRequestId { get; set; }
 
     public string CreatedByUserId { get; set; } = null!;
 
+    public string? Category { get; set; }
     public string Title { get; set; } = null!;
 
     public string Description { get; set; } = null!;
@@ -23,6 +28,12 @@ public class Tender
     public DateTime ClosesAt { get; set; }
 
     public string Status { get; set; } = null!;
+
+    public bool IsAcceptingOffers(DateTime now) =>
+        Status is ("Open" or "Published") && OpensAt <= now && now < ClosesAt;
+
+    public bool CanCancel(DateTime now) =>
+        Status is ("Draft" or "Open" or "Published") && now < ClosesAt;
 
     public int? AwardedBidId { get; set; }
 

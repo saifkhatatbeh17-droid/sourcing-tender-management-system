@@ -1,22 +1,14 @@
 @model EditProfileViewModel
-@{
-    var managerProfile = !User.IsInRole(SourcingTenderManagement.Data.RoleNames.Supplier) &&
-        SourcingTenderManagement.Data.RoleNames.Primary.FirstOrDefault(User.IsInRole) ==
-            SourcingTenderManagement.Data.RoleNames.SourcingManager;
-    ViewData["Title"] = "Edit Profile";
-}
+@{ ViewData["Title"] = "Edit Profile"; }
 
 @section Styles {
-    @if (managerProfile)
-    {
-        <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
-    }
+    <link rel="stylesheet" href="~/css/account-profile.css" asp-append-version="true" />
 }
 
-<div class="@(managerProfile ? "manager-shell" : null)">
-    <div class="workspace-heading"><h1>Edit Profile</h1></div>
-
-    <section class="workspace-section">
+<div class="account-profile">
+    <header class="ap-heading"><h1>Edit Profile</h1></header>
+    <section class="ap-card ap-edit" aria-labelledby="profile-contact">
+        <h2 id="profile-contact">Contact information</h2>
         <form asp-action="EditProfile" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
             <div class="mb-3">
@@ -24,8 +16,10 @@
                 <input asp-for="PhoneNumber" type="tel" class="form-control" maxlength="32" autocomplete="tel" />
                 <span asp-validation-for="PhoneNumber" class="text-danger"></span>
             </div>
-            <button type="submit" class="btn btn-primary">Save Phone Number</button>
-            <a asp-action="Profile" class="btn btn-link">Cancel</a>
+            <div class="ap-actions">
+                <button type="submit" class="btn btn-primary">Save Phone Number</button>
+                <a asp-action="Profile" class="btn btn-outline-primary">Cancel</a>
+            </div>
         </form>
     </section>
 </div>

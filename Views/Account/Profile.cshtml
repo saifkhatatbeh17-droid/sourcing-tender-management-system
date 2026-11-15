@@ -1,60 +1,80 @@
+@using System.Globalization
 @model AccountProfileViewModel
 @{
-    var managerProfile = !User.IsInRole(SourcingTenderManagement.Data.RoleNames.Supplier) &&
-        SourcingTenderManagement.Data.RoleNames.Primary.FirstOrDefault(User.IsInRole) ==
-            SourcingTenderManagement.Data.RoleNames.SourcingManager;
     ViewData["Title"] = "My Profile";
+    var displayName = string.IsNullOrWhiteSpace(Model.FullName) ? "Not provided" : Model.FullName;
+    var initials = string.IsNullOrWhiteSpace(Model.FullName) ? "?" : string.Concat(Model.FullName
+        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+        .Take(2).Select(word => StringInfo.GetNextTextElement(word))).ToUpperInvariant();
+    var email = Model.Email ?? "Not provided";
 }
 
 @section Styles {
-    @if (managerProfile)
-    {
-        <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
-    }
+    <link rel="stylesheet" href="~/css/account-profile.css" asp-append-version="true" />
 }
 
-<div class="@(managerProfile ? "manager-shell" : null)">
-    <div class="workspace-heading">
-        <h1>My Profile</h1>
-        <a asp-action="EditProfile" class="btn btn-outline-primary">Edit Phone Number</a>
-    </div>
+<div class="account-profile">
+    <header class="ap-heading"><h1>My Profile</h1></header>
 
     @if (TempData["ProfileFeedback"] is string feedback)
     {
         <div class="alert alert-success" role="status">@feedback</div>
     }
 
-    <section class="workspace-section">
-        <h2>Account information</h2>
-        <dl class="row mb-0">
-            <dt class="col-sm-4">Full name</dt>
-            <dd class="col-sm-8 text-break">@(string.IsNullOrWhiteSpace(Model.FullName) ? "Not provided" : Model.FullName)</dd>
+    <div class="ap-columns">
+        <section class="ap-card ap-identity" aria-labelledby="profile-name">
+            <span class="ap-avatar" aria-hidden="true">@initials</span>
+            <h2 id="profile-name">@displayName</h2>
+            @if (Model.Roles.Count == 0)
+            {
+                <p class="ap-role">No roles assigned</p>
+            }
+            else
+            {
+                <ul class="ap-roles list-unstyled">
+                    @foreach (var role in Model.Roles)
+                    {
+                        <li>@System.Text.RegularExpressions.Regex.Replace(role, "([a-z])([A-Z])", "$1 $2")</li>
+                    }
+                </ul>
+            }
+            <p class="ap-identity-email"><span class="ap-icon ap-icon-mail" aria-hidden="true"></span>@email</p>
+            <dl class="ap-identity-details">
+                <dt><span class="ap-icon ap-icon-building" aria-hidden="true"></span>Department</dt>
+                <dd>@(Model.DepartmentName ?? "Not assigned")</dd>
+            </dl>
+        </section>
 
-            <dt class="col-sm-4">Email address</dt>
-            <dd class="col-sm-8 text-break">@(Model.Email ?? "Not provided")</dd>
+        <div class="ap-content">
+            <section class="ap-card" aria-labelledby="profile-contact">
+                <h2 id="profile-contact">Contact information</h2>
+                <dl class="ap-contact">
+                    <div class="ap-contact-row">
+                        <dt><span class="ap-icon ap-icon-mail" aria-hidden="true"></span>Email</dt>
+                        <dd>@email</dd>
+                    </div>
+                    <div class="ap-contact-row">
+                        <dt><span class="ap-icon ap-icon-phone" aria-hidden="true"></span>Phone</dt>
+                        <dd class="ap-contact-value">
+                            <span>@(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "Not provided" : Model.PhoneNumber)</span>
+                            <a asp-action="EditProfile" class="btn btn-outline-primary ap-edit-link">Edit phone number</a>
+                        </dd>
+                    </div>
+                </dl>
+            </section>
 
-            <dt class="col-sm-4">Phone number</dt>
-            <dd class="col-sm-8 text-break">@(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "Not provided" : Model.PhoneNumber)</dd>
+            <section class="ap-card" aria-labelledby="profile-account-details">
+                <h2 id="profile-account-details">Account details</h2>
+                <dl class="ap-fields">
+                    <div><dt>Sign-in name</dt><dd>@(Model.UserName ?? "Not provided")</dd></div>
+                    @if (Model.DepartmentIsActive is bool departmentIsActive)
+                    {
+                        <div><dt>Department status</dt><dd>@(departmentIsActive ? "Active" : "Inactive")</dd></div>
+                    }
+                </dl>
+            </section>
 
-            <dt class="col-sm-4">Department</dt>
-            <dd class="col-sm-8">@(Model.DepartmentName ?? "Not assigned")</dd>
-
-            <dt class="col-sm-4">Roles</dt>
-            <dd class="col-sm-8">
-                @if (Model.Roles.Count == 0)
-                {
-                    <span>No roles assigned</span>
-                }
-                else
-                {
-                    <ul class="list-unstyled mb-0">
-                        @foreach (var role in Model.Roles)
-                        {
-                            <li>@role</li>
-                        }
-                    </ul>
-                }
-            </dd>
-        </dl>
-    </section>
+            <partial name="_ProfileSecurity" model="new ChangePasswordViewModel()" />
+        </div>
+    </div>
 </div>

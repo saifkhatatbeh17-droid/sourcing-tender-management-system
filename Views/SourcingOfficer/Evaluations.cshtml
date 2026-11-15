@@ -170,7 +170,7 @@
             @if (report is null) { <p>No committee report is available yet.</p> }
             else
             {
-                <nav class="workspace-toolbar" aria-label="Evaluation report export"><a class="btn btn-outline-primary btn-sm" asp-action="EvaluationReportPdf" asp-route-tenderId="@selectedTenderId">Download PDF</a></nav>
+                <nav class="workspace-toolbar" aria-label="Evaluation report export"><a class="btn btn-outline-primary btn-sm" asp-action="EvaluationReportPdf" asp-route-tenderId="@selectedTenderId"><partial name="_ReportDownloadIcon" /> Download PDF</a></nav>
                 <dl>
                     <dt>Report status</dt><dd><span class="so-status-badge" data-status="@report.Status">@report.Status</span></dd>
                     <dt>Recommended offer</dt><dd>@(recommendationBids.FirstOrDefault(b => b.BidId == report.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName ?? (report.RecommendedBidId.HasValue ? "Offer #" + report.RecommendedBidId : "No offer recommended"))</dd>

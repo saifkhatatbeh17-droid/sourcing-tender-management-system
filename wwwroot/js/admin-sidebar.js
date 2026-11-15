@@ -177,7 +177,7 @@ function applyLocalPage(results, filter) {
     const next = pager.querySelector('[data-page-next]');
     const summary = pager.querySelector('[data-page-summary]');
     const search = filter?.querySelector('[name="search"]');
-    const status = filter?.querySelector('select');
+    const status = filter?.querySelector('select[name]');
     const pageSize = 15;
     let page = 1;
 

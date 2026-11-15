@@ -2,12 +2,16 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace SourcingTenderManagement.Services.Reports;
 
+internal sealed class GeneratedReportPdfResult(byte[] contents) : FileContentResult(contents, "application/pdf")
+{
+}
+
 internal static class ReportPdfDownload
 {
     // Ordinary FileResult: the existing global watermark filter runs exactly once.
     public static IActionResult Create(Controller controller,Func<byte[]> render,string name)
     {
-        try { return controller.File(render(),"application/pdf",name); }
+        try { return new GeneratedReportPdfResult(render()) { FileDownloadName = name }; }
         catch(Exception error) when(error is IOException or InvalidOperationException or ArgumentException
             or NotSupportedException or UnauthorizedAccessException)
         {

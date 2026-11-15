@@ -10,6 +10,7 @@ public class SupplierProfile
 
     public string UserId { get; set; } = null!;
 
+    public string? Category { get; set; }
     public string CompanyName { get; set; } = null!;
 
     public string RegistrationNumber { get; set; } = null!;

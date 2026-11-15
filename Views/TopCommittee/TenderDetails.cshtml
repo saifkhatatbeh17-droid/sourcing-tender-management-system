@@ -130,7 +130,7 @@ else if (!tender.Readiness.IsVotingOpen)
     @if (tender.Report is not { } report) { <p class="mb-0">No unified evaluation report is recorded for this tender.</p> }
     else
     {
-        <nav class="workspace-toolbar" aria-label="Unified report export"><a class="btn btn-outline-primary btn-sm" asp-action="UnifiedReportPdf" asp-route-id="@tender.TenderId" asp-route-bidId="@Model.SelectedBid?.BidId">Download PDF</a></nav>
+        <nav class="workspace-toolbar" aria-label="Unified report export"><a class="btn btn-outline-primary btn-sm" asp-action="UnifiedReportPdf" asp-route-id="@tender.TenderId" asp-route-bidId="@Model.SelectedBid?.BidId"><partial name="_ReportDownloadIcon" /> Download PDF</a></nav>
         <dl class="row mb-0">
             <dt class="col-sm-3">Report</dt><dd class="col-sm-9">#@report.ReportId · @CommitteeDisplay.Status(report.Status)</dd>
             <dt class="col-sm-3">Submitted</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(report.SubmittedAt)</dd>

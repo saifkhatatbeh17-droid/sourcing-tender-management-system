@@ -30,7 +30,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         {
             CompanyName = profile.CompanyName, VerificationStatus = profile.Status, ReviewNotes = profile.ReviewNotes,
             TotalInvitations = await invitations.CountAsync(),
-            PendingInvitations = await invitations.CountAsync(i => i.Status == "Pending" && i.Tender.ClosesAt > now),
+            PendingInvitations = await invitations.CountAsync(i => i.Status == "Pending" && i.Tender.ClosesAt > now && (i.Tender.Status == "Open" || i.Tender.Status == "Published")),
             AcceptedInvitations = await invitations.CountAsync(i => i.Status == "Accepted"),
             SubmittedOffers = await bids.CountAsync(b => b.Status != "Draft"),
             AcceptedOffers = await bids.CountAsync(b => b.Status == "Accepted"),
@@ -46,7 +46,12 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         var profile = await MyProfile(); if (profile == null) return NotFound();
         IQueryable<Invitation> query = db.Invitations.AsNoTracking().Where(i => i.SupplierProfileId == profile.SupplierProfileId)
             .Include(i => i.Tender).Include(i => i.Bids);
-        if (!string.IsNullOrWhiteSpace(status)) query = query.Where(i => i.Status == status);
+        if (status == "Cancelled") query = query.Where(i => i.Tender.Status == "Cancelled");
+        else if (status == "Expired") query = query.Where(i => i.Tender.Status != "Cancelled" &&
+            i.Status == "Pending" && i.Tender.ClosesAt <= DateTime.UtcNow);
+        else if (status == "Pending") query = query.Where(i => i.Tender.Status != "Cancelled" &&
+            i.Status == "Pending" && i.Tender.ClosesAt > DateTime.UtcNow);
+        else if (!string.IsNullOrWhiteSpace(status)) query = query.Where(i => i.Tender.Status != "Cancelled" && i.Status == status);
         ViewBag.Status = status;
         return View(await query.OrderByDescending(i => i.SentAt).ToListAsync());
     }
@@ -76,7 +81,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         var profile = await MyProfile(); if (profile == null) return NotFound();
         var inv = await db.Invitations.Include(i => i.Tender).SingleOrDefaultAsync(i => i.InvitationId == id && i.SupplierProfileId == profile.SupplierProfileId);
         if (inv == null) return NotFound();
-        if (inv.Status != "Pending" || inv.Tender.ClosesAt <= DateTime.UtcNow || inv.Tender.Status is "Closed" or "Cancelled" or "Awarded")
+        if (inv.Status != "Pending" || inv.Tender.ClosesAt <= DateTime.UtcNow || inv.Tender.Status is not ("Open" or "Published"))
             TempData["Error"] = "This invitation can no longer be answered.";
         else if (response is not ("Accepted" or "Declined")) return BadRequest();
         else
@@ -94,7 +99,8 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         var profile = await MyProfile(); if (profile == null) return NotFound();
         IQueryable<Bid> query = db.Bids.AsNoTracking().Where(b => b.Invitation.SupplierProfileId == profile.SupplierProfileId)
             .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).Include(b => b.BidItems);
-        if (!string.IsNullOrWhiteSpace(status)) query = query.Where(b => b.Status == status);
+        if (status == "Cancelled") query = query.Where(b => b.Invitation.Tender.Status == "Cancelled");
+        else if (!string.IsNullOrWhiteSpace(status)) query = query.Where(b => b.Invitation.Tender.Status != "Cancelled" && b.Status == status);
         if (!string.IsNullOrWhiteSpace(q)) query = query.Where(b => b.Invitation.Tender.Title.Contains(q) || b.BidId.ToString() == q);
         ViewBag.Query = q; ViewBag.Status = status;
         return View(await query.OrderByDescending(b => b.SubmittedAt ?? b.CreatedAt).ToListAsync());
@@ -120,7 +126,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             .SingleOrDefaultAsync(i => i.InvitationId == invitationId && i.SupplierProfileId == profile.SupplierProfileId);
         if (inv == null) return NotFound();
         if (profile.Status != "Approved") return Forbid();
-        if (inv.Status != "Accepted" || inv.Tender.ClosesAt <= DateTime.UtcNow || inv.Tender.Status is not ("Open" or "Published")) return Forbid();
+        if (inv.Status != "Accepted" || !inv.Tender.IsAcceptingOffers(DateTime.UtcNow)) return Forbid();
         Bid? bid = null;
         if (bidId.HasValue)
         {
@@ -145,7 +151,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             .Include(i => i.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
             .SingleOrDefaultAsync(i => i.InvitationId == model.InvitationId && i.SupplierProfileId == profile.SupplierProfileId);
         if (inv == null) return NotFound();
-        if (profile.Status != "Approved" || inv.Status != "Accepted" || inv.Tender.ClosesAt <= DateTime.UtcNow || inv.Tender.Status is not ("Open" or "Published")) return Forbid();
+        if (profile.Status != "Approved" || inv.Status != "Accepted" || !inv.Tender.IsAcceptingOffers(DateTime.UtcNow)) return Forbid();
         if (model.BidId.HasValue && !await db.Bids.AnyAsync(b => b.BidId == model.BidId && b.InvitationId == inv.InvitationId && b.Status == "Draft")) return NotFound();
         var validItemIds = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(x => x.PurchaseRequestItemId).ToHashSet();
         if (model.Items.Count == 0 || model.Items.Any(i => !validItemIds.Contains(i.PurchaseRequestItemId))) ModelState.AddModelError(nameof(model.Items), "Offer items must match the tender request.");
@@ -179,11 +185,11 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         {
             // Serialize submission with deadline closure and concurrent draft edits.
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {inv.TenderId};");
-            if (!await db.Tenders.AnyAsync(t => t.TenderId == inv.TenderId && (t.Status == "Published" || t.Status == "Open") && t.ClosesAt > DateTime.UtcNow)) return Forbid();
+            if (!await db.Tenders.AnyAsync(t => t.TenderId == inv.TenderId && (t.Status == "Published" || t.Status == "Open") && t.OpensAt <= DateTime.UtcNow && t.ClosesAt > DateTime.UtcNow)) return Forbid();
             if (model.BidId.HasValue && !await db.Bids.AnyAsync(b => b.BidId == model.BidId && b.InvitationId == inv.InvitationId && b.Status == "Draft")) return NotFound();
         var bid = model.BidId.HasValue ? await db.Bids.Include(b => b.BidItems).SingleAsync(b => b.BidId == model.BidId) : new Bid { InvitationId = inv.InvitationId, TenderId = inv.TenderId, CreatedAt = DateTime.UtcNow, Status = "Draft" };
         bid.Currency = (model.Currency ?? "JOD").ToUpperInvariant(); bid.DeliveryDays = model.DeliveryDays; bid.PaymentTerms = model.PaymentTerms?.Trim();
-        bid.ValidUntil = model.ValidUntil; bid.TechnicalDetails = model.TechnicalDetails?.Trim();
+        bid.TechnicalDetails = model.TechnicalDetails?.Trim();
         if (model.BidId.HasValue) db.BidItems.RemoveRange(bid.BidItems);
         else db.Bids.Add(bid);
         foreach (var line in model.Items) db.BidItems.Add(new BidItem { Bid = bid, PurchaseRequestItemId = line.PurchaseRequestItemId, Quantity = line.Quantity, UnitPrice = line.UnitPrice, OfferedSpecifications = line.Specifications ?? "" });
@@ -203,7 +209,10 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         }
         if (submissionCommand == "Submit")
         {
-            bid.Status = "Submitted"; bid.SubmittedAt = DateTime.UtcNow;
+            var submittedAt = DateTime.UtcNow;
+            if (submittedAt >= inv.Tender.ClosesAt) return Forbid();
+            bid.Status = "Submitted";
+            bid.SubmittedAt = submittedAt;
             var officers = (await users.GetUsersInRoleAsync(RoleNames.SourcingOfficer)).Where(u => u.IsActive).Select(u => u.Id).ToHashSet(StringComparer.Ordinal);
             officers.Add(inv.Tender.CreatedByUserId);
             foreach (var officerId in officers) db.Notifications.Add(new Notification { UserId = officerId, Title = "Supplier offer received", Message = $"{profile.CompanyName} submitted offer BID-{bid.BidId:D6} for {inv.Tender.Title}.", RelativeUrl = $"/SourcingOfficer/Offers?tenderId={inv.TenderId}", CreatedAt = DateTime.UtcNow });
@@ -236,6 +245,36 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                     { HttpContext.RequestServices.GetRequiredService<ILogger<SupplierController>>().LogError(ex, "Could not clean up offer attachment {Path}", path); }
         }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelOffer(int id)
+    {
+        var tenderId = await db.Bids.AsNoTracking()
+            .Where(b => b.BidId == id && b.Invitation.SupplierProfile.UserId == UserId)
+            .Select(b => (int?)b.TenderId)
+            .SingleOrDefaultAsync();
+        if (tenderId == null) return NotFound();
+
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId.Value};");
+        var bid = await db.Bids.Include(b => b.Invitation).ThenInclude(i => i.Tender)
+            .SingleOrDefaultAsync(b => b.BidId == id && b.Invitation.SupplierProfile.UserId == UserId);
+        if (bid == null) return NotFound();
+
+        if (!bid.Invitation.Tender.IsAcceptingOffers(DateTime.UtcNow) ||
+            bid.SubmittedAt == null || bid.Status is not ("Submitted" or "UnderReview" or "Compliant" or "NonCompliant"))
+        {
+            TempData["Error"] = "Only a submitted offer on an active tender can be canceled before the tender deadline.";
+            return RedirectToAction(nameof(Offer), new { id });
+        }
+
+        bid.Status = "Withdrawn";
+        bid.ComplianceStatus = null;
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+        TempData["Success"] = "Offer canceled.";
+        return RedirectToAction(nameof(Offer), new { id });
     }
 
     public async Task<IActionResult> Offer(int id)
@@ -271,6 +310,25 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     {
         var profile = await db.SupplierProfiles.AsNoTracking().Include(p => p.User).Include(p => p.SupplierDocuments).SingleOrDefaultAsync(p => p.UserId == UserId);
         return profile == null ? NotFound() : View(profile);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateCategory(ProcurementCategoryInput input)
+    {
+        var profile = await db.SupplierProfiles.Include(p => p.User).Include(p => p.SupplierDocuments)
+            .SingleOrDefaultAsync(p => p.UserId == UserId);
+        if (profile == null) return NotFound();
+        if (profile.Status != "Approved") return Forbid();
+        if (!ModelState.IsValid)
+        {
+            ViewBag.CategoryInput = input;
+            return View(nameof(Profile), profile);
+        }
+
+        profile.Category = input.SelectedCategory;
+        await db.SaveChangesAsync();
+        TempData["ProfileFeedback"] = "Supplier category updated.";
+        return RedirectToAction(nameof(Profile));
     }
 
     public async Task<IActionResult> DownloadProfileDocument(int id)

@@ -188,7 +188,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         if (id.HasValue) return RedirectToAction(nameof(Offers), new { tenderId = id });
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await SourcingTenderManagement.Services.TenderClosureService.CloseExpired(db, DateTime.UtcNow, HttpContext.RequestAborted, userId);
-        var ownedTenders = db.Tenders.AsNoTracking().Where(t => t.CreatedByUserId == userId);
+        var ownedTenders = db.Tenders.AsNoTracking().Include(t => t.TenderApprovals).ThenInclude(a => a.User).Where(t => t.CreatedByUserId == userId);
         var model = new TendersPageViewModel
         {
             Tenders = await ownedTenders.OrderByDescending(t => t.CreatedAt).ToListAsync()
@@ -203,12 +203,17 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         }
 
         ViewBag.CanSendToEvaluation = model.SelectedTender is { Status: "Published" or "Open" or "Closed" } selectedTender &&
+            selectedTender.ClosesAt <= DateTime.UtcNow &&
             await HasCompletedComplianceForEvaluation(selectedTender.TenderId);
 
-        ViewBag.ApprovedPurchaseRequests = await db.PurchaseRequests
+        ViewBag.EligiblePurchaseRequests = await db.PurchaseRequests
             .AsNoTracking()
-            .Where(r => (r.Status == "Approved" || (r.Status == "UnderReview" && r.ReviewedByUserId == userId) || (r.Status == "Submitted" && r.ReviewedByUserId == null)) && !db.Tenders.Any(t => t.PurchaseRequestId == r.PurchaseRequestId))
-            .OrderBy(r => r.SubmittedAt)
+            .Where(r => (r.Status == "Approved" ||
+                (r.Status == "UnderReview" && r.ReviewedByUserId == userId) ||
+                (r.Status == "Submitted" && (r.ReviewedByUserId == null || r.ReviewedByUserId == userId))) &&
+                !db.Tenders.Any(t => t.PurchaseRequestId == r.PurchaseRequestId))
+            .OrderByDescending(r => r.SubmittedAt ?? r.CreatedAt)
+            .ThenByDescending(r => r.PurchaseRequestId)
             .ToListAsync();
         ViewBag.LaunchSuppliers = await db.SupplierProfiles.AsNoTracking().Where(s => s.Status == "Approved").OrderBy(s => s.CompanyName).ToListAsync();
         ViewBag.CreateTender = new SourcingOfficerTenderForm();
@@ -216,25 +221,40 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     }
 
     [HttpGet]
-    public async Task<IActionResult> Create(int? purchaseRequestId)
+    public async Task<IActionResult> Create(int? purchaseRequestId, int? replacesTenderId = null)
     {
+        if (replacesTenderId.HasValue)
+        {
+            var source = await db.Tenders.AsNoTracking().SingleOrDefaultAsync(t => t.TenderId == replacesTenderId &&
+                t.CreatedByUserId == User.FindFirstValue(ClaimTypes.NameIdentifier) && t.Status == "Closed" && t.RejectionForwardedAt != null &&
+                t.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected"));
+            if (source == null) return NotFound();
+            if (await db.Tenders.AnyAsync(t => t.ReplacesTenderId == source.TenderId)) return Conflict("A replacement already exists.");
+            var replacement = new SourcingOfficerTenderForm { ReplacesTenderId = source.TenderId,
+                PurchaseRequestId = source.PurchaseRequestId, OpensAt = DateTime.UtcNow, ClosesAt = DateTime.UtcNow.AddDays(7) };
+            replacement.LoadCategory(source.Category);
+            return await ShowCreateTender(replacement);
+        }
         var result = await Tenders(null);
-        var request = await db.PurchaseRequests.AsNoTracking().Include(r => r.PurchaseRequestItems)
-            .SingleOrDefaultAsync(r => r.PurchaseRequestId == purchaseRequestId &&
-                (r.Status == "Approved" || (r.Status == "UnderReview" && r.ReviewedByUserId == User.FindFirstValue(ClaimTypes.NameIdentifier)) || (r.Status == "Submitted" && r.ReviewedByUserId == null)));
+        var eligibleRequests = (List<PurchaseRequest>)ViewBag.EligiblePurchaseRequests;
+        if (purchaseRequestId.HasValue && !eligibleRequests.Any(r => r.PurchaseRequestId == purchaseRequestId.Value))
+            return NotFound();
+
+        var request = purchaseRequestId.HasValue
+            ? await db.PurchaseRequests.AsNoTracking().Include(r => r.PurchaseRequestItems)
+                .SingleOrDefaultAsync(r => r.PurchaseRequestId == purchaseRequestId.Value)
+            : null;
         if (purchaseRequestId.HasValue && request == null) return NotFound();
-        ViewBag.CreateTender = new SourcingOfficerTenderForm { PurchaseRequestId = purchaseRequestId ?? 0,
+        return await ShowCreateTender(new SourcingOfficerTenderForm { PurchaseRequestId = purchaseRequestId ?? 0,
             Title = request?.Title ?? "", Description = request == null ? "" : request.Reason + "\n" + string.Join("\n", request.PurchaseRequestItems.Select(i => $"{i.ItemName}: {i.Quantity:0.###} {i.Unit}. {i.Specifications}")),
-            OpensAt = DateTime.UtcNow, ClosesAt = DateTime.UtcNow.AddDays(7) };
-        ViewBag.OpenCreateModal = true;
-        return result;
+            OpensAt = DateTime.UtcNow, ClosesAt = DateTime.UtcNow.AddDays(7) });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("PurchaseRequestId,Title,Description,Terms,OpensAt,ClosesAt")] SourcingOfficerTenderForm tender, bool launch = false, List<int>? supplierProfileIds = null, bool allSuppliers = false)
+    public async Task<IActionResult> Create([Bind("PurchaseRequestId,Title,Description,Terms,OpensAt,ClosesAt,Category,OtherCategory,ReplacesTenderId")] SourcingOfficerTenderForm tender, bool launch = false, List<int>? supplierProfileIds = null, bool allSuppliers = false)
     {
         if (tender.PurchaseRequestId <= 0)
-            ModelState.AddModelError(nameof(Tender.PurchaseRequestId), "Select an approved purchase request.");
+            ModelState.AddModelError(nameof(Tender.PurchaseRequestId), "Select an eligible purchase request.");
         if (string.IsNullOrWhiteSpace(tender.Title))
             ModelState.AddModelError(nameof(Tender.Title), "Enter a tender title.");
         else if (tender.Title.Trim().Length > 200)
@@ -248,13 +268,24 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         if (tender.OpensAt == default)
             ModelState.AddModelError(nameof(Tender.OpensAt), "Enter the opening date and time.");
         if (tender.ClosesAt == default)
-            ModelState.AddModelError(nameof(Tender.ClosesAt), "Enter the closing date and time.");
-        else if (tender.ClosesAt <= tender.OpensAt)
-            ModelState.AddModelError(nameof(Tender.ClosesAt), "The closing date and time must be later than the opening date and time.");
+            ModelState.AddModelError(nameof(Tender.ClosesAt), "Enter the tender deadline.");
+        else if (tender.ClosesAt <= tender.OpensAt || tender.ClosesAt <= DateTime.UtcNow)
+            ModelState.AddModelError(nameof(Tender.ClosesAt), "The tender deadline must be in the future and later than the opening time.");
 
         if (!ModelState.IsValid) return await ShowCreateTender(tender);
 
         await using var transaction = await db.Database.BeginTransactionAsync();
+        Tender? rejectedSource = null;
+        if (tender.ReplacesTenderId.HasValue)
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @source int; SELECT @source = TenderId FROM dbo.Tenders WITH (UPDLOCK,HOLDLOCK) WHERE TenderId = {tender.ReplacesTenderId.Value};");
+            rejectedSource = await db.Tenders.SingleOrDefaultAsync(t => t.TenderId == tender.ReplacesTenderId && t.CreatedByUserId == User.FindFirstValue(ClaimTypes.NameIdentifier) &&
+                t.Status == "Closed" && t.RejectionForwardedAt != null && t.PurchaseRequestId == tender.PurchaseRequestId &&
+                t.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected"));
+            if (rejectedSource == null) return NotFound();
+            if (await db.Tenders.AnyAsync(t => t.ReplacesTenderId == rejectedSource.TenderId))
+                return Conflict("A replacement may be created only once.");
+        }
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = PurchaseRequestId FROM dbo.PurchaseRequests WITH (UPDLOCK, HOLDLOCK) WHERE PurchaseRequestId = {tender.PurchaseRequestId};");
         var request = await db.PurchaseRequests
             .SingleOrDefaultAsync(r => r.PurchaseRequestId == tender.PurchaseRequestId);
@@ -264,12 +295,14 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             return await ShowCreateTender(tender);
         }
         var officerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (request.Status != "Approved" && !(request.Status == "UnderReview" && request.ReviewedByUserId == officerId) && !(request.Status == "Submitted" && request.ReviewedByUserId == null))
+        if (rejectedSource == null && request.Status != "Approved" &&
+            !(request.Status == "UnderReview" && request.ReviewedByUserId == officerId) &&
+            !(request.Status == "Submitted" && (request.ReviewedByUserId == null || request.ReviewedByUserId == officerId)))
         {
-            ModelState.AddModelError(nameof(Tender.PurchaseRequestId), "Only approved purchase requests can be converted to a tender.");
+            ModelState.AddModelError(nameof(Tender.PurchaseRequestId), "The selected purchase request is no longer eligible for a tender.");
             return await ShowCreateTender(tender);
         }
-        if (await db.Tenders.AnyAsync(t => t.PurchaseRequestId == tender.PurchaseRequestId))
+        if (rejectedSource == null && await db.Tenders.AnyAsync(t => t.PurchaseRequestId == tender.PurchaseRequestId))
         {
             ModelState.AddModelError(nameof(Tender.PurchaseRequestId), "A tender already exists for this purchase request.");
             return await ShowCreateTender(tender);
@@ -280,20 +313,27 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             ModelState.AddModelError("", "Resolve the request’s open questions before preparing its tender.");
             return await ShowCreateTender(tender);
         }
-        var selectedSuppliers = allSuppliers ? await db.SupplierProfiles.Where(s => s.Status == "Approved").Select(s => s.SupplierProfileId).ToListAsync() : (supplierProfileIds ?? []).Distinct().ToList();
+        var eligibleSuppliers = SuppliersForCategory(tender.SelectedCategory);
+        var requestedIds = (supplierProfileIds ?? []).Distinct().ToList();
+        var selectedSuppliers = launch
+            ? await eligibleSuppliers.Where(s => allSuppliers || requestedIds.Contains(s.SupplierProfileId))
+                .Select(s => s.SupplierProfileId).ToListAsync()
+            : [];
         if (launch && (tender.ClosesAt <= DateTime.UtcNow || selectedSuppliers.Count == 0 ||
-            await db.SupplierProfiles.CountAsync(s => selectedSuppliers.Contains(s.SupplierProfileId) && s.Status == "Approved") != selectedSuppliers.Count))
+            (!allSuppliers && selectedSuppliers.Count != requestedIds.Count)))
         {
-            ModelState.AddModelError("", "Choose approved suppliers and a future deadline before publishing.");
+            ModelState.AddModelError("", "Choose approved suppliers in the tender category and a future deadline before publishing.");
             return await ShowCreateTender(tender);
         }
         if (request.Status is "UnderReview" or "Submitted") { request.ReviewedAt = DateTime.UtcNow; request.ReviewedByUserId = officerId; }
         request.Status = "ConvertedToTender";
         var createdTender = new Tender
         {
+            ReplacesTenderId = rejectedSource?.TenderId,
             PurchaseRequestId = request.PurchaseRequestId,
             CreatedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!,
             Title = tender.Title.Trim(),
+            Category = tender.SelectedCategory,
             Description = tender.Description.Trim(),
             Terms = string.IsNullOrWhiteSpace(tender.Terms) ? null : tender.Terms.Trim(),
             OpensAt = tender.OpensAt,
@@ -314,6 +354,16 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     private async Task<IActionResult> ShowCreateTender(SourcingOfficerTenderForm tender)
     {
         var result = await Tenders(null);
+        if (tender.ReplacesTenderId.HasValue)
+        {
+            var request = await db.Tenders.AsNoTracking()
+                .Where(t => t.TenderId == tender.ReplacesTenderId && t.CreatedByUserId == User.FindFirstValue(ClaimTypes.NameIdentifier) &&
+                    t.Status == "Closed" && t.RejectionForwardedAt != null && t.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected"))
+                .Select(t => t.PurchaseRequest).SingleOrDefaultAsync();
+            if (request == null) return NotFound();
+            var requests = (List<PurchaseRequest>)ViewBag.EligiblePurchaseRequests;
+            if (!requests.Any(r => r.PurchaseRequestId == request.PurchaseRequestId)) requests.Add(request);
+        }
         ViewBag.CreateTender = tender;
         ViewBag.OpenCreateModal = true;
         return result;
@@ -330,7 +380,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         if (tender.Status != "Draft") return Forbid();
 
         var result = await Tenders(null);
-        ViewBag.EditTender = new SourcingOfficerTenderForm
+        var form = new SourcingOfficerTenderForm
         {
             TenderId = tender.TenderId,
             Title = tender.Title,
@@ -339,12 +389,14 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             OpensAt = tender.OpensAt,
             ClosesAt = tender.ClosesAt
         };
+        form.LoadCategory(tender.Category);
+        ViewBag.EditTender = form;
         ViewBag.OpenEditModal = true;
         return result;
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit([Bind("TenderId,Title,Description,Terms,OpensAt,ClosesAt")] SourcingOfficerTenderForm input)
+    public async Task<IActionResult> Edit([Bind("TenderId,Title,Description,Terms,OpensAt,ClosesAt,Category,OtherCategory")] SourcingOfficerTenderForm input)
     {
         if (string.IsNullOrWhiteSpace(input.Title))
             ModelState.AddModelError(nameof(Tender.Title), "Enter a tender title.");
@@ -359,9 +411,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         if (input.OpensAt == default)
             ModelState.AddModelError(nameof(Tender.OpensAt), "Enter the opening date and time.");
         if (input.ClosesAt == default)
-            ModelState.AddModelError(nameof(Tender.ClosesAt), "Enter the closing date and time.");
-        else if (input.ClosesAt <= input.OpensAt)
-            ModelState.AddModelError(nameof(Tender.ClosesAt), "The closing date and time must be later than the opening date and time.");
+            ModelState.AddModelError(nameof(Tender.ClosesAt), "Enter the tender deadline.");
+        else if (input.ClosesAt <= input.OpensAt || input.ClosesAt <= DateTime.UtcNow)
+            ModelState.AddModelError(nameof(Tender.ClosesAt), "The tender deadline must be in the future and later than the opening time.");
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var tender = await db.Tenders
@@ -372,6 +424,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         if (!ModelState.IsValid) return await ShowEditTender(input);
 
         tender.Title = input.Title.Trim();
+        tender.Category = input.SelectedCategory;
         tender.Description = input.Description.Trim();
         tender.Terms = string.IsNullOrWhiteSpace(input.Terms) ? null : input.Terms.Trim();
         tender.OpensAt = input.OpensAt;
@@ -401,6 +454,8 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     public async Task<IActionResult> PublishTender(int id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};");
         var tender = await db.Tenders
             .SingleOrDefaultAsync(t => t.TenderId == id && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
@@ -410,30 +465,35 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             return RedirectToAction(nameof(Tenders), new { id });
         }
 
-        if (tender.OpensAt == default || tender.ClosesAt == default || tender.ClosesAt <= tender.OpensAt)
+        if (tender.OpensAt == default || tender.ClosesAt == default || tender.ClosesAt <= tender.OpensAt || tender.ClosesAt <= DateTime.UtcNow)
         {
-            TempData["TenderError"] = "The tender must have valid opening and closing dates, and the closing date must be later.";
+            TempData["TenderError"] = "The tender deadline must be in the future and later than the opening time.";
             return RedirectToAction(nameof(Tenders), new { id });
         }
 
         tender.Status = "Published";
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
         TempData["TenderSuccess"] = "Tender published successfully.";
         return RedirectToAction(nameof(Tenders), new { id });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> PublishAndInvite(int id, List<int> supplierProfileIds, bool allSuppliers = false)
+    public async Task<IActionResult> PublishAndInvite(int id, List<int>? supplierProfileIds, bool allSuppliers = false)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};");
         var tender = await db.Tenders.Include(t => t.Invitations).SingleOrDefaultAsync(t => t.TenderId == id && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
-        var suppliers = allSuppliers ? await db.SupplierProfiles.Where(s => s.Status == "Approved").Select(s => s.SupplierProfileId).ToListAsync() : supplierProfileIds.Distinct().ToList();
+        var requestedIds = (supplierProfileIds ?? []).Distinct().ToList();
+        var suppliers = await SuppliersForCategory(tender.Category)
+            .Where(s => allSuppliers || requestedIds.Contains(s.SupplierProfileId))
+            .Select(s => s.SupplierProfileId).ToListAsync();
         if (tender.Status is not ("Draft" or "Published" or "Open") || tender.ClosesAt <= DateTime.UtcNow || tender.ClosesAt <= tender.OpensAt ||
-            suppliers.Count == 0 || await db.SupplierProfiles.CountAsync(s => suppliers.Contains(s.SupplierProfileId) && s.Status == "Approved") != suppliers.Count)
+            suppliers.Count == 0 || (!allSuppliers && suppliers.Count != requestedIds.Count))
         {
-            TempData["TenderError"] = "Choose approved suppliers and ensure this tender has a valid future deadline.";
+            TempData["TenderError"] = "Choose approved suppliers in the tender category and ensure this tender has a future deadline.";
             return RedirectToAction(nameof(Offers), new { tenderId = id });
         }
         tender.Status = "Published";
@@ -446,16 +506,48 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelTender(int id, bool fromList = false)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};");
+        var tender = await db.Tenders.SingleOrDefaultAsync(t => t.TenderId == id && t.CreatedByUserId == userId);
+        if (tender == null) return NotFound();
+
+        if (!tender.CanCancel(DateTime.UtcNow))
+        {
+            TempData["TenderError"] = "Only a draft or active tender can be canceled before its deadline.";
+        }
+        else
+        {
+            tender.Status = "Cancelled";
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            TempData["TenderSuccess"] = "Tender canceled.";
+        }
+
+        return fromList ? RedirectToAction(nameof(Tenders)) : RedirectToAction(nameof(Offers), new { tenderId = id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> SendToEvaluation(int id) => ReviewAndSend(id, new Dictionary<int, string>());
 
     private async Task<bool> HasCompletedComplianceForEvaluation(int tenderId)
     {
+        if (await db.TenderApprovals.AnyAsync(a => a.TenderId == tenderId && a.Stage == "Top" && a.Decision == "Rejected")) return false;
         var submittedBids = db.Bids.AsNoTracking()
-            .Where(b => b.TenderId == tenderId && b.SubmittedAt != null);
+            .Where(b => b.TenderId == tenderId && b.SubmittedAt != null && b.Status != "Withdrawn");
         var hasCompliantBid = await submittedBids.AnyAsync(b => b.ComplianceStatus == "Compliant");
         var hasUnresolvedDecision = await submittedBids.AnyAsync(b =>
             b.ComplianceStatus != "Compliant" && b.ComplianceStatus != "NonCompliant");
         return hasCompliantBid && !hasUnresolvedDecision;
+    }
+
+    private IQueryable<SupplierProfile> SuppliersForCategory(string? category)
+    {
+        var approved = db.SupplierProfiles.Where(s => s.Status == "Approved");
+        return category == null ? approved : approved.Where(s =>
+            EF.Functions.Collate(s.Category!, "Latin1_General_100_CI_AS") == category);
     }
 
     public async Task<IActionResult> Invitations(int? tenderId)
@@ -478,7 +570,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
 
-        ViewBag.ApprovedSuppliers = await db.SupplierProfiles
+        ViewBag.LaunchSuppliers = await db.SupplierProfiles
             .AsNoTracking()
             .Where(s => s.Status == "Approved")
             .OrderBy(s => s.CompanyName)
@@ -488,9 +580,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateInvitation(int tenderId, List<int> supplierProfileIds, bool allSuppliers = false)
+    public async Task<IActionResult> CreateInvitation(int tenderId, List<int>? supplierProfileIds, bool allSuppliers = false)
     {
-        if (!ModelState.IsValid || tenderId <= 0 || (!allSuppliers && supplierProfileIds.Count == 0))
+        if (!ModelState.IsValid || tenderId <= 0 || (!allSuppliers && (supplierProfileIds?.Count ?? 0) == 0))
         {
             TempData["InvitationError"] = "Select a tender and at least one approved supplier.";
             return RedirectToAction(nameof(Invitations), new { tenderId });
@@ -503,12 +595,13 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             TempData["InvitationError"] = "Choose one of your published or open tenders whose submission deadline has not passed.";
             return RedirectToAction(nameof(Invitations), new { tenderId });
         }
-        var selectedIds = supplierProfileIds.Distinct().ToList();
-        var approvedIds = await db.SupplierProfiles.Where(s => s.Status == "Approved"
-            && (allSuppliers || selectedIds.Contains(s.SupplierProfileId))).Select(s => s.SupplierProfileId).ToListAsync();
+        var selectedIds = (supplierProfileIds ?? []).Distinct().ToList();
+        var approvedIds = await SuppliersForCategory(tender.Category)
+            .Where(s => allSuppliers || selectedIds.Contains(s.SupplierProfileId))
+            .Select(s => s.SupplierProfileId).ToListAsync();
         if (approvedIds.Count == 0 || (!allSuppliers && approvedIds.Count != selectedIds.Count))
         {
-            TempData["InvitationError"] = "Select valid, approved suppliers only.";
+            TempData["InvitationError"] = "Select approved suppliers in the tender category.";
             return RedirectToAction(nameof(Invitations), new { tenderId });
         }
         var existingIds = await db.Invitations.Where(i => i.TenderId == tenderId)
@@ -559,7 +652,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
             .Include(b => b.BidItems).ThenInclude(i => i.PurchaseRequestItem)
             .Include(b => b.BidDocuments).OrderBy(b => b.BidId).ToListAsync();
-        ViewBag.LaunchSuppliers = await db.SupplierProfiles.AsNoTracking().Where(s => s.Status == "Approved").OrderBy(s => s.CompanyName).ToListAsync();
+        var selectedTender = tenders.SingleOrDefault(t => t.TenderId == tenderId);
+        ViewBag.LaunchSuppliers = await SuppliersForCategory(selectedTender?.Category)
+            .AsNoTracking().OrderBy(s => s.CompanyName).ToListAsync();
         ViewBag.WorkspaceInvitations = tenderId.HasValue ? await db.Invitations.AsNoTracking()
             .Where(i => i.TenderId == tenderId).Include(i => i.SupplierProfile).OrderBy(i => i.SupplierProfile.CompanyName).ToListAsync() : new List<Invitation>();
         ViewBag.WorkspaceReport = tenderId.HasValue ? await db.EvaluationReports.AsNoTracking()
@@ -568,10 +663,10 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         ViewBag.WorkspaceMembers = tenderId.HasValue ? await db.CommitteeAssignments.AsNoTracking().Where(a => a.TenderId == tenderId && a.CommitteeType == "Evaluation").Include(a => a.User).OrderBy(a => a.Position).ToListAsync() : new List<CommitteeAssignment>();
         ViewBag.WorkspaceApprovals = tenderId.HasValue ? await db.TenderApprovals.AsNoTracking().Where(a => a.TenderId == tenderId && a.Stage == "Evaluation").ToListAsync() : new List<TenderApproval>();
         ViewBag.OfferTenders = tenders;
-        ViewBag.SelectedTender = tenders.SingleOrDefault(t => t.TenderId == tenderId);
+        ViewBag.SelectedTender = selectedTender;
         ViewBag.SelectedBidId = id;
         ViewBag.OpenQuestions = await db.Clarifications.AsNoTracking()
-            .Where(c => c.Status != "Resolved" && (c.TenderId == tenderId || (c.Bid != null && c.Bid.TenderId == tenderId)))
+            .Where(c => c.Status != "Resolved" && ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn")))
             .Select(c => c.ClarificationId).ToListAsync();
         return View(bids);
     }
@@ -581,14 +676,18 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};");
         var tender = await db.Tenders.SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
-        var bids = await db.Bids.Where(b => b.TenderId == tenderId && b.SubmittedAt != null).ToListAsync();
+        if (await db.TenderApprovals.AnyAsync(a => a.TenderId == tenderId && a.Stage == "Top" && a.Decision == "Rejected"))
+            return Conflict("This voting round was rejected. Create a replacement tender after the manager forwards it.");
+        var bids = await db.Bids.Where(b => b.TenderId == tenderId && b.SubmittedAt != null && b.Status != "Withdrawn").ToListAsync();
         string? error = null;
         if (tender.Status is not ("Published" or "Open" or "Closed")) error = "This tender has already moved beyond offer review.";
+        else if (tender.ClosesAt > DateTime.UtcNow) error = "Wait until the tender deadline passes before sending offers to the committee.";
         else if (bids.Count == 0) error = "At least one submitted offer is required.";
         else if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
-            (c.TenderId == tenderId || (c.Bid != null && c.Bid.TenderId == tenderId))))
+            ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn"))))
             error = "Resolve the open questions shown below before sending to the committee.";
         else error = ValidateOfferDecisions(bids, decisions);
         if (error != null)
@@ -648,13 +747,22 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         }
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var tenderId = await db.Bids.AsNoTracking()
+            .Where(b => b.BidId == id && db.Tenders.Any(t => t.TenderId == b.TenderId && t.CreatedByUserId == userId))
+            .Select(b => (int?)b.TenderId).SingleOrDefaultAsync();
+        if (tenderId == null) return NotFound();
+
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId.Value};");
         var bid = await db.Bids
             .Include(b => b.Clarifications).ThenInclude(c => c.ClarificationResponses)
             .SingleOrDefaultAsync(b => b.BidId == id && b.SubmittedAt != null &&
                 db.Tenders.Any(t => t.TenderId == b.TenderId && t.CreatedByUserId == userId));
         if (bid == null) return NotFound();
 
-        if (bid.Status != "Submitted" && bid.Status != "UnderReview")
+        if (bid.Status is not ("Submitted" or "UnderReview") ||
+            !await db.Tenders.AnyAsync(t => t.TenderId == tenderId &&
+                (t.Status == "Open" || t.Status == "Published" || t.Status == "Closed")))
         {
             TempData["ComplianceError"] = "This offer is not waiting for compliance review.";
             return RedirectToAction(nameof(Compliance), new { id });
@@ -676,6 +784,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         bid.ComplianceReviewedByUserId = userId;
         bid.ComplianceReviewedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         TempData["ComplianceSuccess"] = "Compliance decision saved.";
         return RedirectToAction(nameof(Compliance), new { id });
@@ -797,7 +906,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         report.OfficerSummary = decision == "Approve" ? "Approved by sourcing officer. Report and recommended offer forwarded unchanged." :
             (decision == "RequestEdits" ? "Edits requested: " : "Rejected by sourcing officer: ") + reason!.Trim();
         if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
-            (c.TenderId == tenderId || (c.Bid != null && c.Bid.TenderId == tenderId))))
+            ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn"))))
             return Error("Both sides must resolve open tender and offer clarifications before completing report review.");
 
         if (decision == "Approve")

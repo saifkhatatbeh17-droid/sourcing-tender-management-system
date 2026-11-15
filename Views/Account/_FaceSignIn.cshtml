@@ -1,0 +1,21 @@
+<div class="modal fade face-login-modal face-signin-compact" id="face-signin-modal" tabindex="-1" aria-labelledby="face-signin-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="face-signin-title">Face ID</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel Face ID sign-in"></button>
+            </div>
+            <div class="modal-body">
+                <div class="face-modal-preview" id="face-signin-preview" data-state="pending">
+                    <video id="face-signin-video" autoplay muted playsinline aria-label="Live sign-in camera preview"></video>
+                    <canvas id="face-signin-snapshot" hidden aria-label="Captured face preview"></canvas>
+                    <div class="face-signin-result" aria-hidden="true">
+                        <svg class="face-signin-check" viewBox="0 0 48 48" fill="none"><path d="m12 25 8 8 16-18" /></svg>
+                        <svg class="face-signin-cross" viewBox="0 0 48 48" fill="none"><path d="m15 15 18 18m0-18L15 33" /></svg>
+                    </div>
+                    <p id="face-signin-feedback" role="status" aria-live="polite">Starting camera…</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
