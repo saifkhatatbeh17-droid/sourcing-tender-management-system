@@ -7,6 +7,7 @@
 }
 <section class="cw-panel cw-report-document" aria-labelledby="report-title">
     <header class="cw-report-title"><div><p class="cw-eyebrow">Tender #@tender.TenderId · Read-only report</p><h2 id="report-title">@tender.Title</h2></div><span class="cw-status">@CommitteeEvaluationPage.StatusLabel(tender.Status)</span></header>
+    <partial name="_TenderOfferRoundHistory" model="tender" />
     @if (Model.Criteria.Count > 0)
     {
         <dl class="cw-report-weights"><div><dt>Financial weight</dt><dd>@Model.FinancialWeight.ToString("0.##")<small>%</small></dd></div><div><dt>Technical weight</dt><dd>@Model.TechnicalWeight.ToString("0.##")<small>%</small></dd></div><div><dt>Committee approvals</dt><dd>@approved<small> / 4</small></dd></div></dl>

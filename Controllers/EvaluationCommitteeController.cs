@@ -153,6 +153,7 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
         .Include(t => t.EvaluationCriteria)
         .Include(t => t.CommitteeAssignments).ThenInclude(a => a.User)
         .Include(t => t.TenderApprovals)
+        .Include(t => t.OfferExtensions)
         .Include(t => t.EvaluationReport);
 
     // All committee writes lock the tender first, so simultaneous saves/approvals cannot race.

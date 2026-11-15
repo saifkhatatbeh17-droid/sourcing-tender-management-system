@@ -17,7 +17,7 @@ public static class SimplifiedCycleChecks
         var users = services.GetRequiredService<UserManager<ApplicationUser>>();
         var officer = (await users.GetUsersInRoleAsync(RoleNames.SourcingOfficer)).First();
         var source = await db.PurchaseRequests.FirstAsync();
-        var suppliers = await db.SupplierProfiles.Where(s => s.Status == "Approved").Select(s => s.SupplierProfileId).Take(2).ToListAsync();
+        var suppliers = await db.SupplierProfiles.Where(s => s.Status == "Approved").Select(s => s.SupplierProfileId).Take(3).ToListAsync();
         var request = new PurchaseRequest { DepartmentId = source.DepartmentId, RequestedByUserId = source.RequestedByUserId, ReviewedByUserId = officer.Id,
             Title = "Temporary simplified cycle check", Reason = "Temporary regression fixture", Priority = "Normal", Status = "UnderReview", TargetDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(14)), CreatedAt = DateTime.UtcNow, SubmittedAt = DateTime.UtcNow };
         db.PurchaseRequests.Add(request); await db.SaveChangesAsync();
@@ -56,6 +56,14 @@ public static class SimplifiedCycleChecks
             await Controller().ReviewAndSend(tenderId, new() { [bid.BidId] = "Compliant" }); db.ChangeTracker.Clear();
             Require(await db.Bids.AnyAsync(b => b.BidId == bid.BidId && b.ComplianceStatus == null), "Blocked handoff partially saved review");
             await db.Clarifications.Where(c => c.ClarificationId == question.ClarificationId).ExecuteDeleteAsync();
+            var otherInvitations = await db.Invitations.Where(i => i.TenderId == tenderId && i.InvitationId != invitation.InvitationId).ToListAsync();
+            db.Bids.AddRange(otherInvitations.Select(i => new Bid
+            {
+                TenderId = tenderId, InvitationId = i.InvitationId, Currency = "JOD", Status = "Compliant",
+                ComplianceStatus = "Compliant", SubmittedAt = expired.AddMinutes(-1), DeliveryDays = 7
+            }));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
             await Controller().ReviewAndSend(tenderId, new() { [bid.BidId] = "Compliant" }); db.ChangeTracker.Clear();
             Require(await db.Tenders.AnyAsync(t => t.TenderId == tenderId && t.Status == "UnderEvaluation"), "Handoff failed");
             Require(await db.CommitteeAssignments.CountAsync(a => a.TenderId == tenderId) == 4, "Committee not initialized");

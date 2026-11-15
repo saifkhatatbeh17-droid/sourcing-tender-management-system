@@ -653,6 +653,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             .Include(b => b.BidItems).ThenInclude(i => i.PurchaseRequestItem)
             .Include(b => b.BidDocuments).OrderBy(b => b.BidId).ToListAsync();
         var selectedTender = tenders.SingleOrDefault(t => t.TenderId == tenderId);
+        if (selectedTender != null)
+            selectedTender.OfferExtensions = await db.Set<TenderOfferExtension>().AsNoTracking()
+                .Where(e => e.TenderId == selectedTender.TenderId).OrderBy(e => e.Round).ToListAsync();
         ViewBag.LaunchSuppliers = await SuppliersForCategory(selectedTender?.Category)
             .AsNoTracking().OrderBy(s => s.CompanyName).ToListAsync();
         ViewBag.WorkspaceInvitations = tenderId.HasValue ? await db.Invitations.AsNoTracking()
@@ -665,6 +668,8 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         ViewBag.OfferTenders = tenders;
         ViewBag.SelectedTender = selectedTender;
         ViewBag.SelectedBidId = id;
+        ViewBag.RoundRejected = tenderId.HasValue && await db.TenderApprovals.AnyAsync(a =>
+            a.TenderId == tenderId && a.Stage == "Top" && a.Decision == "Rejected");
         ViewBag.OpenQuestions = await db.Clarifications.AsNoTracking()
             .Where(c => c.Status != "Resolved" && ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn")))
             .Select(c => c.ClarificationId).ToListAsync();
@@ -672,7 +677,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> ReviewAndSend(int tenderId, Dictionary<int, string> decisions)
+    public async Task<IActionResult> ReviewAndSend(int tenderId, Dictionary<int, string> decisions, bool saveOnly = false, string? shortfallReason = null)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
@@ -681,7 +686,8 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         if (tender == null) return NotFound();
         if (await db.TenderApprovals.AnyAsync(a => a.TenderId == tenderId && a.Stage == "Top" && a.Decision == "Rejected"))
             return Conflict("This voting round was rejected. Create a replacement tender after the manager forwards it.");
-        var bids = await db.Bids.Where(b => b.TenderId == tenderId && b.SubmittedAt != null && b.Status != "Withdrawn").ToListAsync();
+        var bids = await db.Bids.Include(b => b.Invitation)
+            .Where(b => b.TenderId == tenderId && b.SubmittedAt != null && b.Status != "Withdrawn").ToListAsync();
         string? error = null;
         if (tender.Status is not ("Published" or "Open" or "Closed")) error = "This tender has already moved beyond offer review.";
         else if (tender.ClosesAt > DateTime.UtcNow) error = "Wait until the tender deadline passes before sending offers to the committee.";
@@ -689,7 +695,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         else if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
             ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn"))))
             error = "Resolve the open questions shown below before sending to the committee.";
-        else error = ValidateOfferDecisions(bids, decisions);
+        else error = ValidateOfferDecisions(bids, decisions, requireCompliant: false);
         if (error != null)
         {
             TempData["TenderError"] = error;
@@ -702,6 +708,31 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             bid.ComplianceReviewedByUserId = userId;
             bid.ComplianceReviewedAt = DateTime.UtcNow;
         }
+        var compliant = bids.Where(b => b.ComplianceStatus == "Compliant")
+            .Select(b => b.Invitation.SupplierProfileId).Distinct().Count();
+        if (saveOnly)
+        {
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            TempData["ComplianceSuccess"] = "Compliance decisions saved.";
+            return RedirectToAction(nameof(Offers), new { tenderId });
+        }
+
+        var round = 1 + await db.Set<TenderOfferExtension>().CountAsync(e => e.TenderId == tenderId);
+        shortfallReason = shortfallReason?.Trim();
+        if (compliant == 0 || (compliant < TenderOfferExtension.RequiredCompliantOffers &&
+            (round < TenderOfferExtension.MaximumRound || string.IsNullOrWhiteSpace(shortfallReason) || shortfallReason.Length > 2000)))
+        {
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            TempData["TenderError"] = compliant < TenderOfferExtension.RequiredCompliantOffers && round < TenderOfferExtension.MaximumRound
+                ? $"There are {compliant} compliant offers. Extend the deadline and contact suppliers before sending to the committee."
+                : compliant == 0 ? "At least one compliant offer is required."
+                : "Enter a reason of up to 2,000 characters for sending fewer than three compliant offers.";
+            return RedirectToAction(nameof(Offers), new { tenderId });
+        }
+
+        tender.OfferShortfallReason = compliant < TenderOfferExtension.RequiredCompliantOffers ? shortfallReason : null;
         var setupError = await SourcingTenderManagement.Services.Evaluation.CommitteeSetup.Prepare(db, tender);
         if (setupError != null)
         {
@@ -715,7 +746,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return RedirectToAction(nameof(Offers), new { tenderId });
     }
 
-    internal static string? ValidateOfferDecisions(IReadOnlyList<Bid> bids, IReadOnlyDictionary<int, string> decisions)
+    internal static string? ValidateOfferDecisions(IReadOnlyList<Bid> bids, IReadOnlyDictionary<int, string> decisions, bool requireCompliant = true)
     {
         if (bids.Count == 0) return "At least one submitted offer is required.";
         foreach (var bid in bids)
@@ -725,7 +756,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
                 !decisions.TryGetValue(bid.BidId, out var decision) || decision is not ("Compliant" or "NonCompliant"))
                 return "Choose Compliant or Non-compliant for every offer. Nothing has been sent.";
         }
-        return bids.Any(b => b.ComplianceStatus == "Compliant" ||
+        return !requireCompliant || bids.Any(b => b.ComplianceStatus == "Compliant" ||
             (b.ComplianceStatus != "NonCompliant" && decisions.GetValueOrDefault(b.BidId) == "Compliant"))
             ? null : "At least one offer must be compliant to continue.";
     }
@@ -762,7 +793,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
 
         if (bid.Status is not ("Submitted" or "UnderReview") ||
             !await db.Tenders.AnyAsync(t => t.TenderId == tenderId &&
-                (t.Status == "Open" || t.Status == "Published" || t.Status == "Closed")))
+                (t.Status == "Open" || t.Status == "Published" || t.Status == "Closed") &&
+                t.ClosesAt <= DateTime.UtcNow &&
+                !t.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected")))
         {
             TempData["ComplianceError"] = "This offer is not waiting for compliance review.";
             return RedirectToAction(nameof(Compliance), new { id });

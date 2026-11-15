@@ -484,9 +484,17 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
+        modelBuilder.Entity<TenderOfferExtension>(entity =>
+        {
+            entity.ToTable("TenderOfferExtensions");
+            entity.HasKey(e => new { e.TenderId, e.Round });
+        });
+
         modelBuilder.Entity<Tender>(entity =>
         {
             entity.Property(e => e.Category).HasMaxLength(100);
+            entity.Property(e => e.OfferShortfallReason).HasMaxLength(2000);
+            entity.HasMany(e => e.OfferExtensions).WithOne().HasForeignKey(e => e.TenderId);
             entity.HasOne(e => e.ReplacesTender).WithMany().HasForeignKey(e => e.ReplacesTenderId).OnDelete(DeleteBehavior.NoAction);
             entity.HasIndex(e => e.ReplacesTenderId).IsUnique().HasFilter("[ReplacesTenderId] IS NOT NULL");
             entity.Property(e => e.RejectionForwardedByUserId).HasMaxLength(450);
