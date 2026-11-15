@@ -48,7 +48,7 @@
         <div class="ev-tender-workspace">
         <partial name="_TenderBrowser" model="Model" />
         <div class="ev-detail-area">
-        @if (!Model.Locked || Model.ConsensusLocked)
+        @if (!Model.PercentageReady)
         { <partial name="_ConsensusWeights" model="Model" /> }
         @if (!Model.PercentageReady)
         {
@@ -78,7 +78,15 @@
                     </div><details class="ev-brief-terms"><summary>Tender terms &amp; dates <span aria-hidden="true">⌄</span></summary><dl><div><dt>Terms</dt><dd>@(string.IsNullOrWhiteSpace(tender.Terms) ? "No additional terms provided." : tender.Terms)</dd></div><div><dt>Opened (UTC)</dt><dd>@tender.OpensAt.ToString("dd MMM yyyy · HH:mm")</dd></div><div><dt>Submission deadline (UTC)</dt><dd>@tender.ClosesAt.ToString("dd MMM yyyy · HH:mm")</dd></div></dl></details>
                 </details>
                 <partial name="_AiBidRecommendation" model="Model" />
-                <div class="ev-section-heading"><div><h3>Eligible offers <span class="ev-subtle">(@offers.Count)</span></h3></div><div class="ev-offers-tools"><span class="ev-subtle">Totals include tax &amp; fees</span>
+                <div class="ev-section-heading"><div class="cs-offers-heading"><h3>Eligible offers <span class="ev-subtle">(@offers.Count)</span></h3>
+                @if (Model.ConsensusLocked)
+                {
+                    <details class="cs-weights-disclosure">
+                        <summary aria-label="View locked committee percentages and four confirmed proposals"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Financial @Model.FinancialWeight.ToString("0.##")% <span aria-hidden="true">·</span> Technical @Model.TechnicalWeight.ToString("0.##")%</span><span class="cs-weights-chevron" aria-hidden="true">⌄</span></summary>
+                        <div class="cs-weights-popover"><strong>Committee percentages are locked</strong><p>Average of four confirmed proposals. These weights apply to every offer and the AI comparison.</p><partial name="_PercentageProposals" model="Model" /></div>
+                    </details>
+                }
+                </div><div class="ev-offers-tools"><span class="ev-subtle">Totals include tax &amp; fees</span>
                 @if (Model.AiRecommendation?.Scenarios.Any() == true) { <button type="button" class="btn ev-button-secondary" data-bs-toggle="collapse" data-bs-target="#offer-comparison" aria-expanded="false" aria-controls="offer-comparison">Compare all @offers.Count offers <span aria-hidden="true">↔</span></button> }
                 </div></div>
                 <partial name="_AiOfferComparison" model="Model" />
