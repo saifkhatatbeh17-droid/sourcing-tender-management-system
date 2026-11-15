@@ -18,7 +18,13 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
     public async Task<IActionResult> Dashboard() => View(await LoadPage(null));
     public async Task<IActionResult> Evaluations(int? id) => View(await LoadPage(id));
-    public async Task<IActionResult> Reports(int? id) => View(await LoadPage(id));
+    public async Task<IActionResult> Reports(int? id)
+    {
+        var page = await LoadPage(id);
+        return page.Tender != null && !page.PercentageReady
+            ? RedirectToAction(nameof(Evaluations), new { id = page.Tender.TenderId })
+            : View(page);
+    }
     public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
 
     private async Task<CommitteeEvaluationPage> LoadPage(int? id)
@@ -148,6 +154,11 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
         var page = new CommitteeEvaluationPage { Tender = tender, UserId = UserId,
             Evaluations = await db.Evaluations.Include(e => e.EvaluationScores).Where(e => e.TenderId == id).ToListAsync() };
         if (!initialize && !page.Members.Any(m => m.UserId == UserId)) return Forbid();
+        if (!initialize && ControllerContext.ActionDescriptor.ActionName != nameof(ConfirmPercentage) && !page.ConsensusLocked)
+        {
+            TempData["CommitteeError"] = "Evaluation is locked until all four members confirm their percentages.";
+            return RedirectToAction(nameof(Evaluations), new { id });
+        }
         var error = await change(page);
         if (error != null)
         {

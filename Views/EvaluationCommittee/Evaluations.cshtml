@@ -48,6 +48,19 @@
         <div class="ev-tender-workspace">
         <partial name="_TenderBrowser" model="Model" />
         <div class="ev-detail-area">
+        @if (!Model.Locked || Model.ConsensusLocked)
+        { <partial name="_ConsensusWeights" model="Model" /> }
+        @if (!Model.PercentageReady)
+        {
+            <section class="ev-empty cs-workspace-lock" aria-labelledby="workspace-lock-heading" role="status">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
+                <h2 id="workspace-lock-heading">Evaluation locked</h2>
+                <p>@Model.WeightProposals.Count of 4 members have confirmed their percentages.</p>
+                <p>Tender details, offers, AI comparison, approval forms and reports unlock after all four submissions. The average is then calculated and locked.</p>
+            </section>
+        }
+        else
+        {
         <div class="nav ev-tabs" role="tablist" aria-label="Evaluation sections">
             <button class="nav-link active" id="offers-tab" data-bs-toggle="tab" data-bs-target="#offers" type="button" role="tab" aria-controls="offers" aria-selected="true">Tender &amp; offers <span>@offers.Count</span></button>
             <button class="nav-link" id="forms-tab" data-bs-toggle="tab" data-bs-target="#forms" type="button" role="tab" aria-controls="forms" aria-selected="false">Evaluation forms</button>
@@ -64,7 +77,6 @@
                     </div>
                     </div><details class="ev-brief-terms"><summary>Tender terms &amp; dates <span aria-hidden="true">⌄</span></summary><dl><div><dt>Terms</dt><dd>@(string.IsNullOrWhiteSpace(tender.Terms) ? "No additional terms provided." : tender.Terms)</dd></div><div><dt>Opened (UTC)</dt><dd>@tender.OpensAt.ToString("dd MMM yyyy · HH:mm")</dd></div><div><dt>Submission deadline (UTC)</dt><dd>@tender.ClosesAt.ToString("dd MMM yyyy · HH:mm")</dd></div></dl></details>
                 </details>
-                <partial name="_ConsensusWeights" model="Model" />
                 <partial name="_AiBidRecommendation" model="Model" />
                 <div class="ev-section-heading"><div><h3>Eligible offers <span class="ev-subtle">(@offers.Count)</span></h3></div><div class="ev-offers-tools"><span class="ev-subtle">Totals include tax &amp; fees</span>
                 @if (Model.AiRecommendation?.Scenarios.Any() == true) { <button type="button" class="btn ev-button-secondary" data-bs-toggle="collapse" data-bs-target="#offer-comparison" aria-expanded="false" aria-controls="offer-comparison">Compare all @offers.Count offers <span aria-hidden="true">↔</span></button> }
@@ -101,6 +113,7 @@
             <div class="tab-pane fade" id="forms" role="tabpanel" aria-labelledby="forms-tab" tabindex="0"><partial name="_MemberForms" model="Model" /></div>
             <div class="tab-pane fade" id="report" role="tabpanel" aria-labelledby="report-tab" tabindex="0"><partial name="_EvaluationReport" model="Model" /></div>
         </div>
+        }
         </div>
         </div>
     }

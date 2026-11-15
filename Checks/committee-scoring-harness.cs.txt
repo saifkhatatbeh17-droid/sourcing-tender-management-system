@@ -74,8 +74,9 @@ try{
  await CommitteeApprovalOrderChecks.RunAsync();
  var first=tenderIds[0];var offers=bidIds[first];
  var initial=await Html(1,first);
- Check(initial.Contains("Confirm the committee percentages")&&initial.Contains("readonly"),"percentage proposals and read-only AI fields render");
- Check(initial.Contains("Select this offer")&&!initial.Contains("0 / 4 accepted")&&!initial.Contains("financialMark"),"original offer choice restored without per-offer scoring UI");
+ Check(initial.Contains("Confirm the committee percentages")&&initial.Contains("Evaluation locked"),"percentage proposals and lock notice render");
+ Check(!initial.Contains("Select this offer")&&!initial.Contains("id=\"forms-tab\"")&&!initial.Contains("data-ai-comparison")&&!initial.Contains("ev-offer-card"),"offers, tabs, AI and forms are not rendered before consensus");
+ Check((await clients[1].GetAsync($"/EvaluationCommittee/Reports/{first}")).StatusCode==HttpStatusCode.Redirect,"direct report navigation redirects to the locked page");
  var csrf=await clients[1].PostAsync("/EvaluationCommittee/ConfirmPercentage",new FormUrlEncodedContent(new Dictionary<string,string>{{"id",first.ToString()},{"financialWeight","40"}}));Check(csrf.StatusCode==HttpStatusCode.BadRequest,"antiforgery token required");
  Check((await Post(5,first,"ConfirmPercentage",("financialWeight","40"))).StatusCode==HttpStatusCode.Forbidden,"unassigned member cannot confirm");
  await Post(1,first,"SelectOffer",("bidId",offers[0].ToString()));
@@ -83,10 +84,11 @@ try{
  await Post(1,first,"RecommendBids",("financialWeight","40"),("requirementsWeight","60"));
  await WithDb(async db=>Check(!await db.TenderApprovals.AnyAsync()&&!await db.EvaluationReports.AnyAsync(r=>r.TenderId==first&&r.RecommendedBidId!=null),"selection and approval blocked before average"));
  Check(NoAi.Calls==0,"AI blocked before average");
- for(int i=1;i<=4;i++)Check((await Post(i,first,"ConfirmPercentage",("financialWeight",(20+i*10).ToString()))).StatusCode==HttpStatusCode.Redirect,"member percentage confirmation saves");
+ for(int i=1;i<=4;i++){Check((await Post(i,first,"ConfirmPercentage",("financialWeight",(20+i*10).ToString()))).StatusCode==HttpStatusCode.Redirect,"member percentage confirmation saves");if(i<4){var pending=await Html(i,first);Check(pending.Contains("Evaluation locked")&&!pending.Contains("ev-offer-card"),"workspace remains locked until the fourth member submits");}}
  await Post(1,first,"ConfirmPercentage",("financialWeight","80"));
  await WithDb(async db=>{var t=await db.Tenders.FindAsync(first);Check(t!.CommitteeFinancialWeight==45&&t.CommitteeWeightsLockedAt!=null&&await db.CommitteeWeightProposals.CountAsync(p=>p.TenderId==first)==4,"average frozen and confirmed proposals immutable");Check(t.Status=="UnderEvaluation"&&!await db.TenderApprovals.AnyAsync(),"average does not automatically approve or advance tender");});
- var unlocked=await Html(1,first);Check(unlocked.Contains("Committee percentages are locked")&&!unlocked.Contains("Edit weights"),"calculated percentage cannot be edited in UI");
+ var unlocked=await Html(1,first);Check(unlocked.Contains("Committee percentages are locked")&&unlocked.Contains("readonly")&&!unlocked.Contains("Edit weights"),"calculated percentage cannot be edited in UI");
+ Check(!unlocked.Contains("Evaluation locked")&&unlocked.Contains("Select this offer")&&unlocked.Contains("id=\"forms-tab\"")&&unlocked.Contains("data-ai-comparison"),"fourth confirmation unlocks original workspace");
  await Post(1,first,"RecommendBids",("financialWeight","99"),("requirementsWeight","1"));Check(NoAi.Calls==0,"tampered AI percentages rejected before network call");
  Check((await Post(1,first,"SaveWeights",("financialWeight","99"),("requirementsWeight","1"))).StatusCode==HttpStatusCode.BadRequest,"old editable weight route blocked");
  Check((await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"),("technicalMark","30"))).StatusCode==HttpStatusCode.NotFound,"per-offer scoring endpoint removed");
