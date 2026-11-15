@@ -1,18 +1,89 @@
 @model IReadOnlyList<SourcingTenderManagement.Models.Entities.PurchaseRequest>
-@{ ViewData["Title"] = "Department dashboard"; }
+@{
+    ViewData["Title"] = "Department dashboard";
+    var departmentName = Model.FirstOrDefault()?.Department?.Name ?? "Department Workspace";
+    var inReviewCount = Model.Count(r => r.Status is "Submitted" or "UnderReview");
+    var approvedCount = Model.Count(r => r.Status is "Approved" or "ConvertedToTender");
+    var returnedRequests = Model.Where(r => r.Status == "Returned").ToList();
+    var attentionCount = Model.Count(r => r.Status is "Returned" or "Rejected");
+}
 @section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
-<div class="unified-dashboard">
-    <header class="dashboard-heading"><div><h1>Department dashboard</h1><p>Your purchase requests, current reviews, and approved requirements.</p></div><a asp-action="Create" class="dashboard-cta">Create request <span aria-hidden="true">↗</span></a></header>
-    <section class="dashboard-metrics" aria-label="Request totals">
-        <partial name="_DashboardMetric" model='@(new DashboardMetric("Department requests", Model.Count.ToString("N0"), "All department purchase requests", true))' />
-        <partial name="_DashboardMetric" model='@(new DashboardMetric("In review", Model.Count(r => r.Status is "Submitted" or "UnderReview").ToString("N0"), "Submitted or being reviewed"))' />
-        <partial name="_DashboardMetric" model='@(new DashboardMetric("Approved requests", Model.Count(r => r.Status is "Approved" or "ConvertedToTender").ToString("N0"), "Approved or converted to tender"))' />
+
+<div class="unified-dashboard department-workspace">
+    <header class="dashboard-heading">
+        <div>
+            <span class="dr-eyebrow">@departmentName</span>
+            <h1>Department dashboard</h1>
+            <p>Track your purchase requisitions, ongoing sourcing reviews, and approved requirements in one place.</p>
+        </div>
+        <div class="dashboard-heading-actions">
+            <a asp-action="Requests" class="btn dr-secondary-btn">All requests</a>
+            <a asp-action="Create" class="dashboard-cta">Create request <span aria-hidden="true">＋</span></a>
+        </div>
+    </header>
+
+    <section class="dashboard-metrics is-four" aria-label="Request totals">
+        <partial name="_DashboardMetric" model='@(new DashboardMetric("Total requests", Model.Count.ToString("N0"), "All department requisitions", true, "Requests"))' />
+        <partial name="_DashboardMetric" model='@(new DashboardMetric("In review", inReviewCount.ToString("N0"), "Submitted or under officer review", false, "Requests"))' />
+        <partial name="_DashboardMetric" model='@(new DashboardMetric("Approved & tendered", approvedCount.ToString("N0"), "Approved or converted to tender", false, "Requests"))' />
+        <partial name="_DashboardMetric" model='@(new DashboardMetric("Needs attention", attentionCount.ToString("N0"), "Returned for revision or rejected", false, "Requests"))' />
     </section>
-    <section class="workspace-section department-recent"><div class="dr-recent-heading"><div><h2>Latest requests</h2><p class="text-secondary">The five most recent department requests.</p></div><a asp-action="Requests">Requests history ↗</a></div>
-    @if (Model.Count == 0) { <p class="text-secondary">No department requests yet.</p> }
-    @foreach (var request in Model.Take(5))
+
+    @if (returnedRequests.Count > 0)
     {
-        <a class="dr-recent-row" asp-action="Details" asp-route-id="@request.PurchaseRequestId"><div><span class="dr-reference">#@request.PurchaseRequestId · @request.CreatedAt.ToString("dd MMM yyyy")</span><strong>@request.Title</strong></div><span class="dr-status" data-status="@request.Status">@System.Text.RegularExpressions.Regex.Replace(request.Status, "([a-z])([A-Z])", "$1 $2")</span><span aria-hidden="true">↗</span></a>
+        <section class="dr-attention-banner" aria-label="Requests needing revision">
+            <div class="dr-attention-icon" aria-hidden="true">!</div>
+            <div class="dr-attention-copy">
+                <strong>@returnedRequests.Count request(s) returned for revision</strong>
+                <p>The sourcing officer requested updates before approval. You can edit and resubmit directly.</p>
+            </div>
+            <a asp-action="Details" asp-route-id="@returnedRequests[0].PurchaseRequestId" class="btn dr-attention-btn">
+                Review #@returnedRequests[0].PurchaseRequestId <span aria-hidden="true">→</span>
+            </a>
+        </section>
     }
+
+    <section class="workspace-section department-recent" aria-labelledby="latest-requests-heading">
+        <div class="dr-recent-heading">
+            <div>
+                <div class="dr-section-title-row">
+                    <h2 id="latest-requests-heading">Latest requests</h2>
+                    <span class="dr-count-pill">@Math.Min(5, Model.Count) of @Model.Count</span>
+                </div>
+                <p class="text-secondary">Your five most recently created purchase requests and their live status.</p>
+            </div>
+            <a asp-action="Requests" class="dr-view-all-link">Requests history <span aria-hidden="true">→</span></a>
+        </div>
+
+        @if (Model.Count == 0)
+        {
+            <div class="dr-empty">
+                <div class="dr-empty-icon" aria-hidden="true">＋</div>
+                <h3>No purchase requests yet</h3>
+                <p>Start by creating your department's first purchase request with required items and target dates.</p>
+                <a asp-action="Create" class="dr-primary mt-2">Create first request <span aria-hidden="true">→</span></a>
+            </div>
+        }
+        else
+        {
+            <div class="dr-recent-list">
+                @foreach (var request in Model.Take(5))
+                {
+                    var readableStatus = System.Text.RegularExpressions.Regex.Replace(request.Status, "([a-z])([A-Z])", "$1 $2");
+                    <a class="dr-recent-row" asp-action="Details" asp-route-id="@request.PurchaseRequestId">
+                        <span class="dr-id-badge">#@request.PurchaseRequestId</span>
+                        <div class="dr-recent-main">
+                            <strong>@request.Title</strong>
+                            <span class="dr-reference">
+                                Created @request.CreatedAt.ToString("dd MMM yyyy") · Target @request.TargetDate.ToString("dd MMM yyyy")
+                            </span>
+                        </div>
+                        <span class="dr-priority" data-priority="@request.Priority">@request.Priority</span>
+                        <span class="dr-status" data-status="@request.Status">@readableStatus</span>
+                        <span class="dr-row-arrow" aria-hidden="true">→</span>
+                    </a>
+                }
+            </div>
+        }
     </section>
 </div>

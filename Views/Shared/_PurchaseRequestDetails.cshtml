@@ -1,37 +1,85 @@
 @model SourcingTenderManagement.Models.Entities.PurchaseRequest
-<h2>@Model.Title</h2>
-<dl>
-    <dt>Department</dt><dd>@Model.Department.Name</dd>
-    <dt>Requested by</dt><dd>@Model.RequestedByUser.FullName</dd>
-    <dt>Reason</dt><dd class="text-break" style="white-space: pre-wrap">@Model.Reason</dd>
-    <dt>Priority</dt><dd>@Model.Priority</dd>
-    <dt>Target date</dt><dd>@Model.TargetDate.ToString("yyyy-MM-dd")</dd>
-    <dt>Status</dt><dd>@Model.Status</dd>
-    <dt>Created</dt><dd>@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</dd>
-    @if (Model.SubmittedAt is DateTime submitted)
+@{
+    var readableStatus = System.Text.RegularExpressions.Regex.Replace(Model.Status, "([a-z])([A-Z])", "$1 $2");
+}
+
+<div class="dr-details-body">
+    @if (!string.IsNullOrWhiteSpace(Model.ReviewNotes))
     {
-        <dt>Last submitted</dt><dd>@submitted.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+        <div class="dr-review-callout" data-status="@Model.Status">
+            <div class="dr-review-callout-header">
+                <strong>Latest review notes</strong>
+                @if (Model.ReviewedByUser != null)
+                {
+                    <span>Reviewed by @Model.ReviewedByUser.FullName @(Model.ReviewedAt is DateTime rAt ? $"on {rAt:dd MMM yyyy HH:mm} UTC" : "")</span>
+                }
+            </div>
+            <p class="text-break mb-0" style="white-space: pre-wrap">@Model.ReviewNotes</p>
+        </div>
     }
-    @if (Model.ReviewedByUser != null)
-    {
-        <dt>Reviewer</dt><dd>@Model.ReviewedByUser.FullName</dd>
-    }
-    @if (Model.ReviewedAt is DateTime reviewed)
-    {
-        <dt>Last reviewed</dt><dd>@reviewed.ToString("yyyy-MM-dd HH:mm") UTC</dd>
-    }
-    <dt>Latest review notes</dt><dd class="text-break" style="white-space: pre-wrap">@(Model.ReviewNotes ?? "No review notes.")</dd>
-</dl>
-<h3>Items</h3>
-<div class="table-responsive">
-    <table class="table">
-        <thead><tr><th>Name</th><th>Quantity</th><th>Unit</th><th>Specifications</th></tr></thead>
-        <tbody>
-        @foreach (var item in Model.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId))
-        {
-            <tr><td>@item.ItemName</td><td>@item.Quantity.ToString("0.###")</td><td>@item.Unit</td>
-                <td class="text-break" style="white-space: pre-wrap">@item.Specifications</td></tr>
-        }
-        </tbody>
-    </table>
+
+    <div class="dr-overview-grid">
+        <div class="dr-reason-box">
+            <h3>Business justification &amp; reason</h3>
+            <p class="text-break mb-0" style="white-space: pre-wrap">@Model.Reason</p>
+        </div>
+
+        <dl class="dr-meta-grid">
+            <div><dt>Department</dt><dd>@Model.Department.Name</dd></div>
+            <div><dt>Requested by</dt><dd>@Model.RequestedByUser.FullName</dd></div>
+            <div><dt>Priority</dt><dd><span class="dr-priority" data-priority="@Model.Priority">@Model.Priority</span></dd></div>
+            <div><dt>Target date</dt><dd>@Model.TargetDate.ToString("yyyy-MM-dd")</dd></div>
+            <div><dt>Status</dt><dd><span class="dr-status" data-status="@Model.Status">@readableStatus</span></dd></div>
+            <div><dt>Created</dt><dd>@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</dd></div>
+            @if (Model.SubmittedAt is DateTime submitted)
+            {
+                <div><dt>Last submitted</dt><dd>@submitted.ToString("yyyy-MM-dd HH:mm") UTC</dd></div>
+            }
+            @if (Model.ReviewedByUser != null)
+            {
+                <div><dt>Reviewer</dt><dd>@Model.ReviewedByUser.FullName</dd></div>
+            }
+            @if (Model.ReviewedAt is DateTime reviewed)
+            {
+                <div><dt>Last reviewed</dt><dd>@reviewed.ToString("yyyy-MM-dd HH:mm") UTC</dd></div>
+            }
+            @if (string.IsNullOrWhiteSpace(Model.ReviewNotes))
+            {
+                <div><dt>Review notes</dt><dd class="text-secondary">No review notes recorded yet.</dd></div>
+            }
+        </dl>
+    </div>
+
+    <div class="dr-items-table-section">
+        <div class="dr-section-title-row mb-3">
+            <h3 class="m-0">Requested items</h3>
+            <span class="dr-count-pill">@Model.PurchaseRequestItems.Count item(s)</span>
+        </div>
+        <div class="table-responsive dr-table-wrap">
+            <table class="table dr-items-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col" style="width: 56px">#</th>
+                        <th scope="col">Item name</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Unit</th>
+                        <th scope="col">Technical specifications</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @{ var index = 1; }
+                @foreach (var item in Model.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId))
+                {
+                    <tr>
+                        <td class="text-secondary fw-semibold">@(index++)</td>
+                        <td class="fw-semibold">@item.ItemName</td>
+                        <td class="dr-num">@item.Quantity.ToString("0.###")</td>
+                        <td><span class="dr-unit-pill">@item.Unit</span></td>
+                        <td class="text-break" style="white-space: pre-wrap">@item.Specifications</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
