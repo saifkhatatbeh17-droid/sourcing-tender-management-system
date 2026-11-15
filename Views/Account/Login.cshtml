@@ -151,7 +151,7 @@
             </form>
         </div>
         <p id="face-login-error" class="text-danger mt-2" role="alert" hidden></p>
-        <a id="face-login-continue" asp-controller="Account" asp-action="GoToDashboard" asp-route-returnUrl="@Model.ReturnUrl" class="btn login-method mt-2" hidden>Continue to workspace</a>
+        <p class="small text-muted mt-2">Face ID requires your password and a matching enrolled face. Set up your face from Biometric sign-in after signing in normally.</p>
 
         <p class="login-registration">
             New supplier? <a asp-controller="Account" asp-action="Register">Register your company</a>
@@ -159,8 +159,10 @@
     </section>
 </div>
 <div id="face-login-host" data-face-api-url="@Url.Content("~/lib/face-api/face-api.js")"
-     data-verification-js="@Url.Content("~/js/face-verification.js")" data-modal-js="@Url.Content("~/js/face-login-modal.js")"
-     data-enrollment-js="@Url.Content("~/js/face-enrollment.js")" data-setup-js="@Url.Content("~/js/face-setup-modal.js")"></div>
+     data-model-url="@Url.Content("~/lib/face-api/model")"
+     data-model-identifier="@SourcingTenderManagement.Services.FaceEnrollment.FaceEnrollmentService.ModelIdentifier">
+    <partial name="_FaceSignIn" />
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

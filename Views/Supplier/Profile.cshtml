@@ -1,3 +1,4 @@
+@using System.Globalization
 @model SourcingTenderManagement.Models.Entities.SupplierProfile
 @{
     ViewData["Title"] = "Company profile";
@@ -7,29 +8,125 @@
         categoryInput = new ProcurementCategoryInput();
         categoryInput.LoadCategory(Model.Category);
     }
-}
-<div class="supplier-workspace supplier-workspace--profile">
-<div class="supplier-page-heading"><div><h1>Company profile</h1><p>Your organization details and verification status.</p></div><span class="status-badge status-@Model.Status.ToLowerInvariant()">@Model.Status</span></div>
-@if (TempData["ProfileFeedback"] is string feedback)
-{
-    <div class="alert alert-success" role="status">@feedback</div>
+    var initials = string.IsNullOrWhiteSpace(Model.CompanyName) ? "?" : string.Concat(Model.CompanyName
+        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+        .Take(2).Select(word => StringInfo.GetNextTextElement(word))).ToUpperInvariant();
 }
 
-@if (!string.IsNullOrWhiteSpace(Model.ReviewNotes)) { <div class="alert alert-info"><strong>Review note:</strong> @Model.ReviewNotes</div> }
-<div class="supplier-detail-grid"><section class="supplier-card"><h2>Company information</h2><dl class="detail-list"><dt>Company name</dt><dd>@Model.CompanyName</dd><dt>Supply category</dt><dd>@(Model.Category ?? "Not selected")</dd><dt>Registration number</dt><dd>@Model.RegistrationNumber</dd><dt>Tax number</dt><dd>@(Model.TaxNumber ?? "Not provided")</dd><dt>Company address</dt><dd>@(Model.Address ?? "Not provided")</dd><dt>Registered</dt><dd>@Model.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</dd></dl></section><section class="supplier-card"><div class="supplier-card-heading"><h2>Primary contact</h2><a asp-controller="Account" asp-action="EditProfile">Edit phone ↗</a></div><dl class="detail-list"><dt>Contact person</dt><dd>@Model.ContactName</dd><dt>Email address</dt><dd>@Model.User.Email</dd><dt>Phone number</dt><dd>@(Model.User.PhoneNumber ?? "Not provided")</dd></dl><div class="profile-note"><strong>Need to change legal details?</strong><p>Updates to company registration details require administrator review.</p>@if (Model.Status == "ChangesRequested") { <a asp-controller="Account" asp-action="EditRegistration" class="btn btn-primary btn-sm">Update requested information</a> }</div></section></div>
-@if (Model.Status == "Approved")
-{
-    <section class="supplier-card mt-3">
-        <h2>Supply category</h2>
-        <form asp-action="UpdateCategory" method="post">
-            <partial name="_ProcurementCategoryFields" model='(categoryInput, "Supplier", "Supply category")' />
-            <button type="submit" class="btn btn-primary">Save category</button>
-        </form>
-    </section>
-    <script src="~/js/procurement-categories.js" asp-append-version="true" defer></script>
+@section Styles {
+    <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/account-profile.css" asp-append-version="true" />
 }
-<section class="supplier-card mt-3"><h2>Official company documents</h2>@if (!Model.SupplierDocuments.Any()) { <div class="empty-state compact"><p>No official company documents are on file yet.</p><small>Contact the administrator if you need to submit a license or certificate for verification.</small></div> } else { <ul class="document-list">@foreach (var document in Model.SupplierDocuments.OrderByDescending(d => d.UploadedAt)) { <li><span><strong>@document.DocumentType</strong><small>@document.OriginalFileName · @document.UploadedAt.ToLocalTime().ToString("dd MMM yyyy")</small></span><a asp-action="DownloadProfileDocument" asp-route-id="@document.SupplierDocumentId">Download</a></li> }</ul> }</section>
 
-@section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
+<div class="supplier-workspace supplier-workspace--profile account-profile">
+    <header class="ap-heading"><h1>Company profile</h1></header>
 
+    @if (TempData["ProfileFeedback"] is string feedback)
+    {
+        <div class="alert alert-success" role="status">@feedback</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ReviewNotes))
+    {
+        <div class="alert alert-info"><strong>Review note:</strong> @Model.ReviewNotes</div>
+    }
+
+    <div class="ap-columns">
+        <section class="ap-card ap-identity" aria-labelledby="company-name">
+            <span class="ap-avatar" aria-hidden="true">@initials</span>
+            <h2 id="company-name">@Model.CompanyName</h2>
+            <span class="status-badge status-@Model.Status.ToLowerInvariant()">@Model.Status</span>
+            <p class="ap-identity-email"><span class="ap-icon ap-icon-mail" aria-hidden="true"></span>@Model.User.Email</p>
+            <dl class="ap-identity-details">
+                <dt><span class="ap-icon ap-icon-building" aria-hidden="true"></span>Registration number</dt>
+                <dd>@Model.RegistrationNumber</dd>
+            </dl>
+        </section>
+
+        <div class="ap-content">
+            <section class="ap-card" aria-labelledby="company-contact">
+                <h2 id="company-contact">Contact information</h2>
+                <dl class="ap-contact">
+                    <div class="ap-contact-row">
+                        <dt>Contact person</dt>
+                        <dd>@Model.ContactName</dd>
+                    </div>
+                    <div class="ap-contact-row">
+                        <dt><span class="ap-icon ap-icon-mail" aria-hidden="true"></span>Email</dt>
+                        <dd>@Model.User.Email</dd>
+                    </div>
+                    <div class="ap-contact-row">
+                        <dt><span class="ap-icon ap-icon-phone" aria-hidden="true"></span>Phone</dt>
+                        <dd class="ap-contact-value">
+                            <span>@(Model.User.PhoneNumber ?? "Not provided")</span>
+                            <a asp-controller="Account" asp-action="EditProfile" class="btn btn-outline-primary ap-edit-link">Edit phone number</a>
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="ap-card" aria-labelledby="company-information">
+                <h2 id="company-information">Company information</h2>
+                <dl class="ap-fields">
+                    <div><dt>Supply category</dt><dd>@(Model.Category ?? "Not selected")</dd></div>
+                    <div><dt>Tax number</dt><dd>@(Model.TaxNumber ?? "Not provided")</dd></div>
+                    <div><dt>Registered</dt><dd>@Model.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</dd></div>
+                    <div><dt>Last verification review</dt><dd>@(Model.ReviewedAt?.ToLocalTime().ToString("dd MMM yyyy") ?? "No review date recorded")</dd></div>
+                    <div><dt>Documents on file</dt><dd>@Model.SupplierDocuments.Count</dd></div>
+                    <div class="ap-wide"><dt>Company address</dt><dd>@(Model.Address ?? "Not provided")</dd></div>
+                </dl>
+                <div class="profile-note">
+                    <strong>Need to change legal details?</strong>
+                    <p>Updates to company registration details require administrator review.</p>
+                    @if (Model.Status == "ChangesRequested")
+                    {
+                        <a asp-controller="Account" asp-action="EditRegistration" class="btn btn-primary btn-sm mt-3">Update requested information</a>
+                    }
+                </div>
+            </section>
+
+            @if (Model.Status == "Approved")
+            {
+                <section class="ap-card" aria-labelledby="supply-category-heading">
+                    <h2 id="supply-category-heading">Supply category</h2>
+                    <form asp-action="UpdateCategory" method="post">
+                        <partial name="_ProcurementCategoryFields" model='(categoryInput, "Supplier", "Supply category")' />
+                        <button type="submit" class="btn btn-primary">Save category</button>
+                    </form>
+                </section>
+                <script src="~/js/procurement-categories.js" asp-append-version="true" defer></script>
+            }
+
+            <section class="ap-card" aria-labelledby="supplier-account-details">
+                <h2 id="supplier-account-details">Account details</h2>
+                <dl class="ap-fields">
+                    <div><dt>Sign-in name</dt><dd>@(Model.User.UserName ?? "Not provided")</dd></div>
+                </dl>
+            </section>
+
+            <partial name="_ProfileSecurity" model="new ChangePasswordViewModel()" />
+
+            <section class="ap-card" aria-labelledby="company-documents">
+                <h2 id="company-documents">Official company documents</h2>
+                @if (!Model.SupplierDocuments.Any())
+                {
+                    <div class="empty-state compact">
+                        <p>No official company documents are on file yet.</p>
+                        <small>Contact the administrator if you need to submit a license or certificate for verification.</small>
+                    </div>
+                }
+                else
+                {
+                    <ul class="document-list ap-documents">
+                        @foreach (var document in Model.SupplierDocuments.OrderByDescending(d => d.UploadedAt))
+                        {
+                            <li>
+                                <span><strong>@document.DocumentType</strong><small>@document.OriginalFileName · @document.UploadedAt.ToLocalTime().ToString("dd MMM yyyy")</small></span>
+                                <a asp-action="DownloadProfileDocument" asp-route-id="@document.SupplierDocumentId">Download</a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+        </div>
+    </div>
 </div>

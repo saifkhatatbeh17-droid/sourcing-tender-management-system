@@ -11,6 +11,7 @@
 <div class="manager-shell">
     <div class="workspace-heading">
         <h1>Committee Submissions</h1>
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#manager-rejections">Committee rejections</button>
     </div>
     @if (TempData["ManagerMessage"] is string message)
     {
@@ -164,6 +165,9 @@
         }
     </div>
 </div>
+<partial name="_Rejections" model="@((IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender>)ViewBag.RejectedTenders)" />
 @section Scripts {
+    @if (ViewBag.OpenRejections == true)
+    { <script>document.addEventListener('DOMContentLoaded', () => bootstrap.Modal.getOrCreateInstance(document.getElementById('manager-rejections')).show());</script> }
     <script src="~/js/manager-referral.js" asp-append-version="true"></script>
 }

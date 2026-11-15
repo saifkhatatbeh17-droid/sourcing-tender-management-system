@@ -41,7 +41,7 @@ public static class TopCommitteePhase4Checks
             first.TenderId == 1 && first.Notes == "Reviewed offer." && first.DecidedAt != default, "Approval must use authenticated member and trusted assignment with timestamp/notes.");
         Check(data.Tender.Status == "AwaitingCommitteeDecision" && data.PauseChecks == 1, "One approval must not award and must pass the locked pause gate.");
         await Denied<CommitteeStateConflictException>(() => service.SubmitAsync(Actor(1), Input()), "Duplicate approval must fail.");
-        await Denied<ValidationException>(() => service.SubmitAsync(Actor(1), Input("Rejected", "Changed mind")), "An approval must not be changed into rejection.");
+        await Denied<CommitteeStateConflictException>(() => service.SubmitAsync(Actor(1), Input("Rejected", "Changed mind")), "An approval must not be changed into rejection.");
         Check(data.Votes.Single() == first && first.Decision == "Approved", "Original vote must remain unchanged.");
         await Denied<CommitteeAccessDeniedException>(() => service.SubmitAsync(new ClaimsPrincipal(), Input()), "Anonymous vote must fail.");
         await Denied<CommitteeAccessDeniedException>(() => service.SubmitAsync(Actor(1, RoleNames.Supplier), Input()), "Wrong claim role must fail.");
@@ -90,7 +90,7 @@ public static class TopCommitteePhase4Checks
         {
             var paused = new MemoryStore(); await Approve(paused, 1); paused.Question(status);
             await Denied<CommitteeStateConflictException>(() => Voting(paused).SubmitAsync(Actor(3), Input()), "Open clarification must block every member's approval.");
-            await Denied<ValidationException>(() => Voting(paused).SubmitAsync(Actor(3), Input("Rejected", "Reason")), "Unsupported rejection must fail validation.");
+            await Denied<CommitteeStateConflictException>(() => Voting(paused).SubmitAsync(Actor(3), Input("Rejected", "Reason")), "Paused voting also blocks rejection.");
             Check(paused.Votes.Count() == 1, "Pause cannot remove an earlier approval.");
             paused.Tender.Clarifications.Single().Status = "Resolved";
             await Voting(paused).SubmitAsync(Actor(3), Input());
@@ -110,9 +110,9 @@ public static class TopCommitteePhase4Checks
             awardData.Tender.AwardedAt == awardData.Votes.Last().DecidedAt && !string.IsNullOrWhiteSpace(awardData.Tender.AwardNotes), "Fourth approval and nominated-bid award must be atomic.");
         await Denied<CommitteeStateConflictException>(() => Voting(awardData).SubmitAsync(Actor(4), Input()), "Award cannot be repeated.");
         var rejected = new MemoryStore(); await Approve(rejected, 1, 2);
-        await Denied<ValidationException>(() => Voting(rejected).SubmitAsync(Actor(3), Input("Rejected", "Specification mismatch.")), "Approval-only workflow rejects a forged rejection.");
-        Check(rejected.Tender.Status == "AwaitingCommitteeDecision" && rejected.Votes.Count() == 2 && rejected.Tender.AwardedBidId == null,
-            "Unsupported rejection leaves the tender and previous approvals unchanged.");
+        await Voting(rejected).SubmitAsync(Actor(3), Input("Rejected", "Specification mismatch."));
+        Check(rejected.Tender.Status == "AwaitingManagerReview" && rejected.Votes.Count() == 3 && rejected.Tender.AwardedBidId == null,
+            "Rejection returns the tender and preserves previous approvals.");
 
         async Task<CommitteeVoteResult?> TryVote(MemoryStore d, int member, string decision = "Approved")
         { try { return await Voting(d).SubmitAsync(Actor(member), Input(decision, "Reason")); } catch (Exception ex) when (ex is CommitteeStateConflictException or ValidationException) { return null; } }
@@ -131,7 +131,7 @@ public static class TopCommitteePhase4Checks
             var competing = new MemoryStore(); await Approve(competing, 1, 2, 3);
             var results = await Task.WhenAll(TryVote(competing, 4, rejectionFirst ? "Rejected" : "Approved"), TryVote(competing, 4, rejectionFirst ? "Approved" : "Rejected"));
             Check(results.Count(r => r != null) == 1 && competing.Votes.Count() == 4 &&
-                competing.Tender.Status == "Awarded", "Concurrent opposite final decisions must not overwrite one another.");
+                competing.Tender.Status == (rejectionFirst ? "AwaitingManagerReview" : "Awarded"), "Concurrent opposite final decisions must not overwrite one another.");
         }
         foreach (var clarificationFirst in new[] { true, false })
         {
@@ -162,7 +162,7 @@ public static class TopCommitteePhase4Checks
         var eligiblePage = Page(new MemoryStore());
         var html = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", eligiblePage);
         Check(html.Contains("tc-member-approval-form") && html.Contains("name=\"Vote.Confirmed\"") && html.Contains("__RequestVerificationToken") &&
-            html.Contains("value=\"Approved\"") && !html.Contains("value=\"Rejected\""), "Voting form, modal, choices and CSRF token must render.");
+            html.Contains("value=\"Approved\"") && html.Contains("value=\"Rejected\""), "Voting form, modal, choices and CSRF token must render.");
         Check(html.Contains("name=\"Vote.ExpectedNominatedBidId\"") && !html.Contains("name=\"UserId\"") && !html.Contains("name=\"CommitteeAssignmentId\""), "Browser cannot select actor/assignment.");
         var pausedUi = new MemoryStore(); pausedUi.Question("Pending");
         var pausedHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", Page(pausedUi));
