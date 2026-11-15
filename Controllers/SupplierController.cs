@@ -10,7 +10,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
-[Authorize(Roles = RoleNames.Supplier)]
+[Authorize(Policy = "ApprovedSupplier")]
 public class SupplierController(ApplicationDbContext db, UserManager<ApplicationUser> users, IWebHostEnvironment env) : Controller
 {
     private string UserId => users.GetUserId(User)!;
