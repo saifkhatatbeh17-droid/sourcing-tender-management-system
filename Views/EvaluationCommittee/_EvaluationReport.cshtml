@@ -1,6 +1,6 @@
 @model CommitteeEvaluationPage
 @{ var report = Model.Tender?.EvaluationReport; }
-@if (!string.IsNullOrWhiteSpace(report?.CommitteeSummary)) { <nav class="workspace-toolbar" aria-label="Report export"><a class="btn btn-outline-primary btn-sm" asp-action="EvaluationReportPdf" asp-route-id="@Model.Tender!.TenderId"><partial name="_ReportDownloadIcon" /> Download PDF</a></nav> }
+@if (!string.IsNullOrWhiteSpace(report?.CommitteeSummary)) { <nav class="workspace-toolbar" aria-label="Report export"><a class="btn btn-outline-primary btn-sm" asp-action="EvaluationReportPdf" asp-route-id="@Model.Tender!.TenderId">Download PDF</a></nav> }
 @if (!string.IsNullOrWhiteSpace(report?.OfficerSummary)) { <p class="ev-notice" role="status">Officer review: @report.OfficerSummary</p> }
 @if (TempData["AiError"] is string aiError) { <p class="ev-notice ev-notice-error" role="alert">@aiError</p> }
 <div class="ev-section-heading"><div><h3>The committee's recommendation</h3><p>Review the overall evaluation weights and the report sent to the sourcing officer.</p></div><span class="ev-status">@Model.Approvals.Count of 4 approved</span></div>

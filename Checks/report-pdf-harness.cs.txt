@@ -169,9 +169,9 @@ class NoAiCalls : HttpMessageHandler
 class FixedClock : TimeProvider { public override DateTimeOffset GetUtcNow()=>new(2026,11,14,12,34,56,TimeSpan.Zero); }
 class QaWatermark(IHttpContextAccessor accessor):IPdfWatermarkService
 {
-    public Task<byte[]> ApplyAsync(Stream source,ClaimsPrincipal user,DateTimeOffset at,CancellationToken ct=default,bool combinePageContents=false)
+    public Task<byte[]> ApplyAsync(Stream source,ClaimsPrincipal user,DateTimeOffset at,CancellationToken ct=default)
     {
         if(accessor.HttpContext is {} context && context.Request.Headers["X-Report-Fail-Watermark"].ToString()=="1")throw new InvalidDataException("Synthetic watermark failure");
-        return new PdfWatermarkService().ApplyAsync(source,user,at,ct,combinePageContents);
+        return new PdfWatermarkService().ApplyAsync(source,user,at,ct);
     }
 }

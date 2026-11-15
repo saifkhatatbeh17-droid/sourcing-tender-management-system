@@ -25,7 +25,7 @@
     <div class="tab-pane fade @(selectedReport == null ? "show active" : "")" id="reports-list" role="tabpanel" aria-labelledby="reports-list-tab" tabindex="0">
         <section class="workspace-section">
             <h2>Evaluation Reports for Your Tenders</h2>
-            <nav class="workspace-toolbar" aria-label="Reports export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id=""><partial name="_ReportDownloadIcon" /> Download PDF</a></nav>
+            <nav class="workspace-toolbar" aria-label="Reports export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id="">Download PDF</a></nav>
             @if (Model.Count == 0)
             {
                 <p class="text-secondary">No committee reports are available for your tenders yet.</p>
@@ -43,15 +43,7 @@
                                 <td><div class="so-report-preview">@(string.IsNullOrWhiteSpace(report.CommitteeSummary) ? "Not recorded" : report.CommitteeSummary)</div></td>
                                 <td>@report.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
                                 <td><div class="so-report-preview">@(string.IsNullOrWhiteSpace(report.ManagerSummary) ? "Awaiting review" : report.ManagerSummary)</div></td>
-                                <td>@if (report.Status == "CommitteeApproved" && report.Tender.Status == "AwaitingOfficerSummary") { <a class="btn btn-primary btn-sm" asp-action="Offers" asp-fragment="committee-report" asp-route-tenderId="@report.TenderId" asp-route-tab="report">Review &amp; approve →</a> } <a class="btn btn-outline-primary btn-sm" asp-action="Reports" asp-route-id="@report.EvaluationReportId">Details</a>
-                                    @if (!string.IsNullOrWhiteSpace(report.CommitteeSummary))
-                                    {
-                                        <a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id="@report.EvaluationReportId"
-                                           aria-label="Download PDF for @report.Tender.Title">
-                                            <partial name="_ReportDownloadIcon" /> Download PDF
-                                        </a>
-                                    }
-                                </td>
+                                <td>@if (report.Status == "CommitteeApproved" && report.Tender.Status == "AwaitingOfficerSummary") { <a class="btn btn-primary btn-sm" asp-action="Offers" asp-fragment="committee-report" asp-route-tenderId="@report.TenderId" asp-route-tab="report">Review &amp; approve →</a> } <a class="btn btn-outline-primary btn-sm" asp-action="Reports" asp-route-id="@report.EvaluationReportId">Details</a></td>
                             </tr>
                         }
                     </tbody>
@@ -72,7 +64,7 @@
                 {
                     <div class="so-next-step"><div><strong>Your approval is needed</strong><p>Review the committee’s recommendation and forward it to the sourcing manager.</p></div><a class="btn btn-primary" asp-action="Offers" asp-fragment="committee-report" asp-route-tenderId="@selectedReport.TenderId" asp-route-tab="report">Review &amp; approve →</a></div>
                 }
-                <nav class="workspace-toolbar" aria-label="Selected report export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id="@selectedReport.EvaluationReportId"><partial name="_ReportDownloadIcon" /> Download PDF</a></nav>
+                <nav class="workspace-toolbar" aria-label="Selected report export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id="@selectedReport.EvaluationReportId">Download PDF</a></nav>
                 <dl>
                     <dt>Tender</dt><dd>@selectedReport.Tender.Title</dd>
                     <dt>Status</dt><dd><span class="so-status-badge" data-status="@selectedReport.Status">@selectedReport.Status</span></dd>

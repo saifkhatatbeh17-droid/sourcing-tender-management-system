@@ -40,7 +40,7 @@
         {
             var recommendedOffer = Model.Offers.FirstOrDefault(offer => offer.BidId == report.RecommendedBidId);
             <section class="workspace-section">
-                <nav class="workspace-toolbar" aria-label="Submission report export"><a class="btn btn-outline-primary btn-sm" asp-action="SubmissionPdf" asp-route-id="@report.EvaluationReportId"><partial name="_ReportDownloadIcon" /> Download PDF</a></nav>
+                <nav class="workspace-toolbar" aria-label="Submission report export"><a class="btn btn-outline-primary btn-sm" asp-action="SubmissionPdf" asp-route-id="@report.EvaluationReportId">Download PDF</a></nav>
                 <h2>@report.Tender.Title</h2><a class="btn btn-outline-primary" asp-controller="Clarification" asp-action="Index" asp-route-kind="tender" asp-route-recordId="@report.TenderId">Ask for clarification</a>@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = report.TenderId })
                 <p><strong>Recommended supplier</strong> @(recommendedOffer?.Invitation.SupplierProfile.CompanyName ?? "Unavailable")</p>
                 <h3 class="h5">Committee report</h3>
