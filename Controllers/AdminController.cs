@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net.Mail;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,70 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
     IConfiguration configuration, IWebHostEnvironment environment) : Controller
 {
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
+
+    [HttpGet]
+    public async Task<IActionResult> ContactMessages(int? before, string? search, string? status, CancellationToken cancellationToken)
+    {
+        var messages = db.ContactMessages.AsNoTracking();
+        search = search?.Trim();
+        if (search is { Length: > 254 }) search = search[..254];
+        if (!string.IsNullOrEmpty(search))
+            messages = messages.Where(message => message.Subject.Contains(search) ||
+                message.FullName.Contains(search) || message.Email.Contains(search));
+        if (status == "Unread")
+            messages = messages.Where(message => message.Status == "Unread");
+        else if (status == "Read")
+            messages = messages.Where(message => message.Status == "Read" || message.Status == "Replied");
+        ViewData["ContactStatus"] = status;
+        ViewData["ContactSearch"] = search;
+
+        if (before.HasValue)
+            messages = messages.Where(message => message.ContactMessageId < before.Value);
+
+        return View(await messages.OrderByDescending(message => message.ContactMessageId)
+            .Take(26).ToListAsync(cancellationToken));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ContactMessageDetails(int id, CancellationToken cancellationToken)
+    {
+        var message = await db.ContactMessages.AsNoTracking()
+            .SingleOrDefaultAsync(row => row.ContactMessageId == id, cancellationToken);
+        if (message == null) return NotFound();
+
+        var userId = users.GetUserId(User);
+        var detailsUrl = message.AdminDetailsUrl;
+        ViewData["CanMarkContactRead"] = message.Status == "Unread" ||
+            await db.Notifications.AnyAsync(notification => notification.UserId == userId &&
+                notification.RelativeUrl == detailsUrl && !notification.IsRead, cancellationToken);
+        var address = message.Email.Trim();
+        if (!address.Any(char.IsControl) && MailAddress.TryCreate(address, out var recipient) &&
+            string.Equals(recipient.Address, address, StringComparison.Ordinal))
+        {
+            var subject = new string(message.Subject.Select(c => char.IsControl(c) ? ' ' : c).ToArray());
+            ViewData["ContactReplyMailto"] = $"mailto:{Uri.EscapeDataString(recipient.User)}@{Uri.EscapeDataString(recipient.Host)}?subject={Uri.EscapeDataString($"Re: {subject}")}";
+        }
+        return View(nameof(ContactMessageDetails), message);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkContactMessageRead(int id, CancellationToken cancellationToken)
+    {
+        var message = await db.ContactMessages.AsNoTracking()
+            .SingleOrDefaultAsync(row => row.ContactMessageId == id, cancellationToken);
+        if (message == null) return NotFound();
+
+        var userId = users.GetUserId(User);
+        var detailsUrl = message.AdminDetailsUrl;
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.ContactMessages.Where(row => row.ContactMessageId == id && row.Status == "Unread")
+            .ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, "Read"), cancellationToken);
+        await db.Notifications.Where(notification => notification.UserId == userId &&
+                notification.RelativeUrl == detailsUrl && !notification.IsRead)
+            .ExecuteUpdateAsync(set => set.SetProperty(notification => notification.IsRead, true), cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return RedirectToAction(nameof(ContactMessageDetails), new { id });
+    }
     public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
     {
         var model = new AdminDashboardViewModel

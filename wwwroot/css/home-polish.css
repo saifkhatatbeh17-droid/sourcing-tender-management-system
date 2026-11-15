@@ -60,3 +60,20 @@ body:has(.landing-main) .pharma-footer { background:#123032; border-top:0; }
 .home-step-number { display:inline-grid; place-items:center; width:36px; height:36px; border-radius:12px; background:#ffe6df; color:#74351f; }
 .home-access-links a:first-child > span:last-child { display:grid; place-items:center; flex:0 0 42px; height:42px; border-radius:50%; background:var(--brand-highlight); color:var(--brand-highlight-ink); }
 @media(prefers-reduced-motion:no-preference) { .landing-hero-actions .landing-primary { transition:background .18s,border-color .18s,transform .18s; } .landing-hero-actions .landing-primary:hover { transform:translateY(-2px); } .landing-hero-actions .landing-primary:active { transform:translateY(0); } }
+
+html[data-theme="dark"] .landing-main { background:#171a1b; color:#f1f3f2; }
+html[data-theme="dark"] .landing-main .home-about,
+html[data-theme="dark"] .landing-main .home-access { background:#232728; }
+html[data-theme="dark"] .landing-main .home-process { background:#202425; }
+html[data-theme="dark"] .landing-main :is(.home-section h2, .home-steps h3, .home-principles dt,
+    .home-access-links a, .home-access-links strong) { color:#f1f3f2; }
+html[data-theme="dark"] .landing-main :is(.home-section p:not(.home-label), .home-steps p,
+    .home-principles dd, .home-access-links small, .home-process-film figcaption) { color:#bcc5c2; }
+html[data-theme="dark"] .landing-main :is(.home-text-link, .home-principles dt span,
+    .home-access-links a > span:last-child) { color:#75d7cc; }
+html[data-theme="dark"] .landing-main .home-text-link:hover { color:#a1f2e0; }
+html[data-theme="dark"] .landing-main .home-principles > div,
+html[data-theme="dark"] .landing-main .home-steps li { border-color:#455c58; }
+html[data-theme="dark"] .landing-main .home-access-links a:first-child { background:#303536; border-color:#455c58; }
+html[data-theme="dark"] .landing-main .home-access-links a:hover { background:#37413f; border-color:#699b91; }
+html[data-theme="dark"] .landing-main .home-process-film video { background:#232728; border-color:#455c58; }

@@ -14,6 +14,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Clarification> Clarifications { get; set; }
     public DbSet<ClarificationResponse> ClarificationResponses { get; set; }
     public DbSet<CommitteeAssignment> CommitteeAssignments { get; set; }
+    public DbSet<ContactMessage> ContactMessages { get; set; }
     public DbSet<Department> Departments { get; set; }
     public DbSet<Evaluation> Evaluations { get; set; }
     public DbSet<EvaluationCriterion> EvaluationCriteria { get; set; }
@@ -361,6 +362,25 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
             entity.HasOne(d => d.User).WithMany(p => p.Notifications)
                 .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ContactMessage>(entity =>
+        {
+            entity.HasKey(message => message.ContactMessageId);
+            entity.Property(message => message.FullName).HasMaxLength(120).IsRequired();
+            entity.Property(message => message.Email).HasMaxLength(254).IsRequired();
+            entity.Property(message => message.Subject).HasMaxLength(150).IsRequired();
+            entity.Property(message => message.Message).HasMaxLength(2000).IsRequired();
+            entity.Property(message => message.Status).HasMaxLength(20).HasDefaultValue("Unread").IsRequired();
+            entity.Property(message => message.SubmittedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.HasIndex(message => new { message.Status, message.SubmittedAt });
+            entity.Property(message => message.ReplyText).HasMaxLength(4000);
+            entity.ToTable("ContactMessages", table =>
+                table.HasCheckConstraint("CK_ContactMessages_Status", "([Status]='Unread' OR [Status]='Read' OR [Status]='Replied')"));
+            entity.HasOne<ApplicationUser>().WithMany().HasForeignKey(message => message.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne<ApplicationUser>().WithMany().HasForeignKey(message => message.RepliedByUserId)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 

@@ -1,6 +1,7 @@
+@model ContactMessageInputModel
 @{ ViewData["Title"] = "Contact Us"; }
 
-<partial name="_ContactSection" />
+<partial name="_ContactSection" model="Model" />
 
 @section Styles {
     <link rel="stylesheet" href="~/css/public-guide.css" asp-append-version="true" />

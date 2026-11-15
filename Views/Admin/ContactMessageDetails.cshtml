@@ -1,0 +1,34 @@
+@model SourcingTenderManagement.Models.Entities.ContactMessage
+@{ ViewData["Title"] = "Contact message"; }
+
+<section class="workspace-section">
+    <a asp-action="ContactMessages">All contact messages</a>
+    <h1 class="text-break">@Model.Subject</h1>
+    <dl>
+        <dt>Sender</dt>
+        <dd class="text-break">@Model.FullName</dd>
+        <dt>Email address</dt>
+        <dd class="text-break">@Model.Email</dd>
+        <dt>Submitted (UTC)</dt>
+        <dd>@Model.SubmittedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+        <dt>Status</dt>
+        <dd>@(Model.Status == "Replied" ? "Read" : Model.Status)</dd>
+    </dl>
+    <h2>Message</h2>
+    <p class="text-break" style="white-space: pre-wrap">@Model.Message</p>
+    @if (ViewData["CanMarkContactRead"] is true)
+    {
+        <form asp-action="MarkContactMessageRead" asp-route-id="@Model.ContactMessageId" method="post">
+            <button type="submit" class="btn btn-primary">Mark as read</button>
+        </form>
+    }
+    <hr />
+    @if (ViewData["ContactReplyMailto"] is string replyLink)
+    {
+        <a class="btn btn-primary" href="@replyLink">Reply by Email</a>
+    }
+    else
+    {
+        <p class="text-secondary mb-0">The saved email address is not valid for replying.</p>
+    }
+</section>

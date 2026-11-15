@@ -1,0 +1,56 @@
+@model IReadOnlyList<SourcingTenderManagement.Models.Entities.ContactMessage>
+@{
+    ViewData["Title"] = "Contact messages";
+    var search = ViewData["ContactSearch"] as string;
+    var status = ViewData["ContactStatus"] as string;
+}
+
+<section class="workspace-section">
+    <h1>Contact messages</h1>
+    <form asp-action="ContactMessages" method="get" class="d-flex flex-wrap gap-2 align-items-end mb-3">
+        <div>
+            <label for="contact-search">Search messages</label>
+            <input id="contact-search" name="search" type="search" value="@search" maxlength="254" class="form-control" />
+        </div>
+        <div>
+            <label for="contact-status">Status</label>
+            <select id="contact-status" name="status" class="form-select">
+                <option value="">All statuses</option>
+                @foreach (var option in new[] { "Unread", "Read" })
+                {
+                    <option value="@option" selected="@(status == option)">@option</option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+    </form>
+    @if (Model.Count == 0)
+    {
+        <p>No contact messages to display.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead><tr><th scope="col">Subject</th><th scope="col">Sender</th><th scope="col">Email</th><th scope="col">Submitted (UTC)</th><th scope="col">Status</th></tr></thead>
+                <tbody>
+                    @foreach (var message in Model.Take(25))
+                    {
+                        <tr>
+                            <th scope="row"><a asp-action="ContactMessageDetails" asp-route-id="@message.ContactMessageId">@message.Subject</a></th>
+                            <td>@message.FullName</td>
+                            <td class="text-break">@message.Email</td>
+                            <td>@message.SubmittedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@(message.Status == "Replied" ? "Read" : message.Status)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.Count > 25)
+        {
+            <a asp-action="ContactMessages" asp-route-before="@Model[24].ContactMessageId"
+               asp-route-search="@search" asp-route-status="@status">Older messages</a>
+        }
+    }
+</section>

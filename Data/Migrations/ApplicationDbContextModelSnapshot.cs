@@ -643,6 +643,76 @@ namespace SourcingTenderManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.ContactMessage", b =>
+                {
+                    b.Property<int>("ContactMessageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ContactMessageId"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("RepliedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RepliedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("ReplyAttemptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReplyText")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Unread");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(sysutcdatetime())");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ContactMessageId");
+
+                    b.HasIndex("RepliedByUserId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Status", "SubmittedAt");
+
+                    b.ToTable("ContactMessages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ContactMessages_Status", "([Status]='Unread' OR [Status]='Read' OR [Status]='Replied')");
+                        });
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.Department", b =>
                 {
                     b.Property<int>("DepartmentId")
@@ -1689,6 +1759,19 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("Tender");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.ContactMessage", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RepliedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("SourcingTenderManagement.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction);
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.Evaluation", b =>

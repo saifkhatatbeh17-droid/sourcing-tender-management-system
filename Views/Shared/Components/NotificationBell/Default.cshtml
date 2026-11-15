@@ -29,6 +29,9 @@
             }
             </ul>
         }
-        <!-- TEAM TODO: Add an authorized mark-as-read action when notification processing is implemented. -->
+        @if (User.IsInRole(SourcingTenderManagement.Data.RoleNames.Admin))
+        {
+            <a class="dropdown-item" asp-controller="Admin" asp-action="ContactMessages">Contact messages</a>
+        }
     </div>
 </div>

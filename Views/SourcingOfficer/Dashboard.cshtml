@@ -9,7 +9,7 @@
         new DashboardMetric("Offers needing review", Convert.ToString(ViewBag.PendingCompliance) ?? "0", "Offers awaiting a compliance decision", false, "Offers")
     };
 }
-<div class="unified-dashboard">
+<div class="unified-dashboard so-page so-page--dashboard">
     <header class="dashboard-heading"><div><h1>Sourcing officer dashboard</h1><p>Your requests, tenders, supplier offers, and evaluation handoffs.</p></div><a class="dashboard-cta" asp-action="Requests">Review requests <span aria-hidden="true">↗</span></a></header>
     <section class="dashboard-metrics" aria-label="Sourcing activity">
         @foreach (var metric in metrics) { <partial name="_DashboardMetric" model="metric" /> }
