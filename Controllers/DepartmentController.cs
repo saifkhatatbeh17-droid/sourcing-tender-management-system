@@ -78,6 +78,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         form.ApplyTo(request);
         db.PurchaseRequests.Add(request);
         await db.SaveChangesAsync();
+        TempData["ActionSuccess"] = "Purchase request submitted to the sourcing officer for review.";
         return RedirectToAction(nameof(Details), new { id = request.PurchaseRequestId });
     }
 
@@ -132,6 +133,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         form.ApplyTo(request);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        TempData["ActionSuccess"] = "Updated request resubmitted to the sourcing officer.";
         return RedirectToAction(nameof(Details), new { id });
     }
 

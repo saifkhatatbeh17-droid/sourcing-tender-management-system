@@ -122,12 +122,14 @@ html body:has(.workspace-shell) .workspace-navbar nav { max-width:var(--workspac
 body:has(.workspace-shell):has(.unified-dashboard) { --workspace-content-width:1280px; }
 /* Nested role groups must fill the rail even while their labels are hidden. */
 .workspace-shell .admin-sidebar-top { display:flex; flex-direction:column; flex:1; min-height:0; min-width:0; width:100%; }
-.workspace-shell .admin-sidebar-nav { align-self:stretch; width:100%; min-width:0; overflow-y:auto; overflow-x:hidden; }
+.workspace-shell .admin-sidebar-nav { align-self:stretch; width:100%; min-width:0; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#006d7080 transparent; }
 .workspace-shell .workspace-role-branch { width:100%; min-width:0; }
 .workspace-shell .workspace-branch-pages { min-width:0; }
 .workspace-shell .is-single-role .workspace-branch-pages { width:100%; }
 @media(min-width:651px) {
- .workspace-shell .admin-sidebar.is-collapsed .admin-sidebar-nav { padding-inline:0; }
+ .workspace-shell > .admin-sidebar { overflow:hidden; }
+ .workspace-shell .admin-sidebar.is-collapsed .admin-sidebar-nav { padding-inline:0; scrollbar-width:none; }
+ .workspace-shell .admin-sidebar.is-collapsed .admin-sidebar-nav::-webkit-scrollbar { display:none; }
  .workspace-shell .admin-sidebar.is-collapsed .is-single-role .admin-sidebar-item { width:48px; min-height:48px; margin-inline:auto; border-radius:14px; }
  .workspace-shell .admin-sidebar.is-collapsed .admin-sidebar-bottom .admin-sidebar-item { width:48px; margin-inline:auto; }
 }

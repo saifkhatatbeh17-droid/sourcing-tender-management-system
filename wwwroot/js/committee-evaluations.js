@@ -66,6 +66,13 @@
             if (saved?.matches('[data-bs-toggle="tab"]')) bootstrap.Tab.getOrCreateInstance(saved).show();
         } catch { /* Keep the default tab when storage is unavailable. */ }
     }
+    if (navigation.searchParams.get('focus') === 'ai') {
+        const ai = page.querySelector('#ai-offers');
+        const scrollToAi = () => { ai?.focus({ preventScroll: true }); ai?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' }); };
+        requestAnimationFrame(scrollToAi);
+        navigation.searchParams.delete('focus');
+        history.replaceState(null, '', navigation);
+    }
     page.querySelector('[data-ai-comparison]')?.addEventListener('submit', event => {
         const form = event.currentTarget;
         const technical = form.elements.requirementsWeight;

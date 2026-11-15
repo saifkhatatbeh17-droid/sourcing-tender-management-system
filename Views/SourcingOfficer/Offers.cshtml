@@ -1,159 +1,107 @@
 @using SourcingTenderManagement.Models.Entities
 @model List<Bid>
 @{
-    ViewData["Title"] = "Received Offers";
-    var selectedBid = ViewBag.SelectedBid as Bid;
+    ViewData["Title"] = "Tender workspace";
     var tenders = ViewBag.OfferTenders as List<Tender> ?? [];
-    var suppliers = ViewBag.OfferSuppliers as List<SupplierProfile> ?? [];
-    var tenderFilter = ViewBag.TenderFilter as int?;
-    var supplierFilter = ViewBag.SupplierFilter as int?;
-    var statusFilter = ViewBag.StatusFilter as string ?? "All";
+    var tender = ViewBag.SelectedTender as Tender;
+    var questions = ViewBag.OpenQuestions as List<int> ?? [];
+    var members = ViewBag.WorkspaceMembers as List<CommitteeAssignment> ?? [];
+    var approvals = ViewBag.WorkspaceApprovals as List<TenderApproval> ?? [];
+    var invitations = ViewBag.WorkspaceInvitations as List<Invitation> ?? [];
+    var canInvite = tender != null && (tender.Status == "Draft" || ((tender.Status is "Published" or "Open") && tender.ClosesAt > DateTime.UtcNow));
+    var editable = tender?.Status is "Published" or "Open" or "Closed";
 }
-
-@section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
-
-<div class="so-page so-page--offers">
-<header class="so-page-header"><div>
-<h1>Received offers</h1>
-<p class="so-page-description">Find supplier bids and review their documents and pricing.</p></div></header>
-<section class="so-summary-grid" aria-label="Offer summary">
-    <article class="so-summary-card"><span class="so-summary-label">Offers in this view</span><strong>@Model.Count</strong></article>
-    <article class="so-summary-card"><span class="so-summary-label">Tenders represented</span><strong>@Model.Select(bid => bid.Invitation.TenderId).Distinct().Count()</strong></article>
-    <article class="so-summary-card"><span class="so-summary-label">Compliant</span><strong>@Model.Count(bid => bid.ComplianceStatus == "Compliant")</strong></article>
-</section>
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Received Offers">
-    <button class="nav-link @(selectedBid == null ? "active" : "")" id="offers-list-tab" data-bs-toggle="tab" data-bs-target="#offers-list" type="button" role="tab" aria-controls="offers-list" aria-selected="@(selectedBid == null ? "true" : "false")">Offers</button>
-    <button class="nav-link @(selectedBid != null ? "active" : "")" id="offers-details-tab" data-bs-toggle="tab" data-bs-target="#offers-details" type="button" role="tab" aria-controls="offers-details" aria-selected="@(selectedBid != null ? "true" : "false")">Offer Details</button>
+@section Styles {
+    <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/offer-review.css" asp-append-version="true" />
+}
+<div class="so-page offer-review">
+<header class="so-page-header"><div><h1>Tender workspace</h1><p class="so-page-description">Publish and invite, review offers, and follow the committee decision in one place.</p></div><a class="btn btn-primary" asp-action="Create">Prepare tender ＋</a></header>
+@if (TempData["TenderSuccess"] is string success) { <div class="alert alert-success" role="status">@success</div> }
+@if (TempData["TenderError"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
+@if (TempData["EvaluationSuccess"] is string reviewSuccess) { <div class="alert alert-success" role="status">@reviewSuccess</div> }
+@if (TempData["EvaluationError"] is string reviewError) { <div class="alert alert-danger" role="alert">@reviewError</div> }
+@if (TempData["ComplianceSuccess"] is string saved) { <div class="alert alert-success" role="status">@saved</div> }
+@if (TempData["ComplianceError"] is string failed) { <div class="alert alert-danger" role="alert">@failed</div> }
+<form asp-action="Offers" method="get" class="offer-picker">
+    <div><label for="review-tender">Tender</label><select id="review-tender" name="tenderId" class="form-select">
+    @foreach (var item in tenders) { <option value="@item.TenderId" selected="@(item.TenderId == tender?.TenderId)">@item.Title · @item.Status</option> }
+    </select></div><button class="btn btn-outline-primary" disabled="@(tenders.Count == 0)">Open tender</button>
+</form>
+@if (tender == null) { <section class="workspace-section"><h2>No tenders yet</h2><p>Prepare a tender from a purchase request to begin.</p><a asp-action="Create">Prepare tender →</a></section> }
+else
+{
+    <section class="offer-context">
+        <div><span class="text-secondary">Tender #@tender.TenderId</span><h2>@tender.Title</h2><p>@Model.Count offers · @Model.Count(b => b.ComplianceStatus == "Compliant") compliant</p></div>
+        <span class="so-status-badge">@SourcingTenderManagement.Models.CommitteeEvaluationPage.StatusLabel(tender.Status)</span>
+    </section>
+    @if (tender.Status == "UnderEvaluation")
+    {
+        <section class="workspace-section"><h2>Committee review in progress</h2><p>The committee is ready to choose an offer. @approvals.Count(a => a.Decision == "Approved") of 4 members have approved.</p><div class="tw-member-status">@foreach (var member in members) { <span>@SourcingTenderManagement.Models.CommitteeEvaluationPage.MemberName(member.Position) · @(approvals.Any(a => a.CommitteeAssignmentId == member.CommitteeAssignmentId && a.Decision == "Approved") ? "Approved" : "Pending")</span> }</div></section>
+    }
+    @if (ViewBag.WorkspaceReport is EvaluationReport { CommitteeSummary: not null }) { <partial name="_TenderReport" /> }
+    @if (questions.Count > 0)
+    {
+        <aside class="workspace-section" role="status"><h2>@questions.Count open questions</h2><p>Both participants must resolve these conversations before handoff.</p>
+        @foreach (var question in questions) { <a class="btn btn-outline-primary" asp-controller="Clarification" asp-action="Index" asp-route-id="@question">Open question #@question ↗</a> }
+        </aside>
+    }
+    <header class="tw-offers-heading"><div><h2>Supplier offers <span class="tw-offer-count">@Model.Count</span></h2><p>@(Model.Count == 0 ? "New submissions will appear here." : "Review each offer before sending to the committee.")</p></div><div class="tw-tools"><button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#tender-requirements">Requirements</button><button class="btn @(tender.Status == "Draft" ? "btn-primary" : "btn-outline-primary")" type="button" data-bs-toggle="modal" data-bs-target="#tender-suppliers">@(tender.Status == "Draft" ? "Publish & invite" : $"Suppliers · {invitations.Count}")</button></div></header>
+    <form asp-action="ReviewAndSend" method="post">
+        <input type="hidden" name="tenderId" value="@tender.TenderId" />
+        @if (Model.Count == 0)
+        {
+            <section class="tw-empty-offers" aria-label="No submitted offers">
+                <span class="tw-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16v13H4zM4 7l3-4h10l3 4M8 12h8M10 16h4"/></svg></span>
+                <h3>@(tender.Status == "Draft" ? "Ready when you are" : "Waiting for the first offer")</h3>
+                <p>@(tender.Status == "Draft" ? "Publish this tender and invite suppliers to begin." : invitations.Count == 0 ? "Invite suppliers using the Suppliers button above." : $"{invitations.Count} suppliers invited. Their submitted offers will appear here.")</p>
+                @if (tender.Status != "Draft") { <span class="tw-deadline">Submission deadline · @tender.ClosesAt.ToString("dd MMM yyyy, HH:mm") UTC</span> }
+            </section>
+        }
+        <div class="offer-review-list">
+        @foreach (var bid in Model)
+        {
+            var total = bid.BidItems.Sum(i => i.Quantity * i.UnitPrice) + bid.TaxAmount + bid.AdditionalCosts;
+            var finalDecision = bid.ComplianceStatus is "Compliant" or "NonCompliant";
+            <article class="offer-review-card">
+                <header><div><span class="text-secondary">Offer #@bid.BidId</span><h3>@bid.Invitation.SupplierProfile.CompanyName</h3></div><div class="offer-amount"><strong>@total.ToString("N2") @bid.Currency</strong><span>@bid.DeliveryDays-day delivery · Includes tax & additional costs</span></div></header>
+                <details open="@(ViewBag.SelectedBidId == bid.BidId)"><summary>Review requirements, pricing & documents</summary>
+                    <div class="offer-detail-columns"><section><h4>What was requested</h4><p>@bid.Invitation.Tender.Description</p>
+                    @foreach (var item in bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems) { <p><strong>@item.ItemName · @item.Quantity @item.Unit</strong><br />@item.Specifications</p> }
+                    </section><section><h4>What this supplier offers</h4><p>@bid.TechnicalDetails</p><p><strong>Payment:</strong> @bid.PaymentTerms</p><p><strong>Valid until:</strong> @bid.ValidUntil?.ToString("dd MMM yyyy")</p>
+                    @foreach (var item in bid.BidItems) { <p><strong>@item.PurchaseRequestItem.ItemName</strong><br />@item.OfferedSpecifications<br />@item.Quantity × @item.UnitPrice.ToString("N2") @bid.Currency</p> }
+                    @if (bid.BidDocuments.Count > 0) { <h4>Submitted documents</h4><ul>@foreach (var document in bid.BidDocuments) { <li>@document.OriginalFileName — @document.DocumentType</li> }</ul> }
+                    </section></div>
+                </details>
+                <footer>
+                    @if (editable && !finalDecision && (bid.Status is "Submitted" or "UnderReview"))
+                    {
+                        <fieldset><legend>Compliance decision</legend><label><input type="radio" name="decisions[@bid.BidId]" value="Compliant" required /> Compliant</label><label><input type="radio" name="decisions[@bid.BidId]" value="NonCompliant" required /> Non-compliant</label></fieldset>
+                    }
+                    else { <span class="so-status-badge">@(bid.ComplianceStatus == "NonCompliant" ? "Non-compliant" : bid.ComplianceStatus ?? bid.Status)</span> }
+                    <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid" asp-route-recordId="@bid.BidId">Ask a question ↗</a>
+                </footer>
+            </article>
+        }
+        </div>
+        @if (editable && Model.Count > 0)
+        {
+            <div class="offer-handoff"><div><strong>Ready for the committee?</strong><p>Saves all decisions and sends compliant offers together. No deadline wait or separate closure step. New submissions stop after sending.</p></div><button class="btn btn-primary" disabled="@(questions.Count > 0 || Model.Count == 0)">Send to committee →</button></div>
+        }
+    </form>
+    <div class="modal fade tw-dialog" id="tender-requirements" tabindex="-1" aria-labelledby="tender-requirements-title" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="tender-requirements-title">Purchase requirements</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><h3 class="fs-6">@tender.Title</h3><p class="tw-preserve">@tender.Description</p>@if (!string.IsNullOrWhiteSpace(tender.Terms)) { <h3 class="fs-6">Tender terms</h3><p class="tw-preserve">@tender.Terms</p> }<div class="tw-window"><span>Opens @tender.OpensAt.ToString("dd MMM yyyy, HH:mm") UTC</span><span>Closes @tender.ClosesAt.ToString("dd MMM yyyy, HH:mm") UTC</span></div></div></div></div></div>
+    <div class="modal fade tw-dialog" id="tender-suppliers" tabindex="-1" aria-labelledby="tender-suppliers-title" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="tender-suppliers-title">@(tender.Status == "Draft" ? "Publish & invite suppliers" : "Supplier invitations")</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">
+        @if (invitations.Count > 0)
+        {
+            <div class="tw-invited-list">@foreach (var invitation in invitations) { <div><strong>@invitation.SupplierProfile.CompanyName</strong><span class="so-status-badge">@invitation.Status</span></div> }</div>
+        }
+        else if (!canInvite) { <p>No suppliers were invited to this tender.</p> }
+        @if (canInvite)
+        {
+            <form asp-action="PublishAndInvite" method="post"><input type="hidden" name="id" value="@tender.TenderId" /><partial name="_LaunchSuppliers" /><div class="so-action-buttons"><button class="btn btn-primary">@(tender.Status == "Draft" ? "Publish & invite →" : "Send invitations →")</button><a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@tender.TenderId">Edit tender</a></div></form>
+        }
+    </div></div></div></div>
+}
 </div>
 
-<div class="tab-content workspace-content">
-    <div class="tab-pane fade @(selectedBid == null ? "show active" : "")" id="offers-list" role="tabpanel" aria-labelledby="offers-list-tab" tabindex="0">
-        <section class="workspace-section">
-            <h2>Received Offers</h2>
-            <form asp-action="Offers" method="get" class="row g-3 mb-3 so-filter-form">
-                <div class="col-md-4">
-                    <label for="tenderId" class="form-label">Tender</label>
-                    <select id="tenderId" name="tenderId" class="form-select">
-                        <option value="">All tenders</option>
-                        @foreach (var tender in tenders)
-                        {
-                            <option value="@tender.TenderId" selected="@(tenderFilter == tender.TenderId)">@tender.Title</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="supplierProfileId" class="form-label">Supplier</label>
-                    <select id="supplierProfileId" name="supplierProfileId" class="form-select">
-                        <option value="">All suppliers</option>
-                        @foreach (var supplier in suppliers)
-                        {
-                            <option value="@supplier.SupplierProfileId" selected="@(supplierFilter == supplier.SupplierProfileId)">@supplier.CompanyName</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="status" class="form-label">Status</label>
-                    <select id="status" name="status" class="form-select">
-                        @foreach (var status in new[] { "All", "Submitted", "UnderReview", "Compliant", "NonCompliant", "Accepted", "Rejected", "Withdrawn" })
-                        {
-                            <option value="@status" selected="@(statusFilter == status)">@status</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-1 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                </div>
-            </form>
-
-            @if (Model.Count == 0)
-            {
-                <p class="text-secondary">No submitted offers match these filters.</p>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr><th>Tender</th><th>Supplier</th><th>Submitted (UTC)</th><th>Status</th><th>Offer Total</th><th></th></tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var bid in Model)
-                            {
-                                var total = bid.BidItems.Sum(i => i.Quantity * i.UnitPrice) + bid.TaxAmount + bid.AdditionalCosts;
-                                <tr>
-                                    <td>@bid.Invitation.Tender.Title</td>
-                                    <td>@bid.Invitation.SupplierProfile.CompanyName</td>
-                                    <td>@bid.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
-                                    <td><span class="so-status-badge" data-status="@bid.Status">@bid.Status</span></td>
-                                    <td>@total.ToString("N2") @bid.Currency</td>
-                                    <td><a class="btn btn-outline-primary btn-sm" asp-action="Offers" asp-route-id="@bid.BidId">Details</a></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </section>
-    </div>
-
-    <div class="tab-pane fade @(selectedBid != null ? "show active" : "")" id="offers-details" role="tabpanel" aria-labelledby="offers-details-tab" tabindex="0">
-        <section class="workspace-section">
-            <h2>Offer Details</h2>
-            @if (selectedBid is null)
-            {
-                <p class="text-secondary">Select a submitted offer to view its details.</p>
-            }
-            else
-            {
-                <dl>
-                    <dt>Tender</dt><dd>@selectedBid.Invitation.Tender.Title</dd>
-                    <dt>Supplier</dt><dd>@selectedBid.Invitation.SupplierProfile.CompanyName</dd>
-                    <dt>Submission Date (UTC)</dt><dd>@selectedBid.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</dd>
-                    <dt>Status</dt><dd><span class="so-status-badge" data-status="@selectedBid.Status">@selectedBid.Status</span></dd>
-                    <dt>Compliance Status</dt><dd><span class="so-status-badge" data-status="@(selectedBid.ComplianceStatus ?? "Pending")">@(selectedBid.ComplianceStatus ?? "Pending review")</span></dd>
-                    <dt>Currency</dt><dd>@selectedBid.Currency</dd>
-                    <dt>Delivery Days</dt><dd>@selectedBid.DeliveryDays</dd>
-                    <dt>Payment Terms</dt><dd>@selectedBid.PaymentTerms</dd>
-                    <dt>Valid Until</dt><dd>@selectedBid.ValidUntil?.ToString("yyyy-MM-dd")</dd>
-                    <dt>Technical Details</dt><dd>@selectedBid.TechnicalDetails</dd>
-                    <dt>Tax</dt><dd>@selectedBid.TaxAmount.ToString("N2") @selectedBid.Currency</dd>
-                    <dt>Additional Costs</dt><dd>@selectedBid.AdditionalCosts.ToString("N2") @selectedBid.Currency</dd>
-                </dl>
-
-                <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid" asp-route-recordId="@selectedBid.BidId" class="btn btn-outline-primary mb-3">Ask for clarification</a>@await Component.InvokeAsync("ClarificationHistory", new { kind = "bid", recordId = selectedBid.BidId })<h3>Offered Items</h3>
-                @if (selectedBid.BidItems.Count == 0)
-                {
-                    <p class="text-secondary">No item prices are stored for this offer.</p>
-                }
-                else
-                {
-                    <div class="table-responsive"><table class="table">
-                        <thead><tr><th>Requested Item</th><th>Quantity</th><th>Unit Price</th><th>Line Total</th><th>Offered Specifications</th></tr></thead>
-                        <tbody>
-                            @foreach (var item in selectedBid.BidItems)
-                            {
-                                <tr><td>@item.PurchaseRequestItem.ItemName</td><td>@item.Quantity</td><td>@item.UnitPrice.ToString("N2") @selectedBid.Currency</td><td>@((item.Quantity * item.UnitPrice).ToString("N2")) @selectedBid.Currency</td><td>@item.OfferedSpecifications</td></tr>
-                            }
-                        </tbody>
-                    </table></div>
-                }
-
-                <h3>Documents</h3>
-                @if (selectedBid.BidDocuments.Count == 0)
-                {
-                    <p class="text-secondary">No document metadata is available.</p>
-                }
-                else
-                {
-                    <ul>
-                        @foreach (var document in selectedBid.BidDocuments)
-                        {
-                            <li>@document.OriginalFileName — @document.DocumentType, @document.ContentType, @document.FileSizeBytes bytes (uploaded @document.UploadedAt.ToString("yyyy-MM-dd HH:mm") UTC)</li>
-                        }
-                    </ul>
-                }
-            }
-        </section>
-    </div>
-</div>
-</div>
+@section Scripts { <script src="~/js/officer-report-review.js" asp-append-version="true"></script> }

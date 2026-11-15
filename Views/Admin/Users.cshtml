@@ -200,15 +200,6 @@ else
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        document.addEventListener('submit', event => {
-            const form = event.target;
-            if (form.matches('form[data-confirm-disable="true"]')
-                && !form.querySelector('input[type="checkbox"][name="IsActive"]').checked
-                && !window.confirm('Disable the account for ' + form.dataset.accountName + '?')) {
-                event.preventDefault();
-            }
-        });
-
         const createForm = document.getElementById('create-user-form');
         const roleSelect = createForm.querySelector('[name="Role"]');
         const committeeSelect = createForm.querySelector('[name="CommitteeRole"]');

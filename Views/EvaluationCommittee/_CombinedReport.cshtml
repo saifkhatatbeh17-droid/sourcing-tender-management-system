@@ -16,7 +16,7 @@
     else { <strong>No offer recommended yet</strong><p>The recommendation appears once the committee prepares its report.</p> }
     </div></section>
     <section class="cw-report-copy" aria-labelledby="findings-heading"><header><h3 id="findings-heading">Committee report</h3><span class="cw-status">@(report == null ? "Not prepared" : CommitteeEvaluationPage.StatusLabel(report.Status))</span></header>
-    @if(!string.IsNullOrWhiteSpace(report?.CommitteeSummary)) { <p>@report.CommitteeSummary</p> }
+    @if(!string.IsNullOrWhiteSpace(report?.CommitteeSummary)) { <p class="ev-report-text">@report.CommitteeSummary</p> }
     else { <div class="cw-report-missing"><p>No report has been prepared for this tender. After all four approvals, generate it in the evaluation workspace.</p></div> }
     </section>
     @if(!string.IsNullOrWhiteSpace(report?.OfficerSummary)) { <section class="cw-officer-note"><h3>Sourcing officer review</h3><p>@report.OfficerSummary</p></section> }

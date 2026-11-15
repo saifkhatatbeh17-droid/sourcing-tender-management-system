@@ -4,7 +4,6 @@
     ViewData["Title"] = "Tender evaluations";
     var tender = Model.Tender;
     var offers = Model.Offers;
-    var me = Model.Members.SingleOrDefault(m => m.UserId == Model.UserId);
     var currenciesMatch = offers.Select(o => o.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1;
     string StatusLabel(string status) => status switch { "UnderEvaluation" => "Under evaluation", "AwaitingOfficerSummary" => "Sent to sourcing officer", _ => System.Text.RegularExpressions.Regex.Replace(status, "([a-z])([A-Z])", "$1 $2") };
 }
@@ -14,9 +13,7 @@
     <link rel="stylesheet" href="~/css/committee-evaluations-webex.css" asp-append-version="true" />
 }
 <div class="evaluation-page">
-    <header class="ev-page-heading">
-        <div><h1>Tender evaluations</h1></div>
-    </header>
+    @if (tender == null) { <header class="ev-page-heading"><div><h1>Tender evaluations</h1></div></header> }
     @if (TempData["CommitteeError"] is string error) { <div class="ev-notice ev-notice-error" role="alert">@error</div> }
     @if (TempData["CommitteeSuccess"] is string success) { <div class="ev-notice ev-notice-success" role="status">@success</div> }
     <div class="ev-tender-content">
@@ -24,21 +21,18 @@
     @if (tender != null)
     {
         <div class="ev-selected-tender">
-            <div><span class="ev-tender-reference">Tender #@tender.TenderId</span><h2>@tender.Title</h2></div>
+            <div class="ev-current-title"><h1>Tender evaluations<span class="ev-title-period" aria-hidden="true">.</span></h1><p class="ev-current-tender"><span class="ev-tender-reference">#@tender.TenderId</span> @tender.Title</p></div>
             <div class="ev-tender-header-actions">
                 <span class="ev-status">@StatusLabel(tender.Status)</span>
                 <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender" asp-route-recordId="@tender.TenderId" class="btn ev-button-secondary ev-ask-clarification">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 8h8M8 12h5"/></svg>Ask for clarification
                 </a>
+                <details class="ev-clarification-history ev-header-history">
+                    <summary><span>History</span><span class="ev-clarification-toggle" aria-hidden="true">⌄</span></summary>
+                    <div>@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = tender.TenderId })</div>
+                </details>
             </div>
         </div>
-    }
-    @if (tender != null)
-    {
-        <details class="ev-clarification-history">
-            <summary><span>Clarification history</span><span class="ev-clarification-toggle" aria-hidden="true">⌄</span></summary>
-            <div>@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = tender.TenderId })</div>
-        </details>
     }
     @if (tender == null)
     {
@@ -46,17 +40,6 @@
     }
     else
     {
-        @if (!Model.Locked && (Model.Members.Count == 0 || (me != null && !Model.Approvals.Any(a => a.UserId == Model.UserId))))
-        {
-        <div class="ev-tender-heading">
-        @if (Model.Members.Count == 0 && !Model.Locked)
-        { <form asp-action="Start" method="post"><input type="hidden" name="id" value="@tender.TenderId" /><button class="btn ev-button-primary">Start evaluation</button></form> }
-        else if (me != null && !Model.Locked && !Model.Approvals.Any(a => a.UserId == Model.UserId))
-        { <button type="button" class="btn ev-button-primary" data-open-evaluation-tab="forms-tab">Review weights <span aria-hidden="true">↗</span></button> }
-        </div>
-        }
-        @if (Model.Members.Count == 0)
-        { <p class="ev-start-hint">Start the evaluation to set shared weights and collect the four member approvals.</p> }
         @if (Model.Locked)
         {
             <div class="ev-workflow-note" role="status"><p>Read-only evaluation</p><button type="button" class="btn ev-button-secondary" data-open-evaluation-tab="report-tab">View report</button></div>
@@ -71,17 +54,20 @@
         </div>
         <div class="tab-content ev-tab-content">
             <div class="tab-pane fade show active" id="offers" role="tabpanel" aria-labelledby="offers-tab" tabindex="0">
-                <section class="ev-tender-brief" aria-labelledby="tender-brief-heading">
-                    <header><span class="ev-brief-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 12h6M9 16h6"/></svg></span><div><span class="ev-brief-kicker">Tender brief</span><h3 id="tender-brief-heading">Purchase requirements &amp; specifications</h3></div><span class="ev-brief-count">@tender.PurchaseRequest.PurchaseRequestItems.Count requested item(s)</span></header>
+                <details class="ev-tender-brief ev-brief-disclosure" aria-labelledby="tender-brief-heading">
+                    <summary><span class="ev-brief-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 12h6M9 16h6"/></svg></span><div><span class="ev-brief-kicker">Tender brief</span><h3 id="tender-brief-heading">Purchase requirements &amp; specifications</h3></div><span class="ev-brief-count">@tender.PurchaseRequest.PurchaseRequestItems.Count items · View requirements <span aria-hidden="true">⌄</span></span></summary>
                     <div class="ev-brief-body"><div class="ev-brief-overview"><h4>What we need</h4><p class="ev-brief-description">@tender.Description</p></div>
                     <div class="ev-brief-items">
                 @foreach (var item in tender.PurchaseRequest.PurchaseRequestItems)
                 { <article><div><h4>@item.ItemName</h4><span>@item.Quantity.ToString("0.###") @item.Unit</span></div><p>@item.Specifications</p></article> }
                     </div>
                     </div><details class="ev-brief-terms"><summary>Tender terms &amp; dates <span aria-hidden="true">⌄</span></summary><dl><div><dt>Terms</dt><dd>@(string.IsNullOrWhiteSpace(tender.Terms) ? "No additional terms provided." : tender.Terms)</dd></div><div><dt>Opened (UTC)</dt><dd>@tender.OpensAt.ToString("dd MMM yyyy · HH:mm")</dd></div><div><dt>Submission deadline (UTC)</dt><dd>@tender.ClosesAt.ToString("dd MMM yyyy · HH:mm")</dd></div></dl></details>
-                </section>
+                </details>
                 <partial name="_AiBidRecommendation" model="Model" />
-                <div class="ev-section-heading"><div><h3>Eligible offers <span class="ev-subtle">(@offers.Count)</span></h3></div><span class="ev-subtle">Totals include tax &amp; additional costs</span></div>
+                <div class="ev-section-heading"><div><h3>Eligible offers <span class="ev-subtle">(@offers.Count)</span></h3></div><div class="ev-offers-tools"><span class="ev-subtle">Totals include tax &amp; fees</span>
+                @if (Model.AiRecommendation?.Scenarios.Any() == true) { <button type="button" class="btn ev-button-secondary" data-bs-toggle="collapse" data-bs-target="#offer-comparison" aria-expanded="false" aria-controls="offer-comparison">Compare all @offers.Count offers <span aria-hidden="true">↔</span></button> }
+                </div></div>
+                <partial name="_AiOfferComparison" model="Model" />
                 @if (offers.Count == 0) { <div class="ev-empty"><h4>No eligible offers yet</h4><p>The sourcing officer needs to complete compliance review.</p></div> }
                 <div class="ev-offer-grid">
                 @foreach (var offer in offers)

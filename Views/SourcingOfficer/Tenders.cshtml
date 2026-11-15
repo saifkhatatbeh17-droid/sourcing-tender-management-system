@@ -5,7 +5,6 @@
     var approvedRequests = ViewBag.ApprovedPurchaseRequests as List<PurchaseRequest> ?? [];
     var createTender = ViewBag.CreateTender as SourcingOfficerTenderForm ?? new SourcingOfficerTenderForm();
     var editTender = ViewBag.EditTender as SourcingOfficerTenderForm;
-    var canSendToEvaluation = ViewBag.CanSendToEvaluation is bool eligible && eligible;
     var draftTenderCount = Model.Tenders.Count(tender => tender.Status == "Draft");
     var publishedTenderCount = Model.Tenders.Count(tender => tender.Status == "Published");
 }
@@ -43,7 +42,7 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
 <!-- TEAM TODO: Add announcement/closure processing here after the approved final decision. The officer does not choose a winner independently. --></section>
 @if (Model.SelectedTender is { } actionTender)
 {
-    <section class="so-action-panel"><div><h2>Available actions</h2><p>Tenders close automatically at the submission deadline. Complete compliance review before sending them to evaluation.</p></div><div class="so-action-buttons">
+    <section class="so-action-panel"><div><h2>Available actions</h2><p>You can send a tender to evaluation before its deadline once compliance review is complete. Sending stops further offer submissions.</p></div><div class="so-action-buttons">
         @if (actionTender.Status == "Draft")
         {
             <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@actionTender.TenderId">Edit Tender</a>
@@ -53,23 +52,19 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
                 <button type="submit" class="btn btn-primary">Publish Tender</button>
             </form>
         }
-        @if (actionTender.Status == "Closed" && canSendToEvaluation)
+        @if ((actionTender.Status is "Published" or "Open") && actionTender.ClosesAt > DateTime.UtcNow)
         {
-            <form asp-action="SendToEvaluation" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@actionTender.TenderId" />
-                <button type="submit" class="btn btn-primary">Send to Evaluation</button>
-            </form>
+            <a class="btn btn-primary" asp-action="Invitations" asp-route-tenderId="@actionTender.TenderId" asp-fragment="invitations-create">Invite suppliers →</a>
         }
-        else if (actionTender.Status == "Closed")
+        @if (actionTender.Status is "Published" or "Open" or "Closed")
         {
-            <p class="text-secondary mb-0">This Tender can be sent to Evaluation after every submitted bid has a final compliance decision and at least one bid is Compliant.</p>
+            <a class="btn btn-outline-primary" asp-action="Offers" asp-route-tenderId="@actionTender.TenderId">Review offers & send to committee →</a>
         }
     </div></section>
 }
 </div></div><div class="modal fade" id="tender-create" tabindex="-1" aria-labelledby="tender-create-title" aria-hidden="true">
 <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
-<div class="modal-header"><h2 class="modal-title fs-5" id="tender-create-title">Create Tender</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+<div class="modal-header"><h2 class="modal-title fs-5" id="tender-create-title">Prepare tender &amp; invite suppliers</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
 <form asp-action="Create" method="post">
 @Html.AntiForgeryToken()
 <div class="modal-body">
@@ -79,7 +74,7 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
         <p class="text-secondary" role="status">No eligible Purchase Requests are available. A request must be Approved and must not already have a Tender.</p>
     }
     <div class="mb-3">
-        <label for="PurchaseRequestId" class="form-label">Approved Purchase Request</label>
+        <label for="PurchaseRequestId" class="form-label">Purchase request</label>
         <select id="PurchaseRequestId" name="PurchaseRequestId" class="form-select" required disabled="@(approvedRequests.Count == 0)">
             <option value="">Select a purchase request</option>
             @foreach (var request in approvedRequests)
@@ -116,8 +111,9 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
             @Html.ValidationMessage("ClosesAt", "", new { @class = "text-danger" })
         </div>
     </div>
+<partial name="_LaunchSuppliers" />
 </div>
-<div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button><button type="submit" class="btn btn-primary" disabled="@(approvedRequests.Count == 0)">Save Tender</button></div>
+<div class="modal-footer"><button type="submit" name="launch" value="false" class="btn btn-outline-primary" disabled="@(approvedRequests.Count == 0)">Approve &amp; save draft</button><button type="submit" name="launch" value="true" class="btn btn-primary" disabled="@(approvedRequests.Count == 0)">Approve, publish &amp; invite →</button></div>
 </form>
 </div></div></div><div class="modal fade" id="tender-edit" tabindex="-1" aria-labelledby="tender-edit-title" aria-hidden="true">
 <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">

@@ -4,6 +4,7 @@
     ViewData["Title"] = "Supplier Invitations";
     var eligibleTenders = ViewBag.EligibleTenders as List<Tender> ?? [];
     var approvedSuppliers = ViewBag.ApprovedSuppliers as List<SupplierProfile> ?? [];
+    var selectedTenderId = ViewBag.SelectedTenderId as int?;
     var pendingInvitations = Model.Count(invitation => invitation.Status == "Pending");
     var invitedTenderCount = Model.Select(invitation => invitation.TenderId).Distinct().Count();
 }
@@ -22,6 +23,10 @@
 @if (TempData["InvitationError"] is string errorMessage)
 {
     <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+@if (selectedTenderId.HasValue && Model.Count > 0)
+{
+    <div class="so-next-step"><div><strong>Next: review supplier offers</strong><p>Invitations are sent. Submitted offers for this tender will appear in Offer review.</p></div><a class="btn btn-primary" asp-action="Offers" asp-route-tenderId="@selectedTenderId">Review offers →</a></div>
 }
 <section class="so-summary-grid" aria-label="Invitation summary">
     <article class="so-summary-card"><span class="so-summary-label">Invitations</span><strong>@Model.Count</strong></article>
@@ -50,12 +55,15 @@
 </section>
 <section id="invitations-create" class="so-action-panel so-action-panel--form" aria-labelledby="invitations-create-title">
     <div class="so-section-heading"><div><h2 id="invitations-create-title">Invite Approved Suppliers</h2></div><span class="so-section-count">@eligibleTenders.Count tenders</span></div>
-    @if (eligibleTenders.Count == 0) { <p class="alert alert-info mb-3">You do not have any Published tenders available for invitations.</p> }
+    @if (eligibleTenders.Count == 0)
+    {
+        <div class="so-invitation-unavailable"><h3>No tenders are ready for invitations</h3><p>Publish a tender with a future submission deadline first. Draft, expired and closed tenders cannot receive invitations.</p><a asp-action="Tenders" class="btn btn-primary">Manage &amp; publish tenders ↗</a></div>
+    }
     @if (approvedSuppliers.Count == 0) { <p class="alert alert-info mb-3">There are no Approved suppliers available.</p> }
     <form asp-action="CreateInvitation" method="post" class="so-invitation-form">
         @Html.AntiForgeryToken()
-        <div class="mb-3"><label for="tenderId" class="form-label">Published Tender</label><select id="tenderId" name="tenderId" class="form-select" required disabled="@(eligibleTenders.Count == 0)"><option value="">Select a tender</option>@foreach (var tender in eligibleTenders) { <option value="@tender.TenderId">@tender.Title (closes @tender.ClosesAt.ToString("yyyy-MM-dd HH:mm") UTC)</option> }</select></div>
-        <fieldset class="mb-3 so-supplier-picker" disabled="@(approvedSuppliers.Count == 0)"><legend class="fs-6">Approved Suppliers <span class="so-inline-count">@approvedSuppliers.Count</span></legend>
+        <div class="mb-3"><label for="tenderId" class="form-label">Published or open tender</label><select id="tenderId" name="tenderId" class="form-select" required disabled="@(eligibleTenders.Count == 0)"><option value="">@(eligibleTenders.Count == 0 ? "No eligible tenders — publish a tender first" : "Select a tender")</option>@foreach (var tender in eligibleTenders) { <option value="@tender.TenderId" selected="@(selectedTenderId == tender.TenderId)">@tender.Title (closes @tender.ClosesAt.ToString("yyyy-MM-dd HH:mm") UTC)</option> }</select></div>
+        <fieldset class="mb-3 so-supplier-picker" disabled="@(approvedSuppliers.Count == 0 || eligibleTenders.Count == 0)"><legend class="fs-6">Approved Suppliers <span class="so-inline-count">@approvedSuppliers.Count</span></legend>
             <div class="form-check mb-3"><input id="all-suppliers" name="allSuppliers" value="true" type="checkbox" class="form-check-input" /><label for="all-suppliers" class="form-check-label fw-semibold">Select all suppliers</label></div>
             <div class="so-supplier-list">@foreach (var supplier in approvedSuppliers) { <div class="form-check"><input id="supplier-@supplier.SupplierProfileId" name="supplierProfileIds" value="@supplier.SupplierProfileId" type="checkbox" class="form-check-input supplier-choice" /><label for="supplier-@supplier.SupplierProfileId" class="form-check-label">@supplier.CompanyName</label></div> }</div>
             <p class="form-text">Choose one or more suppliers. Suppliers already invited to this tender will be skipped.</p>

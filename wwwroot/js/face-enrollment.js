@@ -41,6 +41,7 @@
         event.preventDefault();
         if (busy || !form.reportValidity()) return;
         if (!document.getElementById('face-consent').checked) { message.textContent = 'Please read and accept the biometric consent before capturing.'; return; }
+        if (form.dataset.enrolled === 'true' && !await window.TiryaqConfirm.ask({ title: 'Replace your face enrollment?', description: 'A successful new capture will replace your saved facial descriptors for sign-in.', confirm: 'Capture & replace' })) return;
         setBusy(true); cancelled = false; message.textContent = ''; message.dataset.state = ''; progress.value = 0;
         const samples = [];
         try {
@@ -88,7 +89,7 @@
     cancel.addEventListener('click', () => { if (submitting) return; cancelled = true; stopCamera(); password.value = ''; feedback.textContent = 'Camera is off. Capture cancelled.'; });
     form.addEventListener('faceenrollment:cancel', () => { cancelled = true; stopCamera(); password.value = ''; });
     remove?.addEventListener('click', async () => {
-        if (busy || !password.reportValidity() || !window.confirm('Remove all stored facial descriptors for your account?')) return;
+        if (busy || !password.reportValidity() || !await window.TiryaqConfirm.ask({ title: 'Remove your face enrollment?', description: 'All stored facial descriptors for your account will be deleted. You can enroll again later.', confirm: 'Remove enrollment', destructive: true })) return;
         setBusy(true); message.textContent = '';
         try { await send(form.dataset.deleteUrl, null); location.replace(`${location.pathname}?removed=1`); }
         catch (error) { message.textContent = error.message; }

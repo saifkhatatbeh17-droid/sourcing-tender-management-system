@@ -56,7 +56,7 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
                     _ => null
                 };
         }
-        if (recordId.HasValue) threads = threads.ForRecord(kind, recordId.Value);
+        // The selected record controls composition; the inbox retains all authorized conversations.
         if (direction == "sent") threads = threads.Where(c => c.SenderUserId == actor.Id);
         if (direction == "received") threads = threads.Where(c => c.RecipientUserId == actor.Id);
         if (status is "Pending" or "Answered" or "Resolved") threads = threads.Where(c => c.Status == status);
@@ -104,7 +104,8 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         var tenders = db.Tenders.AsNoTracking().Where(t =>
             (officer && t.CreatedByUserId == actorId) ||
             (supplier && t.Invitations.Any(i => i.SupplierProfile.UserId == actorId && (i.Status == "Pending" || i.Status == "Accepted"))) ||
-            (evaluator && t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == actorId)) ||
+            (evaluator && (t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == actorId) ||
+                (t.Status == "UnderEvaluation" && !t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation")))) ||
             (manager && t.Status == "AwaitingManagerReview"));
         var tenderChoices = await tenders.Where(t => t.Status == "Published" || t.Status == "Open" || t.Status == "Closed" || t.Status == "UnderEvaluation" || t.Status == "AwaitingOfficerSummary" || t.Status == "AwaitingManagerReview")
             .OrderByDescending(t => t.CreatedAt).Select(t => new { t.TenderId, t.Title }).ToListAsync(ct);
@@ -142,6 +143,7 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         Notify(recipient, thread, "New clarification");
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
+        TempData["ActionSuccess"] = "Clarification sent to the selected participant.";
         return RedirectToAction(nameof(Index), new { id = thread.ClarificationId, kind, recordId });
     }
 
@@ -159,6 +161,7 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
             {
                 if (resolve) await committeeAnswers.ConfirmResolutionAsync(User, id, ct);
                 else await committeeAnswers.AnswerAsync(User, id, message ?? "", ct);
+                TempData["ActionSuccess"] = resolve ? "Your resolution confirmation was recorded." : "Your reply was sent.";
             }
             catch (Exception error) when (error is ValidationException or CommitteeStateConflictException)
             {
@@ -249,6 +252,7 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         }
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
+        TempData["ActionSuccess"] = resolve ? (closed ? "Conversation resolved by both participants." : "Your resolution confirmation was recorded. The other participant must also confirm.") : "Your reply was sent.";
         if (closed && User.IsInRole(RoleNames.SourcingOfficer) && thread.PurchaseRequestId is int requestId &&
             await db.PurchaseRequests.AnyAsync(r => r.PurchaseRequestId == requestId &&
                 r.Status == "UnderReview" && r.ReviewedByUserId == actor.Id, ct))
@@ -305,8 +309,9 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         if (User.IsInRole(RoleNames.TopCommittee) && await db.CommitteeAssignments.AnyAsync(a =>
             a.TenderId == tenderId && a.CommitteeType == "Top" && a.UserId == actorId, ct))
             return Url.Action("TenderDetails", "TopCommittee", new { id = tenderId });
-        if (User.IsInRole(RoleNames.EvaluationCommittee) && await db.CommitteeAssignments.AnyAsync(a =>
-            a.TenderId == tenderId && a.CommitteeType == "Evaluation" && a.UserId == actorId, ct))
+        if (User.IsInRole(RoleNames.EvaluationCommittee) && await db.Tenders.AnyAsync(t => t.TenderId == tenderId &&
+            (t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == actorId) ||
+             (t.Status == "UnderEvaluation" && !t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation"))), ct))
             return Url.Action("Evaluations", "EvaluationCommittee", new { id = tenderId });
         if (User.IsInRole(RoleNames.SourcingManager))
         {
@@ -377,7 +382,9 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
                     .Where(u => tender.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == u.Id))
                     .Select(u => u.Id).ToArray();
                 if (isOfficer) allowed.UnionWith(evaluators);
-                if (evaluators.Contains(actor.Id) && officerIds.Contains(owner)) allowed.Add(owner);
+                if ((evaluators.Contains(actor.Id) || (tender.Status == "UnderEvaluation" &&
+                    !tender.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation") &&
+                    User.IsInRole(RoleNames.EvaluationCommittee))) && officerIds.Contains(owner)) allowed.Add(owner);
 
                 if (tender.Status == "AwaitingManagerReview")
                 {

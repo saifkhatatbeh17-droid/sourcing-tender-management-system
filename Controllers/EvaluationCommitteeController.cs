@@ -79,7 +79,9 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
                 throw new InvalidOperationException("Select the committee's offer before generating its report.");
             var fingerprint = BidRecommendationService.Fingerprint(page);
             var version = page.SharedVersion;
-            var result = await ai.Recommend(page, financialWeight, cancellationToken, writeReport ? tender.EvaluationReport!.RecommendedBidId : null);
+            var result = writeReport
+                ? await ai.FinalReport(page, financialWeight, cancellationToken)
+                : await ai.Recommend(page, financialWeight, cancellationToken);
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};", cancellationToken);
             var currentTender = await TenderQuery().AsNoTracking().SingleAsync(t => t.TenderId == id, cancellationToken);
@@ -150,8 +152,17 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
         }
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
-        TempData["CommitteeSuccess"] = "Saved successfully.";
-        return RedirectToAction(nameof(Evaluations), new { id, tab = TempData["EvaluationTab"]?.ToString() });
+        TempData["CommitteeSuccess"] = ControllerContext.ActionDescriptor.ActionName switch
+        {
+            "Approve" => "Your approval was recorded. The final report is available after all four members approve.",
+            "SelectOffer" => "The committee-selected offer was saved. Review it with the shared percentages before approving.",
+            "SaveWeights" => "Shared percentages saved. Previous approvals were cleared so members can review the changes.",
+            "RejectOffer" => "Your rejection was recorded and the selected offer was returned for review.",
+            "Start" => "Committee evaluation initialized. You can now compare and choose an offer.",
+            "SaveComment" => "Your comment was saved and is visible to the committee.",
+            _ => "Saved successfully."
+        };
+        return RedirectToAction(nameof(Evaluations), new { id, tab = TempData["EvaluationTab"]?.ToString(), focus = TempData["EvaluationFocus"]?.ToString() });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -177,6 +188,8 @@ public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<
             page.Tender.EvaluationCriteria.Add(new EvaluationCriterion { Name = "Technical compliance", Category = "Requirements", Weight = 60 });
         }
         page.Tender!.EvaluationReport ??= new EvaluationReport { Status = "Draft", PreparedByUserId = UserId };
+        TempData["EvaluationTab"] = "offers";
+        TempData["EvaluationFocus"] = "ai";
         return null;
     }, initialize: true);
 

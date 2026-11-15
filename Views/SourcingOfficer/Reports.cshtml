@@ -42,7 +42,7 @@
                                 <td><div class="so-report-preview">@(string.IsNullOrWhiteSpace(report.CommitteeSummary) ? "Not recorded" : report.CommitteeSummary)</div></td>
                                 <td>@report.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
                                 <td><div class="so-report-preview">@(string.IsNullOrWhiteSpace(report.ManagerSummary) ? "Awaiting review" : report.ManagerSummary)</div></td>
-                                <td><a class="btn btn-outline-primary btn-sm" asp-action="Reports" asp-route-id="@report.EvaluationReportId">Details</a></td>
+                                <td>@if (report.Status == "CommitteeApproved" && report.Tender.Status == "AwaitingOfficerSummary") { <a class="btn btn-primary btn-sm" asp-action="Offers" asp-fragment="committee-report" asp-route-tenderId="@report.TenderId" asp-route-tab="report">Review &amp; approve →</a> } <a class="btn btn-outline-primary btn-sm" asp-action="Reports" asp-route-id="@report.EvaluationReportId">Details</a></td>
                             </tr>
                         }
                     </tbody>
@@ -59,6 +59,10 @@
             }
             else
             {
+                @if (selectedReport.Status == "CommitteeApproved" && selectedReport.Tender.Status == "AwaitingOfficerSummary")
+                {
+                    <div class="so-next-step"><div><strong>Your approval is needed</strong><p>Review the committee’s recommendation and forward it to the sourcing manager.</p></div><a class="btn btn-primary" asp-action="Offers" asp-fragment="committee-report" asp-route-tenderId="@selectedReport.TenderId" asp-route-tab="report">Review &amp; approve →</a></div>
+                }
                 <dl>
                     <dt>Tender</dt><dd>@selectedReport.Tender.Title</dd>
                     <dt>Status</dt><dd><span class="so-status-badge" data-status="@selectedReport.Status">@selectedReport.Status</span></dd>
