@@ -7,21 +7,80 @@
     <link rel="stylesheet" href="~/css/face-setup.css" asp-append-version="true" />
 }
 
-<div class="login-page">
-    <div class="login-identity">
+<div class="login-page" id="login-stage">
+    <!-- Brand side: logo + interactive emblem + one line -->
+    <div class="login-identity" data-access="idle">
         <div class="login-access-effect" aria-hidden="true"></div>
-        <a class="login-brand" asp-controller="Home" asp-action="Index" aria-label="Tiryaq home"><partial name="_PharmaBrand" /></a>
+
+        <a class="login-brand" asp-controller="Home" asp-action="Index" aria-label="Tiryaq home">
+            <partial name="_PharmaBrand" />
+        </a>
+
         <div class="identity-art" aria-hidden="true">
-            <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div>
-            <div class="identity-core"><svg viewBox="0 0 80 80" fill="none"><path d="M40 9 65 20v19c0 17-14 27-25 33C29 66 15 56 15 39V20L40 9Z" stroke="currentColor" stroke-width="2"/><path d="m29 40 8 8 16-18" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="orbit orbit-one"><span class="orbit-node node-1"></span></div>
+            <div class="orbit orbit-three">
+                <svg class="orbit-progress-svg" viewBox="0 0 200 200">
+                    <circle class="orbit-track-circle" cx="100" cy="100" r="92" />
+                    <circle class="orbit-progress-circle" id="typing-ring" cx="100" cy="100" r="92" />
+                </svg>
+            </div>
+
+            <div class="identity-core" id="interactive-logo-core">
+                <div class="core-glare"></div>
+                <div class="face-scan-brackets"><i></i><i></i><i></i><i></i><span class="face-laser"></span></div>
+                <div class="passkey-waves"><span></span><span></span><span></span></div>
+
+                <svg class="tiryaq-interactive-svg" viewBox="0 0 120 120" fill="none">
+                    <defs>
+                        <linearGradient id="tq-grad-top" x1="15" y1="15" x2="95" y2="75" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#64f4dc" />
+                            <stop offset="55%" stop-color="#00a3a6" />
+                            <stop offset="100%" stop-color="#0c746c" />
+                        </linearGradient>
+                        <linearGradient id="tq-grad-bottom" x1="25" y1="55" x2="95" y2="108" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#00b4b8" />
+                            <stop offset="100%" stop-color="#065a54" />
+                        </linearGradient>
+                    </defs>
+                    <path class="tq-ribbon tq-ribbon-top"
+                          d="M22 44 C22 25, 37 14, 52 14 L52 36 L74 36 C91 36, 100 46, 100 63 L100 74 L82 74 L82 64 C82 55, 76 50, 65 50 L22 49 Z"
+                          fill="url(#tq-grad-top)" />
+                    <path class="tq-ribbon tq-ribbon-bottom"
+                          d="M32 57 L52 57 L52 75 C52 84, 58 89, 69 89 L96 89 C93 101, 82 107, 65 107 C43 107, 32 95, 32 76 Z"
+                          fill="url(#tq-grad-bottom)" />
+                    <g class="tq-visor-group">
+                        <rect class="tq-visor-bg" x="54" y="52" width="26" height="19" rx="9.5" />
+                        <g class="tq-eyes">
+                            <circle class="tq-eye" cx="62" cy="61.5" r="2.8" />
+                            <circle class="tq-eye" cx="72" cy="61.5" r="2.8" />
+                        </g>
+                        <path class="tq-privacy-shutter" d="M57 61.5 H77" stroke-width="3" stroke-linecap="round" />
+                        <path class="tq-verified-check" d="M60 61.5 L65 66 L75 56" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+                    </g>
+                </svg>
+            </div>
         </div>
+
         <div class="identity-story">
             <h2 class="login-identity-copy">Sourcing and tender management</h2>
         </div>
-        <div class="identity-status"><span class="status-dot"></span><span id="access-message" role="status" aria-live="polite">Ready to sign in</span></div>
+
+        <div class="identity-status">
+            <span class="status-dot"></span>
+            <span id="access-message" role="status" aria-live="polite">Ready to sign in</span>
+        </div>
     </div>
+
+    <!-- Form side -->
     <section class="login-panel" aria-labelledby="login-heading">
-        <div class="login-panel-top"><a asp-controller="Home" asp-action="Index">Back to home <span aria-hidden="true">↗</span></a></div>
+        <div class="login-panel-top">
+            <a class="back-home-pill" asp-controller="Home" asp-action="Index">
+                <span class="back-arrow" aria-hidden="true">←</span>
+                <span>Home</span>
+            </a>
+            <partial name="_ThemeToggle" />
+        </div>
+
         <h1 id="login-heading">Welcome back<span>.</span></h1>
         <p class="login-intro">Sign in to your Tiryaq workspace.</p>
 
@@ -29,47 +88,64 @@
             <input name="ReturnUrl" value="@Model.ReturnUrl" type="hidden" />
             <div asp-validation-summary="ModelOnly" class="login-error" role="alert"></div>
 
-            <div class="field">
-                <label asp-for="Email">Email address</label>
-                <input asp-for="Email" class="form-control" autocomplete="username" autocapitalize="none"
-                       placeholder="you@company.com" spellcheck="false" aria-describedby="email-error" required />
+            <div class="field" id="field-email">
+                <label asp-for="Email">Email</label>
+                <div class="login-input-wrap">
+                    <span class="input-leading-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="5" width="18" height="14" rx="3" /><path d="m3 7 9 6 9-6" />
+                        </svg>
+                    </span>
+                    <input asp-for="Email" class="form-control" autocomplete="username" autocapitalize="none"
+                           placeholder="you@company.com" spellcheck="false" aria-describedby="email-error" required />
+                    <span class="input-valid-Check" aria-hidden="true">✓</span>
+                </div>
                 <span asp-validation-for="Email" id="email-error" class="field-error"></span>
             </div>
 
             <div class="field">
                 <label asp-for="Password">Password</label>
                 <div class="login-password">
+                    <span class="input-leading-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="4" y="11" width="16" height="10" rx="3" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                        </svg>
+                    </span>
                     <input asp-for="Password" class="form-control" autocomplete="current-password"
-                       placeholder="Enter your password" aria-describedby="password-error" required />
+                           placeholder="Enter your password" aria-describedby="password-error" required />
                     <button class="login-password-toggle" type="button" aria-controls="Password" hidden>Show</button>
                 </div>
                 <span asp-validation-for="Password" id="password-error" class="field-error"></span>
             </div>
 
-            <button class="btn login-submit" type="submit"><span>Sign in to workspace</span><span aria-hidden="true">↗</span></button>
+            <button class="btn login-submit" type="submit">
+                <span>Sign in</span>
+                <span class="submit-arrow" aria-hidden="true">→</span>
+            </button>
         </form>
 
-        <div class="login-divider">Other sign-in options</div>
+        <div class="login-divider">or</div>
         <div class="login-methods">
             <button id="face-login-button" class="btn login-method" type="submit" form="password-login"
-                    asp-controller="Account" asp-action="LoginWithFaceId" aria-describedby="face-login-help">
+                    asp-controller="Account" asp-action="LoginWithFaceId" aria-label="Sign in with Face ID (password + camera)"
+                    data-biometric-hover="face">
                 <span class="login-method-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3M8 9v1m8-1v1m-4-1v4m-3 3c1.5 1.5 4.5 1.5 6 0"/>
                     </svg>
                 </span>
-                <span><strong>Face ID</strong><small id="face-login-help">Password + camera</small></span>
+                <strong>Face ID</strong>
             </button>
             <form asp-controller="Passkeys" asp-action="SignInWithPasskey" method="post"
                   data-passkey-form="login" data-options-url="@Url.Action("LoginOptions", "Passkeys")">
                 <input name="returnUrl" value="@Model.ReturnUrl" type="hidden" />
-                <button class="btn login-method" type="submit" aria-describedby="passkey-help">
+                <button class="btn login-method" type="submit" aria-label="Sign in with fingerprint or passkey" data-biometric-hover="passkey">
                     <span class="login-method-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
                             <path d="M3 12a9 9 0 0 1 18 0v2M6 16v-4a6 6 0 0 1 12 0v3c0 2 .5 3.5 1.5 5M9 21c1-2 1-4 1-6v-3a2 2 0 0 1 4 0v3c0 2.5-.4 5-1.5 7M6 19c.6-1 .8-3 .8-4m9.7 5.5-.5 1"/>
                         </svg>
                     </span>
-                    <span><strong>Fingerprint</strong><small id="passkey-help">Device or phone passkey</small></span>
+                    <strong>Fingerprint</strong>
                 </button>
                 <p role="status" class="small mt-2 mb-0"></p>
             </form>
@@ -77,10 +153,9 @@
         <p id="face-login-error" class="text-danger mt-2" role="alert" hidden></p>
         <a id="face-login-continue" asp-controller="Account" asp-action="GoToDashboard" asp-route-returnUrl="@Model.ReturnUrl" class="btn login-method mt-2" hidden>Continue to workspace</a>
 
-        <div class="login-registration">
-            <span>New supplier?</span>
-            <a asp-controller="Account" asp-action="Register">Register your company</a>
-        </div>
+        <p class="login-registration">
+            New supplier? <a asp-controller="Account" asp-action="Register">Register your company</a>
+        </p>
     </section>
 </div>
 <div id="face-login-host" data-face-api-url="@Url.Content("~/lib/face-api/face-api.js")"

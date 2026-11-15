@@ -6,95 +6,185 @@
     ViewData["Title"] = editing ? "Edit Purchase Request" : "Create Purchase Request";
 }
 @section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
+
 <div class="department-workspace department-document">
-<h1>@ViewData["Title"]</h1>
-@if (ViewData["ReviewNotes"] is string notes)
-{
-    <p><strong>Latest review notes</strong></p>
-    <p class="text-break" style="white-space: pre-wrap">@notes</p>
-}
-<form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@requestId" method="post">
-    <div asp-validation-summary="All" class="text-danger"></div>
-    <div class="mb-3">
-        <label asp-for="Title" class="form-label"></label>
-        <input asp-for="Title" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label asp-for="Reason" class="form-label"></label>
-        <textarea asp-for="Reason" class="form-control"></textarea>
-    </div>
-    <div class="mb-3">
-        <label asp-for="Priority" class="form-label"></label>
-        <select asp-for="Priority" class="form-select">
-            @foreach (var priority in PurchaseRequestForm.Priorities)
-            {
-                <option value="@priority">@priority</option>
-            }
-        </select>
-    </div>
-    <div class="mb-3">
-        <label asp-for="TargetDate" class="form-label">Target date</label>
-        <input asp-for="TargetDate" type="date" class="form-control" min="@earliestTargetDate" required />
-        <span asp-validation-for="TargetDate" class="text-danger"></span>
+    <div class="dr-breadcrumb-bar">
+        <a asp-action="@(editing ? "Details" : "Requests")" asp-route-id="@requestId" class="dr-back-link">
+            <span aria-hidden="true">←</span> @(editing ? $"Back to Request #{requestId}" : "Back to requests history")
+        </a>
     </div>
 
-    <h2>Items</h2>
-    <p class="form-text" id="item-name-help">Choose a suggestion or type the exact item name.</p>
-    <datalist id="purchase-item-suggestions">
-        <option value="Active pharmaceutical ingredient"></option>
-        <option value="Excipient"></option>
-        <option value="Laboratory reagent"></option>
-        <option value="Reference standard"></option>
-        <option value="Sample vial"></option>
-        <option value="Blister packaging"></option>
-        <option value="Label stock"></option>
-        <option value="Nitrile gloves"></option>
-    </datalist>
-    <div id="request-items">
-        @for (var i = 0; i < Model.Items.Count; i++)
-        {
-            <fieldset class="border rounded p-3 mb-3">
-                <legend class="fs-6">Item</legend>
-                <label asp-for="Items[i].ItemName" class="form-label">Item name</label>
-                <input asp-for="Items[i].ItemName" class="form-control mb-2" maxlength="200" list="purchase-item-suggestions" aria-describedby="item-name-help" />
-                <label asp-for="Items[i].Quantity" class="form-label">Quantity</label>
-                <input asp-for="Items[i].Quantity" type="number" min="0.001" step="0.001" class="form-control mb-2" />
-                <label asp-for="Items[i].Unit" class="form-label">Unit</label>
-                <input asp-for="Items[i].Unit" class="form-control mb-2" maxlength="30" />
-                <label asp-for="Items[i].Specifications" class="form-label">Specifications</label>
-                <textarea asp-for="Items[i].Specifications" class="form-control mb-2" maxlength="4000"></textarea>
-                <button type="button" class="btn btn-outline-secondary" data-remove>Remove Item</button>
-            </fieldset>
-        }
-    </div>
-    <button type="button" class="btn btn-outline-secondary" id="add-request-item">Add Item</button>
-    <button type="submit" class="btn btn-primary">@(editing ? "Resubmit Request" : "Submit Request")</button>
-    <a asp-action="@(editing ? "Details" : "Requests")" asp-route-id="@requestId" class="btn btn-link">Cancel</a>
-</form>
+    <header class="dr-heading">
+        <div>
+            <span class="dr-eyebrow">@(editing ? $"Revision · Request #{requestId}" : "New Requisition")</span>
+            <h1>@ViewData["Title"]<span>.</span></h1>
+            <p>Specify your department's requirements, target delivery timeline, and itemized technical specifications.</p>
+        </div>
+    </header>
 
-<template id="request-item-template">
-    <fieldset class="border rounded p-3 mb-3">
-        <legend class="fs-6">Item</legend>
-        <label class="form-label" data-for="ItemName">Item name</label>
-        <input class="form-control mb-2" data-field="ItemName" maxlength="200" list="purchase-item-suggestions" aria-describedby="item-name-help" />
-        <label class="form-label" data-for="Quantity">Quantity</label>
-        <input type="number" min="0.001" step="0.001" class="form-control mb-2" data-field="Quantity" />
-        <label class="form-label" data-for="Unit">Unit</label>
-        <input class="form-control mb-2" data-field="Unit" maxlength="30" />
-        <label class="form-label" data-for="Specifications">Specifications</label>
-        <textarea class="form-control mb-2" data-field="Specifications" maxlength="4000"></textarea>
-        <button type="button" class="btn btn-outline-secondary" data-remove>Remove Item</button>
-    </fieldset>
-</template>
+    @if (ViewData["ReviewNotes"] is string notes && !string.IsNullOrWhiteSpace(notes))
+    {
+        <div class="dr-review-alert" role="region" aria-label="Sourcing officer review notes">
+            <div class="dr-review-alert-icon" aria-hidden="true">!</div>
+            <div>
+                <strong>Latest review notes from Sourcing Officer</strong>
+                <p class="text-break mb-0" style="white-space: pre-wrap">@notes</p>
+            </div>
+        </div>
+    }
 
+    <form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@requestId" method="post" class="dr-request-form">
+        <div asp-validation-summary="All" class="text-danger dr-validation-summary" role="alert"></div>
+
+        <section class="dr-form-section" aria-labelledby="section-overview-title">
+            <header class="dr-form-section-header">
+                <span class="dr-step-badge">01</span>
+                <div>
+                    <h2 id="section-overview-title">Request overview</h2>
+                    <p>Provide a clear title, priority level, target delivery date, and business justification.</p>
+                </div>
+            </header>
+
+            <div class="dr-form-grid">
+                <div class="dr-field dr-field-wide">
+                    <label asp-for="Title" class="form-label">Request title</label>
+                    <input asp-for="Title" class="form-control" placeholder="e.g., Q4 Active Pharmaceutical Ingredients & Sterile Packaging" />
+                    <span asp-validation-for="Title" class="text-danger small"></span>
+                </div>
+
+                <div class="dr-field">
+                    <label asp-for="Priority" class="form-label">Priority level</label>
+                    <select asp-for="Priority" class="form-select">
+                        @foreach (var priority in PurchaseRequestForm.Priorities)
+                        {
+                            <option value="@priority">@priority</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Priority" class="text-danger small"></span>
+                </div>
+
+                <div class="dr-field">
+                    <label asp-for="TargetDate" class="form-label">Target delivery date</label>
+                    <input asp-for="TargetDate" type="date" class="form-control" min="@earliestTargetDate" required />
+                    <span asp-validation-for="TargetDate" class="text-danger small"></span>
+                </div>
+
+                <div class="dr-field dr-field-wide">
+                    <label asp-for="Reason" class="form-label">Business justification &amp; reason</label>
+                    <textarea asp-for="Reason" class="form-control" rows="3" placeholder="Explain why these items are needed, production schedule impact, or regulatory requirements..."></textarea>
+                    <span asp-validation-for="Reason" class="text-danger small"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="dr-form-section" aria-labelledby="section-items-title">
+            <header class="dr-form-section-header">
+                <span class="dr-step-badge">02</span>
+                <div class="dr-section-header-flex">
+                    <div>
+                        <div class="dr-section-title-row">
+                            <h2 id="section-items-title">Requested items</h2>
+                            <span class="dr-count-pill" id="items-count-badge">@Model.Items.Count item(s)</span>
+                        </div>
+                        <p id="item-name-help">Choose a pharmaceutical category suggestion or type the exact item name and specifications.</p>
+                    </div>
+                </div>
+            </header>
+
+            <datalist id="purchase-item-suggestions">
+                <option value="Active pharmaceutical ingredient"></option>
+                <option value="Excipient"></option>
+                <option value="Laboratory reagent"></option>
+                <option value="Reference standard"></option>
+                <option value="Sample vial"></option>
+                <option value="Blister packaging"></option>
+                <option value="Label stock"></option>
+                <option value="Nitrile gloves"></option>
+            </datalist>
+
+            <div id="request-items" class="dr-items-stack">
+                @for (var i = 0; i < Model.Items.Count; i++)
+                {
+                    <fieldset class="dr-item-card">
+                        <div class="dr-item-card-header">
+                            <legend class="dr-item-legend">Item #@(i + 1)</legend>
+                            <button type="button" class="btn dr-item-remove" data-remove>Remove Item</button>
+                        </div>
+                        <div class="dr-item-grid">
+                            <div class="dr-field dr-item-name-col">
+                                <label asp-for="Items[i].ItemName" class="form-label">Item name</label>
+                                <input asp-for="Items[i].ItemName" class="form-control" maxlength="200" list="purchase-item-suggestions" aria-describedby="item-name-help" placeholder="Select or type item name..." />
+                            </div>
+                            <div class="dr-field">
+                                <label asp-for="Items[i].Quantity" class="form-label">Quantity</label>
+                                <input asp-for="Items[i].Quantity" type="number" min="0.001" step="0.001" class="form-control" placeholder="0.00" />
+                            </div>
+                            <div class="dr-field">
+                                <label asp-for="Items[i].Unit" class="form-label">Unit</label>
+                                <input asp-for="Items[i].Unit" class="form-control" maxlength="30" placeholder="e.g. kg, vials, boxes" />
+                            </div>
+                            <div class="dr-field dr-field-wide">
+                                <label asp-for="Items[i].Specifications" class="form-label">Technical specifications</label>
+                                <textarea asp-for="Items[i].Specifications" class="form-control" rows="2" maxlength="4000" placeholder="Grade (USP/BP/EP), purity, dimensions, or storage requirements..."></textarea>
+                            </div>
+                        </div>
+                    </fieldset>
+                }
+            </div>
+
+            <button type="button" class="btn dr-add-item-btn" id="add-request-item">
+                <span aria-hidden="true">＋</span> Add another item
+            </button>
+        </section>
+
+        <footer class="dr-form-footer">
+            <a asp-action="@(editing ? "Details" : "Requests")" asp-route-id="@requestId" class="btn dr-secondary-btn">Cancel</a>
+            <button type="submit" class="btn dr-primary">
+                @(editing ? "Resubmit Request" : "Submit Request") <span aria-hidden="true">→</span>
+            </button>
+        </footer>
+    </form>
+
+    <template id="request-item-template">
+        <fieldset class="dr-item-card">
+            <div class="dr-item-card-header">
+                <legend class="dr-item-legend">Item</legend>
+                <button type="button" class="btn dr-item-remove" data-remove>Remove Item</button>
+            </div>
+            <div class="dr-item-grid">
+                <div class="dr-field dr-item-name-col">
+                    <label class="form-label" data-for="ItemName">Item name</label>
+                    <input class="form-control" data-field="ItemName" maxlength="200" list="purchase-item-suggestions" aria-describedby="item-name-help" placeholder="Select or type item name..." />
+                </div>
+                <div class="dr-field">
+                    <label class="form-label" data-for="Quantity">Quantity</label>
+                    <input type="number" min="0.001" step="0.001" class="form-control" data-field="Quantity" placeholder="0.00" />
+                </div>
+                <div class="dr-field">
+                    <label class="form-label" data-for="Unit">Unit</label>
+                    <input class="form-control" data-field="Unit" maxlength="30" placeholder="e.g. kg, vials, boxes" />
+                </div>
+                <div class="dr-field dr-field-wide">
+                    <label class="form-label" data-for="Specifications">Technical specifications</label>
+                    <textarea class="form-control" rows="2" data-field="Specifications" maxlength="4000" placeholder="Grade (USP/BP/EP), purity, dimensions, or storage requirements..."></textarea>
+                </div>
+            </div>
+        </fieldset>
+    </template>
 </div>
+
 @section Scripts {
     <script>
         const items = document.getElementById('request-items');
         const template = document.getElementById('request-item-template');
+        const countBadge = document.getElementById('items-count-badge');
 
         function renumberItems() {
-            Array.from(items.children).forEach((row, index) => {
+            const rows = Array.from(items.children);
+            rows.forEach((row, index) => {
+                const legend = row.querySelector('legend');
+                if (legend) legend.textContent = `Item #${index + 1}`;
+
                 row.querySelectorAll('input:not([type=hidden]), textarea').forEach(field => {
                     const property = field.dataset.field ?? field.name.split('.').pop();
                     const label = row.querySelector(`label[for="${field.id}"]`) ??
@@ -106,8 +196,11 @@
                 row.querySelectorAll('input[type=hidden][name=__Invariant]').forEach(field => {
                     field.value = `Items[${index}].${field.value.split('.').pop()}`;
                 });
-                row.querySelector('[data-remove]').disabled = items.children.length === 1;
+                row.querySelector('[data-remove]').disabled = rows.length === 1;
             });
+            if (countBadge) {
+                countBadge.textContent = `${rows.length} item(s)`;
+            }
         }
 
         document.getElementById('add-request-item').addEventListener('click', () => {

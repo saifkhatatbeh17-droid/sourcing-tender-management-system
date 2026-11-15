@@ -7,6 +7,7 @@
     var winner = Model.Offers.FirstOrDefault(b => b.BidId == scenario?.RecommendedBidId);
 }
 <section id="ai-offers" tabindex="-1" class="ev-ai-workspace" aria-labelledby="ai-heading">
+    @if (scenario != null) { <nav class="workspace-toolbar" aria-label="Saved recommendation export"><a class="btn btn-outline-primary btn-sm" asp-action="RecommendationPdf" asp-route-id="@Model.Tender!.TenderId">Download PDF</a></nav> }
     <header class="ev-ai-workspace-heading"><div><span class="ev-ai-workspace-icon" aria-hidden="true">AI</span><div><h3 id="ai-heading">AI recommendation</h3><p>Compare the bids. You make the final choice.</p></div></div>
         @if (Model.Members.Count == 0 && !Model.Locked)
         { <form asp-action="Start" method="post" class="ev-start-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><button class="btn ev-button-primary">Start evaluation<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5h8M8 3v4M6 5H4v16h16V5h-2M8 13l3 3 5-6"/></svg></button></form> }

@@ -1,19 +1,117 @@
 @model IReadOnlyList<SourcingTenderManagement.Models.Entities.PurchaseRequest>
-@{ ViewData["Title"] = "Requests history"; }
+@{
+    ViewData["Title"] = "Requests history";
+    var currentStatus = ViewBag.Status as string ?? "";
+    var currentQuery = ViewBag.Query as string ?? "";
+    var filtered = !string.IsNullOrEmpty(currentQuery) || !string.IsNullOrEmpty(currentStatus);
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+}
 @section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
-<div class="department-workspace">
-<header class="dr-heading"><div><h1>Requests history<span>.</span></h1><p>Every department request, its current status and review details.</p></div><a asp-action="Create" class="dr-primary">New request <span aria-hidden="true">＋</span></a></header>
-<section class="dr-panel">
-    <form method="get" asp-action="Requests" class="dr-filters"><div><label for="request-query">Find a request</label><input id="request-query" name="q" value="@ViewBag.Query" class="form-control" placeholder="Search by title or request number" /></div><div><label for="request-status">Status</label><select id="request-status" name="status" class="form-select"><option value="">All statuses</option>@foreach (var state in new[] { "Draft", "Submitted", "UnderReview", "Returned", "Approved", "Rejected", "ConvertedToTender" }) { <option value="@state" selected="@(ViewBag.Status as string == state)">@System.Text.RegularExpressions.Regex.Replace(state, "([a-z])([A-Z])", "$1 $2")</option> }</select></div><button type="submit" class="dr-primary">Search</button>@if (!string.IsNullOrEmpty(ViewBag.Query as string) || !string.IsNullOrEmpty(ViewBag.Status as string)) { <a asp-action="Requests" class="dr-text-link">Clear</a> }</form>
-    <div class="dr-list-heading"><h2>Department requests</h2><span>@Model.Count result(s)</span></div>
-    @if (Model.Count == 0) { <div class="dr-empty"><h3>No matching requests</h3><p>Try a different search or create a new purchase request.</p></div> }
-    else
-    {
-        <div class="dr-history-list">
-        @foreach (var request in Model)
-        {
-            <article class="dr-history-row"><div class="dr-record"><span class="dr-reference">Request #@request.PurchaseRequestId · @request.CreatedAt.ToString("dd MMM yyyy")</span><a asp-action="Details" asp-route-id="@request.PurchaseRequestId" class="dr-record-title">@request.Title</a><span class="dr-record-meta">@request.RequestedByUser.FullName · Required @request.TargetDate.ToString("dd MMM yyyy") · @request.Priority priority</span></div><span class="dr-status" data-status="@request.Status">@System.Text.RegularExpressions.Regex.Replace(request.Status, "([a-z])([A-Z])", "$1 $2")</span><a asp-action="Details" asp-route-id="@request.PurchaseRequestId" class="dr-open" aria-label="View @request.Title">View request <span aria-hidden="true">↗</span></a></article>
-        }
+
+<div class="department-workspace department-requests">
+    <header class="dr-heading">
+        <div>
+            <h1>Requests history</h1>
+            <p>Follow your department’s requests from submission to tender award.</p>
         </div>
-    }
-</section></div>
+        <a asp-action="Create" class="dr-primary">New request <span aria-hidden="true">＋</span></a>
+    </header>
+
+    <section class="dr-panel" aria-labelledby="department-requests-heading">
+        <form method="get" asp-action="Requests" class="dr-filters">
+            <div class="dr-filter-search">
+                <label for="request-query">Find a request</label>
+                <div class="dr-search-input-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" stroke-linecap="round" />
+                    </svg>
+                    <input id="request-query" name="q" value="@currentQuery" class="form-control" placeholder="Title or request number" type="search" />
+                </div>
+            </div>
+            <div class="dr-filter-select">
+                <label for="request-status">Current status</label>
+                <select id="request-status" name="status" class="form-select">
+                    <option value="">All statuses</option>
+                    @foreach (var state in DepartmentRequestProgress.Statuses)
+                    {
+                        <option value="@state" selected="@(ViewBag.Status as string == state)">
+                            @DepartmentRequestProgress.Label(state)
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="dr-filter-actions">
+                <button type="submit" class="dr-primary">Apply filters</button>
+                @if (filtered)
+                {
+                    <a asp-action="Requests" class="btn dr-secondary-btn">Clear</a>
+                }
+            </div>
+        </form>
+
+        <div class="dr-list-heading">
+            <div>
+                <h2 id="department-requests-heading">@(filtered ? "Matching requests" : "Department requests") <span class="dr-count-pill">@Model.Count</span></h2>
+                <p class="dr-list-note">Current status follows the tender once it is created.</p>
+            </div>
+            @if (!string.IsNullOrEmpty(currentStatus))
+            {
+                <span class="dr-status" data-status="@currentStatus">@DepartmentRequestProgress.Label(currentStatus)</span>
+            }
+        </div>
+
+        @if (Model.Count == 0)
+        {
+            <div class="dr-empty">
+                <div class="dr-empty-icon" aria-hidden="true">⌕</div>
+                <h3>@(filtered ? "No matching requests" : "No requests yet")</h3>
+                <p>@(filtered ? "Try another title, request number, or status." : "Create a purchase request to start tracking your department’s requirements.")</p>
+                @if (filtered)
+                {
+                    <a asp-action="Requests" class="btn dr-secondary-btn mt-2">Reset filters</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="dr-history-columns" aria-hidden="true"><span>Request</span><span>Required by</span><span>Current status</span><span></span></div>
+            <div class="dr-history-list">
+                @foreach (var request in Model)
+                {
+                    var progress = DepartmentRequestProgress.Code(request);
+                    var tender = request.Tenders.OrderByDescending(t => t.TenderId).FirstOrDefault();
+                    <article class="dr-history-row">
+                        <div class="dr-record">
+                            <div class="dr-record-top">
+                                <span class="dr-request-reference">#@request.PurchaseRequestId</span>
+                                <a asp-action="Details" asp-route-id="@request.PurchaseRequestId" class="dr-record-title">@request.Title</a>
+                            </div>
+                            <div class="dr-record-meta">
+                                <span>Created @request.CreatedAt.ToString("dd MMM yyyy")</span>
+                                <span class="dr-meta-sep" aria-hidden="true">·</span>
+                                <span>@request.RequestedByUser.FullName</span>
+                                @if (tender != null)
+                                {
+                                    <span class="dr-meta-sep" aria-hidden="true">·</span>
+                                    <span>Tender #@tender.TenderId</span>
+                                }
+                                <span class="dr-priority" data-priority="@request.Priority">@request.Priority priority</span>
+                            </div>
+                        </div>
+                        <div class="dr-required-date"><span class="dr-mobile-label">Required by</span><time datetime="@request.TargetDate.ToString("yyyy-MM-dd")">@request.TargetDate.ToString("dd MMM yyyy")</time></div>
+                        <span class="dr-status" data-status="@progress">@DepartmentRequestProgress.Label(progress)</span>
+                        <div class="dr-row-actions">
+                            @if (request.Status == "Returned" && request.RequestedByUserId == currentUserId)
+                            {
+                                <a asp-action="Edit" asp-route-id="@request.PurchaseRequestId" class="btn dr-secondary-btn btn-sm">Edit</a>
+                            }
+                            <a asp-action="Details" asp-route-id="@request.PurchaseRequestId" class="dr-open" aria-label="View @request.Title">
+                                Details <span aria-hidden="true">→</span>
+                            </a>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>

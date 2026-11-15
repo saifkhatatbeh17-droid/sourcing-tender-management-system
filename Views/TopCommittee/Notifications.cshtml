@@ -4,7 +4,7 @@
     var pages = Math.Max(1, (int)Math.Ceiling(Model.Total / 20d));
 }
 <div class="workspace-heading">
-    <div><h1>Notifications</h1><p>@Model.Unread unread · @Model.Total total. Reload to see updates.</p></div>
+    <div><h1>Notifications</h1><p>@Model.Unread unread @(Model.Unread == 1 ? "notification" : "notifications") · @Model.Total total. Reload to see the latest updates.</p></div>
     <div class="tc-heading-actions"><a class="btn" asp-action="Dashboard">Dashboard</a><a class="btn" asp-action="Reports">Reports</a></div>
 </div>
 @if (TempData["NotificationSuccess"] is string success)
@@ -19,7 +19,7 @@
 }
 @if (Model.Items.Count == 0)
 {
-    <section class="workspace-section tc-empty"><h2>No notifications on this page</h2><p class="mb-0">Committee updates will appear here when the responsible workflow records them.</p></section>
+    <section class="workspace-section tc-empty"><h2>No notifications on this page</h2><p class="mb-0">Updates about your committee assignments and decisions will appear here.</p></section>
 }
 @foreach (var item in Model.Items)
 {
@@ -29,7 +29,7 @@
             <span class="badge @(item.IsRead ? "text-bg-secondary" : "text-bg-primary")">@(item.IsRead ? "Read" : "Unread")</span>
         </div>
         <p>@item.Message</p>
-        <p class="small text-secondary">@CommitteeDisplay.Utc(item.CreatedAt)</p>
+        <p class="small text-secondary"><time datetime="@item.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")">@CommitteeDisplay.Utc(item.CreatedAt)</time></p>
         <div class="workspace-toolbar mb-0">
             @if (item.TenderId.HasValue)
             {
