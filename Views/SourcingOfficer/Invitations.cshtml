@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Supplier Invitations";
     var eligibleTenders = ViewBag.EligibleTenders as List<Tender> ?? [];
-    var approvedSuppliers = ViewBag.ApprovedSuppliers as List<SupplierProfile> ?? [];
+
     var selectedTenderId = ViewBag.SelectedTenderId as int?;
     var pendingInvitations = Model.Count(invitation => invitation.Status == "Pending");
     var invitedTenderCount = Model.Select(invitation => invitation.TenderId).Distinct().Count();
@@ -59,31 +59,14 @@
     {
         <div class="so-invitation-unavailable"><h3>No tenders are ready for invitations</h3><p>Publish a tender with a future submission deadline first. Draft, expired and closed tenders cannot receive invitations.</p><a asp-action="Tenders" class="btn btn-primary">Manage &amp; publish tenders ↗</a></div>
     }
-    @if (approvedSuppliers.Count == 0) { <p class="alert alert-info mb-3">There are no Approved suppliers available.</p> }
-    <form asp-action="CreateInvitation" method="post" class="so-invitation-form">
+    <form asp-action="CreateInvitation" method="post" class="so-invitation-form" data-filter-suppliers>
         @Html.AntiForgeryToken()
-        <div class="mb-3"><label for="tenderId" class="form-label">Published or open tender</label><select id="tenderId" name="tenderId" class="form-select" required disabled="@(eligibleTenders.Count == 0)"><option value="">@(eligibleTenders.Count == 0 ? "No eligible tenders — publish a tender first" : "Select a tender")</option>@foreach (var tender in eligibleTenders) { <option value="@tender.TenderId" selected="@(selectedTenderId == tender.TenderId)">@tender.Title (closes @tender.ClosesAt.ToString("yyyy-MM-dd HH:mm") UTC)</option> }</select></div>
-        <fieldset class="mb-3 so-supplier-picker" disabled="@(approvedSuppliers.Count == 0 || eligibleTenders.Count == 0)"><legend class="fs-6">Approved Suppliers <span class="so-inline-count">@approvedSuppliers.Count</span></legend>
-            <div class="form-check mb-3"><input id="all-suppliers" name="allSuppliers" value="true" type="checkbox" class="form-check-input" /><label for="all-suppliers" class="form-check-label fw-semibold">Select all suppliers</label></div>
-            <div class="so-supplier-list">@foreach (var supplier in approvedSuppliers) { <div class="form-check"><input id="supplier-@supplier.SupplierProfileId" name="supplierProfileIds" value="@supplier.SupplierProfileId" type="checkbox" class="form-check-input supplier-choice" /><label for="supplier-@supplier.SupplierProfileId" class="form-check-label">@supplier.CompanyName</label></div> }</div>
-            <p class="form-text">Choose one or more suppliers. Suppliers already invited to this tender will be skipped.</p>
-        </fieldset>
-        <div class="so-action-buttons"><a class="btn btn-outline-secondary" href="#invitations-list">Back to invitations</a><button type="submit" class="btn btn-primary" disabled="@(eligibleTenders.Count == 0 || approvedSuppliers.Count == 0)">Send Invitations</button></div>
+        <div class="mb-3"><label for="tenderId" class="form-label">Published or open tender</label><select id="tenderId" name="tenderId" class="form-select" data-tender-category-select required disabled="@(eligibleTenders.Count == 0)"><option value="">@(eligibleTenders.Count == 0 ? "No eligible tenders — publish a tender first" : "Select a tender")</option>@foreach (var tender in eligibleTenders) { <option value="@tender.TenderId" data-category="@(tender.Category ?? "")" selected="@(selectedTenderId == tender.TenderId)">@tender.Title · @(tender.Category ?? "Uncategorized") (closes @tender.ClosesAt.ToString("yyyy-MM-dd HH:mm") UTC)</option> }</select></div>
+        <partial name="_LaunchSuppliers" />
+        <div class="so-action-buttons"><a class="btn btn-outline-secondary" href="#invitations-list">Back to invitations</a><button type="submit" class="btn btn-primary" disabled="@(eligibleTenders.Count == 0)">Send Invitations</button></div>
     </form>
 </section>
 </div>
 @section Scripts {
-<script>
-    const allSuppliers = document.getElementById('all-suppliers');
-    const supplierChoices = [...document.querySelectorAll('.supplier-choice')];
-    allSuppliers.addEventListener('change', () => {
-        supplierChoices.forEach(choice => choice.checked = allSuppliers.checked);
-        allSuppliers.indeterminate = false;
-    });
-    supplierChoices.forEach(choice => choice.addEventListener('change', () => {
-        const selectedCount = supplierChoices.filter(input => input.checked).length;
-        allSuppliers.checked = selectedCount === supplierChoices.length;
-        allSuppliers.indeterminate = selectedCount > 0 && selectedCount < supplierChoices.length;
-    }));
-</script>
+    <script src="~/js/procurement-categories.js" asp-append-version="true" defer></script>
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using SourcingTenderManagement.Services.Reports;
 
 namespace SourcingTenderManagement.Services.PdfWatermark;
 
@@ -33,7 +34,7 @@ public sealed class PdfWatermarkResultFilter(IPdfWatermarkService watermark, Tim
                 _ => throw new InvalidDataException("Unsupported PDF response source.")
             };
             var bytes = await watermark.ApplyAsync(original, context.HttpContext.User, clock.GetUtcNow(),
-                context.HttpContext.RequestAborted);
+                context.HttpContext.RequestAborted, combinePageContents: file is GeneratedReportPdfResult);
             // Original byte ranges/validators cannot describe these personalized bytes. Keep the
             // existing inline/attachment filename behavior, but execute a complete uncached response.
             context.Result = new FileContentResult(bytes, "application/pdf") { FileDownloadName = file.FileDownloadName };

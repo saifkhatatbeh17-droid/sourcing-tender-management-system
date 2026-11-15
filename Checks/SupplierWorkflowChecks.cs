@@ -91,6 +91,62 @@ public static class SupplierWorkflowChecks
             var bids = (List<Bid>)history.Model!;
             Require(bids.Any(b => b.BidId == draft.BidId) && bids.All(b => b.Invitation.SupplierProfileId == supplier.SupplierProfileId && b.SubmittedAt != null), "History ownership or status filter failed");
             Require(await Controller().Offer(-1) is NotFoundResult, "Unknown offer was exposed");
+            SourcingOfficerController Officer(string id) => new(db)
+            {
+                ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, id)], "check"))
+                } },
+                TempData = new TempDataDictionary(new DefaultHttpContext(), new MemoryTempData())
+            };
+            await using (var categoryCheck = await db.Database.BeginTransactionAsync())
+            {
+                var matching = "Temporary instrument category";
+                await db.Tenders.Where(t => t.TenderId == tender.TenderId)
+                    .ExecuteUpdateAsync(u => u.SetProperty(t => t.Category, matching));
+                var otherSupplier = await db.SupplierProfiles.AsNoTracking()
+                    .FirstAsync(s => s.Status == "Approved" && s.SupplierProfileId != supplier.SupplierProfileId);
+                var candidate = db.SupplierProfiles.Where(s => s.SupplierProfileId == otherSupplier.SupplierProfileId);
+                await candidate.ExecuteUpdateAsync(u => u.SetProperty(s => s.Category, "Different category"));
+                await Officer(officer.Id).CreateInvitation(tender.TenderId, [otherSupplier.SupplierProfileId]);
+                Require(!await db.Invitations.AnyAsync(i => i.TenderId == tender.TenderId &&
+                    i.SupplierProfileId == otherSupplier.SupplierProfileId), "Mismatched supplier was invited");
+                await candidate.ExecuteUpdateAsync(u => u.SetProperty(s => s.Category, matching.ToUpperInvariant()));
+                await Officer(officer.Id).CreateInvitation(tender.TenderId, null, allSuppliers: true);
+                Require(await db.Invitations.CountAsync(i => i.TenderId == tender.TenderId) == 2 &&
+                    await db.Invitations.AnyAsync(i => i.TenderId == tender.TenderId &&
+                        i.SupplierProfileId == otherSupplier.SupplierProfileId), "Invite all selected suppliers outside the matching category");
+                await categoryCheck.RollbackAsync();
+            }
+            db.ChangeTracker.Clear();
+            Console.WriteLine("PASS: mismatched suppliers rejected and invite all limited to matching categories.");
+            var future = DateTime.UtcNow.AddDays(1);
+            var past = DateTime.UtcNow.AddDays(-1);
+            var testTender = db.Tenders.Where(t => t.TenderId == tender.TenderId);
+            var testBid = db.Bids.Where(b => b.BidId == draft.BidId);
+            await Officer(officer.Id).ReviewAndSend(tender.TenderId, new() { [draft.BidId] = "Compliant" });
+            db.ChangeTracker.Clear();
+            Require(await testTender.AnyAsync(t => t.Status == "Published"), "Early committee handoff changed tender status");
+            Require(await Officer("other-officer").CancelTender(tender.TenderId) is NotFoundResult, "Another officer could cancel the tender");
+            Require(await Controller().CancelOffer(-1) is NotFoundResult, "An unknown offer could be canceled");
+            await testTender.ExecuteUpdateAsync(u => u.SetProperty(t => t.ClosesAt, past));
+            await Controller().CancelOffer(draft.BidId);
+            db.ChangeTracker.Clear();
+            Require(await testBid.AnyAsync(b => b.Status == "Submitted"), "Expired offer cancellation succeeded");
+            await Officer(officer.Id).CancelTender(tender.TenderId);
+            db.ChangeTracker.Clear();
+            Require(await testTender.AnyAsync(t => t.Status == "Published"), "Expired tender cancellation succeeded");
+            await testTender.ExecuteUpdateAsync(u => u.SetProperty(t => t.ClosesAt, future));
+            await Controller().CancelOffer(draft.BidId);
+            db.ChangeTracker.Clear();
+            Require(await testBid.AnyAsync(b => b.Status == "Withdrawn" && b.SubmittedAt != null), "Offer was not withdrawn before the deadline");
+            await Officer(officer.Id).CancelTender(tender.TenderId);
+            db.ChangeTracker.Clear();
+            Require(await testTender.AnyAsync(t => t.Status == "Cancelled"), "Tender was not canceled before the deadline");
+            var canceledOffers = (ViewResult)await Controller().Offers(null, "Cancelled");
+            Require(((List<Bid>)canceledOffers.Model!).Any(b => b.BidId == draft.BidId && b.Invitation.Tender.Status == "Cancelled"), "Canceled tender missing from supplier offers");
+            Require(await Controller().SaveOffer(Form(), "Submit", null) is ForbidResult, "Canceled tender still accepts offers");
+            Console.WriteLine("PASS: early handoff and expired cancellation guards, owner-only tender cancellation, supplier withdrawal, and shared cancellation status.");
             Console.WriteLine("PASS: deadline transitions and future dates; new/draft attachment failures rolled back with file cleanup; successful submission; supplier-scoped history.");
         }
         finally

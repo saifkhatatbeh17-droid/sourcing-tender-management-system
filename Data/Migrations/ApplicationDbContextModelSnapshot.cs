@@ -1131,6 +1131,10 @@ namespace SourcingTenderManagement.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("CompanyName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1210,6 +1214,10 @@ namespace SourcingTenderManagement.Data.Migrations
 
                     b.Property<int?>("AwardedBidId")
                         .HasColumnType("int");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("ClosesAt")
                         .HasColumnType("datetime2");

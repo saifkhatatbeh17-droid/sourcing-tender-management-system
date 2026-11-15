@@ -187,11 +187,15 @@ html body:has(.admin-shell) .admin-navbar :is(nav > a, .notification-bell, .admi
 html body:has(.admin-shell) .admin-shell .workspace-heading .btn-primary { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
 html body:has(.admin-shell) .admin-shell .workspace-heading .btn-primary:hover { background: var(--color-primary-hover); }
 .admin-shell .workspace-heading p { max-width: 65ch; }
-.admin-shell .admin-record-filters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(2, minmax(150px, 1fr)) auto; align-items: center; gap: 12px; padding: 20px; margin: 0; border-bottom: 1px solid var(--color-border); }
+.admin-shell .admin-record-filters { display: grid; grid-template-columns: minmax(0, 2fr) repeat(2, minmax(150px, 1fr)) auto; align-items: start; gap: 12px; padding: 20px; margin: 0; border-bottom: 1px solid var(--color-border); }
 .admin-shell .admin-record-filters > * { width: auto; padding: 0; margin: 0; min-width: 0; }
 .admin-shell .admin-filter-bar { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 18px; margin-bottom: 20px; }
-.admin-shell .admin-filter-bar .admin-record-filters { grid-template-columns: minmax(0, 2fr) minmax(170px, 1fr) auto; border-bottom: 0; padding: 16px; }
+.admin-shell .admin-filter-bar .admin-record-filters { grid-template-columns: minmax(0, 2fr) minmax(170px, 1fr) auto; border-bottom: 0; }
 html body:has(.admin-shell) .admin-shell .form-control, html body:has(.admin-shell) .admin-shell .form-select { border-color: var(--color-border); padding: 11px 14px; }
+.admin-shell .admin-record-filters :is(.form-control, .form-select, .btn) { min-height: 48px; }
+.admin-shell .admin-record-filters .voice-search-control .input-group { flex-wrap: nowrap; }
+.admin-shell .admin-record-filters .voice-search-control [data-voice-search-language] { flex: 0 0 6.5rem; }
+.admin-shell .admin-record-filters [data-voice-search-status] { margin-top: 4px; }
 .admin-shell .admin-records { overflow: hidden; }
 .admin-shell .admin-record-table { min-width: 760px; }
 .admin-shell .admin-record-table > :is(thead, tbody) > tr > * { padding-inline: 20px; }
@@ -237,6 +241,7 @@ html[data-theme="dark"] body:has(.admin-shell) .admin-shell :is(.admin-record-av
     .admin-shell .admin-record-filters > :first-child { grid-column: 1 / -1; }
 }
 @media(max-width:575px) {
+    .admin-shell .admin-record-filters { padding: 12px; }
     .admin-shell .admin-filter-bar .admin-record-filters { grid-template-columns: minmax(0, 1fr) auto; }
     .admin-shell .admin-filter-bar .admin-record-filters > :first-child { grid-column: 1 / -1; }
     body:has(.admin-shell) #create-user-form .modal-body { grid-template-columns: 1fr; }

@@ -8,6 +8,7 @@
 <section class="workspace-section" data-review-step="Company" aria-labelledby="company-details">
     <h2 id="company-details">Company details</h2>
     <dl class="row mb-0">
+        <dt class="col-sm-4">Supply category</dt><dd class="col-sm-8">@(supplier.Category ?? "Not selected")</dd>
         <dt class="col-sm-4">Registration number</dt><dd class="col-sm-8">@supplier.RegistrationNumber</dd>
         <dt class="col-sm-4">Tax number</dt><dd class="col-sm-8">@(supplier.TaxNumber ?? "Not provided")</dd>
         <dt class="col-sm-4">Contact</dt><dd class="col-sm-8">@supplier.ContactName</dd>

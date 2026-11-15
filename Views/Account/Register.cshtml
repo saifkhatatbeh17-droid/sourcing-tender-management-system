@@ -38,6 +38,7 @@
                                 <input asp-for="CompanyName" class="form-control" autocomplete="organization" placeholder="e.g. Acme Pharmaceutical Industries" />
                                 <span asp-validation-for="CompanyName" class="field-error"></span>
                             </div>
+                            <partial name="_ProcurementCategoryFields" model='((ProcurementCategoryInput)Model, "Supplier", "Supply category")' />
                             <div class="registration-field">
                                 <label asp-for="RegistrationNumber">Company registration number <b>*</b></label>
                                 <input asp-for="RegistrationNumber" class="form-control" placeholder="Enter registration number" />
@@ -130,6 +131,7 @@
 
 @section Styles { <link rel="stylesheet" href="~/css/register.css" asp-append-version="true" /> }
 @section Scripts {
+    <script src="~/js/procurement-categories.js" asp-append-version="true" defer></script>
     <partial name="_ValidationScriptsPartial" />
     <script>
         (() => {

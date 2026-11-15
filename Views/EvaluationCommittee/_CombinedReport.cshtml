@@ -6,7 +6,7 @@
     var approved = Model.Approvals.Count(a => a.Decision == "Approved");
 }
 <section class="cw-panel cw-report-document" aria-labelledby="report-title">
-    @if (!string.IsNullOrWhiteSpace(report?.CommitteeSummary)) { <nav class="workspace-toolbar" aria-label="Report export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id="@tender.TenderId">Download PDF</a></nav> }
+    @if (!string.IsNullOrWhiteSpace(report?.CommitteeSummary)) { <nav class="workspace-toolbar" aria-label="Report export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id="@tender.TenderId"><partial name="_ReportDownloadIcon" /> Download PDF</a></nav> }
     <header class="cw-report-title"><div><p class="cw-eyebrow">Tender #@tender.TenderId · Read-only report</p><h2 id="report-title">@tender.Title</h2></div><span class="cw-status">@CommitteeEvaluationPage.StatusLabel(tender.Status)</span></header>
     @if (Model.Criteria.Count > 0)
     {

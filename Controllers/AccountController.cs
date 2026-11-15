@@ -183,7 +183,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
             return View(model);
         }
-        var profile = new SupplierProfile { UserId = user.Id, CompanyName = model.CompanyName,
+        var profile = new SupplierProfile { UserId = user.Id, CompanyName = model.CompanyName, Category = model.SelectedCategory,
             RegistrationNumber = model.RegistrationNumber, TaxNumber = model.TaxNumber,
             ContactName = model.ContactName, Address = model.Address, Status = "Pending", CreatedAt = DateTime.UtcNow };
         db.SupplierProfiles.Add(profile);
@@ -218,9 +218,11 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         var id = users.GetUserId(User);
         var profile = await db.SupplierProfiles.AsNoTracking().SingleOrDefaultAsync(s => s.UserId == id);
         if (profile?.Status != "ChangesRequested") return Forbid();
-        return View(new SupplierCompanyViewModel { CompanyName = profile.CompanyName,
+        var model = new SupplierCompanyViewModel { CompanyName = profile.CompanyName,
             RegistrationNumber = profile.RegistrationNumber, TaxNumber = profile.TaxNumber,
-            ContactName = profile.ContactName, Address = profile.Address });
+            ContactName = profile.ContactName, Address = profile.Address };
+        model.LoadCategory(profile.Category);
+        return View(model);
     }
 
     [HttpPost, Authorize(Roles = RoleNames.Supplier), ValidateAntiForgeryToken]
@@ -232,6 +234,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         if (!ModelState.IsValid) return View(input);
         if (await db.SupplierProfiles.AnyAsync(s => s.RegistrationNumber == input.RegistrationNumber && s.UserId != id))
             return BadRequest("This registration number is already registered.");
+        profile.Category = input.SelectedCategory;
         profile.CompanyName = input.CompanyName; profile.RegistrationNumber = input.RegistrationNumber;
         profile.TaxNumber = input.TaxNumber; profile.ContactName = input.ContactName; profile.Address = input.Address;
         profile.Status = "Pending"; profile.ReviewNotes = null;

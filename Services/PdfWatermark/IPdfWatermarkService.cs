@@ -5,5 +5,5 @@ namespace SourcingTenderManagement.Services.PdfWatermark;
 public interface IPdfWatermarkService
 {
     Task<byte[]> ApplyAsync(Stream original, ClaimsPrincipal user, DateTimeOffset accessedAt,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default, bool combinePageContents = false);
 }

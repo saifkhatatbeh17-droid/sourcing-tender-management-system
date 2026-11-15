@@ -10,7 +10,15 @@
     var recommendationBids = report?.Bid == null ? new List<Bid>() : new List<Bid> { report.Bid };
 }
 <section class="workspace-section tw-report" id="committee-report">
-            <h2>Committee report review</h2>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <h2 class="mb-0">Committee report review</h2>
+                @if (!string.IsNullOrWhiteSpace(report?.CommitteeSummary))
+                {
+                    <a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id="@report.EvaluationReportId">
+                        <partial name="_ReportDownloadIcon" /> Download PDF
+                    </a>
+                }
+            </div>
             @if (report is null) { <p>No committee report is available yet.</p> }
             else
             {

@@ -1,0 +1,19 @@
+@model (ProcurementCategoryInput Input, string Prefix, string Label)
+<div class="field mb-3" data-category-fields>
+    <label for="@(Model.Prefix)Category" class="form-label">@Model.Label</label>
+    <select id="@(Model.Prefix)Category" name="Category" class="form-select" required data-category-select>
+        <option value="">Choose a category</option>
+        @foreach (var category in ProcurementCategoryInput.Options)
+        {
+            <option value="@category" selected="@(Model.Input.Category == category)">@category</option>
+        }
+        <option value="@ProcurementCategoryInput.Other" selected="@(Model.Input.Category == ProcurementCategoryInput.Other)">Other</option>
+    </select>
+    @Html.ValidationMessage("Category", "", new { @class = "text-danger" })
+    <div class="mt-2" data-other-category>
+        <label for="@(Model.Prefix)OtherCategory" class="form-label">Other category</label>
+        <input id="@(Model.Prefix)OtherCategory" name="OtherCategory" value="@Model.Input.OtherCategory"
+               class="form-control" maxlength="100" />
+        @Html.ValidationMessage("OtherCategory", "", new { @class = "text-danger" })
+    </div>
+</div>

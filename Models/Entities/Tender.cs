@@ -12,6 +12,7 @@ public class Tender
 
     public string CreatedByUserId { get; set; } = null!;
 
+    public string? Category { get; set; }
     public string Title { get; set; } = null!;
 
     public string Description { get; set; } = null!;
@@ -23,6 +24,12 @@ public class Tender
     public DateTime ClosesAt { get; set; }
 
     public string Status { get; set; } = null!;
+
+    public bool IsAcceptingOffers(DateTime now) =>
+        Status is ("Open" or "Published") && OpensAt <= now && now < ClosesAt;
+
+    public bool CanCancel(DateTime now) =>
+        Status is ("Draft" or "Open" or "Published") && now < ClosesAt;
 
     public int? AwardedBidId { get; set; }
 

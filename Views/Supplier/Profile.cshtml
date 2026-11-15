@@ -1,5 +1,13 @@
 @model SourcingTenderManagement.Models.Entities.SupplierProfile
-@{ ViewData["Title"] = "Company profile"; }
+@{
+    ViewData["Title"] = "Company profile";
+    var categoryInput = ViewBag.CategoryInput as ProcurementCategoryInput;
+    if (categoryInput == null)
+    {
+        categoryInput = new ProcurementCategoryInput();
+        categoryInput.LoadCategory(Model.Category);
+    }
+}
 <div class="supplier-workspace supplier-workspace--profile">
 <div class="supplier-page-heading"><div><h1>Company profile</h1><p>Your organization details and verification status.</p></div><span class="status-badge status-@Model.Status.ToLowerInvariant()">@Model.Status</span></div>
 @if (TempData["ProfileFeedback"] is string feedback)
@@ -8,7 +16,18 @@
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.ReviewNotes)) { <div class="alert alert-info"><strong>Review note:</strong> @Model.ReviewNotes</div> }
-<div class="supplier-detail-grid"><section class="supplier-card"><h2>Company information</h2><dl class="detail-list"><dt>Company name</dt><dd>@Model.CompanyName</dd><dt>Registration number</dt><dd>@Model.RegistrationNumber</dd><dt>Tax number</dt><dd>@(Model.TaxNumber ?? "Not provided")</dd><dt>Company address</dt><dd>@(Model.Address ?? "Not provided")</dd><dt>Registered</dt><dd>@Model.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</dd></dl></section><section class="supplier-card"><div class="supplier-card-heading"><h2>Primary contact</h2><a asp-controller="Account" asp-action="EditProfile">Edit phone ↗</a></div><dl class="detail-list"><dt>Contact person</dt><dd>@Model.ContactName</dd><dt>Email address</dt><dd>@Model.User.Email</dd><dt>Phone number</dt><dd>@(Model.User.PhoneNumber ?? "Not provided")</dd></dl><div class="profile-note"><strong>Need to change legal details?</strong><p>Updates to company registration details require administrator review.</p>@if (Model.Status == "ChangesRequested") { <a asp-controller="Account" asp-action="EditRegistration" class="btn btn-primary btn-sm">Update requested information</a> }</div></section></div>
+<div class="supplier-detail-grid"><section class="supplier-card"><h2>Company information</h2><dl class="detail-list"><dt>Company name</dt><dd>@Model.CompanyName</dd><dt>Supply category</dt><dd>@(Model.Category ?? "Not selected")</dd><dt>Registration number</dt><dd>@Model.RegistrationNumber</dd><dt>Tax number</dt><dd>@(Model.TaxNumber ?? "Not provided")</dd><dt>Company address</dt><dd>@(Model.Address ?? "Not provided")</dd><dt>Registered</dt><dd>@Model.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</dd></dl></section><section class="supplier-card"><div class="supplier-card-heading"><h2>Primary contact</h2><a asp-controller="Account" asp-action="EditProfile">Edit phone ↗</a></div><dl class="detail-list"><dt>Contact person</dt><dd>@Model.ContactName</dd><dt>Email address</dt><dd>@Model.User.Email</dd><dt>Phone number</dt><dd>@(Model.User.PhoneNumber ?? "Not provided")</dd></dl><div class="profile-note"><strong>Need to change legal details?</strong><p>Updates to company registration details require administrator review.</p>@if (Model.Status == "ChangesRequested") { <a asp-controller="Account" asp-action="EditRegistration" class="btn btn-primary btn-sm">Update requested information</a> }</div></section></div>
+@if (Model.Status == "Approved")
+{
+    <section class="supplier-card mt-3">
+        <h2>Supply category</h2>
+        <form asp-action="UpdateCategory" method="post">
+            <partial name="_ProcurementCategoryFields" model='(categoryInput, "Supplier", "Supply category")' />
+            <button type="submit" class="btn btn-primary">Save category</button>
+        </form>
+    </section>
+    <script src="~/js/procurement-categories.js" asp-append-version="true" defer></script>
+}
 <section class="supplier-card mt-3"><h2>Official company documents</h2>@if (!Model.SupplierDocuments.Any()) { <div class="empty-state compact"><p>No official company documents are on file yet.</p><small>Contact the administrator if you need to submit a license or certificate for verification.</small></div> } else { <ul class="document-list">@foreach (var document in Model.SupplierDocuments.OrderByDescending(d => d.UploadedAt)) { <li><span><strong>@document.DocumentType</strong><small>@document.OriginalFileName · @document.UploadedAt.ToLocalTime().ToString("dd MMM yyyy")</small></span><a asp-action="DownloadProfileDocument" asp-route-id="@document.SupplierDocumentId">Download</a></li> }</ul> }</section>
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }

@@ -427,6 +427,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<SupplierProfile>(entity =>
         {
+            entity.Property(e => e.Category).HasMaxLength(100);
             entity.Property(e => e.SupplierProfileId).UseIdentityColumn();
             entity.HasKey(e => e.SupplierProfileId);
 
@@ -456,6 +457,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<Tender>(entity =>
         {
+            entity.Property(e => e.Category).HasMaxLength(100);
             entity.Property(e => e.TenderId).UseIdentityColumn();
             entity.HasKey(e => e.TenderId);
 

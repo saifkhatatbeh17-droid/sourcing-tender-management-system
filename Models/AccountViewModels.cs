@@ -21,7 +21,7 @@ public class CreateUserViewModel
     public string? CommitteeRole { get; set; }
     public int? DepartmentId { get; set; }
 }
-public class SupplierCompanyViewModel
+public class SupplierCompanyViewModel : ProcurementCategoryInput
 {
     [Required, StringLength(200)] public string CompanyName { get; set; } = "";
     [Required, StringLength(100)] public string RegistrationNumber { get; set; } = "";
