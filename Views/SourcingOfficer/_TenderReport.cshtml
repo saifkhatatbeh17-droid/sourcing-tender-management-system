@@ -7,21 +7,31 @@
     var assignments = ViewBag.WorkspaceMembers as List<CommitteeAssignment> ?? [];
     var approvals = ViewBag.WorkspaceApprovals as List<TenderApproval> ?? [];
     var allFourApprovalsRecorded = assignments.Count == 4 && assignments.All(a => approvals.Any(p => p.CommitteeAssignmentId == a.CommitteeAssignmentId && p.Decision == "Approved"));
-    var recommendationBids = report?.Bid == null ? new List<Bid>() : new List<Bid> { report.Bid };
+    var recommended = (ViewData.Model as List<Bid>)?.FirstOrDefault(b => b.BidId == report?.RecommendedBidId) ?? report?.Bid;
+    var approvedCount = assignments.Count(a => approvals.Any(p => p.CommitteeAssignmentId == a.CommitteeAssignmentId && p.Decision == "Approved"));
 }
 <section class="workspace-section tw-report" id="committee-report">
-            <h2>Committee report review</h2>
-            @if (report is null) { <p>No committee report is available yet.</p> }
-            else
-            {
-                <dl>
-                    <dt>Report status</dt><dd><span class="so-status-badge" data-status="@report.Status">@report.Status</span></dd>
-                    <dt>Recommended offer</dt><dd>@(recommendationBids.FirstOrDefault(b => b.BidId == report.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName ?? (report.RecommendedBidId.HasValue ? "Offer #" + report.RecommendedBidId : "No offer recommended"))</dd>
-                    <dt>Committee report</dt><dd style="white-space: pre-wrap">@report.CommitteeSummary</dd>
-                </dl>
+    <header class="or-report-heading"><div><h2>Committee recommendation</h2><p>Review the winning offer before forwarding it to the manager.</p></div>
+        @if (report != null) { <span class="so-status-badge">@SourcingTenderManagement.Models.CommitteeEvaluationPage.StatusLabel(report.Status)</span> }
+    </header>
+    @if (report is null) { <p>No committee report is available yet.</p> }
+    else
+    {
+        <div class="or-winner"><div><span class="or-winner-label">✓ Winning offer</span><h3>@(recommended?.Invitation.SupplierProfile.CompanyName ?? "Offer #" + report.RecommendedBidId)</h3><p>Offer #@report.RecommendedBidId · Recommended by the evaluation committee</p></div>
+        @if (recommended != null) { <div class="or-quote"><strong>@SourcingTenderManagement.Models.CommitteeEvaluationPage.Total(recommended).ToString("N2") <small>@recommended.Currency</small></strong><span>@recommended.DeliveryDays-day delivery</span></div> }
+        </div>
+        <section class="or-document" aria-labelledby="officer-document-heading"><div class="or-document-heading"><div><h3 id="officer-document-heading">Committee report</h3><p>Full recommendation and evaluation record</p></div>
+        @if (!string.IsNullOrWhiteSpace(report.CommitteeSummary))
+        { <a class="btn btn-primary or-download" asp-action="ReportPdf" asp-route-id="@report.EvaluationReportId"><partial name="_ReportDownloadIcon" />Download full report <span>PDF</span></a> }
+        </div><p class="or-document-description">The PDF includes the shortlisted offer comparisons, recorded scores and each member’s review. The manager’s later summary focuses on the winner only.</p></section>
+        <details class="or-approvals"><summary><span>Committee approval record</span><span>@approvedCount / 4 approved <span aria-hidden="true">⌄</span></span></summary><ul>
+        @foreach (var member in assignments)
+        { var approved = approvals.Any(a => a.CommitteeAssignmentId == member.CommitteeAssignmentId && a.Decision == "Approved");
+          <li><span>@SourcingTenderManagement.Models.CommitteeEvaluationPage.MemberName(member.Position)</span><span>@(approved ? "✓ Approved" : "Pending")</span></li> }
+        </ul></details>
                 @if (report.Status == "CommitteeApproved" && selectedTenderStatus == "AwaitingOfficerSummary" && allFourApprovalsRecorded && selectedTenderId.HasValue)
                 {
-                        <p class="text-secondary">Approve to forward this report and its recommended offer unchanged. Requesting edits returns it to the committee for four fresh approvals. Rejecting cancels the tender.</p>
+                        <div class="or-review-actions"><h3>Your review</h3><p>Approve to forward the recommendation to the manager. Request edits to reopen committee reviews, or reject to cancel the tender.</p>
                         <div class="d-flex flex-wrap gap-2">
                             <form asp-action="ReviewCommitteeReport" method="post" data-report-approve>
                                 <input type="hidden" name="tenderId" value="@selectedTenderId.Value" />
@@ -30,6 +40,7 @@
                             </form>
                             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#officer-decision-modal" data-review-decision="RequestEdits">Request edits</button>
                             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#officer-decision-modal" data-review-decision="Reject">Reject</button>
+                        </div>
                         </div>
                         <div class="modal fade" id="officer-decision-modal" tabindex="-1" aria-labelledby="officer-decision-title" aria-describedby="officer-decision-help" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
@@ -49,9 +60,9 @@
                         </div>
                 }
                 else if (!string.IsNullOrWhiteSpace(report.OfficerSummary))
-                { <h3>Officer decision</h3><p style="white-space: pre-wrap">@report.OfficerSummary</p> }
+                { <details class="or-approvals"><summary>Your recorded decision</summary><p class="or-review-note">@report.OfficerSummary</p></details> }
                 else { <p class="text-secondary">Review actions are available after all four committee members approve the report.</p> }
                 @if (!string.IsNullOrWhiteSpace(report.ManagerSummary))
-                { <h3>Manager review</h3><p>@report.ManagerSummary</p> }
+                { <details class="or-approvals"><summary>Manager review</summary><p class="or-review-note">@report.ManagerSummary</p></details> }
             }
 </section>

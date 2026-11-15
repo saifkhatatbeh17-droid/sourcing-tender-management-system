@@ -1,0 +1,12 @@
+@model CommitteeEvaluationPage
+@using System.Globalization
+<section class="cs-panel cs-consensus" aria-labelledby="consensus-heading">
+    <div class="cs-section-heading"><div><h3 id="consensus-heading">@(Model.ConsensusLocked ? "Committee percentages are locked" : "Confirm the committee percentages")</h3><p id="consensus-lock-reason">@(Model.ConsensusLocked ? "The average of four confirmed proposals applies to every offer and the AI comparison. Nobody can edit the calculated percentage." : "Each member must enter and confirm a financial percentage; technical is the remainder. The rest of this page stays locked until all four submit. The average is then calculated once and locked.")</p></div><span class="cs-pill @(Model.ConsensusLocked ? "is-success" : "")">@Model.WeightProposals.Count / 4 confirmed</span></div>
+    @if (Model.Members.Count == 0 && !Model.Locked)
+    { <form asp-action="Start" method="post"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><button class="cs-button is-primary">Start committee evaluation</button></form> }
+    @if (Model.ConsensusLocked)
+    { <div class="cs-locked-split"><div><span>Financial weight</span><strong>@Model.FinancialWeight.ToString("0.##")<small> / 100</small></strong></div><div><span>Technical weight</span><strong>@Model.TechnicalWeight.ToString("0.##")<small> / 100</small></strong></div><p>Locked @Model.Tender!.CommitteeWeightsLockedAt?.ToString("dd MMM yyyy HH:mm") UTC<br />These percentages apply to the AI comparison and committee approval.</p></div> }
+    @if (Model.ConsensusLocked)
+    { <details class="cs-proposal-details"><summary>View the four confirmed proposals</summary><partial name="_PercentageProposals" model="Model" /></details> }
+    else { <partial name="_PercentageProposals" model="Model" /> }
+</section>

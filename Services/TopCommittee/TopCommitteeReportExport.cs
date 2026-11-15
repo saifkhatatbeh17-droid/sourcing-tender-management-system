@@ -32,7 +32,7 @@ public sealed class TopCommitteeReportExport
     {
         using var book = new XLWorkbook();
         var summary = book.AddWorksheet("Summary");
-        summary.Cell(1,1).Value = "Top Committee Report";
+        summary.Cell(1,1).Value = "CEO & Chiefs Report";
         summary.Cell(2,1).Value = "Generated UTC"; summary.Cell(2,2).Value = p.GeneratedAt;
         summary.Cell(2,2).Style.DateFormat.Format = "yyyy-mm-dd hh:mm";
         summary.Cell(3,1).Value = Filters(p.Filter);
@@ -120,12 +120,12 @@ public sealed class TopCommitteeReportExport
 
     public byte[] Pdf(CommitteeReportPage p)
     {
-        var doc=CreatePdfDocument("Top Committee Report");
+        var doc=CreatePdfDocument("CEO & Chiefs Report");
         var section=doc.LastSection;
-        var title=section.AddParagraph("Top Committee Report"); title.Format.Font.Size=20; title.Format.Font.Bold=true;
+        var title=section.AddParagraph("CEO & Chiefs Report"); title.Format.Font.Size=20; title.Format.Font.Bold=true;
         section.AddParagraph("Generated "+CommitteeDisplay.Utc(p.GeneratedAt));
         section.AddParagraph(Scope).Format.SpaceAfter=8; AddPdfText(section,Filters(p.Filter)).Format.SpaceAfter=12;
-        var footer=section.Footers.Primary.AddParagraph(); footer.AddText("Top Committee | Page "); footer.AddPageField(); footer.AddText(" of "); footer.AddNumPagesField();
+        var footer=section.Footers.Primary.AddParagraph(); footer.AddText("CEO & Chiefs | Page "); footer.AddPageField(); footer.AddText(" of "); footer.AddNumPagesField();
 
         Heading(section,"A · General statistics");
         if(p.SystemStatistics is {} system)
@@ -166,7 +166,7 @@ public sealed class TopCommitteeReportExport
         return RenderPdf(doc);
     }
 
-    // The existing Top Committee document setup is shared by every report export.
+    // The existing CEO & Chiefs document setup is shared by every report export.
     internal static Document CreatePdfDocument(string reportTitle)
     {
         lock(FontLock) { if(GlobalFontSettings.FontResolver==null)GlobalFontSettings.FontResolver=new ReportFontResolver(); }

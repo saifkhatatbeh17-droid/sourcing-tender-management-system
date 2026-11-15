@@ -68,7 +68,7 @@
                 : describe('Decline this invitation?', 'Your company will be recorded as declining this invitation.', 'Decline invitation', true);
         }
         if (controller === 'sourcingmanager') {
-            if (action === 'forward') return describe('Refer to the top committee?', 'The report, chosen offer and referral reason will be sent to the top committee for its decision.', 'Forward to committee');
+            if (action === 'forward') return describe('Refer to the CEO & Chiefs?', 'The report, chosen offer and referral reason will be sent to the CEO & Chiefs for its decision.', 'Forward to committee');
             if (action === 'decide') {
                 const choice = value(form, 'Decision', button);
                 return choice === 'Approved' ? describe('Approve this recommendation?', 'Your approval will be recorded and the tender will advance to the next decision stage required by its referral policy.', 'Approve recommendation')

@@ -41,23 +41,60 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return View(model);
     }
 
-    // Password authentication is the existing Login action; the face check is optional and post-login.
+    // This path must not call Login: that would issue a session before checking the face.
     [HttpPost, ValidateAntiForgeryToken,
-     Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("FaceLogin"), RequestSizeLimit(16_000)]
-    public async Task<IActionResult> LoginWithFaceId(LoginViewModel model)
+     Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
+    public async Task<IActionResult> LoginWithFaceId(
+        SourcingTenderManagement.Models.FaceLogin.FaceSignInInput model,
+        [FromServices] SourcingTenderManagement.Services.FaceVerification.FaceVerificationService verification,
+        CancellationToken ct)
     {
-        var inline = Request.Headers.Accept.ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase);
-        var result = await Login(model);
-        if (result is RedirectToActionResult { ActionName: nameof(GoToDashboard) })
+        Response.Headers.CacheControl = "no-store";
+        const string failure = "Unable to sign in. Your password and enrolled face must both match. Check your details and try again.";
+        if (User.Identity?.IsAuthenticated == true)
+            return Conflict(new { message = "You are already signed in. Sign out before using Face ID." });
+        if (!ModelState.IsValid || model.Password.Length > 1024 ||
+            !SourcingTenderManagement.Services.FaceVerification.FaceVerificationService.ValidDescriptor(model.Descriptor) ||
+            model.ModelIdentifier != SourcingTenderManagement.Services.FaceEnrollment.FaceEnrollmentService.ModelIdentifier)
+            return BadRequest(new { message = failure });
+
+        var user = await users.FindByEmailAsync(model.Email);
+        if (user == null || !user.IsActive || !await signIn.CanSignInAsync(user) ||
+            (users.SupportsUserLockout && await users.IsLockedOutAsync(user)))
+            return BadRequest(new { message = failure });
+        // Do not reset failed face attempts merely because the password is correct.
+        if (!await users.CheckPasswordAsync(user, model.Password))
         {
-            var route = new { returnUrl = SafeReturnUrl(model.ReturnUrl) };
-            if (inline) return Ok(new { modalUrl = Url.Action("Modal", "FaceSetup", route) });
-            return RedirectToAction("Index", "FaceLogin", route);
+            if (users.SupportsUserLockout && await users.GetLockoutEnabledAsync(user))
+                await users.AccessFailedAsync(user);
+            return BadRequest(new { message = failure });
         }
-        if (inline) return BadRequest(new { message = "Unable to sign in. Check your email and password, or try again later." });
-        // Preserve the current Login validation and generic errors under the original view name.
-        if (result is ViewResult view) view.ViewName = nameof(Login);
-        return result;
+        SourcingTenderManagement.Models.FaceVerification.FaceVerificationResult match;
+        try
+        {
+            match = await verification.VerifyAsync(user.Id, new()
+            {
+                Descriptor = model.Descriptor, ModelIdentifier = model.ModelIdentifier
+            }, ct);
+        }
+        catch (UnauthorizedAccessException) { return BadRequest(new { message = failure }); }
+        if (match.Status != "Matched")
+        {
+            // Wrong-face attempts share the account's Identity lockout protection.
+            if (users.SupportsUserLockout && await users.GetLockoutEnabledAsync(user))
+                await users.AccessFailedAsync(user);
+            return BadRequest(new { message = failure, code = match.Status == "Not Matched" ? "face_not_matched" : "face_unavailable" });
+        }
+
+        // Recheck account/password/lockout immediately before issuing the cookie;
+        // preserve Identity's existing two-factor requirements if configured.
+        user = await users.FindByIdAsync(user.Id);
+        if (user == null || !user.IsActive ||
+            !(await signIn.PasswordSignInAsync(user, model.Password, false, lockoutOnFailure: true)).Succeeded)
+            return BadRequest(new { message = failure });
+        Response.Cookies.Delete(SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieName,
+            SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieOptions(Request));
+        return Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) });
     }
 
     [Authorize]
@@ -227,7 +264,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
             return View(model);
         }
-        var profile = new SupplierProfile { UserId = user.Id, CompanyName = model.CompanyName,
+        var profile = new SupplierProfile { UserId = user.Id, CompanyName = model.CompanyName, Category = model.SelectedCategory,
             RegistrationNumber = model.RegistrationNumber, TaxNumber = model.TaxNumber,
             ContactName = model.ContactName, Address = model.Address, Status = "Pending", CreatedAt = DateTime.UtcNow };
         db.SupplierProfiles.Add(profile);
@@ -262,9 +299,11 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         var id = users.GetUserId(User);
         var profile = await db.SupplierProfiles.AsNoTracking().SingleOrDefaultAsync(s => s.UserId == id);
         if (profile?.Status != "ChangesRequested") return Forbid();
-        return View(new SupplierCompanyViewModel { CompanyName = profile.CompanyName,
+        var model = new SupplierCompanyViewModel { CompanyName = profile.CompanyName,
             RegistrationNumber = profile.RegistrationNumber, TaxNumber = profile.TaxNumber,
-            ContactName = profile.ContactName, Address = profile.Address });
+            ContactName = profile.ContactName, Address = profile.Address };
+        model.LoadCategory(profile.Category);
+        return View(model);
     }
 
     [HttpPost, Authorize(Roles = RoleNames.Supplier), ValidateAntiForgeryToken]
@@ -276,6 +315,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         if (!ModelState.IsValid) return View(input);
         if (await db.SupplierProfiles.AnyAsync(s => s.RegistrationNumber == input.RegistrationNumber && s.UserId != id))
             return BadRequest("This registration number is already registered.");
+        profile.Category = input.SelectedCategory;
         profile.CompanyName = input.CompanyName; profile.RegistrationNumber = input.RegistrationNumber;
         profile.TaxNumber = input.TaxNumber; profile.ContactName = input.ContactName; profile.Address = input.Address;
         profile.Status = "Pending"; profile.ReviewNotes = null;

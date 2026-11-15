@@ -11,6 +11,7 @@
 <div class="manager-shell">
     <div class="workspace-heading">
         <h1>Committee Submissions</h1>
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#manager-rejections">Committee rejections</button>
     </div>
     @if (TempData["ManagerMessage"] is string message)
     {
@@ -42,8 +43,8 @@
                 <nav class="workspace-toolbar" aria-label="Submission report export"><a class="btn btn-outline-primary btn-sm" asp-action="SubmissionPdf" asp-route-id="@report.EvaluationReportId">Download PDF</a></nav>
                 <h2>@report.Tender.Title</h2><a class="btn btn-outline-primary" asp-controller="Clarification" asp-action="Index" asp-route-kind="tender" asp-route-recordId="@report.TenderId">Ask for clarification</a>@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = report.TenderId })
                 <p><strong>Recommended supplier</strong> @(recommendedOffer?.Invitation.SupplierProfile.CompanyName ?? "Unavailable")</p>
-                <h3 class="h5">Committee report</h3>
-                <p class="text-break manager-text">@(report.CommitteeSummary ?? "No summary was provided.")</p>
+                <details class="manager-shortlist-report"><summary>Full committee report · top three offers &amp; review record</summary>
+                <partial name="_FormattedReport" model='@(report.CommitteeSummary ?? "No summary was provided.")' /></details>
                 @if (!string.IsNullOrWhiteSpace(report.OfficerSummary))
                 {
                     <h3 class="h5">Sourcing officer summary</h3>
@@ -129,7 +130,7 @@
 
                 @if (report.Status == "ManagerApproved")
                 {
-                    <h3 class="h5 manager-section-break">Refer to the Top Committee</h3>
+                    <h3 class="h5 manager-section-break">Refer to the CEO & Chiefs</h3>
                     @if (!string.IsNullOrWhiteSpace(report.ManagerSummary))
                     {
                         <p class="text-break manager-text">@report.ManagerSummary</p>
@@ -138,10 +139,10 @@
 
                         <input type="hidden" name="ReportId" value="@report.EvaluationReportId" />
                         <label class="form-label" for="forward-reason">Reason under the referral policy</label>
-                        <textarea class="form-control mb-3" id="forward-reason" name="Reason" rows="3" maxlength="4000" required></textarea>
-                        <button type="button" class="btn btn-outline-secondary" data-draft-referral data-url="@Url.Action("DraftReferral")">Generate with AI</button>
-                        <button type="submit" class="btn btn-primary">Forward to Top Committee</button>
-                        <p class="form-text" data-referral-feedback role="status">Review the draft and add the actual referral policy reason before forwarding.</p>
+                        <textarea class="form-control mb-3" id="forward-reason" name="Reason" rows="6" maxlength="4000" required></textarea>
+                        <button type="button" class="btn btn-outline-secondary" data-draft-referral data-url="@Url.Action("DraftReferral")">Summarize winning offer with AI</button>
+                        <button type="submit" class="btn btn-primary">Forward to CEO & Chiefs</button>
+                        <p class="form-text" data-referral-feedback role="status">The draft includes the purchase purpose, requested items and winning offer. Recorded purchase requirements are also attached automatically when you forward. Review the draft and add the actual referral policy reason.</p>
                     </form>
                 }
                 else
@@ -164,6 +165,9 @@
         }
     </div>
 </div>
+<partial name="_Rejections" model="@((IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender>)ViewBag.RejectedTenders)" />
 @section Scripts {
+    @if (ViewBag.OpenRejections == true)
+    { <script>document.addEventListener('DOMContentLoaded', () => bootstrap.Modal.getOrCreateInstance(document.getElementById('manager-rejections')).show());</script> }
     <script src="~/js/manager-referral.js" asp-append-version="true"></script>
 }

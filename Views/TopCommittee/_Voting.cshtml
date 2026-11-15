@@ -25,7 +25,7 @@
         <section class="tc-member-form @(mine ? "tc-member-form-own" : "")" aria-labelledby="top-member-@member.Position">
             <header>
                 <span class="tc-member-access">@(mine ? "Your form" : "Read-only")</span>
-                <h3 id="top-member-@member.Position">Top Committee Member @member.Position</h3>
+                <h3 id="top-member-@member.Position">CEO & Chiefs Member @member.Position</h3>
                 <p>@member.FullName</p>
                 <strong class="tc-member-state">@(vote == null ? "Not approved" : CommitteeDisplay.Status(vote.Decision))</strong>
             </header>
@@ -43,8 +43,25 @@
                     <span asp-validation-for="Vote!.Decision" class="text-danger"></span>
                     <span asp-validation-for="Vote!.Confirmed" class="text-danger"></span>
                     <p class="tc-member-help">Approve saves your notes and locks your form. You do not need to wait for the other members.</p>
-                    <div class="tc-member-actions"><button type="submit" class="btn btn-primary">Approve</button></div>
+                    <div class="tc-member-actions"><button type="submit" class="btn btn-primary">Approve</button><button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reject-top-@member.Position">Reject</button></div>
                 </form>
+                <div class="modal fade" id="reject-top-@member.Position" tabindex="-1" aria-labelledby="reject-title-@member.Position" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+                        <form asp-action="SubmitVote" method="post">
+                            <div class="modal-header"><h2 class="modal-title fs-5" id="reject-title-@member.Position">Reject tender</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                            <div class="modal-body">
+                                <p>This ends voting and returns the tender to its Sourcing Manager.</p>
+                                <input name="Vote.TenderId" value="@tender.TenderId" type="hidden" />
+                                <input name="Vote.ExpectedNominatedBidId" value="@tender.Report?.RecommendedBidId" type="hidden" />
+                                <input name="Vote.Decision" value="Rejected" type="hidden" />
+                                <input name="Vote.Confirmed" value="true" type="hidden" />
+                                <label for="reject-reason-@member.Position">Rejection reason</label>
+                                <textarea id="reject-reason-@member.Position" name="Vote.Notes" class="form-control" required maxlength="4000" oninput="this.setCustomValidity(this.value.trim() ? '' : 'Enter a rejection reason.')"></textarea>
+                            </div>
+                            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger">Reject tender</button></div>
+                        </form>
+                    </div></div>
+                </div>
             }
             else
             {

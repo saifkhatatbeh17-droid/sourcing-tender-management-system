@@ -2,9 +2,10 @@
 @model TendersPageViewModel
 @{
     ViewData["Title"] = "Tenders";
-    var approvedRequests = ViewBag.ApprovedPurchaseRequests as List<PurchaseRequest> ?? [];
+    var eligibleRequests = ViewBag.EligiblePurchaseRequests as List<PurchaseRequest> ?? [];
     var createTender = ViewBag.CreateTender as SourcingOfficerTenderForm ?? new SourcingOfficerTenderForm();
     var editTender = ViewBag.EditTender as SourcingOfficerTenderForm;
+    var now = DateTime.UtcNow;
     var draftTenderCount = Model.Tenders.Count(tender => tender.Status == "Draft");
     var publishedTenderCount = Model.Tenders.Count(tender => tender.Status == "Published");
 }
@@ -18,20 +19,46 @@
     <article class="so-summary-card"><span class="so-summary-label">My Tenders</span><strong>@Model.Tenders.Count</strong></article>
     <article class="so-summary-card"><span class="so-summary-label">Draft</span><strong>@draftTenderCount</strong></article>
     <article class="so-summary-card"><span class="so-summary-label">Published</span><strong>@publishedTenderCount</strong></article>
-    <article class="so-summary-card"><span class="so-summary-label">Approved requests</span><strong>@approvedRequests.Count</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Eligible requests</span><strong>@eligibleRequests.Count</strong></article>
 </section>
+@if (TempData["TenderSuccess"] is string successMessage) { <div class="alert alert-success" role="status">@successMessage</div> }
+@if (TempData["TenderError"] is string tenderError) { <div class="alert alert-danger" role="alert">@tenderError</div> }
+@foreach (var rejected in Model.Tenders.Where(t => t.RejectionForwardedAt.HasValue))
+{
+    var rejection = rejected.TenderApprovals.FirstOrDefault(a => a.Stage == "Top" && a.Decision == "Rejected");
+    var replacement = Model.Tenders.FirstOrDefault(t => t.ReplacesTenderId == rejected.TenderId);
+    <section class="workspace-section">
+        <h2>Rejected tender: @rejected.Title · #@rejected.TenderId</h2>
+        @if (rejection != null)
+        {
+            <p>Rejected by <strong>@rejection.User.FullName</strong> · @rejection.DecidedAt.ToString("yyyy-MM-dd HH:mm") UTC</p>
+            <p class="text-break" style="white-space:pre-wrap">@rejection.Notes</p>
+        }
+        <a asp-action="Offers" asp-route-tenderId="@rejected.TenderId">Original tender and offers</a>
+        @if (replacement == null) { <a class="btn btn-primary" asp-action="Create" asp-route-replacesTenderId="@rejected.TenderId">Create New Tender</a> }
+        else { <p>Replacement: <a asp-action="Offers" asp-route-tenderId="@replacement.TenderId">@replacement.Title · #@replacement.TenderId</a></p> }
+    </section>
+}
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Tenders">
 <button class="nav-link @(Model.SelectedTender == null ? "active" : "")" id="tenders-0-tab" data-bs-toggle="tab" data-bs-target="#tenders-0" type="button" role="tab" aria-controls="tenders-0" aria-selected="@(Model.SelectedTender == null ? "true" : "false")">Tenders</button>
 <button class="nav-link @(Model.SelectedTender != null ? "active" : "")" id="tenders-1-tab" data-bs-toggle="tab" data-bs-target="#tenders-1" type="button" role="tab" aria-controls="tenders-1" aria-selected="@(Model.SelectedTender != null ? "true" : "false")">Tender Details</button></div>
 <div class="tab-content workspace-content"><div class="tab-pane fade @(Model.SelectedTender == null ? "show active" : "")" id="tenders-0" role="tabpanel" aria-labelledby="tenders-0-tab" tabindex="0"><section class="workspace-section"><div class="so-section-heading"><div><h2>Existing Tenders</h2></div><span class="so-section-count">@Model.Tenders.Count</span></div>@if (Model.Tenders.Count == 0) { <div class="so-empty-state"><span class="so-empty-mark" aria-hidden="true">T</span><div><strong>No tenders yet</strong><p>Create a Tender after a Purchase Request has been approved.</p></div></div> }
-<div class="table-responsive"><table class="table"><thead><tr><th>Tender</th><th>Status</th><th>Deadline (UTC)</th><th><span class="visually-hidden">Actions</span></th></tr></thead><tbody>
-@foreach (var tender in Model.Tenders) { <tr><td><a class="so-record-title" asp-action="Tenders" asp-route-id="@tender.TenderId">@tender.Title</a><span class="so-record-ref">Tender #@tender.TenderId</span></td><td><span class="so-status-badge" data-status="@tender.Status">@tender.Status</span></td><td>@tender.ClosesAt.ToString("dd MMM yyyy · HH:mm")</td><td><a asp-action="Tenders" asp-route-id="@tender.TenderId" class="btn btn-sm btn-outline-primary">View tender ↗</a><a asp-action="Tenders" asp-route-id="@tender.TenderId" asp-route-showQr="true" class="so-qr-link">QR code</a></td></tr> }
+<div class="table-responsive"><table class="table"><thead><tr><th>Tender</th><th>Status</th><th>Tender deadline (UTC)</th><th><span class="visually-hidden">Actions</span></th></tr></thead><tbody>
+@foreach (var tender in Model.Tenders) { <tr><td><a class="so-record-title" asp-action="Tenders" asp-route-id="@tender.TenderId">@tender.Title</a><span class="so-record-ref">Tender #@tender.TenderId</span></td><td><span class="so-status-badge" data-status="@tender.Status">@tender.Status</span></td><td>@tender.ClosesAt.ToString("dd MMM yyyy · HH:mm")</td><td><a asp-action="Tenders" asp-route-id="@tender.TenderId" class="btn btn-sm btn-outline-primary">View tender ↗</a><a asp-action="Tenders" asp-route-id="@tender.TenderId" asp-route-showQr="true" class="so-qr-link">QR code</a>
+    @if (tender.CanCancel(now))
+    {
+        <form asp-action="CancelTender" asp-route-id="@tender.TenderId" asp-route-fromList="true" method="post"
+              class="d-inline-block ms-2" onsubmit="return confirm('Cancel this tender for all invited suppliers?');">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Cancel tender</button>
+        </form>
+    }
+</td></tr> }
 </tbody></table></div></section></div>
 <div class="tab-pane fade @(Model.SelectedTender != null ? "show active" : "")" id="tenders-1" role="tabpanel" aria-labelledby="tenders-1-tab" tabindex="0">
-<section class="workspace-section"><div class="so-section-heading"><div><h2>Tender Details</h2></div></div>@if (TempData["TenderSuccess"] is string successMessage) { <div class="alert alert-success" role="status">@successMessage</div> }@if (TempData["TenderError"] is string tenderError) { <div class="alert alert-danger" role="alert">@tenderError</div> }@if (Model.SelectedTender is { } selected)
+<section class="workspace-section"><div class="so-section-heading"><div><h2>Tender Details</h2></div></div>@if (Model.SelectedTender is { } selected)
 {
     @await Component.InvokeAsync("DetailsQr", new { controller = "SourcingOfficer", action = "Tenders", id = selected.TenderId, label = "Tender" })
-    <dl><dt>Title</dt><dd>@selected.Title</dd><dt>Status</dt><dd><span class="so-status-badge" data-status="@selected.Status">@selected.Status</span></dd><dt>Description</dt><dd>@selected.Description</dd><dt>Terms</dt><dd>@selected.Terms</dd><dt>Submission deadline (UTC)</dt><dd>@selected.ClosesAt.ToString("yyyy-MM-dd HH:mm")</dd></dl>
+    <dl><dt>Title</dt><dd>@selected.Title</dd><dt>Tender category</dt><dd>@(selected.Category ?? "Uncategorized")</dd><dt>Status</dt><dd><span class="so-status-badge" data-status="@selected.Status">@selected.Status</span></dd><dt>Description</dt><dd>@selected.Description</dd><dt>Terms</dt><dd>@selected.Terms</dd><dt>Tender deadline (UTC)</dt><dd>@selected.ClosesAt.ToString("yyyy-MM-dd HH:mm")</dd></dl>
 }
 else { <p class="text-secondary">Select a tender to view its details.</p> }</section><section class="workspace-section"><h2>Chosen Offer</h2>@if (Model.SelectedTender is { Status: "Awarded", Bid: { } winner } awarded)
 {
@@ -42,7 +69,7 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
 <!-- TEAM TODO: Add announcement/closure processing here after the approved final decision. The officer does not choose a winner independently. --></section>
 @if (Model.SelectedTender is { } actionTender)
 {
-    <section class="so-action-panel"><div><h2>Available actions</h2><p>You can send a tender to evaluation before its deadline once compliance review is complete. Sending stops further offer submissions.</p></div><div class="so-action-buttons">
+    <section class="so-action-panel"><div><h2>Available actions</h2><p>You can send a tender to evaluation as soon as compliance review is complete, including before its deadline.</p></div><div class="so-action-buttons">
         @if (actionTender.Status == "Draft")
         {
             <a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@actionTender.TenderId">Edit Tender</a>
@@ -65,19 +92,20 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
 </div></div><div class="modal fade" id="tender-create" tabindex="-1" aria-labelledby="tender-create-title" aria-hidden="true">
 <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
 <div class="modal-header"><h2 class="modal-title fs-5" id="tender-create-title">Prepare tender &amp; invite suppliers</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-<form asp-action="Create" method="post">
+<form asp-action="Create" method="post" data-filter-suppliers>
 @Html.AntiForgeryToken()
+<input name="ReplacesTenderId" type="hidden" value="@createTender.ReplacesTenderId" />
 <div class="modal-body">
     @Html.ValidationSummary(false, "", new { @class = "text-danger" })
-    @if (approvedRequests.Count == 0)
+    @if (eligibleRequests.Count == 0)
     {
-        <p class="text-secondary" role="status">No eligible Purchase Requests are available. A request must be Approved and must not already have a Tender.</p>
+        <p class="text-secondary" role="status">No purchase requests are available for a new tender.</p>
     }
     <div class="mb-3">
         <label for="PurchaseRequestId" class="form-label">Purchase request</label>
-        <select id="PurchaseRequestId" name="PurchaseRequestId" class="form-select" required disabled="@(approvedRequests.Count == 0)">
+        <select id="PurchaseRequestId" name="PurchaseRequestId" class="form-select" required disabled="@(eligibleRequests.Count == 0)">
             <option value="">Select a purchase request</option>
-            @foreach (var request in approvedRequests)
+            @foreach (var request in eligibleRequests)
             {
                 <option value="@request.PurchaseRequestId" selected="@(createTender.PurchaseRequestId == request.PurchaseRequestId)">@request.Title (Request #@request.PurchaseRequestId)</option>
             }
@@ -101,19 +129,21 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
     </div>
     <div class="row">
         <div class="col-md-6 mb-3">
-            <label for="OpensAt" class="form-label">Opens At</label>
+            <label for="OpensAt" class="form-label">Opens At (UTC)</label>
             <input id="OpensAt" name="OpensAt" type="datetime-local" value="@(createTender.OpensAt == default ? "" : createTender.OpensAt.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" required />
             @Html.ValidationMessage("OpensAt", "", new { @class = "text-danger" })
         </div>
         <div class="col-md-6 mb-3">
-            <label for="ClosesAt" class="form-label">Closes At</label>
+            <label for="ClosesAt" class="form-label">Tender deadline (UTC)</label>
+            <p class="form-text">The first round can close early once three suppliers have submitted offers. Suppliers see this rule on the invitation.</p>
             <input id="ClosesAt" name="ClosesAt" type="datetime-local" value="@(createTender.ClosesAt == default ? "" : createTender.ClosesAt.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" required />
             @Html.ValidationMessage("ClosesAt", "", new { @class = "text-danger" })
         </div>
     </div>
+<partial name="_ProcurementCategoryFields" model='((ProcurementCategoryInput)createTender, "Create", "Tender category")' />
 <partial name="_LaunchSuppliers" />
 </div>
-<div class="modal-footer"><button type="submit" name="launch" value="false" class="btn btn-outline-primary" disabled="@(approvedRequests.Count == 0)">Approve &amp; save draft</button><button type="submit" name="launch" value="true" class="btn btn-primary" disabled="@(approvedRequests.Count == 0)">Approve, publish &amp; invite →</button></div>
+<div class="modal-footer"><button type="submit" name="launch" value="false" class="btn btn-outline-primary" disabled="@(eligibleRequests.Count == 0)">Approve &amp; save draft</button><button type="submit" name="launch" value="true" class="btn btn-primary" disabled="@(eligibleRequests.Count == 0)">Approve, publish &amp; invite →</button></div>
 </form>
 </div></div></div><div class="modal fade" id="tender-edit" tabindex="-1" aria-labelledby="tender-edit-title" aria-hidden="true">
 <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
@@ -124,6 +154,7 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
 <div class="modal-body">
     @Html.ValidationSummary(false, "", new { @class = "text-danger" })
     <div class="mb-3">
+        <partial name="_ProcurementCategoryFields" model='((ProcurementCategoryInput?)editTender ?? new ProcurementCategoryInput(), "Edit", "Tender category")' />
         <label for="EditTitle" class="form-label">Tender Title</label>
         <input id="EditTitle" name="Title" value="@editTender?.Title" maxlength="200" class="form-control" required />
         @Html.ValidationMessage("Title", "", new { @class = "text-danger" })
@@ -140,12 +171,12 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
     </div>
     <div class="row">
         <div class="col-md-6 mb-3">
-            <label for="EditOpensAt" class="form-label">Opens At</label>
+            <label for="EditOpensAt" class="form-label">Opens At (UTC)</label>
             <input id="EditOpensAt" name="OpensAt" type="datetime-local" value="@(editTender == null || editTender.OpensAt == default ? "" : editTender.OpensAt.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" required />
             @Html.ValidationMessage("OpensAt", "", new { @class = "text-danger" })
         </div>
         <div class="col-md-6 mb-3">
-            <label for="EditClosesAt" class="form-label">Closes At</label>
+            <label for="EditClosesAt" class="form-label">Tender deadline (UTC)</label>
             <input id="EditClosesAt" name="ClosesAt" type="datetime-local" value="@(editTender == null || editTender.ClosesAt == default ? "" : editTender.ClosesAt.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" required />
             @Html.ValidationMessage("ClosesAt", "", new { @class = "text-danger" })
         </div>
@@ -155,6 +186,7 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
 </form>
 </div></div></div>
 </div>
+<script src="~/js/procurement-categories.js" asp-append-version="true" defer></script>
 @if (ViewBag.OpenCreateModal == true || ViewBag.OpenEditModal == true)
 {
     <script>

@@ -321,13 +321,6 @@ html[data-theme="dark"] body:has(.evaluation-page) { --color-background:#101817;
 .ev-member-standards li::before { content:''; position:absolute; left:0; top:8px; width:4px; height:4px; border-radius:50%; background:var(--accent); }
 .ev-member-standards .ev-reference-link { margin-top:auto; font-size:12px; }
 
-.ev-selection-strip { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; padding:13px 16px; margin:0 0 16px; border-radius:12px; background:var(--color-selection); }
-.ev-selection-strip-label { color:var(--color-link); font-size:12px; }
-.ev-selection-strip strong { font-size:14px; font-weight:600; overflow-wrap:anywhere; }
-.ev-selection-strip-facts { font-size:12px; color:var(--color-text-secondary); }
-.ev-selection-strip-facts > span { margin:0 5px; }
-.ev-selection-strip > button { margin-left:auto; flex-shrink:0; font-size:12px; padding:4px 0; }
-@media(max-width:700px) { .ev-selection-strip-label { flex-basis:100%; }.ev-selection-strip-facts { flex-basis:100%; }.ev-selection-strip > button { margin-left:0; } }
 /* Keep the decision workspace compact and its next action visible. */
 .ev-start-action { margin:0; order:3; }
 .ev-start-action .btn { padding:13px 22px; font-weight:600; box-shadow:0 3px 0 #006c6e; }
@@ -411,3 +404,103 @@ html[data-theme="dark"] body:has(.evaluation-page) { --color-background:#101817;
 .ev-title-period { color:var(--accent); font-size:1.2em; }
 .ev-current-tender { display:flex; gap:10px; align-items:baseline; margin:7px 0 0; font-size:15px; color:var(--color-text); }
 .ev-current-tender .ev-tender-reference { flex-shrink:0; }
+
+/* Member review fields share the card rhythm and remain aligned across each row. */
+.ev-member-review { padding:0 16px 20px; display:grid; gap:8px; }
+.ev-member-marks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:8px; }
+.ev-member-review label { display:grid; gap:6px; min-width:0; font-size:13px; font-weight:600; color:var(--color-text); }
+.ev-member-review label span { color:var(--color-text-secondary); font-size:11px; font-weight:400; line-height:1.5; }
+.ev-member-review .form-control { min-width:0; min-height:44px; width:100%; border-radius:10px; font-size:14px; }
+.ev-member-review textarea.form-control { min-height:100px; resize:vertical; }
+.ev-member-review .form-control:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.ev-member-review .form-control:disabled { opacity:1; color:var(--color-text-secondary); background:var(--color-bg); }
+.ev-approval-footer > .btn { min-height:44px; }
+
+
+.ev-voting-offer { display:flex; align-items:center; justify-content:space-between; gap:16px 24px; padding:18px 20px; margin-bottom:20px; border:1px solid var(--color-border); border-radius:12px; background:var(--color-surface); }
+.ev-voting-offer-details { min-width:0; }
+.ev-voting-offer-label { display:block; margin-bottom:6px; color:var(--accent); font-size:12px; font-weight:600; }
+.ev-voting-offer h4 { margin:0 0 6px; font-size:17px; font-weight:600; line-height:1.4; overflow-wrap:anywhere; }
+.ev-voting-offer p { margin:0; color:var(--color-text-secondary); font-size:13px; line-height:1.5; }
+.ev-voting-offer p > span { margin:0 6px; }
+.ev-voting-offer-total { flex-shrink:0; text-align:right; }
+.ev-voting-offer-total > span { display:block; margin-bottom:6px; color:var(--color-text-secondary); font-size:12px; }
+.ev-voting-offer-total strong { font-size:20px; font-weight:600; line-height:1.4; }
+.ev-voting-offer-total small { font-size:12px; font-weight:400; }
+.ev-voting-empty { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin:0 0 20px; color:var(--color-text-secondary); font-size:14px; }
+.ev-voting-empty button { min-height:44px; }
+@media(max-width:700px) { .ev-voting-offer { flex-direction:column; align-items:stretch; padding:16px; gap:14px; }.ev-voting-offer-total { text-align:left; } }
+/* All-offer reviews share the workspace's existing teal tokens. */
+.evaluation-page .ev-offer-review-status { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:-4px 0 18px; padding:10px 0; border-bottom:1px solid var(--color-border); font-size:12px; color:var(--color-text-secondary); }
+.evaluation-page .ev-offer-review-status > span:first-child { color:var(--color-link); font-weight:600; }
+.evaluation-page .ev-offer-card .ev-personal-review { display:inline-flex; align-items:center; align-self:flex-start; gap:8px; margin:0 0 16px; padding:7px 10px; border-radius:8px; font-size:12px; line-height:1.4; font-weight:600; }
+.evaluation-page .ev-personal-review.is-approved { background:var(--color-selection); color:var(--color-link); }
+.evaluation-page .ev-personal-review.is-pending { background:var(--color-surface-alt); color:var(--color-text-secondary); }
+.ev-offer-review-section { margin-block:24px 32px; scroll-margin-top:24px; }
+.ev-review-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+.evaluation-page .ev-review-heading h3 { font-size:18px; margin-top:6px; }
+.ev-offer-review-section .ev-forms-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.ev-offer-review-section .ev-approval-card { display:grid; grid-template-rows:subgrid; grid-row:span 2; row-gap:0; }
+.ev-offer-review-section .ev-approval-card > header h4 { min-block-size:2lh; line-height:1.3; }
+.ev-offer-review-section .ev-member-review { align-content:start; }
+.ev-review-offer-picker { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-block:24px; }
+.ev-review-offer-picker label { font-weight:600; }
+.ev-review-offer-picker select { width:auto; flex:1; min-width:180px; max-width:100%; }
+@media(max-width:1200px) { .ev-offer-review-section .ev-forms-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.ev-offer-review-section .ev-member-review .btn { margin-top:16px; width:100%; }
+.ev-score-result { margin-block:24px; }
+.ev-tie-choice { display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:center; padding-block:12px; border-bottom:1px solid var(--color-border); }
+@media(max-width:680px) { .ev-offer-review-section .ev-forms-grid { grid-template-columns:1fr; } .ev-offer-review-section .ev-approval-card > header h4 { min-block-size:0; } }
+/* Result hierarchy: one clear winner, quiet comparison, shared primary teal. */
+.evaluation-page .ev-score-result { padding:24px; border:1px solid var(--color-border); border-radius:18px; background:var(--color-surface); margin:24px 0; }
+.ev-winner-summary { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:24px; padding-bottom:24px; border-bottom:1px solid var(--color-border); }
+.ev-result-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--color-link); margin-bottom:10px; }
+.evaluation-page .ev-winner-summary h3 { font-size:clamp(20px,2vw,26px); line-height:1.25; letter-spacing:-.025em; margin:0 0 10px; }
+.evaluation-page .ev-winner-summary p { font-size:14px; line-height:1.6; color:var(--color-text-secondary); }
+.ev-result-ready { display:inline-block; margin-top:12px; border-radius:8px; padding:6px 10px; color:var(--color-link); background:var(--color-selection); font-size:12px; font-weight:600; }
+.ev-winner-score { min-width:180px; text-align:right; }
+.ev-winner-score > span { font-size:12px; color:var(--color-text-secondary); }
+.ev-winner-score strong { display:block; font-size:44px; line-height:1.2; font-weight:650; letter-spacing:-.04em; color:var(--color-link); font-variant-numeric:tabular-nums; margin:6px 0; }
+.ev-winner-score small { font-size:16px; letter-spacing:0; font-weight:400; color:var(--color-text-secondary); }
+/* Quiet ranking: full-height list, aligned marks, winner identified in text. */
+.ev-ranking-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin:28px 0 20px; }
+.evaluation-page .ev-ranking-heading h4 { font-size:17px; font-weight:600; margin:0 0 6px; }
+.evaluation-page .ev-ranking-heading p,.ev-ranking-heading > span { font-size:13px; line-height:1.6; color:var(--color-text-secondary); margin:0; }
+.ev-ranking-heading > span { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.evaluation-page .ev-ranking-list { overflow:visible; max-height:none; height:auto; min-width:0; }
+.ev-result-table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:14px; font-variant-numeric:tabular-nums; }
+.ev-result-table .ev-col-offer { width:auto; }
+.ev-result-table .ev-col-mark { width:13%; }
+.ev-result-table .ev-col-result { width:17%; }
+.ev-result-table th,.ev-result-table td { padding:18px 12px; border-bottom:1px solid var(--color-border); vertical-align:middle; text-align:right; }
+.ev-result-table th:first-child { text-align:left; padding-left:0; }
+.ev-result-table th:last-child,.ev-result-table td:last-child { padding-right:0; }
+.ev-result-table thead th { padding-top:0; padding-bottom:12px; font-size:12px; font-weight:500; color:var(--color-text-secondary); white-space:nowrap; }
+.ev-result-table small { font-weight:400; }
+.ev-result-table tbody th { font-weight:500; }
+.ev-result-offer { display:flex; align-items:center; gap:16px; }
+.ev-result-rank { flex:0 0 24px; color:var(--color-text-secondary); font-size:12px; font-weight:400; }
+.ev-result-supplier { min-width:0; font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
+.ev-result-supplier small { display:block; font-size:12px; margin-top:3px; color:var(--color-text-secondary); }
+.ev-result-table .is-winner { background:transparent; }
+.ev-result-table .is-winner .ev-result-supplier,.ev-result-table .is-winner .ev-result-total { color:var(--color-link); font-weight:600; }
+.ev-result-total { font-size:16px; font-weight:600; }
+.ev-result-label { display:inline-block; white-space:nowrap; font-size:12px; color:var(--color-text-secondary); }
+.ev-result-table .is-winner .ev-result-label { padding:5px 10px; border-radius:6px; background:var(--color-selection); color:var(--color-link); font-weight:600; }
+.ev-result-table tbody tr:last-child > * { border-bottom:0; }
+.evaluation-page .ev-result-footnote { font-size:12px; color:var(--color-text-secondary); line-height:1.6; margin:16px 0 0; padding-top:16px; border-top:1px solid var(--color-border); max-width:none; }
+@media(max-width:760px) {
+    .evaluation-page .ev-score-result { padding:20px; }
+    .ev-winner-score { text-align:left; }
+    .ev-result-table colgroup,.ev-result-table thead { display:none; }
+    .ev-result-table,.ev-result-table tbody { display:block; }
+    .ev-result-table tbody tr { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; padding:20px 0; border-bottom:1px solid var(--color-border); }
+    .ev-result-table tbody tr:last-child { border-bottom:0; padding-bottom:4px; }
+    .ev-result-table tbody th:first-child { grid-column:1/-1; padding:0; }
+    .ev-result-table tbody td { padding:0; border:0; text-align:left; }
+    .ev-result-table td[data-label]::before { content:attr(data-label); display:block; font-size:11px; font-weight:400; color:var(--color-text-secondary); margin-bottom:6px; }
+    .ev-result-table .ev-result-state { grid-column:1/-1; }
+    .ev-result-supplier { font-size:15px; }
+    .ev-ranking-heading { align-items:start; margin-top:24px; }
+}
+@media(max-width:480px) { .evaluation-page .ev-score-result { padding:16px; } }

@@ -1,8 +1,9 @@
 namespace SourcingTenderManagement.Models;
 
-public class SourcingOfficerTenderForm
+public class SourcingOfficerTenderForm : ProcurementCategoryInput
 {
     public int TenderId { get; set; }
+    public int? ReplacesTenderId { get; set; }
     public int PurchaseRequestId { get; set; }
     public string Title { get; set; } = "";
     public string Description { get; set; } = "";

@@ -76,8 +76,12 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
             RequestedByUserId = user.Id
         };
         form.ApplyTo(request);
+        await using var transaction = await db.Database.BeginTransactionAsync();
         db.PurchaseRequests.Add(request);
         await db.SaveChangesAsync();
+        await AddSubmissionNotifications(request, resubmitted: false);
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
         TempData["ActionSuccess"] = "Purchase request submitted to the sourcing officer for review.";
         return RedirectToAction(nameof(Details), new { id = request.PurchaseRequestId });
     }
@@ -131,6 +135,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         db.PurchaseRequestItems.RemoveRange(request.PurchaseRequestItems);
         request.PurchaseRequestItems.Clear();
         form.ApplyTo(request);
+        await AddSubmissionNotifications(request, resubmitted: true);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         TempData["ActionSuccess"] = "Updated request resubmitted to the sourcing officer.";
@@ -138,6 +143,24 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
     }
 
     public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
+
+    private async Task AddSubmissionNotifications(PurchaseRequest request, bool resubmitted)
+    {
+        var officers = await users.GetUsersInRoleAsync(RoleNames.SourcingOfficer);
+        var recipients = officers.Where(officer => officer.IsActive &&
+            (request.ReviewedByUserId == null || officer.Id == request.ReviewedByUserId));
+        var reviewUrl = Url.Action(
+            nameof(SourcingOfficerController.Requests), "SourcingOfficer", new { id = request.PurchaseRequestId });
+
+        db.Notifications.AddRange(recipients.Select(officer => new Notification
+        {
+            UserId = officer.Id,
+            Title = resubmitted ? "Purchase request resubmitted" : "New purchase request",
+            Message = $"Request #{request.PurchaseRequestId}: {request.Title}",
+            RelativeUrl = reviewUrl,
+            CreatedAt = DateTime.UtcNow
+        }));
+    }
 
     private IQueryable<PurchaseRequest> DepartmentRequests(ApplicationUser user) =>
         db.PurchaseRequests.AsNoTracking().AsSplitQuery().Include(r => r.Department).Include(r => r.Tenders)

@@ -68,7 +68,7 @@
                 <dl>
                     <dt>Tender</dt><dd>@selectedReport.Tender.Title</dd>
                     <dt>Status</dt><dd><span class="so-status-badge" data-status="@selectedReport.Status">@selectedReport.Status</span></dd>
-                    <dt>Committee Summary</dt><dd>@selectedReport.CommitteeSummary</dd>
+                    <dt>Committee Summary</dt><dd><partial name="_FormattedReport" model="selectedReport.CommitteeSummary" /></dd>
                     <dt>Sourcing Officer Summary</dt><dd>@selectedReport.OfficerSummary</dd>
                     <dt>Prepared By</dt><dd>@(selectedReport.PreparedByUser?.FullName ?? "Not recorded")</dd>
                     <dt>Submitted (UTC)</dt><dd>@selectedReport.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</dd>

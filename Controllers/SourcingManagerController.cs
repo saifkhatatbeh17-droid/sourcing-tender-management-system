@@ -52,11 +52,19 @@ public partial class SourcingManagerController : Controller
     }
 
     [HttpGet]
-    public IActionResult Submissions(int? id)
+    public IActionResult Submissions(int? id, int? rejectedTenderId = null, bool showRejections = false)
     {
+        var rejections = ManagedRejections();
+        if (rejectedTenderId.HasValue)
+        {
+            if (!rejections.Any(t => t.TenderId == rejectedTenderId)) return NotFound();
+            rejections = rejections.Where(t => t.TenderId == rejectedTenderId);
+        }
+        ViewBag.RejectedTenders = rejections.OrderByDescending(t => t.CreatedAt).ToList();
+        ViewBag.OpenRejections = showRejections || rejectedTenderId.HasValue;
         var evaluationReports = _context.EvaluationReports
             .Include(report => report.Tender)
-            .Where(report => report.Tender.Status == AwaitingManagerReview &&
+            .Where(report => !report.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") && report.Tender.Status == AwaitingManagerReview &&
                 (report.Status == "OfficerSubmitted" ||
                  report.Status == "CommitteeApproved" ||
                  report.Status == ManagerApproved))
@@ -136,7 +144,7 @@ public partial class SourcingManagerController : Controller
 
         var tender = _context.Tenders.Find(evaluationReport.TenderId);
 
-        if (tender == null || tender.Status != AwaitingManagerReview)
+        if (tender == null || _context.TenderApprovals.Any(a => a.TenderId == tender.TenderId && a.Stage == "Top" && a.Decision == "Rejected") || tender.Status != AwaitingManagerReview)
         {
             return SubmissionMessage("This report changed. Review the latest submission before deciding.");
         }
@@ -167,6 +175,13 @@ public partial class SourcingManagerController : Controller
         {
             evaluationReport.Status = ReturnedForReview;
             tender.Status = "UnderEvaluation";
+            evaluationReport.RecommendedBidId = null;
+            evaluationReport.CommitteeSummary = null;
+            _context.TenderApprovals.RemoveRange(_context.TenderApprovals.Where(a => a.TenderId == tender.TenderId && a.Stage == "Evaluation"));
+            _context.CommitteeTieVotes.RemoveRange(_context.CommitteeTieVotes.Where(v => v.TenderId == tender.TenderId));
+            foreach (var review in _context.Evaluations.Where(e => e.TenderId == tender.TenderId).ToList())
+            { review.Status = "Submitted"; review.ApprovedAt = null; }
+
         }
 
         evaluationReport.ManagerSummary = notes;
@@ -213,18 +228,36 @@ public partial class SourcingManagerController : Controller
     public async Task<IActionResult> DraftReferral(int reportId,
         [FromServices] SourcingTenderManagement.Services.Evaluation.BidRecommendationService ai, CancellationToken cancellationToken)
     {
-        var report = await _context.EvaluationReports.AsNoTracking().Include(r => r.Tender)
+        var report = await _context.EvaluationReports.AsNoTracking().Include(r => r.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.Department)
+            .Include(r => r.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
             .Include(r => r.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.SupplierProfile)
             .Include(r => r.Bid).ThenInclude(b => b!.BidItems)
             .SingleOrDefaultAsync(r => r.EvaluationReportId == reportId, cancellationToken);
-        if (report?.Status != ManagerApproved || report.Tender.Status != AwaitingManagerReview || report.Bid == null)
+        if (report == null || _context.TenderApprovals.Any(a => a.TenderId == report.TenderId && a.Stage == "Top" && a.Decision == "Rejected") || report.Status != ManagerApproved || report.Tender.Status != AwaitingManagerReview || report.Bid == null)
             return BadRequest(new { error = "Only an approved recommendation awaiting referral can be summarized." });
         try
         {
+            var winnerMarks = await _context.Evaluations.AsNoTracking()
+                .Where(e => e.TenderId == report.TenderId && e.BidId == report.Bid.BidId && e.Status == "Approved"
+                    && e.ApprovedAt != null && e.FinancialMark != null && e.TechnicalMark != null)
+                .Select(e => new { e.FinancialMark, e.TechnicalMark }).ToListAsync(cancellationToken);
+            var excludedSuppliers = await _context.Bids.AsNoTracking().Where(b => b.TenderId == report.TenderId && b.BidId != report.Bid.BidId)
+                .Select(b => b.Invitation.SupplierProfile.CompanyName).Distinct().ToListAsync(cancellationToken);
             var summary = await ai.DraftReferral(new { tender = report.Tender.Title, report.Tender.Description, report.Tender.Terms,
-                report.CommitteeSummary, report.OfficerSummary, report.ManagerSummary,
+                purchaseRequest = new { report.Tender.PurchaseRequest.Title, report.Tender.PurchaseRequest.Reason,
+                    department = report.Tender.PurchaseRequest.Department.Name, report.Tender.PurchaseRequest.Priority, report.Tender.PurchaseRequest.TargetDate,
+                    items = report.Tender.PurchaseRequest.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId)
+                        .Select(i => new { i.PurchaseRequestItemId, i.ItemName, i.Quantity, i.Unit, i.Specifications }) },
+                outputScope = "Summarize only the first-ranked winning offer. The full top-three committee report is retained separately for reference, not summarized here.",
+                selectionBasis = winnerMarks.Count == 4 ? "Highest recorded committee score after every offer received four member reviews." : "Recorded committee recommendation.",
+                winningScore = winnerMarks.Count == 4 ? winnerMarks.Average(e => e.FinancialMark!.Value + e.TechnicalMark!.Value) : (decimal?)null,
                 offer = new { report.Bid.BidId, supplier = report.Bid.Invitation.SupplierProfile.CompanyName,
-                    total = CommitteeEvaluationPage.Total(report.Bid), report.Bid.Currency, report.Bid.DeliveryDays, report.Bid.TechnicalDetails } }, cancellationToken);
+                    total = CommitteeEvaluationPage.Total(report.Bid), report.Bid.Currency, report.Bid.DeliveryDays, report.Bid.PaymentTerms, report.Bid.TechnicalDetails,
+                    items = report.Bid.BidItems.Select(i => new { i.PurchaseRequestItemId, i.Quantity, i.UnitPrice, i.OfferedSpecifications }) } }, cancellationToken);
+            if (!summary.Contains(report.Bid.Invitation.SupplierProfile.CompanyName, StringComparison.OrdinalIgnoreCase)
+                || excludedSuppliers.Any(name => !string.Equals(name, report.Bid.Invitation.SupplierProfile.CompanyName, StringComparison.OrdinalIgnoreCase)
+                    && summary.Contains(name, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("The manager summary must cover only the winning supplier.");
             return Json(new { summary });
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or InvalidOperationException or KeyNotFoundException)
@@ -251,7 +284,7 @@ public partial class SourcingManagerController : Controller
 
         var tender = _context.Tenders.Find(evaluationReport.TenderId);
 
-        if (tender == null || tender.Status != AwaitingManagerReview)
+        if (tender == null || _context.TenderApprovals.Any(a => a.TenderId == tender.TenderId && a.Stage == "Top" && a.Decision == "Rejected") || tender.Status != AwaitingManagerReview)
         {
             return SubmissionMessage("Only an approved recommendation awaiting referral can be forwarded.");
         }
@@ -270,11 +303,11 @@ public partial class SourcingManagerController : Controller
                         _context.Roles.Any(r => r.Id == link.RoleId && r.Name == RoleNames.TopCommittee)))
                     .Select(user => user.Id).ToList();
                 if (candidates.Count != 1)
-                    return SubmissionMessage($"Admin must provide exactly one active Top Committee account for {role}.", input.ReportId);
+                    return SubmissionMessage($"Admin must provide exactly one active CEO & Chiefs account for {role}.", input.ReportId);
                 memberIds.Add(candidates[0]);
             }
             if (memberIds.Distinct().Count() != 4)
-                return SubmissionMessage("Four different Top Committee accounts are required.", input.ReportId);
+                return SubmissionMessage("Four different CEO & Chiefs accounts are required.", input.ReportId);
             for (var position = 1; position <= 4; position++)
                 _context.CommitteeAssignments.Add(new CommitteeAssignment
                 {
@@ -289,11 +322,17 @@ public partial class SourcingManagerController : Controller
                 _context.UserRoles.Any(link => link.UserId == user.Id &&
                     _context.Roles.Any(r => r.Id == link.RoleId && r.Name == RoleNames.TopCommittee)))))
         {
-            return SubmissionMessage("The tender needs four distinct, active Top Committee members before referral.", input.ReportId);
+            return SubmissionMessage("The tender needs four distinct, active CEO & Chiefs members before referral.", input.ReportId);
         }
 
         if (HasOpenClarifications(tender.TenderId))
             return SubmissionMessage("Both sides must resolve open clarifications before referral.", input.ReportId);
+
+        _context.Entry(tender).Reference(t => t.PurchaseRequest).Query().Include(r => r.Department)
+            .Include(r => r.PurchaseRequestItems).Load();
+        var winningOffer = _context.Bids.Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile)
+            .Include(b => b.BidItems).SingleOrDefault(b => b.TenderId == tender.TenderId && b.BidId == evaluationReport.RecommendedBidId);
+        if (winningOffer == null) return SubmissionMessage("The recommended offer is missing. Return this report for correction.", input.ReportId);
 
         tender.Status = AwaitingCommitteeDecision;
         if (string.IsNullOrWhiteSpace(evaluationReport.ManagerSummary))
@@ -304,15 +343,17 @@ public partial class SourcingManagerController : Controller
         {
             evaluationReport.ManagerSummary += $"\n\nReferral reason: {reason}";
         }
+        evaluationReport.ManagerSummary = SourcingTenderManagement.Services.Reports.ManagerReferralContext.Describe(tender, winningOffer)
+            + "\n\n## Manager assessment\n" + evaluationReport.ManagerSummary;
 
         NotifyAssignedCommittee(tender.TenderId, "Top", "Tender awaiting committee decision",
             $"Tender #{tender.TenderId} has been referred for final decision.", "TopCommittee", "Decisions");
 
         _context.SaveChanges();
         transaction.Commit();
-        _logger.LogInformation("Manager {ManagerId} referred tender {TenderId} to the Top Committee.", ManagerId, tender.TenderId);
+        _logger.LogInformation("Manager {ManagerId} referred tender {TenderId} to the CEO & Chiefs.", ManagerId, tender.TenderId);
 
-        return SubmissionMessage("Tender forwarded to the Top Committee.");
+        return SubmissionMessage("Tender forwarded to the CEO & Chiefs.");
     }
 
     [HttpGet]

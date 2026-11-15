@@ -84,44 +84,19 @@
         try { sessionStorage.setItem(key, 'offers-tab'); } catch { /* Storage may be disabled. */ }
     });
     page.querySelector('[data-ai-comparison]')?.addEventListener('input', event => event.currentTarget.elements.requirementsWeight.setCustomValidity(''));
-    const sharedForm = page.querySelector('#weights-editor');
     page.querySelector('[data-ai-report]')?.addEventListener('submit', event => {
         event.currentTarget.querySelector('button').disabled = true;
         event.currentTarget.querySelector('[role="status"]').hidden = false;
         try { sessionStorage.setItem(key, 'report-tab'); } catch { /* Storage may be disabled. */ }
     });
-    const editWeights = page.querySelector('#edit-weights');
-    function closeWeights() {
-        sharedForm.reset();
-        sharedForm.hidden = true;
-        editWeights.setAttribute('aria-expanded', 'false');
-        page.querySelector('#weight-total').textContent = 'Total 100%';
-        sharedForm.querySelector('[type="submit"]').disabled = false;
-        page.querySelectorAll('.ev-approval-action button[data-was-disabled]').forEach(button => {
-            button.disabled = button.dataset.wasDisabled === 'true';
-            button.textContent = button.dataset.originalText;
-            delete button.dataset.wasDisabled;
-        });
-        editWeights.focus();
-    }
-    editWeights?.addEventListener('click', () => {
-        if (!sharedForm.hidden) { closeWeights(); return; }
-        sharedForm.hidden = false;
-        editWeights.setAttribute('aria-expanded', 'true');
-        sharedForm.querySelector('[name="financialWeight"]').focus();
-    });
-    page.querySelector('#cancel-weights')?.addEventListener('click', closeWeights);
-    sharedForm?.addEventListener('input', () => {
-        const financial = Number(sharedForm.querySelector('[name="financialWeight"]').value);
-        const requirements = Number(sharedForm.querySelector('[name="requirementsWeight"]').value);
-        const total = Math.round((financial + requirements) * 100) / 100;
-        sharedForm.querySelector('#weight-total').textContent = `Total ${total}%${total === 100 ? '' : ' · must be 100%'}`;
-        sharedForm.querySelector('[type="submit"]').disabled = !(financial > 0 && requirements > 0 && total === 100);
-        page.querySelectorAll('.ev-approval-action button').forEach(button => {
-            if (!('wasDisabled' in button.dataset)) { button.dataset.wasDisabled = String(button.disabled); button.dataset.originalText = button.textContent; }
-            button.disabled = true;
-            button.textContent = 'Save weights first';
-        });
+    page.querySelector('[data-percentage-proposal]')?.addEventListener('input', event => {
+        const form = event.currentTarget;
+        const number = form.elements.financialWeight.valueAsNumber;
+        form.querySelector('[data-financial-percentage]').textContent = `${number}%`;
+        form.elements.financialWeight.setAttribute('aria-valuetext', `${number}% financial, ${Number((100 - number).toFixed(0))}% technical`);
+        form.querySelector('[data-technical-percentage]').textContent = `${Number((100 - number).toFixed(0))}%`;
+        const slider = form.elements.financialWeight;
+        slider.style.setProperty('--slider-fill', `${(number - Number(slider.min)) / (Number(slider.max) - Number(slider.min)) * 100}%`);
     });
     const rows = page.querySelector('#criteria-rows');
     if (!rows) return;

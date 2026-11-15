@@ -22,6 +22,9 @@ public class Evaluation
 
     public DateTime? ApprovedAt { get; set; }
 
+    public decimal? FinancialMark { get; set; }
+    public decimal? TechnicalMark { get; set; }
+
     public Bid Bid { get; set; } = null!;
 
     public CommitteeAssignment CommitteeAssignment { get; set; } = null!;

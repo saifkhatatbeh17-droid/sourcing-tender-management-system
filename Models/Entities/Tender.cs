@@ -7,22 +7,37 @@ namespace SourcingTenderManagement.Models.Entities;
 public class Tender
 {
     public int TenderId { get; set; }
+    public int? ReplacesTenderId { get; set; }
+    public Tender? ReplacesTender { get; set; }
+    public string? RejectionForwardedByUserId { get; set; }
+    public DateTime? RejectionForwardedAt { get; set; }
 
     public int PurchaseRequestId { get; set; }
 
     public string CreatedByUserId { get; set; } = null!;
 
+    public string? Category { get; set; }
     public string Title { get; set; } = null!;
 
     public string Description { get; set; } = null!;
 
     public string? Terms { get; set; }
 
+    public string? OfferShortfallReason { get; set; }
+
+    public ICollection<TenderOfferExtension> OfferExtensions { get; set; } = new List<TenderOfferExtension>();
+
     public DateTime OpensAt { get; set; }
 
     public DateTime ClosesAt { get; set; }
 
     public string Status { get; set; } = null!;
+
+    public bool IsAcceptingOffers(DateTime now) =>
+        Status is ("Open" or "Published") && OpensAt <= now && now < ClosesAt;
+
+    public bool CanCancel(DateTime now) =>
+        Status is ("Draft" or "Open" or "Published") && now < ClosesAt;
 
     public int? AwardedBidId { get; set; }
 
@@ -31,6 +46,11 @@ public class Tender
     public DateTime? AwardedAt { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public decimal? CommitteeFinancialWeight { get; set; }
+    public DateTime? CommitteeWeightsLockedAt { get; set; }
+    public ICollection<CommitteeWeightProposal> CommitteeWeightProposals { get; set; } = new List<CommitteeWeightProposal>();
+    public ICollection<CommitteeTieVote> CommitteeTieVotes { get; set; } = new List<CommitteeTieVote>();
 
     public ICollection<AiAnalysis> AiAnalyses { get; set; } = new List<AiAnalysis>();
 

@@ -73,8 +73,10 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
         try
         {
             var result = await ai.AssessImportance(new { tender.Title, tender.Description, tender.Terms,
-                purpose = tender.PurchaseRequest.Reason, tender.PurchaseRequest.Priority, tender.PurchaseRequest.TargetDate,
-                tender.Report, offer = bid == null ? null : new { bid.BidId, bid.SupplierName, bid.Total, bid.Currency, bid.DeliveryDays, bid.ComplianceStatus, bid.ComplianceNotes } }, cancellationToken);
+                purchaseRequest = tender.PurchaseRequest,
+                report = new { tender.Report.ManagerSummary, tender.Report.OfficerSummary },
+                offer = bid == null ? null : new { bid.BidId, bid.SupplierName, bid.Total, bid.Currency, bid.DeliveryDays,
+                    bid.PaymentTerms, bid.TechnicalDetails, bid.Items, bid.ComplianceStatus, bid.ComplianceNotes } }, cancellationToken);
             return Json(result);
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or InvalidOperationException or KeyNotFoundException)

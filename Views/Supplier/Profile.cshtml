@@ -2,6 +2,12 @@
 @model SourcingTenderManagement.Models.Entities.SupplierProfile
 @{
     ViewData["Title"] = "Company profile";
+    var categoryInput = ViewBag.CategoryInput as ProcurementCategoryInput;
+    if (categoryInput == null)
+    {
+        categoryInput = new ProcurementCategoryInput();
+        categoryInput.LoadCategory(Model.Category);
+    }
     var initials = string.IsNullOrWhiteSpace(Model.CompanyName) ? "?" : string.Concat(Model.CompanyName
         .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
         .Take(2).Select(word => StringInfo.GetNextTextElement(word))).ToUpperInvariant();
@@ -61,6 +67,7 @@
             <section class="ap-card" aria-labelledby="company-information">
                 <h2 id="company-information">Company information</h2>
                 <dl class="ap-fields">
+                    <div><dt>Supply category</dt><dd>@(Model.Category ?? "Not selected")</dd></div>
                     <div><dt>Tax number</dt><dd>@(Model.TaxNumber ?? "Not provided")</dd></div>
                     <div><dt>Registered</dt><dd>@Model.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</dd></div>
                     <div><dt>Last verification review</dt><dd>@(Model.ReviewedAt?.ToLocalTime().ToString("dd MMM yyyy") ?? "No review date recorded")</dd></div>
@@ -76,6 +83,18 @@
                     }
                 </div>
             </section>
+
+            @if (Model.Status == "Approved")
+            {
+                <section class="ap-card" aria-labelledby="supply-category-heading">
+                    <h2 id="supply-category-heading">Supply category</h2>
+                    <form asp-action="UpdateCategory" method="post">
+                        <partial name="_ProcurementCategoryFields" model='(categoryInput, "Supplier", "Supply category")' />
+                        <button type="submit" class="btn btn-primary">Save category</button>
+                    </form>
+                </section>
+                <script src="~/js/procurement-categories.js" asp-append-version="true" defer></script>
+            }
 
             <section class="ap-card" aria-labelledby="supplier-account-details">
                 <h2 id="supplier-account-details">Account details</h2>

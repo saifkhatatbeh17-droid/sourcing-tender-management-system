@@ -8,9 +8,11 @@
     string StatusLabel(string status) => status switch { "UnderEvaluation" => "Under evaluation", "AwaitingOfficerSummary" => "Sent to sourcing officer", _ => System.Text.RegularExpressions.Regex.Replace(status, "([a-z])([A-Z])", "$1 $2") };
 }
 @section Styles {
+    <link rel="stylesheet" href="~/css/committee-scoring.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/root.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/committee-evaluations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/committee-evaluations-webex.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/committee-report-summary.css" asp-append-version="true" />
 }
 <div class="evaluation-page">
     @if (tender == null) { <header class="ev-page-heading"><div><h1>Tender evaluations</h1></div></header> }
@@ -44,9 +46,23 @@
         {
             <div class="ev-workflow-note" role="status"><p>Read-only evaluation</p><button type="button" class="btn ev-button-secondary" data-open-evaluation-tab="report-tab">View report</button></div>
         }
+        <partial name="_TenderOfferRoundHistory" model="tender" />
         <div class="ev-tender-workspace">
         <partial name="_TenderBrowser" model="Model" />
         <div class="ev-detail-area">
+        @if (!Model.PercentageReady)
+        { <partial name="_ConsensusWeights" model="Model" /> }
+        @if (!Model.PercentageReady)
+        {
+            <section class="ev-empty cs-workspace-lock" aria-labelledby="workspace-lock-heading" role="status">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
+                <h2 id="workspace-lock-heading">Evaluation locked</h2>
+                <p>@Model.WeightProposals.Count of 4 members have confirmed their percentages.</p>
+                <p>Tender details, offers, AI comparison, approval forms and reports unlock after all four submissions. The average is then calculated and locked.</p>
+            </section>
+        }
+        else
+        {
         <div class="nav ev-tabs" role="tablist" aria-label="Evaluation sections">
             <button class="nav-link active" id="offers-tab" data-bs-toggle="tab" data-bs-target="#offers" type="button" role="tab" aria-controls="offers" aria-selected="true">Tender &amp; offers <span>@offers.Count</span></button>
             <button class="nav-link" id="forms-tab" data-bs-toggle="tab" data-bs-target="#forms" type="button" role="tab" aria-controls="forms" aria-selected="false">Evaluation forms</button>
@@ -64,7 +80,15 @@
                     </div><details class="ev-brief-terms"><summary>Tender terms &amp; dates <span aria-hidden="true">⌄</span></summary><dl><div><dt>Terms</dt><dd>@(string.IsNullOrWhiteSpace(tender.Terms) ? "No additional terms provided." : tender.Terms)</dd></div><div><dt>Opened (UTC)</dt><dd>@tender.OpensAt.ToString("dd MMM yyyy · HH:mm")</dd></div><div><dt>Submission deadline (UTC)</dt><dd>@tender.ClosesAt.ToString("dd MMM yyyy · HH:mm")</dd></div></dl></details>
                 </details>
                 <partial name="_AiBidRecommendation" model="Model" />
-                <div class="ev-section-heading"><div><h3>Eligible offers <span class="ev-subtle">(@offers.Count)</span></h3></div><div class="ev-offers-tools"><span class="ev-subtle">Totals include tax &amp; fees</span>
+                <div class="ev-section-heading"><div class="cs-offers-heading"><h3>Eligible offers <span class="ev-subtle">(@offers.Count)</span></h3>
+                @if (Model.ConsensusLocked)
+                {
+                    <details class="cs-weights-disclosure">
+                        <summary aria-label="View locked committee percentages and four confirmed proposals"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span class="cs-weight-pair">Financial <strong>@Model.FinancialWeight.ToString("0.##")%</strong></span><span class="cs-weight-divider" aria-hidden="true"></span><span class="cs-weight-pair">Technical <strong>@Model.TechnicalWeight.ToString("0.##")%</strong></span><svg class="cs-weights-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+                        <div class="cs-weights-popover"><strong>Committee percentages are locked</strong><p>Average of four confirmed proposals. These weights apply to every offer and the AI comparison.</p><partial name="_PercentageProposals" model="Model" /></div>
+                    </details>
+                }
+                </div><div class="ev-offers-tools"><span class="ev-subtle">Totals include tax &amp; fees</span>
                 @if (Model.AiRecommendation?.Scenarios.Any() == true) { <button type="button" class="btn ev-button-secondary" data-bs-toggle="collapse" data-bs-target="#offer-comparison" aria-expanded="false" aria-controls="offer-comparison">Compare all @offers.Count offers <span aria-hidden="true">↔</span></button> }
                 </div></div>
                 <partial name="_AiOfferComparison" model="Model" />
@@ -75,6 +99,9 @@
                     var lowest = currenciesMatch && CommitteeEvaluationPage.Total(offer) == offers.Min(CommitteeEvaluationPage.Total);
                     var selected = Model.SelectionReady && tender.EvaluationReport?.RecommendedBidId == offer.BidId;
                     <article class="ev-offer-card @(selected ? "ev-offer-selected" : "")" aria-label="@offer.Invitation.SupplierProfile.CompanyName">
+                        <div class="ev-offer-review-status" role="status"><span>@SourcingTenderManagement.Services.Evaluation.AllOfferScoring.Count(Model, offer) / 4 approved</span><span>@(SourcingTenderManagement.Services.Evaluation.AllOfferScoring.Count(Model, offer) == 4 ? "Reviews complete" : "Awaiting member reviews")</span></div>
+                        @if (Model.Members.Any(m => m.UserId == Model.UserId))
+                        { <p class="ev-personal-review @(Model.MyReviewApproved(offer) ? "is-approved" : "is-pending")"><span aria-hidden="true">@(Model.MyReviewApproved(offer) ? "✓" : "○")</span> @(Model.MyReviewApproved(offer) ? "Your review approved" : "Not reviewed yet")</p> }
                         <div class="ev-offer-top"><span class="ev-subtle">Offer #@offer.BidId</span><span class="ev-offer-label">@(lowest ? "Lowest price" : "Compliant")</span></div>
                         <h4>@offer.Invitation.SupplierProfile.CompanyName</h4>
                         <p class="ev-price">@CommitteeEvaluationPage.Total(offer).ToString("N2") <span>@offer.Currency</span></p>
@@ -83,15 +110,9 @@
                         <details class="ev-offer-details"><summary>View item breakdown <span aria-hidden="true">+</span></summary>
                         @foreach (var item in offer.BidItems) { <div><strong>@item.Quantity.ToString("0.###") × @item.UnitPrice.ToString("N2") @offer.Currency</strong><p>@item.OfferedSpecifications</p></div> }
                         <p>Tax: @offer.TaxAmount.ToString("N2") @offer.Currency<br />Additional costs: @offer.AdditionalCosts.ToString("N2") @offer.Currency</p></details>
-                        @if (!Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId))
-                        {
-                            <form asp-action="SelectOffer" method="post" class="ev-offer-selection">
-                                <input type="hidden" name="id" value="@tender.TenderId" /><input type="hidden" name="bidId" value="@offer.BidId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
-                                @if (selected) { <span class="ev-selected-label"><span aria-hidden="true">✓</span> Committee-selected offer</span> }
-                                <button class="btn @(selected ? "ev-button-secondary" : "ev-button-primary")">@(selected ? "Continue to approvals" : "Select this offer")<span class="visually-hidden"> — @offer.Invitation.SupplierProfile.CompanyName</span><span aria-hidden="true"> →</span></button>
-                            </form>
-                        }
-                        else if (selected) { <p class="ev-selected-label">✓ Committee-selected offer</p> }
+                        @if (!Model.Locked)
+                        { <a class="btn @(Model.MyReviewApproved(offer) ? "ev-button-secondary" : "ev-button-primary")" asp-action="Evaluations" asp-route-id="@tender.TenderId" asp-route-offerId="@offer.BidId" asp-route-tab="forms">@(Model.MyReviewApproved(offer) ? "View your review" : "Review this offer") <span aria-hidden="true">→</span></a> }
+                        @if (selected) { <p class="ev-selected-label">✓ Highest-scoring offer · ready for report</p> }
                     </article>
                 }
                 </div>
@@ -99,6 +120,7 @@
             <div class="tab-pane fade" id="forms" role="tabpanel" aria-labelledby="forms-tab" tabindex="0"><partial name="_MemberForms" model="Model" /></div>
             <div class="tab-pane fade" id="report" role="tabpanel" aria-labelledby="report-tab" tabindex="0"><partial name="_EvaluationReport" model="Model" /></div>
         </div>
+        }
         </div>
         </div>
     }

@@ -11,8 +11,8 @@ public static class DatabaseChecks
     {
         var db = services.GetRequiredService<ApplicationDbContext>();
         var users = services.GetRequiredService<UserManager<ApplicationUser>>();
-        if (db.Model.GetEntityTypes().Count() != 28)
-            throw new Exception("Expected all 28 tables in the code-first model, including the role join table.");
+        if (db.Model.GetEntityTypes().Count() != 30)
+            throw new Exception("Expected all 30 tables, including committee percentage proposals and tie decisions.");
         await db.Departments.AsNoTracking().OrderBy(d => d.DepartmentId).Take(1).ToListAsync();
         await db.SupplierProfiles.AsNoTracking().OrderBy(s => s.SupplierProfileId).Take(1).ToListAsync();
         await db.CommitteeAssignments.AsNoTracking().OrderBy(c => c.CommitteeAssignmentId).Take(1).ToListAsync();
@@ -32,7 +32,7 @@ public static class DatabaseChecks
         Require(await users.IsInRoleAsync(user, RoleNames.TopCommitteeMember1), "Individual approval role missing.");
         Require(!await users.IsInRoleAsync(user, RoleNames.Admin), "Unexpected administrator role.");
         await transaction.RollbackAsync();
-        Console.WriteLine("PASS: 28 mapped tables; live database reads; Identity password validation; multiple committee roles. Test account rolled back.");
+        Console.WriteLine("PASS: 30 mapped tables; live database reads; Identity password validation; multiple committee roles. Test account rolled back.");
     }
 
     private static void Require(bool condition, string message)

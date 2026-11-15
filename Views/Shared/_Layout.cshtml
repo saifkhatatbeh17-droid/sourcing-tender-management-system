@@ -22,7 +22,7 @@
         && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "Clarification" or "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
     var showAdminSidebar = showWorkspace && workspaceController == "Admin";
     ViewData["WorkspaceController"] = workspaceController;
-    ViewData["WorkspaceLabel"] = workspaceController == "Admin" ? "Administration" : System.Text.RegularExpressions.Regex.Replace(workspaceController, "([a-z])([A-Z])", "$1 $2");
+    ViewData["WorkspaceLabel"] = workspaceController == "Admin" ? "Administration" : RoleNames.DisplayName(workspaceController);
     var activeAction = ViewData["ActivePage"]?.ToString() ?? currentAction;
     if (currentController == "Clarification") activeAction = "Clarifications";
     activeAction = activeAction switch {
@@ -43,6 +43,7 @@
     <title>@ViewData["Title"] — Sourcing &amp; Tender Management</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/formatted-report.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/action-confirmation.css" asp-append-version="true" />
     @if (showAdminSidebar)
     {
