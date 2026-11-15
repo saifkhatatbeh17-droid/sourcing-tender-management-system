@@ -7,6 +7,10 @@ namespace SourcingTenderManagement.Models.Entities;
 public class Tender
 {
     public int TenderId { get; set; }
+    public int? ReplacesTenderId { get; set; }
+    public Tender? ReplacesTender { get; set; }
+    public string? RejectionForwardedByUserId { get; set; }
+    public DateTime? RejectionForwardedAt { get; set; }
 
     public int PurchaseRequestId { get; set; }
 

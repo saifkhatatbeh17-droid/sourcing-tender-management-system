@@ -18,7 +18,7 @@ internal sealed class TopCommitteeVotingService(ITopCommitteeVotingStore store) 
             throw new CommitteeAccessDeniedException();
         ArgumentNullException.ThrowIfNull(input);
         Validator.ValidateObject(input, new ValidationContext(input), validateAllProperties: true);
-        var notes = input.Notes?.Replace("\r\n", "\n").Trim();
+        var notes = input.Decision == "Rejected" ? input.Notes : input.Notes?.Replace("\r\n", "\n").Trim();
         if (string.IsNullOrWhiteSpace(notes)) notes = null;
         try
         {
@@ -43,7 +43,8 @@ internal sealed class TopCommitteeVotingService(ITopCommitteeVotingStore store) 
                 session.Add(new TenderApproval { TenderId = tender.TenderId, UserId = memberId,
                     CommitteeAssignmentId = assignment.AssignmentId, Stage = "Top", Decision = input.Decision,
                     Notes = notes, DecidedAt = now });
-                var award = previous.Count == 3 && previous.All(v => v.Decision == "Approved");
+                var award = input.Decision == "Approved" && previous.Count == 3 && previous.All(v => v.Decision == "Approved");
+                if (input.Decision == "Rejected") tender.Status = "AwaitingManagerReview";
                 if (award)
                 {
                     tender.Status = "Awarded";

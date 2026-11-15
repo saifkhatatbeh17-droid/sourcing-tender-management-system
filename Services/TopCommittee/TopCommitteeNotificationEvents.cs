@@ -14,6 +14,13 @@ public static class TopCommitteeNotificationEvents
  }
  internal static async Task DecisionAsync(ApplicationDbContext db,CommitteeVotingContext context,CancellationToken ct)
  {
+  if (context.Access.Tender!.Status == "AwaitingManagerReview")
+  {
+   foreach (var manager in context.Access.Managers.Where(m => m.IsActive && m.HasManagerRole))
+    db.Notifications.Add(new Notification { UserId = manager.UserId, Title = "Top Committee rejected tender",
+     Message = $"Tender #{context.Access.Tender.TenderId} was rejected. Review the original reason and forward to its officer.",
+     RelativeUrl = $"/SourcingManager/Submissions?rejectedTenderId={context.Access.Tender.TenderId}&showRejections=true", CreatedAt = DateTime.UtcNow });
+  }
   var tender=context.Access.Tender!;if(tender.Status is "Awarded" or "AwaitingManagerReview")await AddAsync(db,tender.TenderId,context.Access.Members.Where(m=>m.IsEligible).Select(m=>m.UserId),$"Tender #{tender.TenderId}: {(tender.Status=="Awarded"?"awarded":"rejected and returned to Manager")}",ct);
   if (tender.Status == "Awarded" && tender.AwardedBidId.HasValue)
   {

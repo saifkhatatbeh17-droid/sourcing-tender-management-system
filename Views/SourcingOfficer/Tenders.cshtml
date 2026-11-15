@@ -20,6 +20,22 @@
     <article class="so-summary-card"><span class="so-summary-label">Published</span><strong>@publishedTenderCount</strong></article>
     <article class="so-summary-card"><span class="so-summary-label">Approved requests</span><strong>@approvedRequests.Count</strong></article>
 </section>
+@foreach (var rejected in Model.Tenders.Where(t => t.RejectionForwardedAt.HasValue))
+{
+    var rejection = rejected.TenderApprovals.FirstOrDefault(a => a.Stage == "Top" && a.Decision == "Rejected");
+    var replacement = Model.Tenders.FirstOrDefault(t => t.ReplacesTenderId == rejected.TenderId);
+    <section class="workspace-section">
+        <h2>Rejected tender: @rejected.Title · #@rejected.TenderId</h2>
+        @if (rejection != null)
+        {
+            <p>Rejected by <strong>@rejection.User.FullName</strong> · @rejection.DecidedAt.ToString("yyyy-MM-dd HH:mm") UTC</p>
+            <p class="text-break" style="white-space:pre-wrap">@rejection.Notes</p>
+        }
+        <a asp-action="Offers" asp-route-tenderId="@rejected.TenderId">Original tender and offers</a>
+        @if (replacement == null) { <a class="btn btn-primary" asp-action="Create" asp-route-replacesTenderId="@rejected.TenderId">Create New Tender</a> }
+        else { <p>Replacement: <a asp-action="Offers" asp-route-tenderId="@replacement.TenderId">@replacement.Title · #@replacement.TenderId</a></p> }
+    </section>
+}
 <div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Tenders">
 <button class="nav-link @(Model.SelectedTender == null ? "active" : "")" id="tenders-0-tab" data-bs-toggle="tab" data-bs-target="#tenders-0" type="button" role="tab" aria-controls="tenders-0" aria-selected="@(Model.SelectedTender == null ? "true" : "false")">Tenders</button>
 <button class="nav-link @(Model.SelectedTender != null ? "active" : "")" id="tenders-1-tab" data-bs-toggle="tab" data-bs-target="#tenders-1" type="button" role="tab" aria-controls="tenders-1" aria-selected="@(Model.SelectedTender != null ? "true" : "false")">Tender Details</button></div>
@@ -67,9 +83,10 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
 <div class="modal-header"><h2 class="modal-title fs-5" id="tender-create-title">Prepare tender &amp; invite suppliers</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
 <form asp-action="Create" method="post">
 @Html.AntiForgeryToken()
+<input name="ReplacesTenderId" type="hidden" value="@createTender.ReplacesTenderId" />
 <div class="modal-body">
     @Html.ValidationSummary(false, "", new { @class = "text-danger" })
-    @if (approvedRequests.Count == 0)
+    @if (approvedRequests.Count == 0 && !createTender.ReplacesTenderId.HasValue)
     {
         <p class="text-secondary" role="status">No eligible Purchase Requests are available. A request must be Approved and must not already have a Tender.</p>
     }

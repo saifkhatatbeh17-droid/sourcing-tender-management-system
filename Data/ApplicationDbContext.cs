@@ -456,6 +456,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<Tender>(entity =>
         {
+            entity.HasOne(e => e.ReplacesTender).WithMany().HasForeignKey(e => e.ReplacesTenderId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(e => e.ReplacesTenderId).IsUnique().HasFilter("[ReplacesTenderId] IS NOT NULL");
+            entity.Property(e => e.RejectionForwardedByUserId).HasMaxLength(450);
+            entity.HasOne<ApplicationUser>().WithMany().HasForeignKey(e => e.RejectionForwardedByUserId).OnDelete(DeleteBehavior.NoAction);
+            entity.ToTable("Tenders", table => {
+                table.HasCheckConstraint("CK_Tenders_Replacement", "[ReplacesTenderId] IS NULL OR [ReplacesTenderId] <> [TenderId]");
+                table.HasCheckConstraint("CK_Tenders_RejectionForward", "([RejectionForwardedAt] IS NULL AND [RejectionForwardedByUserId] IS NULL) OR ([RejectionForwardedAt] IS NOT NULL AND [RejectionForwardedByUserId] IS NOT NULL)");
+            });
             entity.Property(e => e.TenderId).UseIdentityColumn();
             entity.HasKey(e => e.TenderId);
 

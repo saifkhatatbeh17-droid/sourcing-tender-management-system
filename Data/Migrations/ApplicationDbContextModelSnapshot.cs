@@ -1235,6 +1235,16 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Property<int>("PurchaseRequestId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("RejectionForwardedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RejectionForwardedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("ReplacesTenderId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -1257,6 +1267,12 @@ namespace SourcingTenderManagement.Data.Migrations
 
                     b.HasIndex("PurchaseRequestId");
 
+                    b.HasIndex("RejectionForwardedByUserId");
+
+                    b.HasIndex("ReplacesTenderId")
+                        .IsUnique()
+                        .HasFilter("[ReplacesTenderId] IS NOT NULL");
+
                     b.HasIndex("TenderId", "AwardedBidId");
 
                     b.ToTable("Tenders", null, t =>
@@ -1266,6 +1282,10 @@ namespace SourcingTenderManagement.Data.Migrations
                             t.HasCheckConstraint("CK_Tenders_2", "([Status]='Awarded' AND [AwardedBidId] IS NOT NULL AND [AwardedAt] IS NOT NULL OR [Status]<>'Awarded' AND [AwardedBidId] IS NULL AND [AwardedAt] IS NULL)");
 
                             t.HasCheckConstraint("CK_Tenders_3", "([Status]='Cancelled' OR [Status]='Awarded' OR [Status]='AwaitingCommitteeDecision' OR [Status]='AwaitingManagerReview' OR [Status]='AwaitingOfficerSummary' OR [Status]='UnderEvaluation' OR [Status]='Closed' OR [Status]='Open' OR [Status]='Published' OR [Status]='Draft')");
+
+                            t.HasCheckConstraint("CK_Tenders_RejectionForward", "([RejectionForwardedAt] IS NULL AND [RejectionForwardedByUserId] IS NULL) OR ([RejectionForwardedAt] IS NOT NULL AND [RejectionForwardedByUserId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_Tenders_Replacement", "[ReplacesTenderId] IS NULL OR [ReplacesTenderId] <> [TenderId]");
                         });
                 });
 
@@ -1888,6 +1908,16 @@ namespace SourcingTenderManagement.Data.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("SourcingTenderManagement.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RejectionForwardedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Tender", "ReplacesTender")
+                        .WithMany()
+                        .HasForeignKey("ReplacesTenderId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("SourcingTenderManagement.Models.Entities.Bid", "Bid")
                         .WithMany("Tenders")
                         .HasForeignKey("TenderId", "AwardedBidId")
@@ -1899,6 +1929,8 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("PurchaseRequest");
+
+                    b.Navigation("ReplacesTender");
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.TenderApproval", b =>
