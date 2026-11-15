@@ -1,26 +1,32 @@
 @model CommitteeEvaluationPage
-@{ var report = Model.Tender?.EvaluationReport; }
-@if (!string.IsNullOrWhiteSpace(report?.CommitteeSummary)) { <nav class="workspace-toolbar" aria-label="Report export"><a class="btn btn-outline-primary btn-sm" asp-action="EvaluationReportPdf" asp-route-id="@Model.Tender!.TenderId">Download PDF</a></nav> }
-@if (!string.IsNullOrWhiteSpace(report?.OfficerSummary)) { <p class="ev-notice" role="status">Officer review: @report.OfficerSummary</p> }
-@if (TempData["AiError"] is string aiError) { <p class="ev-notice ev-notice-error" role="alert">@aiError</p> }
-<div class="ev-section-heading"><div><h3>The committee's recommendation</h3><p>Review the overall evaluation weights and the report sent to the sourcing officer.</p></div><span class="ev-status">@Model.Approvals.Count of 4 approved</span></div>
-<div class="ev-report-grid"><section class="ev-report-body"><h3>Combined report</h3><p class="ev-field-help">After all four members approve, generate the final AI report to send the recommendation to the sourcing officer.</p>
-@if (!Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId))
-{
-    <form asp-action="RecommendBids" method="post" data-ai-report>
-        <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
-        <input type="hidden" name="writeReport" value="true" />
-        <input type="hidden" name="financialWeight" value="@Model.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight).ToString(System.Globalization.CultureInfo.InvariantCulture)" />
-        <input type="hidden" name="requirementsWeight" value="@Model.Criteria.Where(c => c.Category == "Requirements").Sum(c => c.Weight).ToString(System.Globalization.CultureInfo.InvariantCulture)" />
-        <button class="btn ev-button-primary" disabled="@(!Model.WeightsReady || !Model.SelectionReady || Model.Approvals.Count != 4)">Generate final report &amp; send</button><span role="status" hidden>Writing report…</span>
-    </form>
-}
-<dl class="ev-report-summary"><dt>Committee-selected offer</dt><dd>@(Model.Offers.FirstOrDefault(b => b.BidId == report?.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName ?? "No final report yet")</dd><dt>Committee report</dt><dd class="ev-report-text">@(report?.CommitteeSummary ?? "The final report becomes available after all four members approve the selected offer and shared weights.")</dd></dl>
-</section><aside class="ev-report-approvals"><h3>Approval record</h3><p>Four independent member approvals are required.</p>
-@foreach (var member in Model.Members)
-{
-    var approved = Model.Approvals.Any(a => a.UserId == member.UserId);
-    <div><span class="ev-check @(approved ? "ev-is-complete" : "")" aria-hidden="true">@(approved ? "✓" : member.Position.ToString())</span><span><strong>@CommitteeEvaluationPage.MemberName(member.Position)</strong><small>@(approved ? "Approved" : "Awaiting approval")</small></span></div>
-}
-@if (Model.Locked) { <p class="ev-notice ev-notice-success">Evaluation complete. Current tender status: @Model.Tender!.Status.</p> }
-</aside></div>
+@{ var report = Model.Tender?.EvaluationReport; var ranking = Model.Rank(); var leaders = Model.Leaders; }
+<section class="cs-panel cs-result" aria-labelledby="result-heading">
+    <div class="cs-section-heading"><div><h3 id="result-heading">Committee result</h3><p>Each offer’s score is the average of four accepted financial and technical reviews.</p></div></div>
+    @if (Model.UsesScoredWorkflow && !Model.AllOffersAccepted)
+    { <div class="cs-empty"><h4>Every review counts</h4><p>The result unlocks when every offer has four accepted forms. No offer can progress early.</p><button class="cs-button" type="button" data-open-evaluation-tab="forms-tab">Continue reviewing offers</button></div> }
+    @if (ranking.Count > 0)
+    {
+        <div class="cs-table-scroll"><table class="cs-ranking"><caption class="visually-hidden">Average committee marks for every reviewed offer</caption><thead><tr><th>Offer</th><th>Financial / @Model.FinancialWeight.ToString("0.##")</th><th>Technical / @Model.TechnicalWeight.ToString("0.##")</th><th>Total / 100</th><th>Result</th></tr></thead><tbody>
+        @foreach (var row in ranking)
+        { <tr class="@(Model.ScoredWinnerId == row.BidId ? "is-winner" : "")"><th scope="row"><span>#@row.BidId</span> @row.Supplier</th><td>@row.Financial.ToString("0.####")</td><td>@row.Requirements.ToString("0.####")</td><td><strong>@row.Score.ToString("0.####")</strong></td><td>@(Model.ScoredWinnerId == row.BidId ? "Selected" : leaders.Count > 1 && leaders.Any(r => r.BidId == row.BidId) ? "Tied highest" : "Reviewed")</td></tr> }
+        </tbody></table></div>
+    }
+    @if (Model.HasTie && !Model.ScoredWinnerId.HasValue)
+    {
+        <div class="cs-notice"><strong>The highest score is tied.</strong><p>Progression is paused. The four members must explicitly agree on the same tied offer. Original marks remain locked.</p></div>
+        <div class="cs-tie-status">@foreach (var leader in leaders) { <p><strong>@leader.Supplier</strong> <span>@Model.Tender!.CommitteeTieVotes.Count(v => v.BidId == leader.BidId && Model.Members.Any(m => m.CommitteeAssignmentId == v.CommitteeAssignmentId)) / 4 agree</span></p> }</div>
+        @if (!Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId))
+        {
+            var mine = Model.Members.Single(m => m.UserId == Model.UserId);
+            var previous = Model.Tender!.CommitteeTieVotes.SingleOrDefault(v => v.CommitteeAssignmentId == mine.CommitteeAssignmentId);
+            <form asp-action="DecideTie" method="post" class="cs-tie-form"><input type="hidden" name="id" value="@Model.Tender.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" /><label for="tie-choice">Your committee tie decision<select id="tie-choice" name="bidId" required><option value="">Choose a tied offer</option>@foreach (var leader in leaders) { <option value="@leader.BidId" selected="@(previous?.BidId == leader.BidId)">#@leader.BidId — @leader.Supplier</option> }</select></label><button class="cs-button is-primary">Confirm tie decision</button><p class="cs-help">You may change this tie decision until all four members agree. Accepted marks cannot change.</p></form>
+        }
+    }
+    @if (Model.ScoredWinnerId.HasValue)
+    { <p class="cs-notice is-success" role="status">The selected offer and committee score report have progressed to sourcing officer review.</p> }
+    @if (!string.IsNullOrWhiteSpace(report?.CommitteeSummary) && (!Model.UsesScoredWorkflow || Model.ScoredWinnerId.HasValue))
+    { <div class="cs-section-heading"><h3>Committee report</h3><a class="cs-button" asp-action="EvaluationReportPdf" asp-route-id="@Model.Tender!.TenderId">Download PDF</a></div><div class="cs-report-text">@report.CommitteeSummary</div> }
+    @if (!string.IsNullOrWhiteSpace(report?.OfficerSummary)) { <div class="cs-notice"><strong>Officer review</strong><p>@report.OfficerSummary</p></div> }
+    @if (!Model.UsesScoredWorkflow)
+    { <h3>Original approval record</h3>@foreach (var approval in Model.Approvals) { <p class="cs-help">@Model.Members.FirstOrDefault(m => m.UserId == approval.UserId)?.User.FullName — @approval.Decision · @approval.DecidedAt.ToString("dd MMM yyyy HH:mm") UTC</p> } }
+</section>

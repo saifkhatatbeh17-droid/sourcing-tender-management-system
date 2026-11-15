@@ -1,0 +1,157 @@
+/* Committee evaluation: clear decisions, calm surfaces and immediate feedback. */
+.committee-scoring { max-width: 1440px; font: 1rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; font-optical-sizing: auto; }
+.committee-scoring h1::after { content: none; }
+.committee-scoring :is(h1,h2,h3,h4) { font-weight: 650; }
+.committee-scoring h1 { font-size: clamp(1.7rem, 3vw, 2.35rem); line-height: 1.15; letter-spacing: -.035em; }
+.committee-scoring h2 { font-size: clamp(1.25rem, 2vw, 1.65rem); letter-spacing: -.025em; line-height: 1.25; }
+.committee-scoring h3 { font-size: 1.05rem; line-height: 1.4; letter-spacing: -.015em; }
+.committee-scoring h4 { font-size: .9rem; line-height: 1.4; letter-spacing: 0; }
+.committee-scoring p { line-height: 1.55; }
+.cs-page-heading { margin-bottom: 1.8rem; }
+.cs-page-heading p { margin-top: .5rem; }
+.cs-workspace { display: grid; grid-template-columns: 245px minmax(0,1fr); gap: 1.5rem; align-items: start; }
+.cs-main { min-width: 0; }
+.committee-scoring .ev-tender-browser { position: sticky; top: 5rem; height: min(80vh, 950px); border-radius: 1rem; }
+.committee-scoring .ev-tender-rail { overflow-y: auto; }
+.cs-tender-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .3rem 0 1.25rem; }
+.cs-reference { display: block; font-size: .75rem; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; margin-bottom: .35rem; }
+.cs-pill { display: inline-flex; align-items: center; padding: .3rem .65rem; border-radius: 999px; font-size: .75rem; font-weight: 600; color: var(--color-text-secondary); background: var(--color-surface-alt); white-space: normal; line-height: 1.4; }
+.cs-pill.is-success, .cs-confirmed { color: var(--color-link); background: var(--color-selection); }
+.cs-steps { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); list-style: none; margin: 0 0 1.5rem; padding: 0; gap: .75rem; }
+.cs-steps li { display: flex; align-items: center; gap: .65rem; padding: .8rem .85rem; border-radius: .8rem; color: var(--color-text-secondary); background: var(--color-surface-alt); border: 1px solid var(--color-border); }
+.cs-steps li > span { display: grid; place-items: center; width: 1.65rem; height: 1.65rem; flex-shrink: 0; border-radius: 50%; background: var(--color-surface); font-size: .75rem; font-weight: 700; }
+.cs-steps strong { display: block; font-size: .8rem; font-weight: 600; }
+.cs-steps small { display: block; font-size: .7rem; margin-top: .15rem; }
+.cs-steps .is-current { color: var(--color-text); border-color: var(--color-link); }
+.cs-steps .is-complete > span { background: var(--color-link); color: var(--color-surface); }
+.cs-panel { border: 1px solid var(--color-border); border-radius: 1rem; padding: 1.4rem; margin-bottom: 1.25rem; background: var(--color-surface); }
+.cs-section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.1rem; }
+.cs-section-heading p { font-size: .85rem; margin-top: .35rem; max-width: 65ch; }
+.cs-section-heading > .cs-pill, .cs-section-heading > .cs-button { flex-shrink: 0; }
+.cs-proposals { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .8rem; }
+.cs-proposal { background: var(--color-surface-alt); padding: 1rem; border-radius: .8rem; border: 1px solid transparent; }
+.cs-proposal.is-yours, .cs-review.is-yours { border-color: var(--color-link); }
+.cs-proposal header { display: flex; justify-content: space-between; align-items: center; gap: .5rem; font-size: .8rem; }
+.cs-proposal > p { margin: .3rem 0 .8rem; font-size: .75rem; }
+.cs-you { color: var(--color-link); font-size: .7rem; font-weight: 600; }
+.cs-proposal-value { display: flex; gap: .65rem; align-items: baseline; flex-wrap: wrap; }
+.cs-proposal-value strong { font-size: 1.7rem; letter-spacing: -.04em; line-height: 1.2; }
+.cs-proposal-value span { color: var(--color-text-secondary); font-size: .75rem; }
+.cs-confirmed, .cs-pending { display: inline-block; font-size: .7rem; margin-top: .7rem; padding: .15rem .4rem; border-radius: .3rem; }
+.cs-pending { color: var(--color-text-secondary); }
+.committee-scoring .cs-panel :is(input,textarea,select) { display: block; width: 100%; box-sizing: border-box; border: 1px solid var(--color-input-border); border-radius: .65rem; background: var(--color-surface); color: var(--color-text); padding: .65rem .75rem; font: inherit; font-size: .9rem; min-height: 2.75rem; margin-top: .4rem; }
+.committee-scoring .cs-panel input[readonly] { background: var(--color-surface-alt); color: var(--color-text-secondary); cursor: default; }
+.committee-scoring .cs-panel label { display: block; font-size: .8rem; font-weight: 600; }
+.cs-percent-input { position: relative; max-width: 12rem; }
+.cs-percent-input span { position: absolute; right: .8rem; top: .65rem; color: var(--color-text-secondary); }
+.cs-percent-input input { padding-right: 2rem; }
+.cs-proposal form > p { font-size: .75rem; margin-top: .5rem; }
+.cs-proposal form .cs-button { margin-top: .8rem; width: 100%; }
+.cs-button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.7rem; border: 1px solid var(--color-border); border-radius: .65rem; padding: .6rem .9rem; color: var(--color-text); background: var(--color-surface); text-decoration: none; font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; transition: background-color .15s, transform .1s; }
+.cs-button:hover { background: var(--color-surface-alt); color: var(--color-text); }
+.cs-button.is-primary { background: var(--color-link); border-color: var(--color-link); color: var(--color-surface); }
+.cs-button:active { transform: scale(.98); }
+.cs-button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.committee-scoring :is(a,button,input,textarea,select,summary):focus-visible { outline: 3px solid var(--color-link); outline-offset: 3px; }
+.cs-locked-split { display: flex; flex-wrap: wrap; align-items: center; gap: 2rem; margin-top: 1.2rem; padding-top: 1.2rem; border-top: 1px solid var(--color-border); }
+.cs-locked-split div > span { display: block; font-size: .75rem; color: var(--color-text-secondary); }
+.cs-locked-split strong { font-size: 1.8rem; letter-spacing: -.03em; }
+.cs-locked-split strong small { font-size: .8rem; font-weight: 400; color: var(--color-text-secondary); }
+.cs-locked-split > p { margin-left: auto; font-size: .75rem; }
+.cs-proposal-details { margin-top: 1rem; font-size: .8rem; }
+.cs-proposal-details summary { cursor: pointer; color: var(--color-link); padding-block: .3rem; }
+.cs-proposal-details[open] summary { margin-bottom: .8rem; }
+.cs-tabs { gap: .4rem; padding: .35rem; border: 1px solid var(--color-border); border-radius: .8rem; background: var(--color-surface-alt); margin-bottom: 1.5rem; flex-wrap: wrap; }
+.committee-scoring .cs-tabs .nav-link { flex: 1; min-height: 2.8rem; padding: .65rem .8rem; border: 0; border-radius: .55rem; color: var(--color-text-secondary); font-size: .8rem; font-weight: 600; white-space: nowrap; }
+.committee-scoring .cs-tabs .nav-link.active { color: var(--color-text); background: var(--color-surface); box-shadow: 0 1px 4px #0000000d; }
+.cs-tabs .nav-link > span { margin-left: .25rem; font-size: .7rem; }
+.cs-brief summary, .cs-conversations summary { display: flex; justify-content: space-between; gap: 1rem; font-size: .9rem; font-weight: 600; cursor: pointer; list-style: revert; }
+.cs-brief summary > span { font-weight: 400; font-size: .75rem; color: var(--color-text-secondary); }
+.cs-brief[open] summary, .cs-conversations[open] summary { margin-bottom: 1rem; }
+.cs-line-item { padding: .85rem 0; border-bottom: 1px solid var(--color-border); }
+.cs-line-item strong { font-size: .85rem; }
+.cs-line-item strong > span { font-weight: 400; color: var(--color-text-secondary); margin-left: .4rem; }
+.cs-line-item p { font-size: .8rem; margin-top: .3rem; }
+.cs-brief > p { font-size: .85rem; margin-block: .75rem; }
+.cs-ai-fields { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: .8rem; }
+.cs-help { font-size: .75rem; color: var(--color-text-secondary); font-weight: 400; }
+.cs-ai .cs-help { margin-top: .7rem; }
+.cs-ai-result { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border); }
+.cs-ai-result p { margin-block: .5rem; font-size: .85rem; }
+.cs-text-link { color: var(--color-link); text-underline-offset: 3px; font-size: .8rem; }
+.cs-offers { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
+.cs-offer-preview header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .8rem; }
+.cs-offer-preview h3 { font-size: 1rem; }
+.cs-offer-preview .cs-price { font-size: 1.65rem; font-weight: 650; letter-spacing: -.035em; color: var(--color-text); margin: .7rem 0; }
+.cs-price > span { font-size: .8rem; font-weight: 400; color: var(--color-text-secondary); }
+.cs-offer-preview > p:not(.cs-price) { font-size: .8rem; margin-top: .7rem; }
+.cs-offer-preview details { margin-top: 1rem; font-size: .8rem; }
+.cs-offer-preview summary { cursor: pointer; color: var(--color-link); }
+.cs-notice { border: 1px solid var(--color-border); border-left: 3px solid var(--color-link); background: var(--color-surface-alt); padding: .9rem 1rem; border-radius: .65rem; font-size: .85rem; margin-bottom: 1rem; }
+.cs-notice p { margin-top: .4rem; }
+.cs-notice.is-error { border-left-color: #bd3434; }
+.cs-notice.is-success { background: var(--color-selection); }
+.cs-score-offer-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.2rem; }
+.cs-score-offer-heading p { font-size: .8rem; margin-top: .3rem; }
+.cs-acceptance { flex-shrink: 0; text-align: right; }
+.cs-acceptance > strong { display: block; font-size: .8rem; }
+.cs-acceptance-dots { display: flex; justify-content: flex-end; gap: .3rem; margin-top: .5rem; }
+.cs-acceptance-dots span { display: block; width: 1.1rem; height: .3rem; background: var(--color-border); border-radius: .15rem; }
+.cs-acceptance-dots .is-complete { background: var(--color-link); }
+.cs-review-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .85rem; }
+.cs-review { border: 1px solid var(--color-border); background: var(--color-surface-alt); border-radius: .8rem; padding: 1rem; }
+.cs-review > header { display: flex; justify-content: space-between; align-items: flex-start; gap: .6rem; margin-bottom: 1rem; }
+.cs-review header p { font-size: .7rem; margin-top: .2rem; }
+.cs-mark-fields { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: .9rem; }
+.cs-mark-fields label > span { color: var(--color-text-secondary); font-weight: 400; }
+.cs-review-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; margin-top: .85rem; }
+.cs-review-footer output { font-size: .8rem; font-weight: 600; }
+.cs-review form > .cs-help { margin-top: .6rem; }
+.cs-marks { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0; }
+.cs-marks dt { font-size: .75rem; font-weight: 400; color: var(--color-text-secondary); }
+.cs-marks dd { margin: .2rem 0 0; font-size: 1.4rem; font-weight: 600; }
+.cs-review-total { margin-top: .8rem !important; font-size: .75rem; }
+.cs-review-note { margin-top: .8rem !important; font-size: .8rem; white-space: pre-wrap; }
+.cs-table-scroll { overflow-x: auto; margin-bottom: 1rem; }
+.cs-ranking { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.cs-ranking th, .cs-ranking td { text-align: left; padding: .8rem .65rem; border-bottom: 1px solid var(--color-border); vertical-align: top; }
+.cs-ranking thead { color: var(--color-text-secondary); }
+.cs-ranking th { font-weight: 600; }
+.cs-ranking tbody th > span { display: block; font-size: .7rem; color: var(--color-text-secondary); }
+.cs-ranking .is-winner { background: var(--color-selection); }
+.cs-report-text { white-space: pre-wrap; font-size: .85rem; line-height: 1.75; overflow-wrap: anywhere; }
+.cs-tie-status p { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; padding: .65rem 0; font-size: .85rem; }
+.cs-tie-form { display: flex; align-items: end; flex-wrap: wrap; gap: .8rem; margin-block: 1rem; }
+.cs-tie-form label { flex: 1 1 220px; }
+.cs-tie-form .cs-help { flex-basis: 100%; }
+.cs-empty { text-align: center; padding: 2rem 1rem; }
+.cs-empty p { font-size: .85rem; margin: .6rem auto 1rem; max-width: 50ch; }
+.cs-conversations { margin-top: 1.5rem; }
+@media (max-width: 1150px) {
+    .cs-workspace { grid-template-columns: 210px minmax(0,1fr); gap: 1rem; }
+    .cs-steps { grid-template-columns: 1fr; gap: .45rem; }
+    .cs-steps li { padding: .55rem .8rem; }
+    .cs-steps li > div { display: flex; align-items: baseline; justify-content: space-between; width: 100%; gap: 1rem; }
+    .cs-offers, .cs-review-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 800px) {
+    .cs-workspace { grid-template-columns: 1fr; }
+    .committee-scoring .ev-tender-browser { position: static; height: auto; max-height: 26rem; }
+    .committee-scoring .ev-tender-rail { max-height: 12rem; }
+    .cs-ai-fields { grid-template-columns: 1fr 1fr; }
+    .cs-ai-fields > button { grid-column: 1 / -1; }
+    .cs-tender-heading { align-items: flex-start; }
+}
+@media (max-width: 500px) {
+    .cs-proposals { grid-template-columns: 1fr; }
+    .cs-panel { padding: 1rem; }
+    .cs-section-heading, .cs-score-offer-heading { flex-wrap: wrap; }
+    .cs-tender-heading { flex-direction: column; }
+    .cs-steps li > div { display: block; }
+    .committee-scoring .cs-tabs .nav-link { flex: 1 1 100%; white-space: normal; }
+    .cs-locked-split { gap: 1rem; }
+    .cs-locked-split > p { margin-left: 0; }
+    .cs-mark-fields { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .committee-scoring *, .committee-scoring .tab-pane { transition: none !important; animation: none !important; } }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .committee-scoring .cs-tabs { background: var(--color-surface); border-color: var(--color-text-secondary); } }

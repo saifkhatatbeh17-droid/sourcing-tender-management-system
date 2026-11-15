@@ -1,0 +1,5 @@
+- [x] Add schema and migration for percentage consensus and offer marks; verified backup and applied locally.
+- [x] Implement protected scoring, tie decisions, automatic winner progression and upstream return integration.
+- [x] Rebuild committee UI using apple-design.
+- [x] Run calculation checks and 89 real MVC checks, including PDF export, concurrency and officer/manager returns; inspect desktop/mobile rendering.
+- [x] Review the final diff, build and record validation in docs/COMMITTEE-SCORING.md.

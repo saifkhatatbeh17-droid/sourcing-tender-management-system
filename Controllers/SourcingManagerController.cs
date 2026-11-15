@@ -167,6 +167,12 @@ public partial class SourcingManagerController : Controller
         {
             evaluationReport.Status = ReturnedForReview;
             tender.Status = "UnderEvaluation";
+            if (tender.CommitteeWeightsLockedAt.HasValue)
+            {
+                Services.Evaluation.CommitteeScoring.ReopenReviews(tender, _context.Evaluations.Where(e => e.TenderId == tender.TenderId).ToList());
+                _context.TenderApprovals.RemoveRange(_context.TenderApprovals.Where(a => a.TenderId == tender.TenderId && a.Stage == "Evaluation"));
+                _context.CommitteeTieVotes.RemoveRange(_context.CommitteeTieVotes.Where(v => v.TenderId == tender.TenderId));
+            }
         }
 
         evaluationReport.ManagerSummary = notes;

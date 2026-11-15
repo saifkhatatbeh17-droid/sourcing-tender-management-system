@@ -1,0 +1,137 @@
+// Isolated MVC checks. Creates and drops only its own random temporary SQL database.
+// Never runs the production Program, seeds the user's database or calls a real AI service.
+using System.Net;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using SourcingTenderManagement.Controllers;
+using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Models;
+using SourcingTenderManagement.Models.Entities;
+using SourcingTenderManagement.Services.Evaluation;
+using SourcingTenderManagement.Services.PdfWatermark;
+
+var repo=args[0];var serve=args.Contains("--serve");
+var config=new ConfigurationBuilder().SetBasePath(repo).AddJsonFile("appsettings.json").AddJsonFile("appsettings.Development.json",true).AddJsonFile("appsettings.Local.json",true).AddEnvironmentVariables().Build();
+var connection=new SqlConnectionStringBuilder(config.GetConnectionString("DefaultConnection"));
+var database="TiryaqCommitteeChecks_"+Guid.NewGuid().ToString("N");connection.InitialCatalog=database;
+var token=Guid.NewGuid().ToString("N");var actors=new Dictionary<string,ApplicationUser>();
+var builder=WebApplication.CreateBuilder(new WebApplicationOptions{Args=[],ContentRootPath=repo,ApplicationName=typeof(EvaluationCommitteeController).Assembly.FullName,EnvironmentName="Development"});
+builder.Logging.SetMinimumLevel(LogLevel.Warning);builder.WebHost.UseUrls("http://127.0.0.1:5094");
+builder.Services.AddDbContext<ApplicationDbContext>(o=>o.UseSqlServer(connection.ConnectionString));
+builder.Services.AddControllersWithViews().AddApplicationPart(typeof(EvaluationCommitteeController).Assembly);
+builder.Services.AddIdentity<ApplicationUser,IdentityRole>(o=>o.Stores.SchemaVersion=IdentitySchemaVersions.Version3).AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
+builder.Services.AddAuthentication(o=>{o.DefaultAuthenticateScheme="ScoringFixture";o.DefaultChallengeScheme="ScoringFixture";o.DefaultForbidScheme="ScoringFixture";}).AddScheme<AuthenticationSchemeOptions,FixtureAuthentication>("ScoringFixture",_=>{});
+builder.Services.AddSingleton(new FixtureActors(actors,token));builder.Services.AddAuthorization();builder.Services.AddPdfWatermarks();
+builder.Services.AddHttpClient<BidRecommendationService>().ConfigurePrimaryHttpMessageHandler(()=>new NoAi());
+await using var app=builder.Build();
+app.UseStaticFiles();app.UseRouting();app.UseAuthentication();app.UseAuthorization();
+app.MapGet("/qa/login/{key}/{secret}",(string key,string secret,HttpContext ctx)=>{if(secret!=token||!actors.ContainsKey(key))return Results.NotFound();ctx.Response.Cookies.Append("CommitteeScoringFixture",token+"."+key,new CookieOptions{HttpOnly=true,SameSite=SameSiteMode.Strict});return Results.Redirect("/EvaluationCommittee/Evaluations");});
+app.MapGet("/qa/stop/{secret}",(string secret,IHostApplicationLifetime lifetime)=>{if(secret!=token)return Results.NotFound();lifetime.StopApplication();return Results.Ok("Stopping isolated test host");});
+app.MapControllerRoute("default","{controller=Home}/{action=Index}/{id?}");
+int passed=0;void Check(bool ok,string label){if(!ok)throw new Exception(label);passed++;Console.WriteLine("PASS MVC: "+label);}
+async Task WithDb(Func<ApplicationDbContext,Task> action){await using var scope=app.Services.CreateAsyncScope();await action(scope.ServiceProvider.GetRequiredService<ApplicationDbContext>());}
+var tenderIds=new List<int>();var bidIds=new Dictionary<int,int[]>();
+try{
+ await WithDb(async db=>{
+  if(!db.Database.GetDbConnection().Database.StartsWith("TiryaqCommitteeChecks_",StringComparison.Ordinal)||db.Database.GetDbConnection().Database!=database)throw new Exception("Unsafe test database target.");
+  await db.Database.EnsureCreatedAsync();
+  var role=new IdentityRole(RoleNames.EvaluationCommittee){NormalizedName="EVALUATIONCOMMITTEE"};db.Roles.Add(role);
+  for(int i=1;i<=5;i++){var user=new ApplicationUser{Id="member"+i,FullName=i==5?"Unassigned reviewer":CommitteeEvaluationPage.MemberName(i),UserName=$"scoring-member{i}@example.invalid",NormalizedUserName=$"SCORING-MEMBER{i}@EXAMPLE.INVALID",EmailConfirmed=true,IsActive=true,SecurityStamp=Guid.NewGuid().ToString()};db.Users.Add(user);db.UserRoles.Add(new IdentityUserRole<string>{UserId=user.Id,RoleId=role.Id});actors[user.Id]=user;}
+  var officer=new ApplicationUser{Id="officer",FullName="Pharmacy purchasing officer",UserName="scoring-officer@example.invalid",NormalizedUserName="SCORING-OFFICER@EXAMPLE.INVALID",IsActive=true};db.Users.Add(officer);actors["officer"]=officer;
+  var manager=new ApplicationUser{Id="manager",FullName="Pharmacy sourcing manager",UserName="scoring-manager@example.invalid",NormalizedUserName="SCORING-MANAGER@EXAMPLE.INVALID",IsActive=true};db.Users.Add(manager);actors["manager"]=manager;
+  foreach(var (userId,roleName) in new[]{("officer",RoleNames.SourcingOfficer),("manager",RoleNames.SourcingManager)}){var staffRole=new IdentityRole(roleName){NormalizedName=roleName.ToUpperInvariant()};db.Roles.Add(staffRole);db.UserRoles.Add(new IdentityUserRole<string>{UserId=userId,RoleId=staffRole.Id});}
+  var department=new Department{Name="Tiryaq Pharmacy",IsActive=true};db.Add(department);await db.SaveChangesAsync();
+  foreach(var title in new[]{"Monthly pharmacy replenishment","Sterile dressing comparison","Pharmacy equipment review"}){
+   var request=new PurchaseRequest{DepartmentId=department.DepartmentId,RequestedByUserId="member1",Title=title,Reason="Replenish Tiryaq Pharmacy stock using approved purchasing requirements.",Priority="Normal",TargetDate=DateOnly.FromDateTime(DateTime.UtcNow.AddDays(20)),Status="ConvertedToTender",CreatedAt=DateTime.UtcNow,SubmittedAt=DateTime.UtcNow};
+   request.PurchaseRequestItems.Add(new PurchaseRequestItem{ItemName="Sterile gauze swabs",Quantity=120,Unit="pack of 10",Specifications="Sealed sterile packaging; documented batch and expiry."});
+   var tender=new Tender{PurchaseRequest=request,CreatedByUserId="officer",Title=title,Description="Compare original sealed pharmacy supplies, delivery lead times and complete quotations.",Terms="Delivery to Tiryaq Pharmacy with itemised invoice and traceable batch information.",Status="UnderEvaluation",CreatedAt=DateTime.UtcNow,OpensAt=DateTime.UtcNow.AddDays(-10),ClosesAt=DateTime.UtcNow.AddDays(-2)};
+   for(int i=1;i<=4;i++)tender.CommitteeAssignments.Add(new CommitteeAssignment{UserId="member"+i,CommitteeType="Evaluation",Position=i});
+   tender.EvaluationCriteria.Add(new EvaluationCriterion{Name="Price",Category="Financial",Weight=40});tender.EvaluationCriteria.Add(new EvaluationCriterion{Name="Technical fit",Category="Requirements",Weight=60});
+   db.Add(tender);await db.SaveChangesAsync();tenderIds.Add(tender.TenderId);
+   for(int i=1;i<=2;i++){
+    var supplierUser=new ApplicationUser{Id=Guid.NewGuid().ToString("N"),FullName="Supplier contact",UserName=Guid.NewGuid().ToString("N")+"@example.invalid",IsActive=true};
+    var supplier=new SupplierProfile{User=supplierUser,CompanyName=i==1?"Rimal Pharmaceutical Distribution":"Levant Medicine Supply",RegistrationNumber=Guid.NewGuid().ToString("N"),ContactName="Supplier contact",Status="Approved",CreatedAt=DateTime.UtcNow};
+    var invitation=new Invitation{TenderId=tender.TenderId,SupplierProfile=supplier,InvitedByUserId="officer",Status="Accepted",SentAt=DateTime.UtcNow.AddDays(-5)};
+    var bid=new Bid{TenderId=tender.TenderId,Invitation=invitation,Currency="JOD",DeliveryDays=i==1?3:5,Status="Compliant",ComplianceStatus="Compliant",SubmittedAt=DateTime.UtcNow.AddDays(-3),CreatedAt=DateTime.UtcNow.AddDays(-4),PaymentTerms="30 days",TechnicalDetails="Matches the requested sterile pack and labelling requirements."};
+    bid.BidItems.Add(new BidItem{PurchaseRequestItemId=request.PurchaseRequestItems.Single().PurchaseRequestItemId,Quantity=120,UnitPrice=i==1?2.10m:2.3m,OfferedSpecifications="Sealed sterile packs with manufacturer batch and expiry."});db.Add(bid);await db.SaveChangesAsync();
+   }
+   bidIds[tender.TenderId]=await db.Bids.Where(b=>b.TenderId==tender.TenderId).OrderBy(b=>b.BidId).Select(b=>b.BidId).ToArrayAsync();
+  }
+ });
+ await app.StartAsync();
+ var clients=Enumerable.Range(1,5).ToDictionary(i=>i,i=>{var c=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false}){BaseAddress=new Uri("http://127.0.0.1:5094")};c.DefaultRequestHeaders.Add("X-Scoring-Test",token);c.DefaultRequestHeaders.Add("X-Member","member"+i);return c;});
+ async Task<string> Html(int member,int tender){var response=await clients[member].GetAsync($"/EvaluationCommittee/Evaluations/{tender}");Check(response.StatusCode==HttpStatusCode.OK,"member evaluation renders");return await response.Content.ReadAsStringAsync();}
+ string Value(string html,string name)=>WebUtility.HtmlDecode(Regex.Match(html,"name=\""+name+"\"[^>]*value=\"([^\"]*)\"").Groups[1].Value);
+ async Task<HttpResponseMessage> Post(int member,int tender,string action,params (string,string)[] values){var html=await Html(member,tender);var body=values.ToDictionary(x=>x.Item1,x=>x.Item2);body["id"]=tender.ToString();body["version"]=Value(html,"version");if(string.IsNullOrEmpty(body["version"]))body["version"]=Value(await Html(1,tender),"version");body["__RequestVerificationToken"]=Value(html,"__RequestVerificationToken");return await clients[member].PostAsync("/EvaluationCommittee/"+action,new FormUrlEncodedContent(body));}
+ var first=tenderIds[0];var offers=bidIds[first];
+ var initial=await Html(1,first);Check(initial.Contains("Agree how offers will be scored")&&initial.Contains("readonly"),"percentage-first UI and read-only AI fields");
+ var csrf=await clients[1].PostAsync("/EvaluationCommittee/ConfirmPercentage",new FormUrlEncodedContent(new Dictionary<string,string>{{"id",first.ToString()},{"financialWeight","40"}}));Check(csrf.StatusCode==HttpStatusCode.BadRequest,"antiforgery token required");
+ var outsider=await Post(5,first,"ConfirmPercentage",("financialWeight","40"));Check(outsider.StatusCode==HttpStatusCode.Forbidden,"unassigned member cannot confirm");
+ await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"),("technicalMark","30"));
+ await WithDb(async db=>Check(!await db.Evaluations.AnyAsync(),"marks blocked before consensus"));
+ for(int i=1;i<=4;i++)Check((await Post(i,first,"ConfirmPercentage",("financialWeight",(20+i*10).ToString()))).StatusCode==HttpStatusCode.Redirect,"percentage confirmation saves");
+ await Post(1,first,"ConfirmPercentage",("financialWeight","80"));
+ await WithDb(async db=>{var t=await db.Tenders.FindAsync(first);Check(t!.CommitteeFinancialWeight==45&&await db.CommitteeWeightProposals.CountAsync(p=>p.TenderId==first)==4,"average frozen and duplicate proposals rejected");});
+ await Post(1,first,"RecommendBids",("financialWeight","99"),("requirementsWeight","1"));Check(NoAi.Calls==0,"tampered AI percentages rejected before network call");
+ Check((await Post(1,first,"SelectOffer",("bidId",offers[0].ToString()))).StatusCode==HttpStatusCode.BadRequest,"legacy manual selection blocked");
+ await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","46"),("technicalMark","20"));
+ await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"));
+ await WithDb(async db=>Check(!await db.Evaluations.AnyAsync(),"bounds and both-fields checks enforced on server"));
+ await WithDb(async db=>{var member=await db.Users.FindAsync("member4");member!.IsActive=false;await db.SaveChangesAsync();});
+ await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"),("technicalMark","30"));
+ await WithDb(async db=>{Check(!await db.Evaluations.AnyAsync(),"inactive committee membership blocks scoring");var member=await db.Users.FindAsync("member4");member!.IsActive=true;await db.SaveChangesAsync();db.Clarifications.Add(new Clarification{TenderId=first,SenderUserId="member1",RecipientUserId="member2",Subject="Confirm pack size",Description="Confirm the supplied pack specification.",Status="Pending",CreatedAt=DateTime.UtcNow});await db.SaveChangesAsync();});
+ await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"),("technicalMark","30"));
+ await WithDb(async db=>{Check(!await db.Evaluations.AnyAsync(),"unresolved clarification blocks acceptance");await db.Clarifications.Where(c=>c.TenderId==first).ExecuteUpdateAsync(u=>u.SetProperty(c=>c.Status,"Resolved").SetProperty(c=>c.ResolvedAt,DateTime.UtcNow));});
+ foreach(var bid in offers)for(int i=1;i<=4;i++){
+  Check((await Post(i,first,"AcceptScoredOffer",("bidId",bid.ToString()),("financialMark",bid==offers[0]?"20":"40"),("technicalMark",bid==offers[0]?"30":"50"))).StatusCode==HttpStatusCode.Redirect,"independent offer form accepted");
+  if(bid==offers[0]&&i==4)await WithDb(async db=>Check((await db.Tenders.FindAsync(first))!.Status=="UnderEvaluation","all offers required before handoff"));
+  if(bid==offers[0]&&i==1){await Post(1,first,"AcceptScoredOffer",("bidId",bid.ToString()),("financialMark","0"),("technicalMark","0"));await WithDb(async db=>Check((await db.Evaluations.SingleAsync(e=>e.TenderId==first))!.FinancialMark==20,"accepted marks immutable"));}
+ }
+ await WithDb(async db=>{var t=await db.Tenders.Include(t=>t.EvaluationReport).Include(t=>t.TenderApprovals).SingleAsync(t=>t.TenderId==first);Check(t.Status=="AwaitingOfficerSummary"&&t.EvaluationReport!.RecommendedBidId==offers[1]&&t.TenderApprovals.Count==4,"winner and report handoff persist atomically");Check(await db.Evaluations.CountAsync(e=>e.TenderId==first&&e.Status=="Approved")==8,"eight locked forms saved");});
+ var pdf=await clients[1].GetAsync($"/EvaluationCommittee/EvaluationReportPdf/{first}");Check(pdf.StatusCode==HttpStatusCode.OK&&pdf.Content.Headers.ContentType?.MediaType=="application/pdf","completed score report exports through the real PDF endpoint");
+ using var officerClient=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false}){BaseAddress=new Uri("http://127.0.0.1:5094")};officerClient.DefaultRequestHeaders.Add("X-Scoring-Test",token);officerClient.DefaultRequestHeaders.Add("X-Member","officer");
+ async Task OfficerReview(string decision){var html=await officerClient.GetStringAsync("/SourcingOfficer/Reports");string version="";await WithDb(async db=>version=SourcingOfficerController.ReportReviewVersion(await db.EvaluationReports.SingleAsync(r=>r.TenderId==first)));var response=await officerClient.PostAsync("/SourcingOfficer/ReviewCommitteeReport",new FormUrlEncodedContent(new Dictionary<string,string>{{"tenderId",first.ToString()},{"decision",decision},{"reason","Please review the delivery evidence."},{"version",version},{"__RequestVerificationToken",Value(html,"__RequestVerificationToken")}}));Check(response.StatusCode==HttpStatusCode.Redirect,"officer report review route accepts current version");}
+ await OfficerReview("RequestEdits");
+ await WithDb(async db=>{var t=await db.Tenders.Include(t=>t.EvaluationReport).SingleAsync(t=>t.TenderId==first);Check(t.Status=="UnderEvaluation"&&t.CommitteeFinancialWeight==45&&t.EvaluationReport!.Status=="ReturnedForReview"&&!await db.Evaluations.AnyAsync(e=>e.TenderId==first&&e.Status=="Approved")&&!await db.TenderApprovals.AnyAsync(a=>a.TenderId==first&&a.Stage=="Evaluation"),"officer return reopens forms and preserves frozen percentage");});
+ foreach(var bid in offers)for(int i=1;i<=4;i++)await Post(i,first,"AcceptScoredOffer",("bidId",bid.ToString()),("financialMark",bid==offers[0]?"20":"40"),("technicalMark",bid==offers[0]?"30":"50"));
+ await OfficerReview("Approve");
+ using var managerClient=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false}){BaseAddress=new Uri("http://127.0.0.1:5094")};managerClient.DefaultRequestHeaders.Add("X-Scoring-Test",token);managerClient.DefaultRequestHeaders.Add("X-Member","manager");
+ int reportId=0;long reviewVersion=0;await WithDb(async db=>{var report=await db.EvaluationReports.SingleAsync(r=>r.TenderId==first);reportId=report.EvaluationReportId;reviewVersion=report.SubmittedAt!.Value.Ticks;Check(report.Status=="OfficerSubmitted","fresh scored result forwards to manager");});
+ var managerHtml=await managerClient.GetStringAsync($"/SourcingManager/Submissions?id={reportId}");
+ var returned=await managerClient.PostAsync("/SourcingManager/Decide",new FormUrlEncodedContent(new Dictionary<string,string>{{"ReportId",reportId.ToString()},{"Decision","ReturnedForReview"},{"Notes","Recheck the supplier delivery evidence before resubmission."},{"ReviewVersion",reviewVersion.ToString()},{"__RequestVerificationToken",Value(managerHtml,"__RequestVerificationToken")}}));
+ Check(returned.StatusCode==HttpStatusCode.Redirect,"manager return route completes");
+ await WithDb(async db=>{var t=await db.Tenders.Include(t=>t.EvaluationReport).SingleAsync(t=>t.TenderId==first);Check(t.Status=="UnderEvaluation"&&t.CommitteeFinancialWeight==45&&t.EvaluationReport!.Status=="ReturnedForReview"&&!await db.Evaluations.AnyAsync(e=>e.TenderId==first&&e.Status=="Approved")&&!await db.CommitteeTieVotes.AnyAsync(v=>v.TenderId==first),"manager return starts fresh reviews without stale accepted forms or tie votes");});
+ var tie=tenderIds[1];for(int i=1;i<=4;i++)await Post(i,tie,"ConfirmPercentage",("financialWeight","50"));
+ foreach(var bid in bidIds[tie])for(int i=1;i<=4;i++)await Post(i,tie,"AcceptScoredOffer",("bidId",bid.ToString()),("financialMark","40"),("technicalMark","40"));
+ await WithDb(async db=>Check((await db.Tenders.FindAsync(tie))!.Status=="UnderEvaluation"&&!await db.EvaluationReports.AnyAsync(r=>r.TenderId==tie&&r.RecommendedBidId!=null),"tie pauses progression"));
+ for(int i=1;i<=3;i++)await Post(i,tie,"DecideTie",("bidId",bidIds[tie][1].ToString()));
+ await Post(4,tie,"DecideTie",("bidId",bidIds[tie][0].ToString()));await WithDb(async db=>Check((await db.Tenders.FindAsync(tie))!.Status=="UnderEvaluation","split tie decisions remain paused"));
+ await Post(4,tie,"DecideTie",("bidId",bidIds[tie][1].ToString()));await WithDb(async db=>Check((await db.Tenders.FindAsync(tie))!.Status=="AwaitingOfficerSummary","unanimous explicit tie decision progresses"));
+ var concurrent=tenderIds[2];var stale=await Html(1,concurrent);var repeated=new Dictionary<string,string>{{"id",concurrent.ToString()},{"financialWeight","40"},{"version",Value(stale,"version")},{"__RequestVerificationToken",Value(stale,"__RequestVerificationToken")}};
+ var pair=await Task.WhenAll(clients[1].PostAsync("/EvaluationCommittee/ConfirmPercentage",new FormUrlEncodedContent(repeated)),clients[1].PostAsync("/EvaluationCommittee/ConfirmPercentage",new FormUrlEncodedContent(repeated)));
+ Check(pair.All(r=>r.StatusCode==HttpStatusCode.Redirect),"simultaneous duplicate requests return without server errors");await WithDb(async db=>Check(await db.CommitteeWeightProposals.CountAsync(p=>p.TenderId==concurrent)==1,"tender lock prevents duplicate concurrent confirmations"));
+ Check(NoAi.Calls==0,"scoring and progression require no live AI service");
+ Console.WriteLine($"PASS: {passed} real MVC checks in isolated database {database}.");
+ if(serve){
+  for(int i=2;i<=4;i++)await Post(i,concurrent,"ConfirmPercentage",("financialWeight","40"));
+  for(int i=2;i<=4;i++)await Post(i,concurrent,"AcceptScoredOffer",("bidId",bidIds[concurrent][0].ToString()),("financialMark","35"),("technicalMark","50"));
+  Console.WriteLine($"BROWSER PREVIEW: http://127.0.0.1:5094/qa/login/member1/{token}");Console.WriteLine($"REVIEW URL: http://127.0.0.1:5094/EvaluationCommittee/Evaluations/{concurrent}?tab=forms");
+  await app.WaitForShutdownAsync();
+ }
+ foreach(var client in clients.Values)client.Dispose();
+}finally{
+ await app.StopAsync();
+ await WithDb(async db=>{if(db.Database.GetDbConnection().Database==database&&database.StartsWith("TiryaqCommitteeChecks_",StringComparison.Ordinal))await db.Database.EnsureDeletedAsync();else throw new Exception("Unsafe cleanup target.");});
+ Console.WriteLine("Removed the task-created test database; user database untouched by MVC fixtures.");
+}
+record FixtureActors(Dictionary<string,ApplicationUser> Users,string Token);
+class FixtureAuthentication(IOptionsMonitor<AuthenticationSchemeOptions> options,ILoggerFactory logger,UrlEncoder encoder,FixtureActors actors):AuthenticationHandler<AuthenticationSchemeOptions>(options,logger,encoder){
+ protected override Task<AuthenticateResult> HandleAuthenticateAsync(){var token=Request.Headers["X-Scoring-Test"].ToString();var key=Request.Headers["X-Member"].ToString();if(Request.Cookies.TryGetValue("CommitteeScoringFixture",out var cookie)&&cookie.StartsWith(actors.Token+".",StringComparison.Ordinal)){token=actors.Token;key=cookie[(actors.Token.Length+1)..];}if(token!=actors.Token||!actors.Users.TryGetValue(key,out var user))return Task.FromResult(AuthenticateResult.NoResult());var role=key=="officer"?RoleNames.SourcingOfficer:key=="manager"?RoleNames.SourcingManager:RoleNames.EvaluationCommittee;var claims=new[]{new Claim(ClaimTypes.NameIdentifier,user.Id),new Claim(ClaimTypes.Name,user.UserName!),new Claim(ClaimTypes.Role,role)};return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity(claims,"ScoringFixture")),"ScoringFixture")));}
+}
+class NoAi:HttpMessageHandler{public static int Calls;protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct){Interlocked.Increment(ref Calls);throw new Exception("MVC scoring tests must not call a real AI service.");}}

@@ -812,7 +812,13 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             report.Status = "ReturnedForReview";
             report.RecommendedBidId = null;
             db.TenderApprovals.RemoveRange(tender.TenderApprovals.Where(a => a.Stage == "Evaluation"));
-            foreach (var evaluation in await db.Evaluations.Where(e => e.TenderId == tenderId).ToListAsync()) { evaluation.Status = "Submitted"; evaluation.ApprovedAt = null; }
+            var evaluations = await db.Evaluations.Where(e => e.TenderId == tenderId).ToListAsync();
+            if (tender.CommitteeWeightsLockedAt.HasValue)
+            {
+                Services.Evaluation.CommitteeScoring.ReopenReviews(tender, evaluations);
+                db.CommitteeTieVotes.RemoveRange(await db.CommitteeTieVotes.Where(v => v.TenderId == tenderId).ToListAsync());
+            }
+            else foreach (var evaluation in evaluations) { evaluation.Status = "Submitted"; evaluation.ApprovedAt = null; }
         }
         else tender.Status = "Cancelled";
         foreach (var recipient in decision == "Approve" ? await db.Users.Where(u => db.UserRoles.Any(ur => ur.UserId == u.Id && db.Roles.Any(r => r.Id == ur.RoleId && r.Name == RoleNames.SourcingManager))).Select(u => u.Id).ToListAsync() : members.Select(a => a.UserId).ToList())

@@ -14,36 +14,22 @@ public static class CommitteeApprovalOrderChecks
     public static async Task RunAsync()
     {
         void Check(bool condition, string message) { if (!condition) throw new Exception(message); }
-        var tender = new Tender { Status = "UnderEvaluation", PurchaseRequest = new() };
-        tender.EvaluationCriteria = [new() { Category = "Financial", Weight = 60 }, new() { Category = "Requirements", Weight = 40 }];
-        for (var i = 1; i <= 4; i++)
-            tender.CommitteeAssignments.Add(new() { CommitteeType = "Evaluation", Position = i, UserId = "member" + i });
-        var invitation = new Invitation { SupplierProfile = new() { CompanyName = "Test supplier" } };
-        invitation.Bids = [new() { BidId = 45, Currency = "JOD", Invitation = invitation }, new() { BidId = 47, Currency = "JOD", Invitation = invitation }];
-        tender.Invitations.Add(invitation);
-        var page = new CommitteeEvaluationPage { Tender = tender, UserId = "member4" };
-        tender.EvaluationReport = new() { Status = "Draft", RecommendedBidId = 47, CommitteeSummary = "Old AI draft" };
-        Check(!page.SelectionReady, "An old AI draft must not count as an explicit committee selection.");
-        tender.EvaluationReport.CommitteeSummary = null;
-        Check(page.SelectionReady && !page.ReportReady, "A manual selection must be approvable before a report exists.");
-        for (var i = 1; i <= 3; i++) tender.TenderApprovals.Add(new() { Stage = "Evaluation", Decision = "Approved", UserId = "member" + i });
-        tender.EvaluationReport.CommitteeSummary = "Test report";
-        EvaluationCommitteeController.CompleteWeightApproval(page);
-        Check(tender.Status == "UnderEvaluation", "Three approvals must not be treated as four by counting the requester.");
-        tender.TenderApprovals.Add(new() { Stage = "Evaluation", Decision = "Approved", UserId = "member4" });
-        tender.EvaluationReport.CommitteeSummary = null;
-        EvaluationCommitteeController.CompleteWeightApproval(page);
-        Check(tender.Status == "UnderEvaluation", "Four approvals must remain pending final report generation.");
-        tender.EvaluationReport.CommitteeSummary = "Report about the committee-selected offer";
-        EvaluationCommitteeController.CompleteWeightApproval(page);
-        Check(tender.Status == "AwaitingOfficerSummary" && tender.EvaluationReport.Status == "CommitteeApproved" && page.Approvals.Count == 4,
-            "The completed report must be sent with all four approvals intact.");
-
+        var page = CommitteeScoringChecks.Fixture();
+        var offers = page.Offers;
+        offers[0].BidId = 45; offers[1].BidId = 47;
+        var now = DateTime.UtcNow;
+        for (int i = 1; i <= 4; i++) { page.UserId = "member" + i; CommitteeScoring.ConfirmWeight(page, 60, now); }
+        foreach (var offer in page.Offers) for (int i = 1; i <= 4; i++)
+        {
+            page.UserId = "member" + i;
+            CommitteeScoring.AcceptOffer(page, offer.BidId, offer.BidId == 47 ? 55 : 40, offer.BidId == 47 ? 35 : 20, null, now);
+        }
+        Check(CommitteeScoring.FinalizeIfReady(page, now) && page.ScoredWinnerId == 47, "Completed forms must select the highest score.");
         using var client = new HttpClient(new ReportHandler());
         var ai = new BidRecommendationService(client, new ConfigurationBuilder().Build());
         var report = await ai.Recommend(page, 60, CancellationToken.None, 47);
         Check(report.Scenarios.Single().RecommendedBidId == 47, "Report generation substituted another offer.");
-        Console.WriteLine("PASS: explicit selection, approvals before report, no premature handoff, preserved approvals, report constrained to selected offer.");
+        Console.WriteLine("PASS: all offer scores completed, highest score selected, AI report constrained to the scored winner.");
     }
 
     private sealed class ReportHandler : HttpMessageHandler

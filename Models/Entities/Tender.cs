@@ -32,6 +32,11 @@ public class Tender
 
     public DateTime CreatedAt { get; set; }
 
+    public decimal? CommitteeFinancialWeight { get; set; }
+    public DateTime? CommitteeWeightsLockedAt { get; set; }
+    public ICollection<CommitteeWeightProposal> CommitteeWeightProposals { get; set; } = new List<CommitteeWeightProposal>();
+    public ICollection<CommitteeTieVote> CommitteeTieVotes { get; set; } = new List<CommitteeTieVote>();
+
     public ICollection<AiAnalysis> AiAnalyses { get; set; } = new List<AiAnalysis>();
 
     public Bid? Bid { get; set; }

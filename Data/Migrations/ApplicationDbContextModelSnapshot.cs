@@ -643,6 +643,68 @@ namespace SourcingTenderManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.CommitteeTieVote", b =>
+                {
+                    b.Property<int>("CommitteeTieVoteId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommitteeTieVoteId"));
+
+                    b.Property<int>("BidId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CommitteeAssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ConfirmedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TenderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CommitteeTieVoteId");
+
+                    b.HasIndex("TenderId", "BidId");
+
+                    b.HasIndex("TenderId", "CommitteeAssignmentId")
+                        .IsUnique();
+
+                    b.ToTable("CommitteeTieVotes", (string)null);
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.CommitteeWeightProposal", b =>
+                {
+                    b.Property<int>("CommitteeWeightProposalId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommitteeWeightProposalId"));
+
+                    b.Property<int>("CommitteeAssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ConfirmedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("FinancialWeight")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("TenderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CommitteeWeightProposalId");
+
+                    b.HasIndex("TenderId", "CommitteeAssignmentId")
+                        .IsUnique();
+
+                    b.ToTable("CommitteeWeightProposals", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CommitteeWeightProposals_Weight", "[FinancialWeight] > 0 AND [FinancialWeight] < 100");
+                        });
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.Department", b =>
                 {
                     b.Property<int>("DepartmentId")
@@ -686,6 +748,10 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Property<int>("CommitteeAssignmentId")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("FinancialMark")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
@@ -699,6 +765,10 @@ namespace SourcingTenderManagement.Data.Migrations
 
                     b.Property<DateTime?>("SubmittedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("TechnicalMark")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<int>("TenderId")
                         .HasColumnType("int");
@@ -718,6 +788,8 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.ToTable("Evaluations", null, t =>
                         {
                             t.HasCheckConstraint("CK_Evaluations_1", "([Status]='Approved' OR [Status]='Submitted' OR [Status]='Draft')");
+
+                            t.HasCheckConstraint("CK_Evaluations_DirectMarks", "([FinancialMark] IS NULL AND [TechnicalMark] IS NULL) OR ([FinancialMark] IS NOT NULL AND [TechnicalMark] IS NOT NULL AND [FinancialMark] >= 0 AND [TechnicalMark] >= 0 AND [FinancialMark] + [TechnicalMark] <= 100)");
                         });
                 });
 
@@ -1214,6 +1286,13 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Property<DateTime>("ClosesAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("CommitteeFinancialWeight")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("CommitteeWeightsLockedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -1266,6 +1345,8 @@ namespace SourcingTenderManagement.Data.Migrations
                             t.HasCheckConstraint("CK_Tenders_2", "([Status]='Awarded' AND [AwardedBidId] IS NOT NULL AND [AwardedAt] IS NOT NULL OR [Status]<>'Awarded' AND [AwardedBidId] IS NULL AND [AwardedAt] IS NULL)");
 
                             t.HasCheckConstraint("CK_Tenders_3", "([Status]='Cancelled' OR [Status]='Awarded' OR [Status]='AwaitingCommitteeDecision' OR [Status]='AwaitingManagerReview' OR [Status]='AwaitingOfficerSummary' OR [Status]='UnderEvaluation' OR [Status]='Closed' OR [Status]='Open' OR [Status]='Published' OR [Status]='Draft')");
+
+                            t.HasCheckConstraint("CK_Tenders_CommitteeWeightLock", "([CommitteeFinancialWeight] IS NULL AND [CommitteeWeightsLockedAt] IS NULL) OR ([CommitteeFinancialWeight] IS NOT NULL AND [CommitteeFinancialWeight] > 0 AND [CommitteeFinancialWeight] < 100 AND [CommitteeWeightsLockedAt] IS NOT NULL)");
                         });
                 });
 
@@ -1497,7 +1578,7 @@ namespace SourcingTenderManagement.Data.Migrations
 
                             b1.HasKey("IdentityUserPasskeyCredentialId");
 
-                            b1.ToTable("AspNetUserPasskeys");
+                            b1.ToTable("AspNetUserPasskeys", (string)null);
 
                             b1
                                 .ToJson("Data")
@@ -1689,6 +1770,55 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("Tender");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.CommitteeTieVote", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Tender", "Tender")
+                        .WithMany("CommitteeTieVotes")
+                        .HasForeignKey("TenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Bid", "Bid")
+                        .WithMany()
+                        .HasForeignKey("TenderId", "BidId")
+                        .HasPrincipalKey("TenderId", "BidId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SourcingTenderManagement.Models.Entities.CommitteeAssignment", "CommitteeAssignment")
+                        .WithMany()
+                        .HasForeignKey("TenderId", "CommitteeAssignmentId")
+                        .HasPrincipalKey("TenderId", "CommitteeAssignmentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Bid");
+
+                    b.Navigation("CommitteeAssignment");
+
+                    b.Navigation("Tender");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.CommitteeWeightProposal", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Tender", "Tender")
+                        .WithMany("CommitteeWeightProposals")
+                        .HasForeignKey("TenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SourcingTenderManagement.Models.Entities.CommitteeAssignment", "CommitteeAssignment")
+                        .WithMany()
+                        .HasForeignKey("TenderId", "CommitteeAssignmentId")
+                        .HasPrincipalKey("TenderId", "CommitteeAssignmentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("CommitteeAssignment");
+
+                    b.Navigation("Tender");
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.Evaluation", b =>
@@ -2070,6 +2200,10 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("Clarifications");
 
                     b.Navigation("CommitteeAssignments");
+
+                    b.Navigation("CommitteeTieVotes");
+
+                    b.Navigation("CommitteeWeightProposals");
 
                     b.Navigation("EvaluationCriteria");
 

@@ -14,6 +14,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Clarification> Clarifications { get; set; }
     public DbSet<ClarificationResponse> ClarificationResponses { get; set; }
     public DbSet<CommitteeAssignment> CommitteeAssignments { get; set; }
+    public DbSet<CommitteeWeightProposal> CommitteeWeightProposals { get; set; }
+    public DbSet<CommitteeTieVote> CommitteeTieVotes { get; set; }
     public DbSet<Department> Departments { get; set; }
     public DbSet<Evaluation> Evaluations { get; set; }
     public DbSet<EvaluationCriterion> EvaluationCriteria { get; set; }
@@ -46,6 +48,33 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         });
         modelBuilder.Entity<ApplicationUser>().Property(user => user.PhoneNumber).Metadata.SetMaxLength(null);
         modelBuilder.ApplyConfiguration(new Configurations.UserFaceCredentialConfiguration());
+        modelBuilder.Entity<CommitteeWeightProposal>(entity =>
+        {
+            entity.Property(p => p.FinancialWeight).HasPrecision(5, 2);
+            entity.HasIndex(p => new { p.TenderId, p.CommitteeAssignmentId }).IsUnique();
+            entity.HasOne(p => p.Tender).WithMany(t => t.CommitteeWeightProposals).HasForeignKey(p => p.TenderId);
+            entity.HasOne(p => p.CommitteeAssignment).WithMany()
+                .HasPrincipalKey(a => new { a.TenderId, a.CommitteeAssignmentId })
+                .HasForeignKey(p => new { p.TenderId, p.CommitteeAssignmentId });
+            entity.ToTable("CommitteeWeightProposals", table => table.HasCheckConstraint("CK_CommitteeWeightProposals_Weight", "[FinancialWeight] > 0 AND [FinancialWeight] < 100"));
+        });
+        modelBuilder.Entity<Tender>().Property(t => t.CommitteeFinancialWeight).HasPrecision(5, 2);
+        modelBuilder.Entity<CommitteeTieVote>(entity =>
+        {
+            entity.HasIndex(v => new { v.TenderId, v.CommitteeAssignmentId }).IsUnique();
+            entity.HasOne(v => v.Tender).WithMany(t => t.CommitteeTieVotes).HasForeignKey(v => v.TenderId);
+            entity.HasOne(v => v.CommitteeAssignment).WithMany()
+                .HasPrincipalKey(a => new { a.TenderId, a.CommitteeAssignmentId })
+                .HasForeignKey(v => new { v.TenderId, v.CommitteeAssignmentId });
+            entity.HasOne(v => v.Bid).WithMany().HasPrincipalKey(b => new { b.TenderId, b.BidId })
+                .HasForeignKey(v => new { v.TenderId, v.BidId });
+        });
+        modelBuilder.Entity<Tender>().ToTable("Tenders", table => table.HasCheckConstraint("CK_Tenders_CommitteeWeightLock",
+            "([CommitteeFinancialWeight] IS NULL AND [CommitteeWeightsLockedAt] IS NULL) OR ([CommitteeFinancialWeight] IS NOT NULL AND [CommitteeFinancialWeight] > 0 AND [CommitteeFinancialWeight] < 100 AND [CommitteeWeightsLockedAt] IS NOT NULL)"));
+        modelBuilder.Entity<Evaluation>().Property(e => e.FinancialMark).HasPrecision(5, 2);
+        modelBuilder.Entity<Evaluation>().Property(e => e.TechnicalMark).HasPrecision(5, 2);
+        modelBuilder.Entity<Evaluation>().ToTable("Evaluations", table => table.HasCheckConstraint("CK_Evaluations_DirectMarks",
+            "([FinancialMark] IS NULL AND [TechnicalMark] IS NULL) OR ([FinancialMark] IS NOT NULL AND [TechnicalMark] IS NOT NULL AND [FinancialMark] >= 0 AND [TechnicalMark] >= 0 AND [FinancialMark] + [TechnicalMark] <= 100)"));
         modelBuilder.Entity<ApplicationUser>(entity =>
         {
             entity.Property(u => u.FullName).HasMaxLength(150).IsRequired();
