@@ -28,14 +28,14 @@
         }
         @if (Model.Items.Count == 0)
         {
-            <p class="text-secondary px-2 mb-2">No notifications yet.</p>
+            <p class="text-secondary px-2 mb-2">You're all caught up. New updates will appear here.</p>
         }
         else
         {
             <ul class="list-unstyled mb-0 tc-notification-list" aria-label="Your notifications">
             @foreach (var notification in Model.Items)
             {
-                <li class="notification-item">
+                <li class="notification-item @(!notification.IsRead ? "is-unread" : null)">
                     <strong class="@(notification.IsRead ? "fw-normal" : "")">@notification.Title</strong>
                     <p class="mb-1">@notification.Message</p>
                     <p class="small text-secondary mb-2"><time datetime="@notification.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture)">@notification.CreatedAt.ToString("dd MMM yyyy, HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture)</time> · @(notification.IsRead ? "Read" : "Unread")</p>

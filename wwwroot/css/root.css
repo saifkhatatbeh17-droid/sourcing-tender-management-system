@@ -19,7 +19,7 @@
     --blue-hover: #0353a8;
     --blue-pressed: #063a75;
     --blue-light: #64b4fa;
-    --teal: #00a3a6; /* Supporting decoration; primary buttons use blue. */
+    --teal: var(--pharma-primary);
     --black: #000000;
     --white: #ffffff;
     --black-95: #000000f2;
@@ -30,9 +30,9 @@
     --dark-surface-2: #262626;
 
     /* Shared action states */
-    --color-primary: var(--blue);
-    --color-primary-hover: var(--blue-hover);
-    --color-primary-active: var(--blue-pressed);
+    --color-primary: var(--pharma-primary);
+    --color-primary-hover: var(--pharma-primary-hover);
+    --color-primary-active: var(--pharma-primary-active);
     --color-on-primary: var(--white);
     --color-accent: var(--blue-light);
     --color-supporting-accent: var(--teal);
@@ -47,10 +47,10 @@
     --color-text-secondary: var(--black-70);
     --color-border: #dce3e9;
     --color-input-border: #767676;
-    --color-link: var(--blue);
-    --color-link-hover: var(--blue-hover);
-    --color-focus: var(--blue);
-    --color-selection: #e7f2ff;
+    --color-link: var(--pharma-link);
+    --color-link-hover: var(--pharma-primary-hover);
+    --color-focus: var(--pharma-focus);
+    --color-selection: var(--pharma-selection);
 
     /* Base rhythm: 8px; 12px is the supplied compact spacing step. */
     --space-8: 8px;

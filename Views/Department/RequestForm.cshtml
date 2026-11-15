@@ -18,7 +18,7 @@
         <div>
             <span class="dr-eyebrow">@(editing ? $"Revision · Request #{requestId}" : "New Requisition")</span>
             <h1>@ViewData["Title"]<span>.</span></h1>
-            <p>Specify your department's requirements, target delivery timeline, and itemized technical specifications.</p>
+            <p>@(editing ? "Review the officer’s notes, make the requested changes, and resubmit." : "Describe what your department needs, when it is needed, and the specifications for each item.")</p>
         </div>
     </header>
 

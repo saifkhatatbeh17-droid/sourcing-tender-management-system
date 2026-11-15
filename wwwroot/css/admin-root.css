@@ -1,11 +1,11 @@
 /* Admin presentation mapped to the shared root.css tokens. */
 body:has(.admin-shell) {
-    --accent: #00a3a6;
+    --accent: var(--pharma-primary);
     --color-primary: var(--accent);
     --color-primary-bg: #eef8f6;
     --color-primary-hover: color-mix(in oklab, var(--accent), black 8%);
     --color-primary-active: color-mix(in oklab, var(--accent), black 14%);
-    --color-on-primary: #002e30;
+    --color-on-primary: var(--pharma-on-primary);
     --color-link: #007b7e;
     --color-link-hover: var(--color-primary-active);
     --color-focus: var(--accent);

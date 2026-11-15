@@ -34,7 +34,7 @@
                             <form asp-action="ReviewCommitteeReport" method="post" data-report-approve>
                                 <input type="hidden" name="tenderId" value="@selectedTenderId.Value" />
                                 <input type="hidden" name="version" value="@SourcingTenderManagement.Controllers.SourcingOfficerController.ReportReviewVersion(report)" />
-                                <button type="submit" name="decision" value="Approve" class="btn btn-primary">Approve and forward</button>
+                                <button type="submit" name="decision" value="Approve" class="btn btn-primary pharma-action-approve">Approve and forward</button>
                             </form>
                             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#officer-decision-modal" data-review-decision="RequestEdits">Request edits</button>
                             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#officer-decision-modal" data-review-decision="Reject">Reject</button>

@@ -1,3 +1,5 @@
+.landing-header.contact-navbar { position: sticky; }
+
 .public-guide {
     --guide-navy: #12304a;
     --guide-teal: #0f766e;

@@ -1,36 +1,48 @@
 @model CommitteeClarificationsPage
 @section Styles { <partial name="_ReadStyles" /> }
 @{ ViewData["Title"] = "Committee Clarifications"; }
-<div class="workspace-heading"><div><h1>Clarifications</h1><p>Review your private questions to the Sourcing Manager and read their responses.</p></div><div class="tc-heading-actions"><a class="btn" asp-controller="Clarification" asp-action="Index">Questions from the Sourcing Manager</a><a class="btn" asp-action="Dashboard">Back to dashboard</a></div></div>
+<header class="workspace-heading tc-illustrated-heading">
+    <div class="tc-heading-copy"><h1>Clarifications</h1><p>Choose an assigned tender to ask the Sourcing Manager a private question or follow an existing conversation.</p></div>
+    <img class="tc-heading-art" src="~/images/workspace-header-medicines.png" asp-append-version="true" width="720" height="369" alt="" decoding="async" />
+</header>
 @if (TempData["ClarificationSuccess"] is string success) { <p class="border rounded p-3" role="status">@success</p> }
 @if (TempData["ClarificationError"] is string failure) { <p class="text-danger border rounded p-3" role="alert">@failure</p> }
 @if (Model.Error != null) { <p class="text-danger" role="alert">@Model.Error</p> }
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
 @if (Model.Tenders.Count == 0)
 {
-    <section class="workspace-section tc-empty"><h2>No tenders assigned yet</h2><p class="mb-0">Clarifications become available when you are assigned to a tender's Top Committee.</p></section>
+    <section class="workspace-section tc-flow-empty"><h2>No tenders assigned yet</h2><p>When a tender is assigned to you, you can ask the Sourcing Manager a question from this page.</p><a class="btn" asp-action="Decisions">Check pending tenders</a></section>
 }
 else
 {
-    <form asp-action="Clarifications" method="get" class="workspace-section">
+    <form asp-action="Clarifications" method="get" class="workspace-section tc-clarification-picker" id="choose-tender">
+        <h2>Choose a tender</h2>
         <label for="clarification-tender" class="form-label">Assigned tender</label>
-        <div class="row g-2 align-items-end">
-            <div class="col-12 col-md-9"><select id="clarification-tender" name="tenderId" class="form-select">
+        <div class="tc-flow-actions">
+            <select id="clarification-tender" name="tenderId" class="form-select">
                 <option value="">All assigned tenders</option>
                 @foreach (var tender in Model.Tenders)
                 { <option value="@tender.TenderId" selected="@(Model.Create.TenderId == tender.TenderId)">#@tender.TenderId · @tender.Title · @CommitteeDisplay.Status(tender.Status)</option> }
-            </select></div>
-            <div class="col-12 col-md-3"><button class="btn btn-primary" type="submit">View clarifications</button></div>
+            </select>
+            <button class="btn btn-primary" type="submit">View clarifications</button>
         </div>
     </form>
     @if (Model.Create.TenderId > 0)
     {
-        <div class="workspace-toolbar"><a asp-action="TenderDetails" asp-route-id="@Model.Create.TenderId">View tender details</a>
-            <span>@(Model.OpenCount > 0 ? $"Voting paused: {Model.OpenCount} unresolved {(Model.OpenCount == 1 ? "clarification" : "clarifications")} for this tender." : "No unresolved committee clarifications for this tender.")</span></div>
+        <div class="workspace-section tc-clarification-context">
+            <div>
+                <span class="badge @(Model.OpenCount > 0 ? "text-bg-warning" : "text-bg-secondary")">@(Model.OpenCount > 0 ? "Voting paused" : "No open questions")</span>
+                <p class="mb-0">@(Model.OpenCount > 0 ? $"{Model.OpenCount} unresolved {(Model.OpenCount == 1 ? "clarification" : "clarifications")} for this tender." : "There are no unresolved committee clarifications for this tender.")</p>
+            </div>
+            <div class="tc-flow-actions"><a class="btn" asp-action="TenderDetails" asp-route-id="@Model.Create.TenderId">View tender details</a><a class="btn" href="#your-conversations">View conversations</a></div>
+        </div>
     }
     <section class="workspace-section" aria-labelledby="create-heading">
         <h2 id="create-heading">New clarification</h2>
-        @if (Model.CreateBlockedReason != null) { <p class="mb-0">@Model.CreateBlockedReason</p> }
+        @if (Model.CreateBlockedReason != null)
+        {
+            <p class="mb-0">@Model.CreateBlockedReason</p>
+        }
         else
         {
             <p>Send to <strong>@Model.ManagerName</strong>. This pauses committee voting for the tender until all open clarifications are resolved.</p>
@@ -43,7 +55,8 @@ else
         }
     </section>
 }
-<h2 class="mt-4 mb-3">Your conversations</h2>
+<section id="your-conversations" aria-labelledby="tc-conversations-heading">
+<header class="tc-flow-section-heading"><h2 id="tc-conversations-heading">Your conversations</h2><span class="tc-flow-count">@Model.Threads.Count</span></header>
 @if (Model.Threads.Count == 0)
 { <section class="workspace-section tc-empty"><h3>No conversations yet</h3><p class="mb-0">No private clarifications are recorded for @(Model.Create.TenderId > 0 ? "this tender" : "your assigned tenders").</p></section> }
 else
@@ -51,4 +64,9 @@ else
     @foreach (var thread in Model.Threads)
     { <partial name="_ClarificationThread" model="thread" /> }
 }
+</section>
+<nav class="tc-flow-actions tc-clarification-footer" aria-label="Clarifications navigation">
+    <a class="btn btn-primary" asp-controller="Clarification" asp-action="Index">Questions from the Sourcing Manager</a>
+    <a class="btn" asp-action="Dashboard">Back to dashboard</a>
+</nav>
 @section Scripts { <partial name="_ValidationScriptsPartial" /> }

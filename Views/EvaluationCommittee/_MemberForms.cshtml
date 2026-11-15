@@ -61,10 +61,14 @@ else
             <div class="ev-approval-footer">
             @if (mine && !approved && !Model.Locked)
             {
-                <form asp-action="Approve" method="post" class="ev-approval-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" /><button class="btn ev-button-primary" disabled="@(!Model.WeightsReady || !Model.SelectionReady)">Approve</button></form><button type="button" class="btn ev-button-secondary ev-reject-button" data-bs-toggle="modal" data-bs-target="#reject-offer-modal" disabled="@(!Model.SelectionReady)">Reject</button>
+                <form asp-action="Approve" method="post" class="ev-approval-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" /><button class="btn ev-button-primary pharma-action-approve" disabled="@(!Model.WeightsReady || !Model.SelectionReady)">Approve</button></form><button type="button" class="btn ev-button-secondary ev-reject-button" data-bs-toggle="modal" data-bs-target="#reject-offer-modal" disabled="@(!Model.SelectionReady)">Reject</button>
             }
             else { <span class="ev-approval-readonly">@(mine && approved ? "Your approval is recorded" : "Read-only")</span> }
             </div>
+            @if (mine && !approved && !Model.Locked && (!Model.WeightsReady || !Model.SelectionReady))
+            {
+                <p class="small text-secondary mx-3 mb-3">Agree on the evaluation percentages and choose an offer before approving.</p>
+            }
         </section>
     }
     </div>
@@ -77,7 +81,7 @@ else
                 <input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
                 <div class="modal-header"><h3 class="modal-title" id="reject-offer-heading">Return the offer for review</h3><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                 <div class="modal-body"><p>Your reason will be shared with the committee. The current selection and approvals will be cleared so the committee can choose again.</p><label for="rejection-reason">Reason for rejection</label><textarea id="rejection-reason" name="reason" class="form-control" rows="4" required maxlength="3500" placeholder="Explain which requirement or term needs review…"></textarea></div>
-                <div class="modal-footer"><button type="button" class="btn ev-button-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn ev-button-primary">Reject &amp; return for review</button></div>
+                <div class="modal-footer"><button type="button" class="btn ev-button-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn ev-button-primary pharma-action-reject">Reject &amp; return for review</button></div>
             </form>
         </div></div></div>
     }

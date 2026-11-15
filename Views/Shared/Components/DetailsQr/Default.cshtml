@@ -1,6 +1,49 @@
 @model SourcingTenderManagement.ViewComponents.DetailsQrViewModel
-@{ var showQr = Context.Request.Query["showQr"] == "true"; }
+@{
+    var showQr = Context.Request.Query["showQr"] == "true";
+    var isSupplierInvitationList = ViewContext.RouteData.Values["controller"] as string == "Supplier"
+        && ViewContext.RouteData.Values["action"] as string == "Invitations";
+    var isRequestList = ViewContext.RouteData.Values["controller"] as string == "SourcingOfficer"
+        && ViewContext.RouteData.Values["action"] as string == "Requests";
+}
 
+@if (isSupplierInvitationList || isRequestList)
+{
+    var dialogId = $"record-qr-{Guid.NewGuid():N}";
+    var titleId = $"{dialogId}-title";
+    var reference = isRequestList ? "purchase request" : "tender";
+    <button type="button" class="btn btn-outline-primary @(isRequestList ? "rr-qr-trigger" : "supplier-qr-trigger")" data-bs-toggle="modal" data-bs-target="#@dialogId" aria-haspopup="dialog" aria-controls="@dialogId">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2h4v4H2zM10 2h4v4h-4zM2 10h4v4H2zM10 9v3h3v2h1M9 14h1M13 9h1" /></svg>
+        QR code
+    </button>
+    <div class="modal fade @(isRequestList ? "rr-qr-modal" : "supplier-qr-modal")" id="@dialogId" tabindex="-1" aria-labelledby="@titleId" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="@titleId">@(isRequestList ? "Purchase request QR code" : "Tender QR code")</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body supplier-qr-body">
+                    <img class="details-qr-image" src="@Model.ImageData" width="160" height="160" loading="lazy" alt="QR code for this @(isRequestList ? "purchase request" : "tender invitation")" />
+                    <div>
+                        <p class="fw-semibold mb-1">Scan to open the @reference</p>
+                        <p class="small mb-2">Open your phone’s camera and sign in with an account that has access.</p>
+                        @if (Model.IsLoopback)
+                        {
+                            <p class="small supplier-qr-note mb-0">This is a localhost link. A phone needs an address it can reach.</p>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer supplier-qr-footer">
+                    <a class="btn btn-outline-primary" href="@Model.ImageData" download="record-details-qr.png">Download PNG</a>
+                    <a class="btn btn-primary" href="@Model.DetailsUrl">Open @reference <span aria-hidden="true">↗</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
 <details class="details-qr mb-3" open="@showQr">
     <summary class="btn btn-outline-primary btn-sm details-qr-toggle">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -27,3 +70,4 @@
         </div>
     </div>
 </details>
+}

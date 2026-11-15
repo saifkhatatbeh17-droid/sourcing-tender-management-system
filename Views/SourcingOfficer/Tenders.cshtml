@@ -142,7 +142,7 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
 <partial name="_ProcurementCategoryFields" model='((ProcurementCategoryInput)createTender, "Create", "Tender category")' />
 <partial name="_LaunchSuppliers" />
 </div>
-<div class="modal-footer"><button type="submit" name="launch" value="false" class="btn btn-outline-primary" disabled="@(eligibleRequests.Count == 0)">Approve &amp; save draft</button><button type="submit" name="launch" value="true" class="btn btn-primary" disabled="@(eligibleRequests.Count == 0)">Approve, publish &amp; invite →</button></div>
+<div class="modal-footer"><button type="submit" name="launch" value="false" class="btn btn-primary pharma-action-approve" disabled="@(eligibleRequests.Count == 0)">Approve &amp; save draft</button><button type="submit" name="launch" value="true" class="btn btn-primary pharma-action-approve" disabled="@(eligibleRequests.Count == 0)">Approve, publish &amp; invite →</button></div>
 </form>
 </div></div></div><div class="modal fade" id="tender-edit" tabindex="-1" aria-labelledby="tender-edit-title" aria-hidden="true">
 <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">

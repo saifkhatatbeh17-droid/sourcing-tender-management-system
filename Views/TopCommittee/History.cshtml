@@ -4,50 +4,64 @@
     ViewData["Title"] = "Decision History";
     var f = Model.Filter;
     var pages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, f.PageSize)));
+    var hasFilters = !string.IsNullOrWhiteSpace(f.Search) || !string.IsNullOrWhiteSpace(f.Status) || !string.IsNullOrWhiteSpace(f.Decision);
 }
 @section Styles { <partial name="_ReadStyles" /> }
-<div class="workspace-heading">
-    <div><h1>Decision history</h1><p>Your recorded votes, newest first. Final awards depend on the committee's collective decision. All times are UTC.</p></div>
-    <div class="tc-heading-actions"><a class="btn" asp-action="Dashboard">Dashboard</a><a class="btn btn-primary" asp-action="Decisions">Pending tenders</a></div>
-</div>
+<header class="workspace-heading tc-illustrated-heading">
+    <div class="tc-heading-copy"><h1>Decision history</h1><p>Review your recorded votes and see the committee’s latest outcome for each tender.</p></div>
+    <img class="tc-heading-art" src="~/images/workspace-header-medicines.png" asp-append-version="true" width="720" height="369" alt="" decoding="async" />
+</header>
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
-<form method="get" asp-action="History" class="workspace-section">
-    <div class="row g-3 tc-filter-grid">
-        <div class="col-md-4"><label for="history-search">Tender title</label><div class="voice-search-control"><div class="input-group"><input id="history-search" name="Search" value="@f.Search" maxlength="200" class="form-control" data-voice-search data-voice-search-mode="submit" aria-describedby="top-history-voice-status"/><select class="form-select form-select-sm w-auto" data-voice-search-language aria-label="Voice search language"><option value="en-US">English</option><option value="ar-JO">العربية</option></select><button type="button" class="btn btn-outline-primary" data-voice-search-button aria-label="Start voice search" aria-pressed="false" aria-describedby="top-history-voice-status"><svg data-voice-icon="mic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg><svg data-voice-icon="stop" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" hidden><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button></div><div id="top-history-voice-status" class="form-text small" data-voice-search-status role="status" aria-live="polite">Voice search is ready.</div></div></div>
-        <div class="col-md-4"><label for="history-status">Current tender status</label>
+<form method="get" asp-action="History" class="workspace-section tc-query tc-query-queue" aria-labelledby="tc-query-title">
+    <h2 id="tc-query-title">Filter recorded votes</h2>
+
+    <div class="tc-query-fields">
+        <div><label for="history-search">Tender title</label><div class="voice-search-control"><div class="input-group"><input id="history-search" name="Search" value="@f.Search" maxlength="200" placeholder="Search by tender title" class="form-control" data-voice-search data-voice-search-mode="submit" aria-describedby="top-history-voice-status"/><select class="form-select form-select-sm w-auto" data-voice-search-language aria-label="Voice search language"><option value="en-US">English</option><option value="ar-JO">العربية</option></select><button type="button" class="btn btn-outline-primary" data-voice-search-button aria-label="Start voice search" aria-pressed="false" aria-describedby="top-history-voice-status"><svg data-voice-icon="mic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg><svg data-voice-icon="stop" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" hidden><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button></div><div id="top-history-voice-status" class="form-text small" data-voice-search-status role="status" aria-live="polite"></div></div></div>
+        <div><label for="history-status">Current tender status</label>
             <select id="history-status" name="Status" class="form-select"><option value="">All statuses</option>
             @foreach (var status in TopCommitteeReports.Statuses)
             { <option value="@status" selected="@(f.Status == status)">@CommitteeDisplay.Status(status)</option> }
             </select>
         </div>
-        <div class="col-md-4"><label for="history-decision">My decision</label>
+        <div><label for="history-decision">My decision</label>
             <select id="history-decision" name="Decision" class="form-select"><option value="">All decisions</option>
             @foreach (var decision in new[] { "Approved", "Rejected" })
             { <option value="@decision" selected="@(f.Decision == decision)">@decision</option> }
             </select>
         </div>
-        <div class="col-md-4"><label for="history-size">Decisions per page</label>
+        <div><label for="history-size">Decisions per page</label>
             <select id="history-size" name="PageSize" class="form-select">
             @foreach (var size in new[] { 10, 20, 50, 100 })
             { <option value="@size" selected="@(f.PageSize == size)">@size</option> }
             </select>
         </div>
-        <div class="col-md-8 align-self-end d-flex flex-wrap gap-2 tc-filter-actions"><button class="btn btn-primary">Apply filters</button><a asp-action="History" class="btn">Reset</a></div>
+        <div class="tc-flow-actions tc-query-actions"><button class="btn btn-primary" type="submit">Apply filters</button><a asp-action="History" class="btn">Clear filters</a></div>
     </div>
 </form>
-<p>@Model.Total recorded @(Model.Total == 1 ? "decision matches" : "decisions match") your filters. Tender statuses and bid references show the latest recorded information.</p>
-@if (Model.Rows.Count == 0)
+@if (!ViewData.ModelState.IsValid)
+{ <p class="tc-flow-meta">Correct the filters above to load your decision history.</p> }
+else if (Model.Rows.Count == 0)
 {
-    <section class="workspace-section tc-empty"><h2>No recorded decisions on this page</h2>
-        <p>Only your votes on currently assigned tenders appear here. Adjust the filters, return to the first page, or review your pending tenders.</p>
-        <a asp-action="History" class="btn btn-primary">Show all my decisions</a>
+    <section class="workspace-section tc-flow-empty">
+        <h2>@(Model.Total > 0 ? "No decisions on this page" : hasFilters ? "No decisions match these filters" : "No votes recorded yet")</h2>
+        @if (Model.Total > 0 || hasFilters)
+        {
+            <p>Return to your full decision history to see the available votes.</p>
+            <a asp-action="History" class="btn">Show all my decisions</a>
+        }
+        else
+        {
+            <p>Votes you record on assigned tenders appear here.</p>
+            <a asp-action="Decisions" class="btn">Review pending tenders</a>
+        }
     </section>
 }
 else
 {
+    <header class="tc-flow-section-heading"><h2>Recorded votes</h2><span class="tc-flow-count">@Model.Total matching</span></header>
     <div class="table-responsive" role="region" aria-label="My decision history" tabindex="0">
         <table class="table committee-read-table tc-history-table">
-            <caption>Your final votes are read-only. Clarifications are not votes and their private conversations are excluded.</caption>
+            <caption>Your recorded votes are read-only. Votes use UTC; tender statuses show the latest outcome.</caption>
             <thead><tr><th scope="col">My decision</th><th scope="col">Tender</th><th scope="col">Current status</th><th scope="col">Committee outcome</th><th scope="col">Bid references</th></tr></thead>
             <tbody>
             @foreach (var row in Model.Rows)
@@ -64,9 +78,12 @@ else
         </table>
     </div>
 }
+@if (ViewData.ModelState.IsValid && Model.Total > 0 && (pages > 1 || f.Page > 1))
+{
 <nav class="workspace-toolbar" aria-label="History pages"><span>Page @f.Page of @pages</span>
 @foreach (var pageNumber in new[] { f.Page - 1, f.Page + 1 }.Where(p => p >= 1 && p <= pages))
 {
-    <a asp-action="History" asp-route-Page="@pageNumber" asp-route-PageSize="@f.PageSize" asp-route-Search="@f.Search" asp-route-Status="@f.Status" asp-route-Decision="@f.Decision">Page @pageNumber</a>
+    <a asp-action="History" asp-route-Page="@pageNumber" asp-route-PageSize="@f.PageSize" asp-route-Search="@f.Search" asp-route-Status="@f.Status" asp-route-Decision="@f.Decision">@(pageNumber < f.Page ? "Previous" : "Next")</a>
 }
 </nav>
+}

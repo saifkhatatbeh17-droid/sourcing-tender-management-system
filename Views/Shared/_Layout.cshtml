@@ -15,6 +15,9 @@
     }
     var standaloneLogin = ViewData["StandaloneLogin"] is true;
     var isHomeLanding = ViewData["HomeLanding"] is true;
+    var isSupplierRegistration = currentController == "Account" && currentAction == "Register";
+    var isContactPage = currentController == "Home" && currentAction == "Contact";
+    var useLandingNavbar = isHomeLanding || isSupplierRegistration || isContactPage;
     if (!PageNavigation.Menus.ContainsKey(workspaceController) || !User.IsInRole(workspaceController))
         workspaceController = RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     var showWorkspace = !isHomeLanding && User.Identity?.IsAuthenticated == true
@@ -29,6 +32,8 @@
         "Details" when workspaceController == "Department" => "Requests",
         "Edit" when workspaceController == "Department" => "Create",
         "SupplierDetails" => "Suppliers", "CreateRequest" or "EditRequest" or "RequestDetails" => "Requests",
+        "Tenders" or "TenderDetails" or "Create" or "Edit" or "Invitations" or "Compliance" or "Comparison" or "Evaluations"
+            when workspaceController == "SourcingOfficer" => "Offers",
         "CreateOffer" or "Offer" => "Offers", "TenderDetails" when workspaceController == "TopCommittee" => "Decisions",
         "TenderDetails" => "Tenders", "Invitation" => "Invitations", _ => activeAction
     };
@@ -58,6 +63,7 @@
     }
     @if (showWorkspace) { <link rel="stylesheet" href="~/css/workspace-shell.css" asp-append-version="true" /> }
     @if (showWorkspace && currentAction == "Dashboard") { <link rel="stylesheet" href="~/css/workspace-dashboard.css" asp-append-version="true" /> }
+    <link rel="stylesheet" href="~/css/pharmacare-ux.css" asp-append-version="true" />
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -67,9 +73,9 @@
 }
 else if (!standaloneLogin)
 {
-<header class="@(isHomeLanding ? "landing-header" : "border-bottom bg-white")">
-    <nav class="container-fluid d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-nav" : "p-3")" aria-label="Main navigation">
-        @if (isHomeLanding)
+<header class="@(isSupplierRegistration ? "landing-header registration-navbar" : isContactPage ? "landing-header is-past-hero contact-navbar" : isHomeLanding ? "landing-header" : "border-bottom bg-white")">
+    <nav class="container-fluid d-flex flex-wrap align-items-center gap-3 @(useLandingNavbar ? "landing-nav" : "p-3")" aria-label="Main navigation">
+        @if (useLandingNavbar)
         {
             <a class="pharma-brand landing-brand" asp-controller="Home" asp-action="Index"><partial name="_PharmaBrand" /></a>
         }
@@ -77,13 +83,13 @@ else if (!standaloneLogin)
         {
             <a class="pharma-brand text-decoration-none text-dark me-auto" asp-controller="Home" asp-action="Index"><partial name="_PharmaBrand" /></a>
         }
-        <div class="d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-links" : "")">
+        <div class="d-flex flex-wrap align-items-center gap-3 @(useLandingNavbar ? "landing-links" : "")">
             <a asp-controller="Home" asp-action="Index" aria-current="@(isHomeLanding ? "page" : null)">Home</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "About")" asp-fragment="@(isHomeLanding ? "about" : null)">About</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "HowItWorks")" asp-fragment="@(isHomeLanding ? "how-it-works" : null)">How It Works</a>
-            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "Contact")" asp-fragment="@(isHomeLanding ? "contact" : null)">Contact</a>
+            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "Contact")" asp-fragment="@(isHomeLanding ? "contact" : null)" aria-current="@(isContactPage ? "page" : null)">Contact</a>
         </div>
-        <div class="d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-account" : "")">
+        <div class="d-flex flex-wrap align-items-center gap-3 @(useLandingNavbar ? "landing-account" : "")">
         <partial name="_ThemeToggle" />
         @if (User.Identity?.IsAuthenticated == true)
         {
@@ -101,7 +107,7 @@ else if (!standaloneLogin)
         else
         {
             <a asp-controller="Account" asp-action="Login">Login</a>
-            <a class="@(isHomeLanding ? "landing-register" : "")" asp-controller="Account" asp-action="Register">Supplier Registration</a>
+            <a class="@(useLandingNavbar ? "landing-register" : "")" asp-controller="Account" asp-action="Register" aria-current="@(isSupplierRegistration ? "page" : null)">Supplier Registration</a>
         }
         </div>
     </nav>

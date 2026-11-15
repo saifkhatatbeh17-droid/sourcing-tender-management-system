@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="~/css/committee-evaluations-webex.css" asp-append-version="true" />
 }
 <div class="evaluation-page">
-    @if (tender == null) { <header class="ev-page-heading"><div><h1>Tender evaluations</h1></div></header> }
+    @if (tender == null) { <header class="ev-page-heading"><div><h1>Tender evaluations</h1><p class="text-secondary">Open a tender to review its offers and record your committee decision.</p></div></header> }
     @if (TempData["CommitteeError"] is string error) { <div class="ev-notice ev-notice-error" role="alert">@error</div> }
     @if (TempData["CommitteeSuccess"] is string success) { <div class="ev-notice ev-notice-success" role="status">@success</div> }
     <div class="ev-tender-content">

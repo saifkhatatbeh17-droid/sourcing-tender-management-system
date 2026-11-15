@@ -1,7 +1,7 @@
 /* Shared role navigation. Content styling stays with each workspace. */
 body:has(.workspace-shell) { --admin-sidebar-width: 252px; }
 body:has(.workspace-shell > .admin-sidebar.is-collapsed) { --admin-sidebar-width: 72px; }
-.workspace-shell > .admin-sidebar { display: flex; flex-direction: column; justify-content: space-between; gap: 24px; padding: 16px; background: #00a3a6; color: #002e30; border: 0; border-radius: 18px; }
+.workspace-shell > .admin-sidebar { display: flex; flex-direction: column; justify-content: space-between; gap: 24px; padding: 16px; background: var(--pharma-primary); color: #002e30; border: 0; border-radius: 18px; }
 .workspace-shell .admin-sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .workspace-shell .admin-sidebar-role { font-weight: 600; font-size: 16px; }
 .workspace-shell .admin-sidebar-nav, .workspace-shell .admin-sidebar-bottom { display: grid; gap: 4px; }
@@ -42,7 +42,7 @@ body:has(.workspace-shell > .admin-sidebar.is-collapsed) { --admin-sidebar-width
 .workspace-shell .admin-sidebar-item { width: 100%; min-height: 48px; padding: 10px 12px; font: 600 16px/1.4 "Segoe UI", sans-serif; text-align: start; }
 .workspace-shell .admin-sidebar-toggle { width: 40px; height: 40px; padding: 10px; flex-shrink: 0; }
 .workspace-shell :is(.admin-sidebar-item, .admin-sidebar-toggle) svg { width: 20px; height: 20px; flex: 0 0 20px; }
-.workspace-shell :is(.admin-sidebar-item, .admin-sidebar-toggle):hover { background: color-mix(in oklab, #00a3a6, black 8%); }
+.workspace-shell :is(.admin-sidebar-item, .admin-sidebar-toggle):hover { background: color-mix(in oklab, var(--pharma-primary), black 8%); }
 .workspace-shell .admin-sidebar-item.is-active { background: #eef8f6; color: #005c5f; }
 .workspace-shell :is(.admin-sidebar-item, .admin-sidebar-toggle):focus-visible { outline: 3px solid #002e30; outline-offset: 2px; }
 html body:has(.workspace-shell) .workspace-navbar { min-height: 64px; background: transparent; border: 0; box-shadow: none; }
@@ -54,7 +54,7 @@ html body .workspace-navbar :is(nav > a, .notification-bell, .admin-account-togg
 .workspace-navbar :is(nav > a, .notification-bell) { width: 42px; padding: 0; text-decoration: none; flex-shrink: 0; }
 html body .workspace-navbar :is(nav > a, .notification-bell, .admin-account-toggle):hover { background: #eef8f6; color: #005c5f; }
 .workspace-navbar .notification-bell { position: relative; }
-.workspace-navbar .notification-bell .badge { position: absolute; top: 0; right: 0; border-radius: 99px; background: #00a3a6 !important; color: #002e30; font-size: 10px; }
+.workspace-navbar .notification-bell .badge { position: absolute; top: 0; right: 0; border-radius: 99px; background: var(--pharma-primary) !important; color: #002e30; font-size: 10px; }
 .workspace-navbar .admin-account-toggle { gap: 10px; padding: 4px 10px 4px 4px; font-size: 16px; }
 .workspace-navbar .admin-account-avatar { display: grid; place-items: center; width: 32px; height: 32px; color: #007b7e; font-weight: 600; }
 .workspace-navbar .admin-account-name { max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -135,3 +135,45 @@ body:has(.workspace-shell):has(.unified-dashboard) { --workspace-content-width:1
 }
 /* Dashboard cards share a single measured outer edge with the toolbar. */
 html body .workspace-shell .unified-dashboard { width:100%; max-width:1280px; margin-inline:auto; box-sizing:border-box; }
+
+.workspace-shell > .workspace-navigation { gap: 16px; }
+.workspace-navigation .admin-sidebar-header { min-height: 48px; }
+.workspace-shell .workspace-navigation .admin-sidebar-toggle {
+    width: 38px;
+    height: 38px;
+    padding: 9px;
+    border: 1px solid rgb(255 255 255 / .27);
+    border-radius: 10px;
+}
+.workspace-shell .workspace-navigation .admin-sidebar-role { display: grid; gap: 4px; margin-top: 16px; padding-inline: 8px; }
+.workspace-navigation .admin-sidebar-role > span { font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; }
+.workspace-navigation .admin-sidebar-role > strong { color: #fff; font-size: .92rem; }
+.workspace-shell .workspace-navigation .admin-sidebar-nav { margin-top: 14px; }
+.workspace-shell .workspace-navigation .admin-sidebar-bottom { margin-top: auto; }
+.workspace-shell .workspace-navigation .admin-sidebar-bottom .admin-sidebar-item { font-size: .85rem; min-height: 44px; }
+.workspace-sidebar-art {
+    display: none;
+    position: relative;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+.workspace-sidebar-art img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center bottom;
+}
+@media (min-width: 651px) {
+    .workspace-navigation:not(.is-collapsed) .workspace-sidebar-art { display: block; }
+}
+@media (min-width: 651px) {
+    .workspace-shell .workspace-navigation.is-collapsed .admin-sidebar-role { display: none; }
+}
+@media (max-width: 650px) {
+    .workspace-shell .workspace-navigation.is-collapsed .admin-sidebar-role { display: none; }
+    .workspace-shell .workspace-navigation:not(.is-collapsed) .admin-sidebar-nav { max-height: min(44dvh, 25rem); }
+}

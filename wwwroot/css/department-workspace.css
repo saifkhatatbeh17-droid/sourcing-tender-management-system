@@ -3,8 +3,8 @@
    ========================================================================== */
 
 body:has(.department-workspace) {
-    --accent: #00a3a6;
-    --dr-teal: #00a3a6;
+    --accent: var(--pharma-primary);
+    --dr-teal: var(--pharma-primary);
     --dr-teal-hover: #008a8d;
     --dr-teal-deep: #00686a;
     --dr-teal-soft: #eef8f6;

@@ -1,12 +1,10 @@
 @model CommitteeDashboard
 @section Styles { <partial name="_ReadStyles" /> }
 @{ ViewData["Title"] = "Top Committee Dashboard"; }
-<div class="unified-dashboard"><div class="dashboard-heading">
-    <div><h1>Top Committee dashboard</h1><p class="text-secondary mt-2 mb-0">Review assigned tenders, follow member approvals and read recorded decisions.</p></div>
-    <div class="dashboard-heading-actions">
-        <a class="dashboard-cta" asp-action="Decisions">View pending tenders <span aria-hidden="true">→</span></a>
-    </div>
-</div>
+<div class="unified-dashboard"><header class="dashboard-heading tc-illustrated-heading">
+    <div class="tc-heading-copy"><h1>Top Committee dashboard</h1><p class="text-secondary mt-2 mb-0">Review assigned tenders, follow member approvals and read recorded decisions.</p></div>
+    <img class="tc-heading-art" src="~/images/workspace-header-medicines.png" asp-append-version="true" width="720" height="369" alt="" decoding="async" />
+</header>
 <section class="dashboard-metrics is-five" aria-label="Your committee totals">
     <partial name="_DashboardMetric" model='@(new DashboardMetric("Awaiting decision", Model.AwaitingDecision.ToString("N0"), "Tenders ready for committee review", true))' />
     <partial name="_DashboardMetric" model='@(new DashboardMetric("Assigned tenders", Model.AssignedTenders.ToString("N0"), "Your committee assignments"))' />

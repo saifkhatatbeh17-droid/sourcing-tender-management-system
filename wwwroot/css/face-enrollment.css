@@ -6,7 +6,7 @@ html[data-theme="dark"] body:has(.face-enrollment) {
     background: #101817;
 }
 .face-enrollment {
-    --bio-accent: var(--teal, #00a3a6);
+    --bio-accent: var(--teal, var(--pharma-primary));
     --bio-action: #ff6b4a;
     --bio-action-ink: #123032;
     --bio-action-hover: #f05c3c;

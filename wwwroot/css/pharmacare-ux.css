@@ -1,0 +1,274 @@
+/* One brand palette, independent of the light and dark reading surfaces. */
+:root {
+    --pharma-primary: #305b5c;
+    --pharma-primary-hover: #26494a;
+    --pharma-primary-active: #203d3e;
+    --pharma-on-primary: #fff;
+    --pharma-link: #305b5c;
+    --pharma-selection: #e8f3f0;
+    --pharma-focus: #356c6c;
+    --pharma-approval: #216942;
+    --pharma-approval-hover: #185334;
+    --pharma-danger: #a52a35;
+    --pharma-danger-hover: #85232b;
+    --pharma-positive-surface: #e8f4ed;
+    --pharma-positive-text: #185735;
+    --pharma-warning-surface: #fff1d8;
+    --pharma-warning-text: #774500;
+    --pharma-danger-surface: #fbe9eb;
+    --pharma-danger-text: #882530;
+    --pharma-radius: 16px;
+    --pharma-shadow: 0 4px 14px rgb(20 49 50 / .06);
+}
+html[data-theme="dark"] {
+    --pharma-link: #a0d6cd;
+    --pharma-selection: #293f3e;
+    --pharma-focus: #a0d6cd;
+    --pharma-positive-surface: #233a2d;
+    --pharma-positive-text: #b8e9c9;
+    --pharma-warning-surface: #3d321e;
+    --pharma-warning-text: #f4d190;
+    --pharma-danger-surface: #472b30;
+    --pharma-danger-text: #ffc0c7;
+    --pharma-shadow: 0 4px 14px rgb(0 0 0 / .16);
+}
+
+/* The same navigation and logo asset serve all seven role workspaces. */
+html[data-theme] .workspace-shell > .admin-sidebar,
+.workspace-shell > .admin-sidebar {
+    background: var(--pharma-primary);
+    color: var(--pharma-on-primary);
+    border-radius: var(--pharma-radius);
+}
+.workspace-shell .workspace-brand .tiryaq-logo img { filter: brightness(0) invert(1); }
+.workspace-shell > .workspace-navigation:not(.is-collapsed) {
+    background-image: radial-gradient(ellipse at 52% 75%, rgb(86 194 181 / .26), transparent 49%);
+}
+html body .workspace-shell .admin-sidebar .admin-sidebar-role { color: #e0eeee; letter-spacing: .035em; }
+.workspace-shell .admin-sidebar .admin-sidebar-bottom { border-top-color: rgb(255 255 255 / .22); }
+.workspace-shell .admin-sidebar .admin-sidebar-nav { scrollbar-color: rgb(255 255 255 / .36) transparent; }
+.workspace-shell .workspace-branch-pages { --branch-line: rgb(255 255 255 / .32); }
+html body .workspace-shell .admin-sidebar :is(.admin-sidebar-item, .admin-sidebar-toggle, .workspace-role-branch > summary) {
+    color: var(--pharma-on-primary);
+}
+.workspace-shell .workspace-role-branch > summary .workspace-branch-chevron { color: currentColor; }
+html body .workspace-shell .admin-sidebar :is(.admin-sidebar-item, .admin-sidebar-toggle, .workspace-role-branch > summary):hover {
+    background: rgb(255 255 255 / .12);
+}
+html body .workspace-shell .admin-sidebar .admin-sidebar-item.is-active {
+    background: #f1f8f6;
+    color: var(--pharma-primary-active);
+    font-weight: 650;
+    box-shadow: inset 3px 0 var(--pharma-focus);
+}
+html body .workspace-shell .admin-sidebar :is(.admin-sidebar-item, .admin-sidebar-toggle, summary):focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -3px;
+}
+
+/* Shared header treatment applied to each role's existing heading structure. */
+html body main.main-content :is(.dashboard-heading, .workspace-heading, .so-page-header, .supplier-page-heading,
+    .cw-page-header, .ev-page-heading, .ev-selected-tender, .dr-heading, .dr-details-header,
+    .mr-heading, .ci-heading, .ap-heading, .biometric-hero, .pharma-page-heading):has(h1) {
+    min-width: 0;
+    flex-wrap: wrap;
+    padding: clamp(16px, 2.75vw, 28px);
+    margin-block-end: clamp(16px, 2.2vw, 24px);
+    border: 1px solid var(--color-border, var(--bs-border-color));
+    border-radius: var(--pharma-radius);
+    background: var(--color-surface, var(--bs-body-bg));
+    box-shadow: var(--pharma-shadow);
+}
+html body main.main-content :is(.dashboard-heading, .workspace-heading, .so-page-header, .supplier-page-heading,
+    .cw-page-header, .ev-page-heading, .ev-selected-tender, .dr-heading, .dr-details-header,
+    .mr-heading, .ci-heading, .ap-heading, .biometric-hero, .pharma-page-heading):has(h1) h1 {
+    margin-block: 0;
+    font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.125rem);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+.pharma-page-heading > p { margin: .5rem 0 0; color: var(--color-text-secondary, var(--bs-secondary-color)); }
+
+/* Keep the center artwork decorative and the heading and actions readable. */
+@media (min-width: 701px) {
+    .workspace-shell { --workspace-art-veil: 32%; }
+    html[data-theme="dark"] .workspace-shell { --workspace-art-veil: 78%; }
+
+    html body .workspace-shell > main.main-content :is(.dashboard-heading, .workspace-heading,
+        .so-page-header, .supplier-page-heading, .cw-page-header, .ev-page-heading,
+        .ev-selected-tender, .dr-heading, .dr-details-header, .mr-heading, .ci-heading,
+        .ap-heading, .biometric-hero, .pharma-page-heading):has(h1) {
+        --workspace-heading-surface: var(--color-surface, var(--bs-body-bg));
+        min-block-size: 144px;
+        background-image:
+            linear-gradient(90deg, var(--workspace-heading-surface) 16%,
+                color-mix(in srgb, var(--workspace-heading-surface) var(--workspace-art-veil), transparent) 61%,
+                var(--workspace-heading-surface) 96%),
+            url("../images/workspace-header-medicines.png"),
+            radial-gradient(ellipse at 63% 100%, rgb(123 196 190 / .25), transparent 68%);
+        background-position: center, 66% center, center;
+        background-size: 100% 100%, min(38%, 270px) auto, 100% 100%;
+        background-repeat: no-repeat;
+    }
+}
+
+/* Apply intent-based button styles after the existing role stylesheets. */
+html body :is(.btn-primary, .dashboard-cta, .cw-button-primary, .ev-button-primary, .dr-primary,
+    .ci-primary, .contact-send, .login-submit, .registration-submit, .admin-applications-button, .landing-hero-actions .landing-primary),
+.action-confirmation [data-action-proceed] {
+    --bs-btn-color: var(--pharma-on-primary);
+    --bs-btn-bg: var(--pharma-primary);
+    --bs-btn-border-color: var(--pharma-primary);
+    --bs-btn-hover-color: var(--pharma-on-primary);
+    --bs-btn-hover-bg: var(--pharma-primary-hover);
+    --bs-btn-hover-border-color: var(--pharma-primary-hover);
+    --bs-btn-active-color: var(--pharma-on-primary);
+    --bs-btn-active-bg: var(--pharma-primary-active);
+    --bs-btn-active-border-color: var(--pharma-primary-active);
+    --bs-btn-disabled-color: var(--pharma-on-primary);
+    --bs-btn-disabled-bg: var(--pharma-primary);
+    --bs-btn-disabled-border-color: var(--pharma-primary);
+    color: var(--pharma-on-primary);
+    background: var(--pharma-primary);
+    border-color: var(--pharma-primary);
+}
+html body :is(.btn-primary, .dashboard-cta, .cw-button-primary, .ev-button-primary, .dr-primary, .ci-primary,
+    .contact-send, .login-submit, .registration-submit, .admin-applications-button, .landing-hero-actions .landing-primary):hover,
+.action-confirmation [data-action-proceed]:hover {
+    background: var(--pharma-primary-hover);
+    border-color: var(--pharma-primary-hover);
+    color: var(--pharma-on-primary);
+}
+html body .landing-hero-actions .landing-primary { border-color: rgb(255 255 255 / .48); }
+html body .workspace-shell :is(.btn-primary, .dashboard-cta, .cw-button-primary, .ev-button-primary, .dr-primary, .ci-primary),
+html body .workspace-shell :is(.btn-primary, .dashboard-cta, .cw-button-primary, .ev-button-primary, .dr-primary, .ci-primary):hover {
+    color: var(--pharma-on-primary);
+}
+html body :is(.btn.btn-success, .btn.pharma-action-approve),
+html body form:has(select[name="Review.Status"] option[value="Approved"]:checked) [data-review-decision-submit],
+html body .action-confirmation[data-approval="true"] [data-action-proceed] {
+    color: #fff;
+    background: var(--pharma-approval);
+    border-color: var(--pharma-approval);
+}
+html body :is(.btn.btn-success, .btn.pharma-action-approve):hover,
+html body form:has(select[name="Review.Status"] option[value="Approved"]:checked) [data-review-decision-submit]:hover,
+html body .action-confirmation[data-approval="true"] [data-action-proceed]:hover {
+    color: #fff;
+    background: var(--pharma-approval-hover);
+    border-color: var(--pharma-approval-hover);
+}
+html body :is(.btn.btn-danger, .btn.pharma-action-reject),
+html body form:has(select[name="Review.Status"] option[value="Rejected"]:checked) [data-review-decision-submit],
+html body .action-confirmation[data-destructive="true"] [data-action-proceed] {
+    color: #fff;
+    background: var(--pharma-danger);
+    border-color: var(--pharma-danger);
+}
+html body :is(.btn.btn-danger, .btn.pharma-action-reject):hover,
+html body form:has(select[name="Review.Status"] option[value="Rejected"]:checked) [data-review-decision-submit]:hover,
+html body .action-confirmation[data-destructive="true"] [data-action-proceed]:hover {
+    color: #fff;
+    background: var(--pharma-danger-hover);
+    border-color: var(--pharma-danger-hover);
+}
+html body .workspace-shell .btn-outline-danger {
+    background: transparent;
+    border-color: var(--pharma-danger);
+    color: var(--pharma-danger-text);
+}
+html body .workspace-shell .btn-outline-danger:hover {
+    background: var(--pharma-danger-surface);
+    border-color: var(--pharma-danger);
+    color: var(--pharma-danger-text);
+}
+html body :is(.workspace-shell, .face-setup-modal) :is(.btn, .dashboard-cta, .cw-button, a, summary, input, select, textarea):focus-visible {
+    outline: 2px solid var(--pharma-focus);
+    outline-offset: 3px;
+}
+html body .workspace-shell .admin-sidebar :is(a,button,summary):focus-visible { outline-color: #fff; outline-offset: -3px; }
+html body .workspace-shell .admin-sidebar .admin-sidebar-item.is-active:focus-visible {
+    outline-color: var(--pharma-primary-active);
+}
+.workspace-shell .main-content { min-width: 0; }
+.workspace-shell .table-responsive { max-width: 100%; }
+.workspace-shell .table-responsive:focus-visible { outline: 2px solid var(--pharma-focus); outline-offset: 2px; }
+.workspace-shell :is(.form-control, .form-select) { max-width: 100%; }
+.workspace-shell :is(.field-validation-error, .invalid-feedback) { margin-top: .25rem; line-height: 1.45; }
+.workspace-shell :is(.empty-state, .so-empty, .ev-empty) p { max-width: 64ch; }
+.workspace-shell :is(.nav-tabs .nav-link.active, .nav-link[aria-selected="true"], [role="tab"][aria-selected="true"]) {
+    color: var(--pharma-link);
+    border-bottom-color: var(--pharma-link);
+}
+html body main :is(.status-approved, .dr-status[data-status="Approved"], .so-status-badge[data-status="Approved"], .text-bg-success) {
+    color: var(--pharma-positive-text) !important;
+    background: var(--pharma-positive-surface) !important;
+}
+html body main :is(.status-pending, .dr-status[data-status="UnderReview"], .so-status-badge[data-status="Pending"], .text-bg-warning) {
+    color: var(--pharma-warning-text) !important;
+    background: var(--pharma-warning-surface) !important;
+}
+html body main :is(.status-rejected, .dr-status[data-status="Rejected"], .so-status-badge[data-status="Rejected"], .text-bg-danger) {
+    color: var(--pharma-danger-text) !important;
+    background: var(--pharma-danger-surface) !important;
+}
+
+/* Shared bell and Top Committee pagination keep their existing endpoints. */
+html body .workspace-navbar .notification-bell { border-color: var(--color-border, var(--bs-border-color)); }
+html body :is(.workspace-navbar, .landing-header, .admin-navbar) .notification-bell .badge {
+    color: #fff;
+    background: var(--pharma-primary) !important;
+    outline: 1px solid rgb(255 255 255 / .55);
+}
+html body .notification-dropdown {
+    --bs-dropdown-zindex: 1040;
+    width: min(25rem, calc(100vw - 1.5rem));
+    max-width: calc(100vw - 1.5rem);
+    max-height: min(34rem, calc(100dvh - 6rem));
+    overflow: auto;
+    overscroll-behavior: contain;
+    color: var(--color-text, var(--bs-body-color));
+    background: var(--color-surface, var(--bs-body-bg));
+    border: 1px solid var(--color-border, var(--bs-border-color));
+    border-radius: var(--pharma-radius);
+}
+html body .notification-dropdown .notification-item {
+    margin: .375rem 0;
+    padding: .75rem;
+    border: 1px solid var(--color-border, var(--bs-border-color));
+    border-inline-start: 3px solid transparent;
+    border-radius: 10px;
+    background: var(--color-surface-alt, var(--bs-tertiary-bg));
+}
+html body .notification-dropdown .notification-item.is-unread {
+    background: var(--pharma-selection);
+    border-inline-start-color: var(--pharma-link);
+}
+.notification-dropdown .notification-meta { color: var(--color-text-secondary, var(--bs-secondary-color)); }
+html body .notification-dropdown .notification-item a { color: var(--pharma-link); }
+.notification-dropdown .notification-item :is(p, strong, a) { overflow-wrap: anywhere; }
+.supplier-workspace .notification-row.unread { background: var(--pharma-selection); }
+.supplier-workspace .notification-row { padding-inline: .75rem; border-radius: 10px; }
+.supplier-workspace .notification-row:not(.unread) .notice-dot { visibility: hidden; }
+.supplier-workspace .notification-row .notice-dot { background: var(--pharma-link); }
+.supplier-workspace .notification-row > div { min-width: 0; overflow-wrap: anywhere; }
+html body .evaluation-page .ev-form-badge { color: var(--pharma-warning-text); background: var(--pharma-warning-surface); }
+html body .evaluation-page .ev-form-badge.is-approved { color: var(--pharma-positive-text); background: var(--pharma-positive-surface); }
+html body .so-page .rr-row-action .rr-next-action { color: var(--pharma-on-primary); }
+html body .so-page .rr-row-action .rr-next-action:hover { background: var(--pharma-primary-hover); border-color: var(--pharma-primary-hover); }
+@media (max-width: 650px) {
+    html body .workspace-shell > .main-content { padding-inline: 16px !important; }
+    .workspace-shell > .admin-sidebar { gap: 16px; }
+    .workspace-shell .admin-sidebar-toggle { min-width: 40px; min-height: 40px; }
+    .workspace-shell .admin-sidebar-nav { margin-top: 12px; }
+    .workspace-shell .workspace-role-branch:last-child { margin-bottom: 0; }
+    .workspace-navbar nav { flex-wrap: wrap; gap: .5rem !important; }
+    .workspace-navbar .admin-navbar-location {
+        display: flex;
+        flex: 1 0 100%;
+        gap: .5rem;
+        padding-inline: .25rem;
+    }
+    .supplier-workspace .notification-row { flex-wrap: wrap; gap: .5rem; }
+    .supplier-workspace .notification-row time { flex-basis: 100%; margin-inline-start: 1rem; }
+}

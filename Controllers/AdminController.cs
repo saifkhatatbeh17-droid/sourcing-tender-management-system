@@ -10,7 +10,7 @@ using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Controllers;
 [Authorize(Roles = RoleNames.Admin)]
-public class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
+public partial class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
     IConfiguration configuration, IWebHostEnvironment environment) : Controller
 {
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));

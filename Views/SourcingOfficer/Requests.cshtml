@@ -29,21 +29,28 @@
         @if (Model.Count == 0) { <div class="rr-empty"><h3>No requests here yet</h3><p>New department submissions will appear here. Try another status filter.</p></div> }
         @foreach (var item in Model)
         {
+            var canPrepareTender = item.Status == "Approved" && item.ReviewedByUserId == currentUserId;
+            var needsReview = item.Status is "Submitted" or "UnderReview";
             <article class="rr-request-row">
                 <span class="rr-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"/></svg></span>
                 <div class="rr-row-title"><span>#@item.PurchaseRequestId · @item.Department.Name</span><h3><a asp-action="Requests" asp-route-id="@item.PurchaseRequestId" asp-route-status="@ViewBag.StatusFilter">@item.Title</a></h3><p>@item.Priority priority · Needed @item.TargetDate.ToString("dd MMM yyyy")</p></div>
                 <div class="rr-row-state"><span class="so-status-badge" data-status="@item.Status">@StatusLabel(item.Status)</span><time>@item.SubmittedAt?.ToString("dd MMM yyyy · HH:mm")</time></div>
                 <div class="rr-row-action">
-                @if (item.Status == "Approved" && item.ReviewedByUserId == currentUserId)
-                {
-                    <span class="rr-action-caption">Ready for the next step</span>
-                    <a class="btn btn-primary rr-next-action" asp-action="Create" asp-route-purchaseRequestId="@item.PurchaseRequestId" aria-label="Prepare tender for request @item.PurchaseRequestId">Prepare tender <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
-                }
-                else
-                {
-                    @if (item.Status is "Submitted" or "UnderReview") { <span class="rr-action-caption">Your review is needed</span> }
-                    <a class="btn @(item.Status is "Submitted" or "UnderReview" ? "btn-primary rr-next-action" : "btn-outline-primary rr-history-action")" asp-action="Requests" asp-route-id="@item.PurchaseRequestId" asp-route-status="@ViewBag.StatusFilter" aria-label="Open request @item.PurchaseRequestId">@(item.Status is "Submitted" or "UnderReview" ? "Review & decide" : "View request") <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
-                }
+                    @if (canPrepareTender || needsReview)
+                    {
+                        <span class="rr-action-caption">@(canPrepareTender ? "Ready for the next step" : "Your review is needed")</span>
+                    }
+                    <div class="rr-row-buttons">
+                        @await Component.InvokeAsync("DetailsQr", new { controller = "SourcingOfficer", action = "Details", id = item.PurchaseRequestId, label = "Purchase request" })
+                        @if (canPrepareTender)
+                        {
+                            <a class="btn btn-primary rr-next-action" asp-action="Create" asp-route-purchaseRequestId="@item.PurchaseRequestId" aria-label="Prepare tender for request @item.PurchaseRequestId">Prepare tender <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+                        }
+                        else
+                        {
+                            <a class="btn @(needsReview ? "btn-primary rr-next-action" : "btn-outline-primary rr-history-action")" asp-action="Requests" asp-route-id="@item.PurchaseRequestId" asp-route-status="@ViewBag.StatusFilter" aria-label="@(needsReview ? "Review and decide on" : "View") request @item.PurchaseRequestId">@(needsReview ? "Review & decide" : "View request") <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+                        }
+                    </div>
                 </div>
             </article>
         }
@@ -72,7 +79,6 @@ else
         <aside class="rr-side">
             <section class="rr-card rr-facts"><h3>At a glance</h3><dl><div><dt>Priority</dt><dd>@request.Priority</dd></div><div><dt>Needed by</dt><dd>@request.TargetDate.ToString("dd MMM yyyy")</dd></div><div><dt>Submitted</dt><dd>@request.SubmittedAt?.ToString("dd MMM yyyy · HH:mm")</dd></div><div><dt>Reviewer</dt><dd>@(request.ReviewedByUser?.FullName ?? "Unassigned")</dd></div>
             @if (request.ReviewedAt.HasValue) { <div><dt>Last reviewed</dt><dd>@request.ReviewedAt.Value.ToString("dd MMM yyyy · HH:mm")</dd></div> }</dl>
-            @await Component.InvokeAsync("DetailsQr", new { controller = "SourcingOfficer", action = "Details", id = request.PurchaseRequestId, label = "Purchase request" })
             </section>
             <section class="rr-card rr-decision"><h3>Your decision</h3>
             @if (canDecide)
@@ -81,7 +87,7 @@ else
                 @if (blocked) { <p class="rr-decision-hint">Resolve the open questions to continue.</p> }
                 <form asp-action="ApproveRequest" method="post" id="request-approve-form">
                     <input type="hidden" name="id" value="@request.PurchaseRequestId" />
-                    <button type="submit" class="btn btn-primary rr-approve" disabled="@blocked">Approve request</button>
+                    <button type="submit" class="btn btn-primary rr-approve pharma-action-approve" disabled="@blocked">Approve request</button>
                 </form>
                 <div class="rr-secondary-actions"><button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#request-return" disabled="@blocked">Request changes</button><button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#request-reject" disabled="@blocked">Reject</button></div>
             }
