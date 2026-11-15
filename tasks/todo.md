@@ -1,6 +1,4 @@
-- [x] Add schema and migration for percentage consensus and offer marks; verified backup and applied locally.
-- [x] Implement protected scoring, tie decisions, automatic winner progression and upstream return integration.
-- [x] Rebuild committee UI using apple-design.
-- [x] Run calculation checks and 92 real MVC checks, including the explicit scoring gate, offer headers, PDF export, concurrency and officer/manager returns; inspect desktop/mobile rendering.
-- [x] Rebuild and restart the normal Debug application on port 7130; verify locked controls and offer counters on live tender #149.
-- [x] Review the final diff, build and record validation in docs/COMMITTEE-SCORING.md.
+- [x] Restore original committee page, manual offer choice and approval/report workflow.
+- [x] Retain immutable member percentages and the locked average in read-only AI fields.
+- [x] Remove scoring/tie endpoints and per-offer scoring UI.
+- [x] Pass build, percentage/approval-order checks and 45 isolated real MVC checks.

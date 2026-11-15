@@ -1,42 +1,81 @@
 @model CommitteeEvaluationPage
-@using System.Globalization
-<div class="cs-section-heading"><div><h3>Review every offer</h3><p>Each of the four members must enter both marks for every offer. Accepted marks cannot be edited.</p></div></div>
-@if (!Model.ConsensusLocked && Model.UsesScoredWorkflow) { <p class="cs-notice">Scoring opens after all four members confirm their percentages above.</p> }
-@if (Model.ConsensusLocked && !Model.WeightsReady) { <p class="cs-notice is-error">Scoring needs eligible offers in one currency and valid criteria totalling 100%. Ask the sourcing officer to review the offers and configuration.</p> }
-@if (!Model.UsesScoredWorkflow) { <p class="cs-notice">This historical evaluation uses its original approval record. See Scores &amp; report.</p> }
-@if (Model.UsesScoredWorkflow)
+@{ var editable = !Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId); }
+@if (Model.Members.Count == 0)
+{ <div class="ev-empty"><p>Start the evaluation to open the shared form.</p></div> }
+else
 {
-@foreach (var offer in Model.Offers)
-{
-    var acceptedCount = Model.AcceptedCount(offer);
-    <section class="cs-panel cs-score-offer" aria-labelledby="score-offer-@offer.BidId">
-        <header class="cs-score-offer-heading"><div><span class="cs-reference">Offer #@offer.BidId</span><h3 id="score-offer-@offer.BidId">@offer.Invitation.SupplierProfile.CompanyName</h3><p>@CommitteeEvaluationPage.Total(offer).ToString("N2") @offer.Currency · @offer.DeliveryDays-day delivery</p></div><div class="cs-acceptance"><strong>@acceptedCount / 4 accepted</strong><div class="cs-acceptance-dots" aria-hidden="true">@foreach (var member in Model.Members) { <span class="@(Model.IsAccepted(Model.Evaluation(member, offer)) ? "is-complete" : "")"></span> }</div></div></header>
-        <div class="cs-review-grid">
-        @foreach (var member in Model.Members)
+    <section class="ev-shared-evaluation"><div class="ev-weights-summary">
+        <div><h3>Evaluation weights</h3><p>@(Model.ConsensusLocked ? "Average of four confirmed percentages · locked" : "Waiting for all four members to confirm their percentages")</p></div>
+        <div class="ev-weight-value"><span>Financial</span><strong>@(Model.PercentageReady ? Model.FinancialWeight.ToString("0.##") + "%" : "—")</strong></div>
+        <div class="ev-weight-value"><span>Technical</span><strong>@(Model.PercentageReady ? Model.TechnicalWeight.ToString("0.##") + "%" : "—")</strong></div>
+    </div></section>
+    <div class="ev-forms-heading"><h3>Committee approvals</h3><span class="ev-approval-summary">@Model.Approvals.Count / 4 approved</span></div>
+    <div class="ev-selection-strip" aria-label="Committee-selected offer">
+        <span class="ev-selection-strip-label">Selected offer</span>
+        @if (Model.SelectionReady)
         {
-            var entry = Model.Evaluation(member, offer);
-            var accepted = Model.IsAccepted(entry);
-            var mine = member.UserId == Model.UserId;
-            <article class="cs-review @(mine ? "is-yours" : "")"><header><div><h4>@CommitteeEvaluationPage.MemberName(member.Position)</h4><p>@member.User.FullName</p></div><span class="cs-pill @(accepted ? "is-success" : "")">@(accepted ? "Accepted" : mine ? "Your review" : "Pending")</span></header>
-            @if (mine && !accepted && Model.ConsensusLocked && !Model.Locked)
+            var selectedOffer = Model.Offers.Single(b => b.BidId == Model.Tender!.EvaluationReport!.RecommendedBidId);
+            <strong>@selectedOffer.Invitation.SupplierProfile.CompanyName</strong>
+            <span class="ev-selection-strip-facts">#@selectedOffer.BidId <span aria-hidden="true">·</span> @CommitteeEvaluationPage.Total(selectedOffer).ToString("N2") @selectedOffer.Currency <span aria-hidden="true">·</span> @selectedOffer.DeliveryDays-day delivery</span>
+        }
+        else { <span class="ev-selection-strip-facts">Choose an offer before approving.</span> }
+        @if (editable) { <button type="button" class="ev-reference-link" data-open-evaluation-tab="offers-tab" title="Changing the offer resets previous approvals">@(Model.SelectionReady ? "Change offer" : "Choose offer") <span aria-hidden="true">↗</span></button> }
+    </div>
+    @if (!Model.Locked && Model.Approvals.Count == 4)
+    { <p class="ev-notice ev-notice-success">All four approvals are recorded. Open Comparison &amp; report to generate the final report and send it to the sourcing officer.</p> }
+    <div class="ev-forms-grid">
+    @foreach (var member in Model.Members.OrderBy(m => m.Position))
+    {
+        var mine = member.UserId == Model.UserId;
+        var approved = Model.Approvals.Any(a => a.UserId == member.UserId);
+        var standards = member.Position switch
+        {
+            1 => new[] { "The offer choice reflects the committee’s agreement.", "Evaluation percentages are agreed and total 100%.", "All member concerns and clarifications are resolved.", "The decision is supported by the tender and offer details." },
+            2 => new[] { "Requested items and quantities meet the department’s needs.", "The offer suits the intended use and operating needs.", "Delivery meets the department’s required timeframe.", "Any substitutions or exceptions are acceptable." },
+            3 => new[] { "Prices, quantities and calculations are consistent.", "Tax and additional costs are included in the total.", "Payment terms and financial conditions are acceptable.", "The total cost offers value against competing bids." },
+            _ => new[] { "Offered specifications meet the technical requirements.", "Equipment is compatible with the intended environment.", "Warranty, installation and support meet tender terms.", "Technical deviations are identified and acceptable." }
+        };
+        <section class="ev-member-form ev-approval-card @(mine ? "is-yours" : "")">
+            <header><div class="ev-member-heading"><span class="ev-form-badge @(approved ? "is-approved" : "")">@(approved ? "✓ Approved" : "Pending")</span><span class="ev-access-label">@(mine ? "Your approval" : "Read-only")</span></div><h3>@CommitteeEvaluationPage.MemberName(member.Position)</h3><p>@member.User.FullName @(mine ? "(you)" : "")</p></header>
+            <div class="ev-member-standards"><h4>Review standards</h4><ul>@foreach (var standard in standards) { <li>@standard</li> }</ul><button type="button" data-open-evaluation-tab="offers-tab" class="ev-reference-link">View tender &amp; offers ↗</button></div>
+            <div class="ev-approval-footer">
+            @if (mine && !approved && !Model.Locked)
             {
-                <form asp-action="AcceptScoredOffer" method="post" data-score-form>
-                    <input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="bidId" value="@offer.BidId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
-                    <div class="cs-mark-fields"><label for="financial-@offer.BidId">Financial <span>/ @Model.FinancialWeight.ToString("0.##")</span><input id="financial-@offer.BidId" name="financialMark" type="number" inputmode="decimal" min="0" max="@Model.FinancialWeight.ToString(CultureInfo.InvariantCulture)" step="0.01" required value="@entry?.FinancialMark?.ToString(CultureInfo.InvariantCulture)" /></label><label for="technical-@offer.BidId">Technical <span>/ @Model.TechnicalWeight.ToString("0.##")</span><input id="technical-@offer.BidId" name="technicalMark" type="number" inputmode="decimal" min="0" max="@Model.TechnicalWeight.ToString(CultureInfo.InvariantCulture)" step="0.01" required value="@entry?.TechnicalMark?.ToString(CultureInfo.InvariantCulture)" /></label></div>
-                    <label for="notes-@offer.BidId">Review note <span class="cs-help">Optional</span></label><textarea id="notes-@offer.BidId" name="notes" rows="2" maxlength="4000">@entry?.Notes</textarea>
-                    <div class="cs-review-footer"><output data-mark-total aria-live="polite">Total: — / 100</output><button class="cs-button is-primary">Accept marks<span class="visually-hidden"> for @offer.Invitation.SupplierProfile.CompanyName</span></button></div><p class="cs-help">Accepting locks both marks for this offer.</p>
-                </form>
+                <form asp-action="Approve" method="post" class="ev-approval-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" /><button class="btn ev-button-primary" disabled="@(!Model.WeightsReady || !Model.SelectionReady)">Approve</button></form><button type="button" class="btn ev-button-secondary ev-reject-button" data-bs-toggle="modal" data-bs-target="#reject-offer-modal" disabled="@(!Model.SelectionReady)">Reject</button>
             }
-            else
-            {
-                <dl class="cs-marks"><div><dt>Financial / @Model.FinancialWeight.ToString("0.##")</dt><dd>@(accepted ? entry!.FinancialMark!.Value.ToString("0.##") : "—")</dd></div><div><dt>Technical / @Model.TechnicalWeight.ToString("0.##")</dt><dd>@(accepted ? entry!.TechnicalMark!.Value.ToString("0.##") : "—")</dd></div></dl>
-                <p class="cs-review-total">@(accepted ? $"{(entry!.FinancialMark + entry.TechnicalMark):0.##} / 100 · Locked" : Model.Locked ? "No scored form in this historical record" : "Awaiting member review")</p>
-                @if (accepted && !string.IsNullOrWhiteSpace(entry?.Notes)) { <p class="cs-review-note">@entry.Notes</p> }
-            }
-            </article>
+            else { <span class="ev-approval-readonly">@(mine && approved ? "Your approval is recorded" : "Read-only")</span> }
+            </div>
+        </section>
+    }
+    </div>
+
+
+    @if (editable && Model.SelectionReady)
+    {
+        <div class="modal fade" id="reject-offer-modal" tabindex="-1" aria-labelledby="reject-offer-heading" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content ev-reject-dialog">
+            <form asp-action="RejectOffer" method="post">
+                <input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
+                <div class="modal-header"><h3 class="modal-title" id="reject-offer-heading">Return the offer for review</h3><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body"><p>Your reason will be shared with the committee. The current selection and approvals will be cleared so the committee can choose again.</p><label for="rejection-reason">Reason for rejection</label><textarea id="rejection-reason" name="reason" class="form-control" rows="4" required maxlength="3500" placeholder="Explain which requirement or term needs review…"></textarea></div>
+                <div class="modal-footer"><button type="button" class="btn ev-button-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn ev-button-primary">Reject &amp; return for review</button></div>
+            </form>
+        </div></div></div>
+    }
+    <section class="ev-comments" aria-labelledby="committee-comments-heading">
+        <h3 id="committee-comments-heading">Committee comments</h3>
+        <div class="ev-comments-list">
+        @{ var comments = Model.Members.Select(m => new { Member = m, Entry = Model.Evaluations.Where(e => e.CommitteeAssignmentId == m.CommitteeAssignmentId && !string.IsNullOrWhiteSpace(e.Notes)).OrderByDescending(e => e.SubmittedAt).FirstOrDefault() }).Where(c => c.Entry != null).OrderBy(c => c.Entry!.SubmittedAt).ToList(); }
+        @if (comments.Count == 0) { <p class="ev-comment-empty">No comments yet.</p> }
+        @foreach (var item in comments)
+        {
+            <article class="ev-comment"><header><strong>@item.Member.User.FullName</strong><span>@CommitteeEvaluationPage.MemberName(item.Member.Position)</span><time>@item.Entry!.SubmittedAt?.ToString("yyyy-MM-dd HH:mm") UTC</time></header><p>@item.Entry!.Notes</p></article>
         }
         </div>
+        @if (editable && Model.Offers.Count > 0)
+        {
+            var myComment = comments.FirstOrDefault(c => c.Member.UserId == Model.UserId)?.Entry?.Notes;
+            <form asp-action="SaveComment" method="post" class="ev-comment-form"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><label for="committee-comment">Your comment <span>Visible to all committee members</span></label><textarea id="committee-comment" name="comment" class="form-control" rows="2" maxlength="4000" required placeholder="Share a note with the committee…">@myComment</textarea><button class="btn ev-button-secondary">@(myComment == null ? "Post comment" : "Update comment")</button></form>
+        }
     </section>
-}
 
 }

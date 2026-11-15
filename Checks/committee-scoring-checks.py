@@ -19,6 +19,6 @@ project.write_text(
     '</ItemGroup></Project>', encoding="utf-8")
 shutil.copyfile(repo / "Checks/committee-scoring-harness.cs.txt", work / "Program.cs")
 print("Harness:", work, flush=True)
-subprocess.run(["dotnet", "run", "--project", str(project), "--no-launch-profile",
-                "-p:UseAppHost=false", "-p:OutputPath=" + str(work / "bin") + "/",
-                "--", str(repo), *sys.argv[1:]], check=True)
+output = work / "out"
+subprocess.run(["dotnet", "build", str(project), "-p:UseAppHost=false", "-o", str(output), "-v:q"], check=True)
+subprocess.run(["dotnet", str(output / "Checks.dll"), str(repo), *sys.argv[1:]], check=True)

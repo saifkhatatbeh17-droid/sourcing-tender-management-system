@@ -16,37 +16,14 @@ public class CommitteeEvaluationPage
     public List<CommitteeAssignment> Members => Tender?.CommitteeAssignments.Where(a => a.CommitteeType == "Evaluation").OrderBy(a => a.Position).ToList() ?? [];
     public List<EvaluationCriterion> Criteria => Tender?.EvaluationCriteria.OrderBy(c => c.EvaluationCriterionId).ToList() ?? [];
     public List<TenderApproval> Approvals => Tender?.TenderApprovals.Where(a => a.Stage == "Evaluation").ToList() ?? [];
-    public bool UsesScoredWorkflow => !Locked || Tender?.CommitteeWeightsLockedAt != null;
     public List<CommitteeWeightProposal> WeightProposals => Tender?.CommitteeWeightProposals
         .Where(p => Members.Any(m => m.CommitteeAssignmentId == p.CommitteeAssignmentId)).ToList() ?? [];
     public decimal FinancialWeight => Tender?.CommitteeFinancialWeight ?? Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight);
     public decimal TechnicalWeight => 100 - FinancialWeight;
     public bool ConsensusLocked => Members.Count == 4 && WeightProposals.Count == 4
         && Tender?.CommitteeWeightsLockedAt != null && Tender.CommitteeFinancialWeight is > 0 and < 100;
-    public bool IsAccepted(Evaluation? evaluation) => ConsensusLocked && evaluation is { Status: "Approved", ApprovedAt: not null,
-        FinancialMark: not null, TechnicalMark: not null }
-        && evaluation.FinancialMark >= 0 && evaluation.FinancialMark <= FinancialWeight
-        && evaluation.TechnicalMark >= 0 && evaluation.TechnicalMark <= TechnicalWeight;
-    public int AcceptedCount(Bid bid) => Members.Count(m => IsAccepted(Evaluation(m, bid)));
-    public bool AllOffersAccepted => ConsensusLocked && Offers.Count > 0
-        && Offers.Select(b => b.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1
-        && Offers.All(b => AcceptedCount(b) == 4);
-    public List<CommitteeRanking> Leaders
-    {
-        get { var ranking = Rank(); return ranking.Count == 0 ? [] : ranking.Where(r => r.Score == ranking[0].Score).ToList(); }
-    }
-    public bool HasTie => AllOffersAccepted && Leaders.Count > 1;
-    public int? ScoredWinnerId
-    {
-        get
-        {
-            if (!AllOffersAccepted) return null;
-            var leaders = Leaders;
-            if (leaders.Count == 1) return leaders[0].BidId;
-            return leaders.FirstOrDefault(r => Members.All(m => Tender!.CommitteeTieVotes
-                .Any(v => v.CommitteeAssignmentId == m.CommitteeAssignmentId && v.BidId == r.BidId)))?.BidId;
-        }
-    }
+    // Completed historical evaluations remain readable without retroactive percentage proposals.
+    public bool PercentageReady => Locked || ConsensusLocked;
     public bool Locked => Tender?.Status != "UnderEvaluation";
     public bool SelectionReady => Tender?.EvaluationReport is { RecommendedBidId: int bidId } report
         && ((report.Status == "Draft" && string.IsNullOrWhiteSpace(report.CommitteeSummary)) || Locked) && Offers.Any(b => b.BidId == bidId);
@@ -58,12 +35,11 @@ public class CommitteeEvaluationPage
     };
     public bool ReportReady => Tender?.EvaluationReport is { RecommendedBidId: not null, CommitteeSummary: not null } report
         && !string.IsNullOrWhiteSpace(report.CommitteeSummary) && Offers.Any(b => b.BidId == report.RecommendedBidId);
-    public bool WeightsReady => (!UsesScoredWorkflow || ConsensusLocked) && Members.Count == 4 && Offers.Count > 0
+    public bool WeightsReady => PercentageReady && Members.Count == 4 && Offers.Count > 0
         && Criteria.All(c => c.Weight > 0) && Criteria.Sum(c => c.Weight) == 100
         && Criteria.Any(c => c.Category == "Financial") && Criteria.Any(c => c.Category == "Requirements")
         && Offers.Select(b => b.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1;
-    public bool Ready => UsesScoredWorkflow ? AllOffersAccepted : LegacyReady;
-    private bool LegacyReady => Members.Count == 4 && Offers.Count > 0 && Criteria.Count > 0
+    public bool Ready => Members.Count == 4 && Offers.Count > 0 && Criteria.Count > 0
         && Criteria.Sum(c => c.Weight) == 100 && Criteria.Any(c => c.Category == "Financial") && Criteria.Any(c => c.Category == "Requirements")
         && Offers.Select(b => b.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1
         && Members.All(m => Offers.All(b => ForMember(m).All(c => Score(m, b, c) != null)));
@@ -72,12 +48,9 @@ public class CommitteeEvaluationPage
         .Where(m => ForMember(m).Contains(criterion)).Select(m => Score(m, bid, criterion)).FirstOrDefault(s => s.HasValue);
     public string SharedVersion => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
         System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new {
-            Weights = Criteria.Select(c => new { c.EvaluationCriterionId, c.Weight }),
             Consensus = new { Tender?.CommitteeFinancialWeight, Tender?.CommitteeWeightsLockedAt },
             Proposals = WeightProposals.OrderBy(p => p.CommitteeAssignmentId).Select(p => new { p.CommitteeAssignmentId, p.FinancialWeight, p.ConfirmedAt }),
-            Offers = Offers.Select(b => new { b.BidId, b.Currency, b.DeliveryDays, b.TechnicalDetails, Total = Total(b), Items = b.BidItems.Select(i => new { i.PurchaseRequestItemId, i.Quantity, i.UnitPrice, i.OfferedSpecifications }) }),
-            Forms = Evaluations.OrderBy(e => e.CommitteeAssignmentId).ThenBy(e => e.BidId).Select(e => new { e.CommitteeAssignmentId, e.BidId, e.FinancialMark, e.TechnicalMark, e.Status, e.ApprovedAt }),
-            TieVotes = Tender?.CommitteeTieVotes.OrderBy(v => v.CommitteeAssignmentId).Select(v => new { v.CommitteeAssignmentId, v.BidId, v.ConfirmedAt }),
+            Weights = Criteria.Select(c => new { c.EvaluationCriterionId, c.Weight }),
             Report = new { Tender?.EvaluationReport?.RecommendedBidId, Tender?.EvaluationReport?.CommitteeSummary },
             Approvals = Approvals.OrderBy(a => a.UserId).Select(a => new { a.UserId, a.DecidedAt }) }))));
 
@@ -85,7 +58,7 @@ public class CommitteeEvaluationPage
     {
         1 => "Committee Manager", 2 => "Department Representative", 3 => "Financial Representative", _ => "Technical Representative"
     };
-    public List<EvaluationCriterion> ForMember(CommitteeAssignment member) => UsesScoredWorkflow ? Criteria : Criteria
+    public List<EvaluationCriterion> ForMember(CommitteeAssignment member) => Criteria
         .Where(c => c.Category == (member.Position == 3 ? "Financial" : "Requirements")).ToList();
     public Evaluation? Evaluation(CommitteeAssignment member, Bid bid) => Evaluations
         .SingleOrDefault(e => e.CommitteeAssignmentId == member.CommitteeAssignmentId && e.BidId == bid.BidId);
@@ -99,15 +72,6 @@ public class CommitteeEvaluationPage
     }
     public List<CommitteeRanking> Rank(decimal? financialWeight = null)
     {
-        if (UsesScoredWorkflow)
-        {
-            if (!AllOffersAccepted) return [];
-            return Offers.Select(b => new CommitteeRanking(b.BidId, b.Invitation.SupplierProfile.CompanyName, Total(b), b.Currency,
-                Members.Average(m => Evaluation(m, b)!.FinancialMark!.Value),
-                Members.Average(m => Evaluation(m, b)!.TechnicalMark!.Value)))
-                .Select(r => r with { Score = r.Financial + r.Requirements })
-                .OrderByDescending(r => r.Score).ThenBy(r => r.BidId).ToList();
-        }
         if (!Ready) return [];
         var financial = financialWeight ?? Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight);
         decimal CategoryScore(Bid bid, string category)

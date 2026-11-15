@@ -7,8 +7,7 @@ public static class CommitteeRankingChecks
 {
     public static void Run()
     {
-        // Historical, completed evaluations retain their original category-based ranking.
-        var tender = new Tender { Status = "AwaitingOfficerSummary" };
+        var tender = new Tender { Status = "UnderEvaluation" };
         tender.EvaluationCriteria = [
             new() { EvaluationCriterionId = 1, Category = "Financial", Weight = 40 },
             new() { EvaluationCriterionId = 2, Category = "Requirements", Weight = 60 }];

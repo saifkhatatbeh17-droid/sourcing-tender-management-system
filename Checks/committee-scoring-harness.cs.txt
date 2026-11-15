@@ -10,6 +10,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SourcingTenderManagement.Controllers;
+using SourcingTenderManagement.Checks;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
@@ -69,63 +70,37 @@ try{
  async Task<string> Html(int member,int tender){var response=await clients[member].GetAsync($"/EvaluationCommittee/Evaluations/{tender}");Check(response.StatusCode==HttpStatusCode.OK,"member evaluation renders");return await response.Content.ReadAsStringAsync();}
  string Value(string html,string name)=>WebUtility.HtmlDecode(Regex.Match(html,"name=\""+name+"\"[^>]*value=\"([^\"]*)\"").Groups[1].Value);
  async Task<HttpResponseMessage> Post(int member,int tender,string action,params (string,string)[] values){var html=await Html(member,tender);var body=values.ToDictionary(x=>x.Item1,x=>x.Item2);body["id"]=tender.ToString();body["version"]=Value(html,"version");if(string.IsNullOrEmpty(body["version"]))body["version"]=Value(await Html(1,tender),"version");body["__RequestVerificationToken"]=Value(html,"__RequestVerificationToken");return await clients[member].PostAsync("/EvaluationCommittee/"+action,new FormUrlEncodedContent(body));}
+ CommitteeScoringChecks.Run();
+ await CommitteeApprovalOrderChecks.RunAsync();
  var first=tenderIds[0];var offers=bidIds[first];
- var initial=await Html(1,first);Check(initial.Contains("Enter all four percentages to unlock scoring")&&initial.Contains("readonly"),"percentage-first UI and read-only AI fields");
- Check(Regex.IsMatch(initial,"id=\"forms-tab\"[^>]*disabled")&&initial.Contains("0 / 4 accepted")&&!initial.Contains("Select this offer"),"scoring tab locked and per-offer acceptance visible before consensus");
+ var initial=await Html(1,first);
+ Check(initial.Contains("Confirm the committee percentages")&&initial.Contains("readonly"),"percentage proposals and read-only AI fields render");
+ Check(initial.Contains("Select this offer")&&!initial.Contains("0 / 4 accepted")&&!initial.Contains("financialMark"),"original offer choice restored without per-offer scoring UI");
  var csrf=await clients[1].PostAsync("/EvaluationCommittee/ConfirmPercentage",new FormUrlEncodedContent(new Dictionary<string,string>{{"id",first.ToString()},{"financialWeight","40"}}));Check(csrf.StatusCode==HttpStatusCode.BadRequest,"antiforgery token required");
- var outsider=await Post(5,first,"ConfirmPercentage",("financialWeight","40"));Check(outsider.StatusCode==HttpStatusCode.Forbidden,"unassigned member cannot confirm");
- await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"),("technicalMark","30"));
- await WithDb(async db=>Check(!await db.Evaluations.AnyAsync(),"marks blocked before consensus"));
- for(int i=1;i<=4;i++)Check((await Post(i,first,"ConfirmPercentage",("financialWeight",(20+i*10).ToString()))).StatusCode==HttpStatusCode.Redirect,"percentage confirmation saves");
+ Check((await Post(5,first,"ConfirmPercentage",("financialWeight","40"))).StatusCode==HttpStatusCode.Forbidden,"unassigned member cannot confirm");
+ await Post(1,first,"SelectOffer",("bidId",offers[0].ToString()));
+ await Post(1,first,"Approve");
+ await Post(1,first,"RecommendBids",("financialWeight","40"),("requirementsWeight","60"));
+ await WithDb(async db=>Check(!await db.TenderApprovals.AnyAsync()&&!await db.EvaluationReports.AnyAsync(r=>r.TenderId==first&&r.RecommendedBidId!=null),"selection and approval blocked before average"));
+ Check(NoAi.Calls==0,"AI blocked before average");
+ for(int i=1;i<=4;i++)Check((await Post(i,first,"ConfirmPercentage",("financialWeight",(20+i*10).ToString()))).StatusCode==HttpStatusCode.Redirect,"member percentage confirmation saves");
  await Post(1,first,"ConfirmPercentage",("financialWeight","80"));
- await WithDb(async db=>{var t=await db.Tenders.FindAsync(first);Check(t!.CommitteeFinancialWeight==45&&await db.CommitteeWeightProposals.CountAsync(p=>p.TenderId==first)==4,"average frozen and duplicate proposals rejected");});
- var unlocked=await Html(1,first);Check(!Regex.IsMatch(unlocked,"id=\"forms-tab\"[^>]*disabled")&&unlocked.Contains("Committee percentages are locked"),"four confirmed proposals unlock scoring while the average stays locked");
+ await WithDb(async db=>{var t=await db.Tenders.FindAsync(first);Check(t!.CommitteeFinancialWeight==45&&t.CommitteeWeightsLockedAt!=null&&await db.CommitteeWeightProposals.CountAsync(p=>p.TenderId==first)==4,"average frozen and confirmed proposals immutable");Check(t.Status=="UnderEvaluation"&&!await db.TenderApprovals.AnyAsync(),"average does not automatically approve or advance tender");});
+ var unlocked=await Html(1,first);Check(unlocked.Contains("Committee percentages are locked")&&!unlocked.Contains("Edit weights"),"calculated percentage cannot be edited in UI");
  await Post(1,first,"RecommendBids",("financialWeight","99"),("requirementsWeight","1"));Check(NoAi.Calls==0,"tampered AI percentages rejected before network call");
- Check((await Post(1,first,"SelectOffer",("bidId",offers[0].ToString()))).StatusCode==HttpStatusCode.BadRequest,"legacy manual selection blocked");
- await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","46"),("technicalMark","20"));
- await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"));
- await WithDb(async db=>Check(!await db.Evaluations.AnyAsync(),"bounds and both-fields checks enforced on server"));
- await WithDb(async db=>{var member=await db.Users.FindAsync("member4");member!.IsActive=false;await db.SaveChangesAsync();});
- await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"),("technicalMark","30"));
- await WithDb(async db=>{Check(!await db.Evaluations.AnyAsync(),"inactive committee membership blocks scoring");var member=await db.Users.FindAsync("member4");member!.IsActive=true;await db.SaveChangesAsync();db.Clarifications.Add(new Clarification{TenderId=first,SenderUserId="member1",RecipientUserId="member2",Subject="Confirm pack size",Description="Confirm the supplied pack specification.",Status="Pending",CreatedAt=DateTime.UtcNow});await db.SaveChangesAsync();});
- await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"),("technicalMark","30"));
- await WithDb(async db=>{Check(!await db.Evaluations.AnyAsync(),"unresolved clarification blocks acceptance");await db.Clarifications.Where(c=>c.TenderId==first).ExecuteUpdateAsync(u=>u.SetProperty(c=>c.Status,"Resolved").SetProperty(c=>c.ResolvedAt,DateTime.UtcNow));});
- foreach(var bid in offers)for(int i=1;i<=4;i++){
-  Check((await Post(i,first,"AcceptScoredOffer",("bidId",bid.ToString()),("financialMark",bid==offers[0]?"20":"40"),("technicalMark",bid==offers[0]?"30":"50"))).StatusCode==HttpStatusCode.Redirect,"independent offer form accepted");
-  if(bid==offers[0]&&i==4)await WithDb(async db=>Check((await db.Tenders.FindAsync(first))!.Status=="UnderEvaluation","all offers required before handoff"));
-  if(bid==offers[0]&&i==1){await Post(1,first,"AcceptScoredOffer",("bidId",bid.ToString()),("financialMark","0"),("technicalMark","0"));await WithDb(async db=>Check((await db.Evaluations.SingleAsync(e=>e.TenderId==first))!.FinancialMark==20,"accepted marks immutable"));}
- }
- await WithDb(async db=>{var t=await db.Tenders.Include(t=>t.EvaluationReport).Include(t=>t.TenderApprovals).SingleAsync(t=>t.TenderId==first);Check(t.Status=="AwaitingOfficerSummary"&&t.EvaluationReport!.RecommendedBidId==offers[1]&&t.TenderApprovals.Count==4,"winner and report handoff persist atomically");Check(await db.Evaluations.CountAsync(e=>e.TenderId==first&&e.Status=="Approved")==8,"eight locked forms saved");});
- var pdf=await clients[1].GetAsync($"/EvaluationCommittee/EvaluationReportPdf/{first}");Check(pdf.StatusCode==HttpStatusCode.OK&&pdf.Content.Headers.ContentType?.MediaType=="application/pdf","completed score report exports through the real PDF endpoint");
- using var officerClient=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false}){BaseAddress=new Uri("http://127.0.0.1:5094")};officerClient.DefaultRequestHeaders.Add("X-Scoring-Test",token);officerClient.DefaultRequestHeaders.Add("X-Member","officer");
- async Task OfficerReview(string decision){var html=await officerClient.GetStringAsync("/SourcingOfficer/Reports");string version="";await WithDb(async db=>version=SourcingOfficerController.ReportReviewVersion(await db.EvaluationReports.SingleAsync(r=>r.TenderId==first)));var response=await officerClient.PostAsync("/SourcingOfficer/ReviewCommitteeReport",new FormUrlEncodedContent(new Dictionary<string,string>{{"tenderId",first.ToString()},{"decision",decision},{"reason","Please review the delivery evidence."},{"version",version},{"__RequestVerificationToken",Value(html,"__RequestVerificationToken")}}));Check(response.StatusCode==HttpStatusCode.Redirect,"officer report review route accepts current version");}
- await OfficerReview("RequestEdits");
- await WithDb(async db=>{var t=await db.Tenders.Include(t=>t.EvaluationReport).SingleAsync(t=>t.TenderId==first);Check(t.Status=="UnderEvaluation"&&t.CommitteeFinancialWeight==45&&t.EvaluationReport!.Status=="ReturnedForReview"&&!await db.Evaluations.AnyAsync(e=>e.TenderId==first&&e.Status=="Approved")&&!await db.TenderApprovals.AnyAsync(a=>a.TenderId==first&&a.Stage=="Evaluation"),"officer return reopens forms and preserves frozen percentage");});
- foreach(var bid in offers)for(int i=1;i<=4;i++)await Post(i,first,"AcceptScoredOffer",("bidId",bid.ToString()),("financialMark",bid==offers[0]?"20":"40"),("technicalMark",bid==offers[0]?"30":"50"));
- await OfficerReview("Approve");
- using var managerClient=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false}){BaseAddress=new Uri("http://127.0.0.1:5094")};managerClient.DefaultRequestHeaders.Add("X-Scoring-Test",token);managerClient.DefaultRequestHeaders.Add("X-Member","manager");
- int reportId=0;long reviewVersion=0;await WithDb(async db=>{var report=await db.EvaluationReports.SingleAsync(r=>r.TenderId==first);reportId=report.EvaluationReportId;reviewVersion=report.SubmittedAt!.Value.Ticks;Check(report.Status=="OfficerSubmitted","fresh scored result forwards to manager");});
- var managerHtml=await managerClient.GetStringAsync($"/SourcingManager/Submissions?id={reportId}");
- var returned=await managerClient.PostAsync("/SourcingManager/Decide",new FormUrlEncodedContent(new Dictionary<string,string>{{"ReportId",reportId.ToString()},{"Decision","ReturnedForReview"},{"Notes","Recheck the supplier delivery evidence before resubmission."},{"ReviewVersion",reviewVersion.ToString()},{"__RequestVerificationToken",Value(managerHtml,"__RequestVerificationToken")}}));
- Check(returned.StatusCode==HttpStatusCode.Redirect,"manager return route completes");
- await WithDb(async db=>{var t=await db.Tenders.Include(t=>t.EvaluationReport).SingleAsync(t=>t.TenderId==first);Check(t.Status=="UnderEvaluation"&&t.CommitteeFinancialWeight==45&&t.EvaluationReport!.Status=="ReturnedForReview"&&!await db.Evaluations.AnyAsync(e=>e.TenderId==first&&e.Status=="Approved")&&!await db.CommitteeTieVotes.AnyAsync(v=>v.TenderId==first),"manager return starts fresh reviews without stale accepted forms or tie votes");});
- var tie=tenderIds[1];for(int i=1;i<=4;i++)await Post(i,tie,"ConfirmPercentage",("financialWeight","50"));
- foreach(var bid in bidIds[tie])for(int i=1;i<=4;i++)await Post(i,tie,"AcceptScoredOffer",("bidId",bid.ToString()),("financialMark","40"),("technicalMark","40"));
- await WithDb(async db=>Check((await db.Tenders.FindAsync(tie))!.Status=="UnderEvaluation"&&!await db.EvaluationReports.AnyAsync(r=>r.TenderId==tie&&r.RecommendedBidId!=null),"tie pauses progression"));
- for(int i=1;i<=3;i++)await Post(i,tie,"DecideTie",("bidId",bidIds[tie][1].ToString()));
- await Post(4,tie,"DecideTie",("bidId",bidIds[tie][0].ToString()));await WithDb(async db=>Check((await db.Tenders.FindAsync(tie))!.Status=="UnderEvaluation","split tie decisions remain paused"));
- await Post(4,tie,"DecideTie",("bidId",bidIds[tie][1].ToString()));await WithDb(async db=>Check((await db.Tenders.FindAsync(tie))!.Status=="AwaitingOfficerSummary","unanimous explicit tie decision progresses"));
+ Check((await Post(1,first,"SaveWeights",("financialWeight","99"),("requirementsWeight","1"))).StatusCode==HttpStatusCode.BadRequest,"old editable weight route blocked");
+ Check((await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"),("technicalMark","30"))).StatusCode==HttpStatusCode.NotFound,"per-offer scoring endpoint removed");
+ Check((await Post(1,first,"DecideTie",("bidId",offers[0].ToString()))).StatusCode==HttpStatusCode.NotFound,"tie decision endpoint removed");
+ await Post(1,first,"SelectOffer",("bidId",offers[1].ToString()));
+ await WithDb(async db=>Check((await db.EvaluationReports.SingleAsync(r=>r.TenderId==first)).RecommendedBidId==offers[1],"manual offer selection works after average"));
+ for(int i=1;i<=4;i++)await Post(i,first,"Approve");
+ await WithDb(async db=>Check(await db.TenderApprovals.CountAsync(a=>a.TenderId==first&&a.Stage=="Evaluation")==4&&(await db.Tenders.FindAsync(first))!.Status=="UnderEvaluation","four original approvals recorded and wait for final report"));
+ await Post(1,first,"RejectOffer",("reason","Recheck delivery terms."));
+ await WithDb(async db=>Check(!await db.TenderApprovals.AnyAsync(a=>a.TenderId==first)&&(await db.EvaluationReports.SingleAsync(r=>r.TenderId==first)).RecommendedBidId==null&&(await db.Tenders.FindAsync(first))!.CommitteeFinancialWeight==45,"original rejection clears choice and approvals but retains locked average"));
  var concurrent=tenderIds[2];var stale=await Html(1,concurrent);var repeated=new Dictionary<string,string>{{"id",concurrent.ToString()},{"financialWeight","40"},{"version",Value(stale,"version")},{"__RequestVerificationToken",Value(stale,"__RequestVerificationToken")}};
  var pair=await Task.WhenAll(clients[1].PostAsync("/EvaluationCommittee/ConfirmPercentage",new FormUrlEncodedContent(repeated)),clients[1].PostAsync("/EvaluationCommittee/ConfirmPercentage",new FormUrlEncodedContent(repeated)));
  Check(pair.All(r=>r.StatusCode==HttpStatusCode.Redirect),"simultaneous duplicate requests return without server errors");await WithDb(async db=>Check(await db.CommitteeWeightProposals.CountAsync(p=>p.TenderId==concurrent)==1,"tender lock prevents duplicate concurrent confirmations"));
- Check(NoAi.Calls==0,"scoring and progression require no live AI service");
  Console.WriteLine($"PASS: {passed} real MVC checks in isolated database {database}.");
- if(serve){
-  for(int i=2;i<=4;i++)await Post(i,concurrent,"ConfirmPercentage",("financialWeight","40"));
-  for(int i=2;i<=4;i++)await Post(i,concurrent,"AcceptScoredOffer",("bidId",bidIds[concurrent][0].ToString()),("financialMark","35"),("technicalMark","50"));
-  Console.WriteLine($"BROWSER PREVIEW: http://127.0.0.1:5094/qa/login/member1/{token}");Console.WriteLine($"REVIEW URL: http://127.0.0.1:5094/EvaluationCommittee/Evaluations/{concurrent}?tab=forms");
-  await app.WaitForShutdownAsync();
- }
  foreach(var client in clients.Values)client.Dispose();
 }finally{
  await app.StopAsync();
