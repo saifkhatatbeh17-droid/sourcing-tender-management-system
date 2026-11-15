@@ -31,8 +31,4 @@ public record AccountProfileViewModel(
     string? DepartmentName,
     IReadOnlyList<string> Roles,
     string? UserName,
-    bool EmailConfirmed,
-    bool? DepartmentIsActive,
-    IReadOnlyList<ProfileActivityMetric> Activity);
-
-public sealed record ProfileActivityMetric(string Label, int Count);
+    bool? DepartmentIsActive);

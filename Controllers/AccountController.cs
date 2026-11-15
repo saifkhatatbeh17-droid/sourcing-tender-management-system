@@ -98,55 +98,10 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
 
         var profile = new AccountProfileViewModel(
             account.FullName, account.Email, account.PhoneNumber, account.Department?.Name,
-            roles.OrderBy(role => role).ToList(), account.UserName, account.EmailConfirmed,
-            account.Department?.IsActive,
-            await LoadProfileActivity(account.Id, roles, HttpContext.RequestAborted));
+            roles.OrderBy(role => role).ToList(), account.UserName,
+            account.Department?.IsActive);
 
         return View(profile);
-    }
-
-    private async Task<IReadOnlyList<ProfileActivityMetric>> LoadProfileActivity(
-        string accountId, IList<string> roles, CancellationToken cancellationToken)
-    {
-        var primaryRole = RoleNames.Primary.FirstOrDefault(roles.Contains);
-        var approvals = db.TenderApprovals.Where(approval => approval.UserId == accountId);
-
-        return primaryRole switch
-        {
-            RoleNames.Admin =>
-            [
-                new("Supplier reviews attributed to you", await db.SupplierProfiles.CountAsync(
-                    supplier => supplier.ReviewedByUserId == accountId, cancellationToken))
-            ],
-            RoleNames.Department =>
-            [
-                new("Purchase requests created", await db.PurchaseRequests.CountAsync(
-                    request => request.RequestedByUserId == accountId, cancellationToken))
-            ],
-            RoleNames.SourcingOfficer =>
-            [
-                new("Tenders created", await db.Tenders.CountAsync(
-                    tender => tender.CreatedByUserId == accountId, cancellationToken)),
-                new("Purchase requests assigned to you for review", await db.PurchaseRequests.CountAsync(
-                    request => request.ReviewedByUserId == accountId, cancellationToken))
-            ],
-            RoleNames.SourcingManager =>
-            [
-                new("Manager decisions recorded", await approvals.CountAsync(
-                    approval => approval.Stage == "Manager", cancellationToken))
-            ],
-            RoleNames.EvaluationCommittee =>
-            [
-                new("Evaluation assignments", await db.CommitteeAssignments.CountAsync(
-                    assignment => assignment.UserId == accountId && assignment.CommitteeType == "Evaluation", cancellationToken))
-            ],
-            RoleNames.TopCommittee =>
-            [
-                new("Top Committee votes recorded", await approvals.CountAsync(
-                    approval => approval.Stage == "Top", cancellationToken))
-            ],
-            _ => []
-        };
     }
 
     [HttpGet, Authorize]

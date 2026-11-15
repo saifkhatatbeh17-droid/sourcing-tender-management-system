@@ -67,7 +67,6 @@
                 <h2 id="profile-account-details">Account details</h2>
                 <dl class="ap-fields">
                     <div><dt>Sign-in name</dt><dd>@(Model.UserName ?? "Not provided")</dd></div>
-                    <div><dt>Email confirmation</dt><dd>@(Model.EmailConfirmed ? "Confirmed" : "Not confirmed")</dd></div>
                     @if (Model.DepartmentIsActive is bool departmentIsActive)
                     {
                         <div><dt>Department status</dt><dd>@(departmentIsActive ? "Active" : "Inactive")</dd></div>
@@ -76,19 +75,6 @@
             </section>
 
             <partial name="_ProfileSecurity" model="new ChangePasswordViewModel()" />
-
-            @if (Model.Activity.Count > 0)
-            {
-                <section class="ap-card" aria-labelledby="profile-activity">
-                    <h2 id="profile-activity">Your activity</h2>
-                    <dl class="ap-fields">
-                        @foreach (var metric in Model.Activity)
-                        {
-                            <div><dt>@metric.Label</dt><dd>@metric.Count</dd></div>
-                        }
-                    </dl>
-                </section>
-            }
         </div>
     </div>
 </div>
