@@ -15,7 +15,7 @@ public sealed class PdfWatermarkService : IPdfWatermarkService
     private static readonly SemaphoreSlim Slots = new(2);
 
     public async Task<byte[]> ApplyAsync(Stream original, ClaimsPrincipal user, DateTimeOffset accessedAt,
-        CancellationToken cancellationToken = default, bool combinePageContents = false)
+        CancellationToken cancellationToken = default)
     {
         var account = AccountLabel(user);
         if (original.CanSeek && original.Length - original.Position > MaxInputBytes)
@@ -78,13 +78,6 @@ public sealed class PdfWatermarkService : IPdfWatermarkService
                 Line("Accessed " + timestamp, small, -small * 1.6);
                 content.Append("Q\n");
                 page.Contents.AppendContent().CreateStream(Encoding.ASCII.GetBytes(content.ToString()));
-                // Keep generated report text and its watermark in one stream for viewer compatibility.
-                if (combinePageContents)
-                {
-                    var combined = page.Contents.CreateSingleContent();
-                    if (combined.Reference == null) document.Internals.AddObject(combined);
-                    page.Elements["/Contents"] = combined.Reference!;
-                }
 
                 void Line(string text, double fontSize, double y)
                 {

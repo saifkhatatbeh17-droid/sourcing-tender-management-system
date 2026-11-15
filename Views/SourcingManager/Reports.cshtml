@@ -38,7 +38,7 @@
                 <button type="submit" class="btn btn-primary">Filter</button>
             </div>
         </form>
-        <nav class="workspace-toolbar" aria-label="Filtered decisions export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportsPdf" asp-route-search="@Model.Search" asp-route-decision="@Model.Decision"><partial name="_ReportDownloadIcon" /> Download PDF</a></nav>
+        <nav class="workspace-toolbar" aria-label="Filtered decisions export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportsPdf" asp-route-search="@Model.Search" asp-route-decision="@Model.Decision">Download PDF</a></nav>
 
         @if (Model.Decisions.Count == 0)
         {
