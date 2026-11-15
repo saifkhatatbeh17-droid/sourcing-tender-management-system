@@ -13,7 +13,7 @@ public partial class EvaluationCommitteeController
     {
         if (version != page.SharedVersion) return Task.FromResult<string?>("The committee changed. Reload before confirming your percentage.");
         var error = CommitteeConsensus.ConfirmWeight(page, financialWeight, DateTime.UtcNow);
-        TempData["EvaluationTab"] = "forms";
+        TempData["EvaluationTab"] = "offers";
         return Task.FromResult(error);
     });
 

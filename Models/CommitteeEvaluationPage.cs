@@ -56,7 +56,7 @@ public class CommitteeEvaluationPage
 
     public static string MemberName(int position) => position switch
     {
-        1 => "Committee Manager", 2 => "Department Representative", 3 => "Financial Representative", _ => "Technical Representative"
+        1 => "Committee Manager", 2 => "Department Manager", 3 => "Financial Representative", _ => "Technical Representative"
     };
     public List<EvaluationCriterion> ForMember(CommitteeAssignment member) => Criteria
         .Where(c => c.Category == (member.Position == 3 ? "Financial" : "Requirements")).ToList();
