@@ -4,7 +4,7 @@
         <h3 class="fs-5 mb-0" id="question-@Model.ClarificationId">@Model.Subject</h3>
         <span class="badge @(Model.Status == "Resolved" ? "text-bg-success" : Model.Status == "Answered" ? "text-bg-primary" : "text-bg-secondary")">@Model.Status</span>
     </div>
-    <p class="small"><a asp-action="TenderDetails" asp-route-id="@Model.TenderId">Tender #@Model.TenderId · @Model.TenderTitle</a><br />Sent @CommitteeDisplay.Utc(Model.CreatedAt) to @Model.ManagerName</p>
+    <div class="tc-cell-stack tc-conversation-meta"><a asp-action="TenderDetails" asp-route-id="@Model.TenderId">@Model.TenderTitle</a><span class="tc-cell-meta">Tender #@Model.TenderId</span><span class="tc-cell-meta">Sent to @Model.ManagerName · @CommitteeDisplay.Utc(Model.CreatedAt)</span></div>
     <p class="committee-message">@Model.Description</p>
     @if (Model.Responses.Count == 0)
     { <p class="text-secondary">Waiting for the Sourcing Manager's response.</p> }
@@ -13,8 +13,8 @@
         <h4 class="fs-6">Replies</h4>
         @foreach (var response in Model.Responses)
         {
-            <p class="small text-secondary mb-1">@response.RespondedByName · @CommitteeDisplay.Utc(response.CreatedAt)</p>
-            <p class="committee-message">@(response.Message == "[Portal: resolution confirmed]" ? "Marked as resolved" : response.Message)</p>
+            <div class="tc-reply"><p class="small text-secondary mb-1"><strong>@response.RespondedByName</strong><span class="tc-cell-meta">@CommitteeDisplay.Utc(response.CreatedAt)</span></p>
+            <p class="committee-message">@(response.Message == "[Portal: resolution confirmed]" ? "Marked as resolved" : response.Message)</p></div>
         }
     }
     @if (Model.Status == "Resolved")

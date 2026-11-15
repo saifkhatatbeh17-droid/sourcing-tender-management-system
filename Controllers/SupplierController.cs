@@ -261,17 +261,10 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
 
     public async Task<IActionResult> DownloadSummary(int id)
     {
-        var profile = await MyProfile(); if (profile == null) return NotFound();
-        var bid = await db.Bids.AsNoTracking().Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile)
-            .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
-            .Include(b => b.BidItems).ThenInclude(i => i.PurchaseRequestItem)
-            .SingleOrDefaultAsync(b => b.BidId == id && b.Invitation.SupplierProfileId == profile.SupplierProfileId);
-        if (bid == null) return NotFound();
-        var tender = bid.Invitation.Tender;
-        var lines = new List<string> { "PHARMACARE | SUPPLIER OFFER SUMMARY", $"Supplier: {profile.CompanyName}", $"Bid reference: BID-{bid.BidId:D6}", $"Tender: {tender.Title}", $"Tender number: TND-{tender.TenderId:D6}", $"Submitted: {(bid.SubmittedAt?.ToString("yyyy-MM-dd HH:mm 'UTC'", CultureInfo.InvariantCulture) ?? "Draft")}", "", "ITEMS" };
-        foreach (var item in bid.BidItems) lines.Add($"{item.PurchaseRequestItem.ItemName} | Qty {item.Quantity} {item.PurchaseRequestItem.Unit} | {item.UnitPrice:N2} {bid.Currency} | {(item.Quantity * item.UnitPrice):N2} {bid.Currency}");
-        lines.AddRange(["", $"TOTAL: {bid.BidItems.Sum(i => i.Quantity * i.UnitPrice):N2} {bid.Currency}", $"Delivery: {bid.DeliveryDays} days", $"Payment terms: {bid.PaymentTerms ?? "Not specified"}", $"Status: {bid.Status}"]);
-        return File(BuildPdf(lines), "application/pdf", $"BID-{bid.BidId:D6}-summary.pdf");
+        var result = await Offer(id);
+        if (result is not ViewResult { Model: Bid bid }) return result;
+        return SourcingTenderManagement.Services.Reports.ReportPdfDownload.Create(this,
+            () => SourcingTenderManagement.Services.Reports.ReportPdfExport.SupplierSummary(bid), $"BID-{id:D6}-summary.pdf");
     }
 
     public async Task<IActionResult> Profile()

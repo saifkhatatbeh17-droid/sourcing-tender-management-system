@@ -7,6 +7,7 @@
     var winner = Model.Offers.FirstOrDefault(b => b.BidId == scenario?.RecommendedBidId);
 }
 <section class="ev-ai-workspace" aria-labelledby="ai-heading">
+    @if (scenario != null) { <nav class="workspace-toolbar" aria-label="Saved recommendation export"><a class="btn btn-outline-primary btn-sm" asp-action="RecommendationPdf" asp-route-id="@Model.Tender!.TenderId">Download PDF</a></nav> }
     <header class="ev-ai-workspace-heading"><div><span class="ev-ai-workspace-icon" aria-hidden="true">AI</span><div><h3 id="ai-heading">AI recommendation</h3><p>Compare the bids. You make the final choice.</p></div></div></header>
     <div class="ev-ai-layout">
     @if (Model.Members.Any(m => m.UserId == Model.UserId))

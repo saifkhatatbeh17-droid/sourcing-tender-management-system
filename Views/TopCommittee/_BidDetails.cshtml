@@ -9,9 +9,9 @@
     <dt class="col-sm-3">Delivery timeframe</dt><dd class="col-sm-9">@Model.DeliveryDays days</dd>
     <dt class="col-sm-3">Payment terms</dt><dd class="col-sm-9">@CommitteeDisplay.Text(Model.PaymentTerms)</dd>
     <dt class="col-sm-3">Valid until</dt><dd class="col-sm-9">@CommitteeDisplay.Date(Model.ValidUntil)</dd>
-    <dt class="col-sm-3">Technical details</dt><dd class="col-sm-9">@CommitteeDisplay.Text(Model.TechnicalDetails)</dd>
+    <dt class="col-sm-3">Technical details</dt><dd class="col-sm-9 tc-report-copy">@CommitteeDisplay.Text(Model.TechnicalDetails)</dd>
     <dt class="col-sm-3">Compliance</dt><dd class="col-sm-9">@CommitteeDisplay.Status(Model.ComplianceStatus)</dd>
-    <dt class="col-sm-3">Compliance notes</dt><dd class="col-sm-9">@CommitteeDisplay.Text(Model.ComplianceNotes)</dd>
+    <dt class="col-sm-3">Compliance notes</dt><dd class="col-sm-9 tc-report-copy">@CommitteeDisplay.Text(Model.ComplianceNotes)</dd>
 </dl>
 @if (Model.Items.Count == 0) { <p>No bid items are recorded.</p> }
 else
@@ -25,7 +25,7 @@ else
 }
 <h3 class="fs-6 mt-4">Bid documents</h3>
 @if (Model.Documents.Count == 0) { <p>No bid documents are recorded.</p> }
-else { <ul>@foreach (var document in Model.Documents) { <li>@document.OriginalFileName · @CommitteeDisplay.Text(document.DocumentType) <span class="text-secondary">(@document.SizeBytes.ToString("N0") bytes)</span></li> }</ul> }
+else { <ul class="tc-document-list">@foreach (var document in Model.Documents) { <li><span>@document.OriginalFileName</span><span class="tc-cell-meta text-secondary">@CommitteeDisplay.Text(document.DocumentType) · @document.SizeBytes.ToString("N0") bytes</span></li> }</ul> }
 <h3 class="fs-6 mt-4">Evaluation details</h3>
 @if (Model.Evaluations.Count == 0) { <p class="mb-0">No submitted technical or financial evaluations are available.</p> }
 else
@@ -33,7 +33,7 @@ else
     @foreach (var evaluation in Model.Evaluations)
     {
         <h4 class="fs-6 mt-3">@evaluation.Evaluator · @CommitteeDisplay.Status(evaluation.Status)</h4>
-        <p>@CommitteeDisplay.Text(evaluation.Notes)</p>
+        <p class="tc-report-copy">@CommitteeDisplay.Text(evaluation.Notes)</p>
         <p class="text-secondary small">Submitted: @CommitteeDisplay.Utc(evaluation.SubmittedAt) · Approved: @CommitteeDisplay.Utc(evaluation.ApprovedAt)</p>
         @if (evaluation.Scores.Count > 0)
         {

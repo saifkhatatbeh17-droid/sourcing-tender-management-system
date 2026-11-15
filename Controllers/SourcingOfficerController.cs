@@ -7,7 +7,7 @@ using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Controllers;
 [Authorize(Roles = RoleNames.SourcingOfficer)]
-public class SourcingOfficerController(ApplicationDbContext db) : Controller
+public partial class SourcingOfficerController(ApplicationDbContext db) : Controller
 {
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
     public async Task<IActionResult> Dashboard()

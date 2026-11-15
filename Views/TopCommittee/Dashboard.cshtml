@@ -2,7 +2,7 @@
 @section Styles { <partial name="_ReadStyles" /> }
 @{ ViewData["Title"] = "Top Committee Dashboard"; }
 <div class="unified-dashboard"><div class="dashboard-heading">
-    <div><h1>Top committee dashboard</h1><p class="text-secondary mt-2 mb-0">Review your assigned tenders and the committee's recorded decisions.</p></div>
+    <div><h1>Top Committee dashboard</h1><p class="text-secondary mt-2 mb-0">Review assigned tenders, follow member approvals and read recorded decisions.</p></div>
     <div class="dashboard-heading-actions">
         <a class="dashboard-cta" asp-action="Decisions">View pending tenders <span aria-hidden="true">→</span></a>
     </div>
@@ -29,7 +29,7 @@ else
         { <p class="mb-0">None of your assigned tenders is awaiting a committee decision.</p> }
         else
         {
-            <div class="table-responsive" tabindex="0" role="region" aria-label="Pending committee decisions"><table class="committee-read-table table align-middle mb-0">
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Pending committee decisions"><table class="committee-read-table table tc-dashboard-table mb-0">
                 <caption class="text-secondary">Up to 10 pending tenders, oldest first. Reload the page to see new decisions.</caption>
                 <thead><tr><th scope="col">Tender</th><th scope="col">Nominated supplier</th><th scope="col">Committee progress</th><th scope="col">Review</th></tr></thead>
                 <tbody>@foreach (var tender in Model.PendingTenders)
@@ -39,13 +39,13 @@ else
                         <th scope="row"><a asp-action="TenderDetails" asp-route-id="@tender.TenderId">@tender.Title</a><span class="d-block small text-secondary">Tender #@tender.TenderId</span></th>
                         <td>@(tender.NominatedSupplier ?? "No submitted nomination recorded")</td>
                         <td>
-                            <p class="mb-1">@tender.RecordedApprovals / 4 approvals recorded</p>
+                            <div class="tc-approval-overview"><strong>@tender.RecordedApprovals <span>/ 4 approvals</span></strong><progress max="4" value="@tender.RecordedApprovals" aria-label="Committee approvals"></progress></div>
                             @if (members.Count != 4) { <p class="text-secondary small mb-1">Four member assignments are required.</p> }
-                            <ul class="list-unstyled small mb-0">@foreach (var member in members)
-                            { <li>@member.FullName: @(member.RecordedDecision == null ? "No vote recorded" : CommitteeDisplay.Status(member.RecordedDecision))@(!member.IsActive || !member.HasCommitteeRole ? " (not eligible)" : "")</li> }</ul>
+                            <details class="tc-progress-details"><summary>Member decisions</summary><ul class="list-unstyled small tc-member-progress mb-0">@foreach (var member in members)
+                            { <li><span>@member.FullName</span><span>@(member.RecordedDecision == null ? "Not voted" : CommitteeDisplay.Status(member.RecordedDecision))@(!member.IsActive || !member.HasCommitteeRole ? " (not eligible)" : "")</span></li> }</ul></details>
                         </td>
                         <td>@if (tender.OpenClarifications > 0)
-                        { <span class="badge text-bg-secondary">Paused</span><span class="d-block small mt-1">@tender.OpenClarifications open clarification(s)</span> }
+                        { <span class="badge text-bg-secondary">Voting paused</span><span class="tc-cell-meta">@tender.OpenClarifications open @(tender.OpenClarifications == 1 ? "clarification" : "clarifications")</span> }
         else { <span class="badge text-bg-primary">Awaiting review</span> }</td>
                     </tr>
                 }</tbody>
