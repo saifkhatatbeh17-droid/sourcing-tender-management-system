@@ -12,7 +12,7 @@ using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Controllers;
 
 [Authorize(Roles = RoleNames.EvaluationCommittee)]
-public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users, BidRecommendationService ai) : Controller
+public partial class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users, BidRecommendationService ai) : Controller
 {
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));

@@ -3,6 +3,8 @@ using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.Rendering;
 using PdfSharp.Fonts;
+using PdfSharp.Drawing;
+using System.Globalization;
 using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
@@ -118,16 +120,11 @@ public sealed class TopCommitteeReportExport
 
     public byte[] Pdf(CommitteeReportPage p)
     {
-        lock(FontLock) { if(GlobalFontSettings.FontResolver==null)GlobalFontSettings.FontResolver=new ReportFontResolver(); }
-        var doc=new Document(); doc.Info.Title="Top Committee Report";
-        doc.Styles["Normal"]!.Font.Name="CommitteeReport"; doc.Styles["Normal"]!.Font.Size=9;
-        var section=doc.AddSection(); section.PageSetup.Orientation=Orientation.Landscape;
-        section.PageSetup.PageFormat=PageFormat.A4; section.PageSetup.LeftMargin=Unit.FromCentimeter(1.5);
-        section.PageSetup.RightMargin=Unit.FromCentimeter(1.5);
-        section.PageSetup.TopMargin=Unit.FromCentimeter(1.5); section.PageSetup.BottomMargin=Unit.FromCentimeter(1.5);
+        var doc=CreatePdfDocument("Top Committee Report");
+        var section=doc.LastSection;
         var title=section.AddParagraph("Top Committee Report"); title.Format.Font.Size=20; title.Format.Font.Bold=true;
         section.AddParagraph("Generated "+CommitteeDisplay.Utc(p.GeneratedAt));
-        section.AddParagraph(Scope).Format.SpaceAfter=8; section.AddParagraph(Filters(p.Filter)).Format.SpaceAfter=12;
+        section.AddParagraph(Scope).Format.SpaceAfter=8; AddPdfText(section,Filters(p.Filter)).Format.SpaceAfter=12;
         var footer=section.Footers.Primary.AddParagraph(); footer.AddText("Top Committee | Page "); footer.AddPageField(); footer.AddText(" of "); footer.AddNumPagesField();
 
         Heading(section,"A · General statistics");
@@ -166,16 +163,42 @@ public sealed class TopCommitteeReportExport
             var table=Table(section,["Tender ID","Final outcome","Latest committee activity (UTC)","Awarded at (UTC)"],[2,6,9.7,8]);
             foreach(var r in p.Rows)AddRow(table,[r.TenderId.ToString(),Outcome(r),CommitteeDisplay.Utc(r.CommitteeOutcomeAt),CommitteeDisplay.Utc(r.AwardedAt)]);
         }
+        return RenderPdf(doc);
+    }
+
+    // The existing Top Committee document setup is shared by every report export.
+    internal static Document CreatePdfDocument(string reportTitle)
+    {
+        lock(FontLock) { if(GlobalFontSettings.FontResolver==null)GlobalFontSettings.FontResolver=new ReportFontResolver(); }
+        var doc=new Document(); doc.Info.Title=reportTitle;
+        doc.Styles["Normal"]!.Font.Name="CommitteeReport"; doc.Styles["Normal"]!.Font.Size=9;
+        var section=doc.AddSection(); section.PageSetup.Orientation=Orientation.Landscape;
+        section.PageSetup.PageFormat=PageFormat.A4; section.PageSetup.LeftMargin=Unit.FromCentimeter(1.5);
+        section.PageSetup.RightMargin=Unit.FromCentimeter(1.5);
+        section.PageSetup.TopMargin=Unit.FromCentimeter(1.5); section.PageSetup.BottomMargin=Unit.FromCentimeter(1.5);
+        return doc;
+    }
+
+    internal static byte[] RenderPdf(Document doc)
+    {
         var renderer=new PdfDocumentRenderer { Document=doc }; renderer.RenderDocument();
         using var stream=new MemoryStream(); renderer.PdfDocument.Save(stream,false); return stream.ToArray();
     }
 
-    private static void Heading(Section section,string text)
+    internal static Paragraph AddPdfText(Section section,string? text)
     {
-        var p=section.AddParagraph(text); p.Format.Font.Size=13; p.Format.Font.Bold=true;
+        Paragraph? last=null;
+        foreach(var line in WrapPdfText(text,Unit.FromCentimeter(26.7).Point))
+        {last=section.AddParagraph(line);last.Format.KeepTogether=false;last.Format.KeepWithNext=false;}
+        return last!;
+    }
+
+    internal static void Heading(Section section,string text)
+    {
+        var p=section.AddParagraph(string.Join("\n",WrapPdfText(text,Unit.FromCentimeter(26.7).Point,13,XFontStyleEx.Bold))); p.Format.Font.Size=13; p.Format.Font.Bold=true;
         p.Format.Font.Color=Color.FromRgb(0,100,103); p.Format.SpaceBefore=10; p.Format.SpaceAfter=10; p.Format.KeepWithNext=true;
     }
-    private static Table Table(Section section,string[] headers,double[] widths)
+    internal static Table Table(Section section,string[] headers,double[] widths)
     {
         var table=section.AddTable(); table.Borders.Width=.5; table.Borders.Color=Colors.LightGray;
         table.TopPadding=4; table.BottomPadding=4;
@@ -185,10 +208,47 @@ public sealed class TopCommitteeReportExport
         for(int i=0;i<headers.Length;i++)head.Cells[i].AddParagraph(headers[i]);
         return table;
     }
-    private static void AddRow(Table table,string[] values)
+    internal static void AddRow(Table table,string[] values)
     {
-        var row=table.AddRow();
-        for(int i=0;i<values.Length;i++)row.Cells[i].AddParagraph(values[i]);
+        if(values.Length!=table.Columns.Count)throw new ArgumentException("Report row has an incorrect column count.");
+        var wrapped=values.Select((value,i)=>WrapPdfText(value,table.Columns[i].Width.Point-10)).ToArray();
+        // MigraDoc cannot split a single oversized row across pages. Explicit
+        // continuation rows keep every measured line within the printable height.
+        const int linesPerRow=22;
+        for(var offset=0;offset<wrapped.Max(lines=>lines.Count);offset+=linesPerRow)
+        {
+            var row=table.AddRow();
+            for(int i=0;i<values.Length;i++)
+                row.Cells[i].AddParagraph(string.Join("\n",wrapped[i].Skip(offset).Take(linesPerRow)));
+        }
+    }
+
+    internal static List<string> WrapPdfText(string? text,double width,double fontSize=9,XFontStyleEx fontStyle=XFontStyleEx.Regular)
+    {
+        using var graphics=XGraphics.CreateMeasureContext(new XSize(1000,1000),XGraphicsUnit.Point,XPageDirection.Downwards);
+        var font=new XFont("CommitteeReport",fontSize,fontStyle);
+        var lines=new List<string>();
+        foreach(var original in (text??"").Replace("\r\n","\n").Replace('\r','\n').Split('\n'))
+        {
+            var remaining=original;
+            while(remaining.Length>0 && graphics.MeasureString(remaining,font).Width>width)
+            {
+                var starts=StringInfo.ParseCombiningCharacters(remaining);
+                var low=1;var high=starts.Length;
+                while(low<high)
+                {
+                    var middle=(low+high+1)/2;
+                    var end=middle==starts.Length?remaining.Length:starts[middle];
+                    if(graphics.MeasureString(remaining[..end],font).Width<=width)low=middle;else high=middle-1;
+                }
+                var length=low==starts.Length?remaining.Length:starts[low];
+                var space=remaining.LastIndexOf(' ',Math.Max(0,length-1),length);
+                if(space>0)length=space;
+                lines.Add(remaining[..length]);remaining=remaining[length..].TrimStart(' ');
+            }
+            lines.Add(remaining);
+        }
+        return lines;
     }
     private sealed class ReportFontResolver : IFontResolver
     {

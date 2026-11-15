@@ -14,8 +14,8 @@
 <p><span class="badge text-bg-secondary">@CommitteeDisplay.Status(tender.Status)</span><span class="ms-2">Tender #@tender.TenderId</span></p>
 @await Component.InvokeAsync("DetailsQr", new { controller = "TopCommittee", action = "TenderDetails", id = tender.TenderId, label = "Tender" })
 <div class="tc-summary" aria-label="Committee decision summary">
-    <span><strong>@tender.Votes.Count(v => v.Decision == "Approved") / 4</strong> recorded approvals</span>
-    <span><strong>Nominated bid:</strong> @(nominated == null ? "Not available" : $"#{nominated.BidId} · {nominated.SupplierName}")</span>
+    <div class="tc-summary-item"><span class="tc-cell-meta">Committee approvals</span><strong>@tender.Votes.Count(v => v.Decision == "Approved") / 4 recorded</strong></div>
+    <div class="tc-summary-item tc-summary-nomination"><span class="tc-cell-meta">Nominated bid</span><strong>@(nominated == null ? "Not available" : $"#{nominated.BidId} · {nominated.SupplierName}")</strong></div>
     <a href="#voting" class="btn btn-primary">Go to voting</a>
 </div>
 @if (TempData["VotingSuccess"] is string votingSuccess) { <p class="border rounded p-3" role="status">@votingSuccess</p> }
@@ -75,11 +75,11 @@ else if (!tender.Readiness.IsVotingOpen)
     <dl class="row">
         <dt class="col-sm-3">Request</dt><dd class="col-sm-9">#@tender.PurchaseRequest.RequestId · @tender.PurchaseRequest.Title</dd>
         <dt class="col-sm-3">Department</dt><dd class="col-sm-9">@tender.PurchaseRequest.Department</dd>
-        <dt class="col-sm-3">Reason</dt><dd class="col-sm-9">@tender.PurchaseRequest.Reason</dd>
+        <dt class="col-sm-3">Reason</dt><dd class="col-sm-9 tc-report-copy">@tender.PurchaseRequest.Reason</dd>
         <dt class="col-sm-3">Priority</dt><dd class="col-sm-9">@tender.PurchaseRequest.Priority</dd>
         <dt class="col-sm-3">Target date</dt><dd class="col-sm-9">@CommitteeDisplay.Date(tender.PurchaseRequest.TargetDate)</dd>
-        <dt class="col-sm-3">Tender description</dt><dd class="col-sm-9">@tender.Description</dd>
-        <dt class="col-sm-3">Terms</dt><dd class="col-sm-9">@CommitteeDisplay.Text(tender.Terms)</dd>
+        <dt class="col-sm-3">Tender description</dt><dd class="col-sm-9 tc-report-copy">@tender.Description</dd>
+        <dt class="col-sm-3">Terms</dt><dd class="col-sm-9 tc-report-copy">@CommitteeDisplay.Text(tender.Terms)</dd>
         <dt class="col-sm-3">Opens</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(tender.OpensAt)</dd>
         <dt class="col-sm-3">Submission deadline</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(tender.ClosesAt)</dd>
     </dl>
@@ -96,7 +96,7 @@ else if (!tender.Readiness.IsVotingOpen)
     @if (tender.Documents.Count > 0)
     {
         <h3 class="fs-6 mt-4">Tender documents</h3>
-        <ul class="mb-0">@foreach (var document in tender.Documents) { <li>@document.OriginalFileName <span class="text-secondary">(@document.SizeBytes.ToString("N0") bytes)</span></li> }</ul>
+        <ul class="tc-document-list mb-0">@foreach (var document in tender.Documents) { <li>@document.OriginalFileName <span class="tc-cell-meta text-secondary">@document.SizeBytes.ToString("N0") bytes</span></li> }</ul>
     }
 </section>
 
@@ -107,8 +107,8 @@ else if (!tender.Readiness.IsVotingOpen)
         <dt class="col-sm-3">Nominated bid</dt><dd class="col-sm-9">@if (nominated != null)
         { <a asp-action="TenderDetails" asp-route-id="@tender.TenderId" asp-route-bidId="@nominated.BidId" asp-fragment="selected-bid">@nominated.SupplierName · Bid #@nominated.BidId</a><span class="badge text-bg-primary ms-2">Manager nominated</span> }
         else { <span>No submitted nomination is available.</span> }</dd>
-        <dt class="col-sm-3">Recommendation</dt><dd class="col-sm-9">@CommitteeDisplay.Text(tender.Report?.ManagerSummary)</dd>
     </dl>
+    <div class="tc-recommendation-copy"><h3>Recommendation and referral</h3><partial name="_ReadableReport" model="@(CommitteeDisplay.Text(tender.Report?.ManagerSummary))" /></div>
     @if (!tender.Readiness.HasValidNomination) { <p class="text-secondary mt-2 mb-0">The nomination is missing or is not currently eligible for a committee decision.</p> }
 </section>
 
@@ -130,13 +130,14 @@ else if (!tender.Readiness.IsVotingOpen)
     @if (tender.Report is not { } report) { <p class="mb-0">No unified evaluation report is recorded for this tender.</p> }
     else
     {
+        <nav class="workspace-toolbar" aria-label="Unified report export"><a class="btn btn-outline-primary btn-sm" asp-action="UnifiedReportPdf" asp-route-id="@tender.TenderId" asp-route-bidId="@Model.SelectedBid?.BidId">Download PDF</a></nav>
         <dl class="row mb-0">
             <dt class="col-sm-3">Report</dt><dd class="col-sm-9">#@report.ReportId · @CommitteeDisplay.Status(report.Status)</dd>
             <dt class="col-sm-3">Submitted</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(report.SubmittedAt)</dd>
-            <dt class="col-sm-3">Committee summary</dt><dd class="col-sm-9">@CommitteeDisplay.Text(report.CommitteeSummary)</dd>
-            <dt class="col-sm-3">Officer summary</dt><dd class="col-sm-9">@CommitteeDisplay.Text(report.OfficerSummary)</dd>
-            <dt class="col-sm-3">Manager summary</dt><dd class="col-sm-9">@CommitteeDisplay.Text(report.ManagerSummary)</dd>
         </dl>
+        <details class="tc-report-section" open><summary>Committee summary</summary><partial name="_ReadableReport" model="@(CommitteeDisplay.Text(report.CommitteeSummary))" /></details>
+        <details class="tc-report-section"><summary>Officer summary</summary><partial name="_ReadableReport" model="@(CommitteeDisplay.Text(report.OfficerSummary))" /></details>
+        <details class="tc-report-section"><summary>Manager summary</summary><partial name="_ReadableReport" model="@(CommitteeDisplay.Text(report.ManagerSummary))" /></details>
     }
 </section>
 
@@ -156,7 +157,7 @@ else if (!tender.Readiness.IsVotingOpen)
         </table></div>
     }
     @foreach (var vote in tender.Votes)
-    { <p class="mb-2"><strong>@vote.MemberName · @CommitteeDisplay.Status(vote.Decision):</strong> @CommitteeDisplay.Text(vote.Justification)</p> }
+    { <div class="tc-record-note"><strong>@vote.MemberName · @CommitteeDisplay.Status(vote.Decision)</strong><p class="tc-report-copy mb-0">@CommitteeDisplay.Text(vote.Justification)</p></div> }
     @if (tender.Votes.Count == 0) { <p class="mb-0">No Top Committee votes have been recorded.</p> }
 </section>
 <a asp-action="Dashboard">Back to dashboard</a>

@@ -1,0 +1,177 @@
+// Test host only. Copied to an OS-temp console project by report-pdf-checks.py.
+// Uses one uncommitted SQL transaction, rolled back on shutdown. No application
+// startup, seeding, hosted services, migrations, AI requests, or writable routes.
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using SourcingTenderManagement.Controllers;
+using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Models;
+using SourcingTenderManagement.Models.Entities;
+using SourcingTenderManagement.Services.Evaluation;
+using SourcingTenderManagement.Services.PdfWatermark;
+using SourcingTenderManagement.Services.TopCommittee;
+
+var repo = args[0]; var output = args[1];
+Directory.CreateDirectory(output);
+var fixtureDocumentName="pdf-qa-"+Guid.NewGuid().ToString("N")+".pdf";
+var fixtureDocumentPath=Path.Combine(repo,"App_Data","private-files","offers",fixtureDocumentName);
+await File.WriteAllTextAsync(Path.Combine(output,"uploaded-fixture-path.txt"),fixtureDocumentPath);
+await SourcingTenderManagement.Checks.PdfWatermarkChecks.RunAsync(Path.Combine(output,"watermark-regression"));
+Directory.CreateDirectory(Path.GetDirectoryName(fixtureDocumentPath)!);
+File.Copy(Path.Combine(output,"watermark-regression","source-upload.pdf"),fixtureDocumentPath);
+await SourcingTenderManagement.Checks.TopCommitteeReportingChecks.RunAsync(Path.Combine(output,"top-regression"));
+await SourcingTenderManagement.Checks.FinalReportChecks.RunAsync();
+await SourcingTenderManagement.Checks.ReportPdfExportChecks.RunAsync(Path.Combine(output,"export-regression"));
+var connectionString = Environment.GetEnvironmentVariable("REPORT_TEST_CONNECTION") ??
+    "Server=localhost;Database=SourcingTenderManagementCodeFirst;Integrated Security=True;TrustServerCertificate=True;MultipleActiveResultSets=True";
+await using var connection = new SqlConnection(connectionString);
+await connection.OpenAsync();
+await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync();
+ApplicationDbContext Context()
+{
+    var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection).Options);
+    db.Database.UseTransaction(transaction); return db;
+}
+var actors = new Dictionary<string, (ApplicationUser User,string Role)>();
+await using var seed = Context();
+foreach (var (key,role) in new[]{("officer","SourcingOfficer"),("other-officer","SourcingOfficer"),("manager","SourcingManager"),
+    ("eval","EvaluationCommittee"),("eval2","EvaluationCommittee"),("eval3","EvaluationCommittee"),("eval4","EvaluationCommittee"),
+    ("top","TopCommittee"),("top2","TopCommittee"),("top3","TopCommittee"),("top4","TopCommittee"),("other-top","TopCommittee"),
+    ("supplier","Supplier"),("other-supplier","Supplier"),("department","Department")})
+{
+    var user = new ApplicationUser { Id=Guid.NewGuid().ToString("N"),UserName="pdf-qa-"+key+"@example.invalid",
+        NormalizedUserName=("pdf-qa-"+key+"@example.invalid").ToUpperInvariant(),Email="pdf-qa-"+key+"@example.invalid",
+        NormalizedEmail=("pdf-qa-"+key+"@example.invalid").ToUpperInvariant(),FullName="PDF QA "+key,IsActive=true,SecurityStamp=Guid.NewGuid().ToString() };
+    seed.Users.Add(user); actors[key]=(user,role);
+    var roleId=await seed.Roles.Where(r=>r.Name==role).Select(r=>r.Id).SingleAsync();
+    seed.UserRoles.Add(new IdentityUserRole<string>{UserId=user.Id,RoleId=roleId});
+}
+var dept = new Department { Name="PDF QA department",IsActive=true }; seed.Add(dept);
+await seed.SaveChangesAsync();
+actors["department"].User.DepartmentId=dept.DepartmentId;
+var profiles=new List<SupplierProfile>();
+foreach(var key in new[]{"supplier","other-supplier"})
+{
+    var profile=new SupplierProfile {UserId=actors[key].User.Id,CompanyName="PDF QA "+key,RegistrationNumber=Guid.NewGuid().ToString(),ContactName="QA contact",Status="Approved",CreatedAt=DateTime.UtcNow};
+    seed.Add(profile); profiles.Add(profile);
+}
+await seed.SaveChangesAsync();
+var now=new DateTime(2026,11,14,12,34,56,DateTimeKind.Utc);
+var longReport=string.Join("\n",Enumerable.Range(1,120).Select(i=>$"REPORT-LINE-{i:D3}: Recorded findings, comparison, observations and conclusion. Full text retained for pagination verification."));
+var notes=string.Join("\n",Enumerable.Range(1,35).Select(i=>$"DECISION-NOTE-{i:D3}: Approved with recorded procurement considerations and follow-up notes."));
+var tenders=new List<Tender>(); var bids=new List<Bid>(); var reports=new List<EvaluationReport>();
+foreach(var (label,status,owner) in new[]{("Manager fixture","AwaitingManagerReview","officer"),("Top fixture","AwaitingCommitteeDecision","officer"),("PRIVATE-OTHER-OFFICER","Closed","other-officer")})
+{
+    var request=new PurchaseRequest { DepartmentId=dept.DepartmentId,RequestedByUserId=actors["department"].User.Id,Title=label+" request",Reason="Recorded purchase reason",Priority="Normal",TargetDate=new DateOnly(2026,12,1),Status="ConvertedToTender",CreatedAt=now};
+    var tender=new Tender {PurchaseRequest=request,CreatedByUserId=actors[owner].User.Id,Title=label,Description="Actual authorized description",Terms="Recorded terms",OpensAt=now.AddDays(-8),ClosesAt=now.AddDays(-1),CreatedAt=now,Status=status};
+    seed.Add(tender); await seed.SaveChangesAsync(); tenders.Add(tender);
+    for(int i=1;i<=65;i++) request.PurchaseRequestItems.Add(new PurchaseRequestItem { ItemName=$"ITEM-{i:D3}",Quantity=i,Unit="unit",Specifications=$"REQUEST-SPEC-{i:D3}: actual requested specification" });
+    var invitation=new Invitation { Tender=tender,SupplierProfile=profiles[owner=="officer"?0:1],InvitedByUserId=actors[owner].User.Id,Status="Accepted",SentAt=now.AddDays(-5)};
+    var bid=new Bid { Invitation=invitation,TenderId=tender.TenderId,Currency="JOD",DeliveryDays=5,PaymentTerms="PAYMENT-TERMS: net thirty days",ValidUntil=new DateOnly(2026,12,20),TechnicalDetails="TECHNICAL-NOTES: documented technical response العربية محفوظة",TaxAmount=12.34m,AdditionalCosts=5.67m,Status="Compliant",ComplianceStatus="Compliant",ComplianceNotes="COMPLIANCE-NOTES: approved screening",SubmittedAt=now,CreatedAt=now};
+    seed.Add(bid); await seed.SaveChangesAsync(); bids.Add(bid);
+    foreach(var item in request.PurchaseRequestItems) bid.BidItems.Add(new BidItem {PurchaseRequestItem=item,Quantity=item.Quantity,UnitPrice=3.25m,OfferedSpecifications=$"OFFER-SPEC-{item.ItemName}: all actual technical specifications"});
+    bid.BidDocuments.Add(new BidDocument {DocumentType="Technical",OriginalFileName="recorded-supporting-document.pdf",StoredFileName=fixtureDocumentName,ContentType="application/pdf",FileSizeBytes=new FileInfo(fixtureDocumentPath).Length,UploadedAt=now});
+    var financial=new EvaluationCriterion {Tender=tender,Name="PRICE-CRITERION",Category="Financial",Weight=40,Description="Financial fit"};
+    var technical=new EvaluationCriterion {Tender=tender,Name="TECHNICAL-CRITERION",Category="Requirements",Weight=60,Description="Technical fit"};
+    seed.AddRange(financial,technical); await seed.SaveChangesAsync();
+    if(owner=="officer")
+    {
+        for(int i=1;i<=4;i++)
+        {
+            var key=i==1?"eval":"eval"+i;
+            var assignment=new CommitteeAssignment {Tender=tender,UserId=actors[key].User.Id,CommitteeType="Evaluation",Position=i}; seed.Add(assignment); await seed.SaveChangesAsync();
+            seed.Add(new TenderApproval {Tender=tender,UserId=actors[key].User.Id,CommitteeAssignmentId=assignment.CommitteeAssignmentId,Stage="Evaluation",Decision="Approved",DecidedAt=now});
+            var evaluation=new Evaluation {TenderId=tender.TenderId,Bid=bid,CommitteeAssignment=assignment,Status="Submitted",Notes="EVALUATOR-NOTES: all scores recorded",SubmittedAt=now}; seed.Add(evaluation);
+            evaluation.EvaluationScores.Add(new EvaluationScore {TenderId=tender.TenderId,EvaluationCriterion=i==3?financial:technical,Score=85,Notes="SCORE-NOTES: actual evaluation note"});
+        }
+        for(int i=1;i<=4;i++)seed.Add(new CommitteeAssignment {Tender=tender,UserId=actors[i==1?"top":"top"+i].User.Id,CommitteeType="Top",Position=i});
+        seed.Add(new TenderApproval {Tender=tender,UserId=actors["manager"].User.Id,Stage="Manager",Decision="Approved",Notes=notes,DecidedAt=now});
+    }
+    await seed.SaveChangesAsync();
+    var report=new EvaluationReport { Tender=tender,RecommendedBidId=bid.BidId,PreparedByUserId=actors["eval"].User.Id,Status=status=="AwaitingCommitteeDecision"?"ManagerApproved":"OfficerSubmitted",CommitteeSummary=owner=="officer"?longReport:"PRIVATE-OTHER-REPORT",OfficerSummary="OFFICER-SUMMARY: recorded review",ManagerSummary="MANAGER-SUMMARY: recorded recommendation",SubmittedAt=now};
+    seed.Add(report); reports.Add(report); await seed.SaveChangesAsync();
+    if(owner=="officer")
+    {
+        // SQL decimal scales are part of the persisted fingerprint: construct it
+        // from the same reloaded values that the production read action sees.
+        var persisted=await seed.Tenders.AsNoTracking().AsSplitQuery()
+            .Include(t=>t.PurchaseRequest).ThenInclude(p=>p.PurchaseRequestItems)
+            .Include(t=>t.Invitations).ThenInclude(i=>i.SupplierProfile)
+            .Include(t=>t.Invitations).ThenInclude(i=>i.Bids.Where(b=>b.ComplianceStatus=="Compliant")).ThenInclude(b=>b.BidItems)
+            .SingleAsync(t=>t.TenderId==tender.TenderId);
+        var page=new CommitteeEvaluationPage {Tender=persisted};
+        var advice=new BidRecommendation([new(40,bid.BidId,string.Join("\n",Enumerable.Range(1,45).Select(i=>$"AI-REASON-{i:D3}: persisted recommendation, not generated during download.")))],
+            ["AI-MISSING: recorded information to verify"],[new(bid.BidId,"AI-STRENGTHS: documented fit","AI-TRADEOFFS: documented tradeoff")]);
+        seed.Add(new AiAnalysis {Tender=tender,RequestedByUserId=actors["eval"].User.Id,FinancialWeight=40,RequirementsWeight=60,ModelName="Synthetic saved fixture",CreatedAt=now,ResultJson=JsonSerializer.Serialize(new SavedBidRecommendation(BidRecommendationService.Fingerprint(page),advice),BidRecommendationService.Json)});
+        await seed.SaveChangesAsync();
+    }
+}
+seed.ChangeTracker.Clear();
+var keyToken=Guid.NewGuid().ToString("N");
+var builder=WebApplication.CreateBuilder(new WebApplicationOptions { Args=[],ContentRootPath=repo,ApplicationName=typeof(AccountController).Assembly.FullName,EnvironmentName="Development" });
+builder.WebHost.UseUrls("http://127.0.0.1:5088");
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
+builder.Services.AddScoped(_=>Context());
+builder.Services.AddSingleton(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection).Options);
+builder.Services.AddControllersWithViews().AddApplicationPart(typeof(AccountController).Assembly);
+builder.Services.AddSingleton<TimeProvider>(new FixedClock());
+builder.Services.AddPdfWatermarks(); builder.Services.AddTopCommitteeFoundation();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IPdfWatermarkService,QaWatermark>();
+builder.Services.AddIdentity<ApplicationUser,IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
+builder.Services.AddAuthentication(o=>{o.DefaultAuthenticateScheme="ReportQA";o.DefaultChallengeScheme="ReportQA";o.DefaultForbidScheme="ReportQA";})
+    .AddScheme<AuthenticationSchemeOptions,QaAuthentication>("ReportQA",_=>{});
+builder.Services.AddSingleton(new QaActors(actors,keyToken));
+builder.Services.AddHttpClient<BidRecommendationService>().ConfigurePrimaryHttpMessageHandler(()=>new NoAiCalls());
+builder.Services.AddAuthorization();
+await using var app=builder.Build();
+app.UseStaticFiles(); app.UseRouting();
+app.Use(async(ctx,next)=>{if(ctx.Request.Method!="GET"){ctx.Response.StatusCode=405;return;}await next();});
+app.UseAuthentication();app.UseAuthorization();
+app.MapGet("/qa/health",()=>"ready");
+app.MapGet("/qa/stats",async()=>new {aiCalls=NoAiCalls.Calls,transactionActive=transaction.Connection!=null,
+    reports=await seed.EvaluationReports.CountAsync(),bids=await seed.Bids.CountAsync(),decisions=await seed.TenderApprovals.CountAsync()});
+app.MapGet("/qa/stop",(IHostApplicationLifetime lifetime)=>{lifetime.StopApplication();return "stopping";});
+app.MapControllerRoute("default","{controller=Home}/{action=Index}/{id?}");
+var manifest=new { token=keyToken,tender=tenders[0].TenderId,topTender=tenders[1].TenderId,privateTender=tenders[2].TenderId,
+    report=reports[0].EvaluationReportId,privateReport=reports[2].EvaluationReportId,bid=bids[0].BidId,topBid=bids[1].BidId,
+    privateBid=bids[2].BidId,total=CommitteeEvaluationPage.Total(bids[0]).ToString("N2"),now="2026-11-14 12:34:56 UTC",
+    documentId=bids[0].BidDocuments.Single().BidDocumentId,documentPath=fixtureDocumentPath,
+    documentHash=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(fixtureDocumentPath))) };
+await File.WriteAllTextAsync(Path.Combine(output,"fixtures.json"),JsonSerializer.Serialize(manifest));
+try { await app.RunAsync(); }
+finally { await transaction.RollbackAsync(); File.Delete(fixtureDocumentPath); Console.WriteLine("ROLLBACK: all synthetic report fixtures and the uploaded test PDF removed; schema unchanged."); }
+
+record QaActors(Dictionary<string,(ApplicationUser User,string Role)> Actors,string Token);
+class QaAuthentication(IOptionsMonitor<AuthenticationSchemeOptions> options,ILoggerFactory logger,UrlEncoder encoder,QaActors actors)
+    : AuthenticationHandler<AuthenticationSchemeOptions>(options,logger,encoder)
+{
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    {
+        if(Request.Headers["X-Report-QA"]!=actors.Token || !actors.Actors.TryGetValue(Request.Headers["X-Report-Actor"].ToString(),out var actor))
+            return Task.FromResult(AuthenticateResult.NoResult());
+        var claims=new[]{new Claim(ClaimTypes.NameIdentifier,actor.User.Id),new Claim(ClaimTypes.Name,actor.User.UserName!),new Claim(ClaimTypes.Role,actor.Role)};
+        return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity(claims,"ReportQA")),"ReportQA")));
+    }
+}
+class NoAiCalls : HttpMessageHandler
+{
+    public static int Calls;
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
+    { Interlocked.Increment(ref Calls); throw new InvalidOperationException("PDF tests must never call AI."); }
+}
+class FixedClock : TimeProvider { public override DateTimeOffset GetUtcNow()=>new(2026,11,14,12,34,56,TimeSpan.Zero); }
+class QaWatermark(IHttpContextAccessor accessor):IPdfWatermarkService
+{
+    public Task<byte[]> ApplyAsync(Stream source,ClaimsPrincipal user,DateTimeOffset at,CancellationToken ct=default)
+    {
+        if(accessor.HttpContext is {} context && context.Request.Headers["X-Report-Fail-Watermark"].ToString()=="1")throw new InvalidDataException("Synthetic watermark failure");
+        return new PdfWatermarkService().ApplyAsync(source,user,at,ct);
+    }
+}
