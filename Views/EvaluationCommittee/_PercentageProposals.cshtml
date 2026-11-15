@@ -12,8 +12,9 @@
         {
             <form asp-action="ConfirmPercentage" method="post" data-percentage-proposal>
                 <input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
-                <label for="proposal-financial">Your financial percentage</label><div class="cs-percent-input"><input id="proposal-financial" name="financialWeight" type="number" inputmode="decimal" min="0.01" max="99.99" step="0.01" required aria-describedby="proposal-technical proposal-lock-note" /><span>%</span></div>
-                <p id="proposal-technical" role="status" data-technical-remainder>Technical: —</p><p class="cs-help" id="proposal-lock-note">Confirming locks your proposal.</p><button class="cs-button is-primary">Confirm percentage</button>
+                <div class="cs-slider-heading"><label for="proposal-financial">Your financial percentage</label><output for="proposal-financial" data-financial-percentage>50%</output></div>
+                <input id="proposal-financial" name="financialWeight" type="range" min="0.01" max="99.99" step="0.01" value="50" aria-valuetext="50% financial, 50% technical" aria-describedby="proposal-technical proposal-lock-note" />
+                <p id="proposal-technical" role="status" data-technical-remainder>Technical: 50%</p><p class="cs-help" id="proposal-lock-note">Confirming locks your proposal.</p><button class="cs-button is-primary">Confirm percentage</button>
             </form>
         }
         else { <span class="cs-pending">Awaiting confirmation</span> }
