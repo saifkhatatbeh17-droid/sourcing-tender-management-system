@@ -20,5 +20,8 @@ public static class RoleNames
         Admin,         Department,         SourcingOfficer,         EvaluationCommittee,         SourcingManager,         TopCommittee,         Supplier];
     public static readonly string[] EvaluationPositions = [EvaluationSourcingManager, EvaluationDepartment, EvaluationFinancial, EvaluationTechnical];
     public static readonly string[] TopPositions = [TopCommitteeMember1, TopCommitteeMember2, TopCommitteeMember3, TopCommitteeMember4];
+    public static string DisplayName(string role) => role == TopCommittee ? "CEO & Chiefs"
+        : role.StartsWith("TopCommitteeMember", StringComparison.Ordinal) ? "CEO & Chiefs member " + role["TopCommitteeMember".Length..]
+        : System.Text.RegularExpressions.Regex.Replace(role, "([a-z])([A-Z])", "$1 $2");
     public static IEnumerable<string> All => Primary.Concat(EvaluationPositions).Concat(TopPositions);
 }

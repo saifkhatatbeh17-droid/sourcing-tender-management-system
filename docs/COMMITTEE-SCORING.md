@@ -1,16 +1,25 @@
-# Committee percentage consensus
+# All-offer committee scoring
 
-Four assigned members confirm one financial percentage each; technical is 100 minus financial.
-Confirmed proposals cannot be edited. After the fourth confirmation, the financial arithmetic average
-is rounded to two decimals and frozen; technical is its remainder. AI fields use these values and
-are read-only. Server checks reject changed values and premature selection/approval/comparison.
-Until the fourth submission, the evaluation workspace renders only the percentage card and a
-lock notice. Offers, AI comparison, approval forms and report tabs are withheld. Direct report
-navigation returns to this lock screen. Completed historical evaluations remain readable.
+Four assigned members each confirm a whole-number financial percentage; technical is its remainder.
+After the fourth proposal, the financial mean is rounded once to a whole number and frozen.
+The workspace stays locked until consensus. AI fields use that stored split and cannot be edited.
 
-After consensus the original manual offer selection, four committee approvals, rejection/comments,
-and final AI report workflow applies. There are no per-offer mark forms, offer acceptance counters,
-automatic highest-score handoff or tie decisions.
+Every assigned member must submit financial and technical whole-number marks for every compliant
+eligible offer. Financial marks are out of the frozen financial weight; technical marks are out of
+its remainder. Comments are optional. Submitting locks that member's review of that offer.
+Each Tender & offers card shows the valid approved review count out of four and opens its review forms.
 
-Previously applied additive schema is retained for compatibility and historical data. Retired mark
-and tie fields are unused by this workflow. No existing tender data is deleted.
+All offers need four valid reviews before ranking. The exact average of the four summed marks
+ranks each offer, without weighting it again or rounding scores to choose a winner. The unique
+highest offer progresses automatically to the report step; the tender remains UnderEvaluation.
+Equal highest scores pause progression until four explicit unanimous decisions choose a tied offer.
+There is no manual offer selection, bulk approval, or mutable comment bypass.
+
+The Department Manager generates/sends the final AI report only after complete reviews and a winner.
+The narrative compares the top three ranked offers; its audit record retains exact averages and every member's marks/comments for every offer. The application supplies numeric comparisons and excludes unverified AI narrative. The manager referral covers only the winner and always attaches the purchase purpose, department, items, quantities, specifications and timing. Top committee AI receives these purchase facts and the winning offer directly.
+Only this report action advances to AwaitingOfficerSummary. AI cannot substitute a different winner.
+An officer or manager return clears approvals/tie votes and reopens every offer review while keeping
+the frozen percentage. Completed historical tenders remain readable. No tenders or offers are deleted.
+
+Existing mark and tie tables are reused; this change adds no migration. Validation uses a randomly
+named disposable SQL database through Checks/all-offer-scoring-checks.py and never writes user data.

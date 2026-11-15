@@ -6,32 +6,15 @@
     var approved = Model.Approvals.Count(a => a.Decision == "Approved");
 }
 <section class="cw-panel cw-report-document" aria-labelledby="report-title">
-    @if (!string.IsNullOrWhiteSpace(report?.CommitteeSummary)) { <nav class="workspace-toolbar" aria-label="Report export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id="@tender.TenderId">Download PDF</a></nav> }
     <header class="cw-report-title"><div><p class="cw-eyebrow">Tender #@tender.TenderId · Read-only report</p><h2 id="report-title">@tender.Title</h2></div><span class="cw-status">@CommitteeEvaluationPage.StatusLabel(tender.Status)</span></header>
     @if (Model.Criteria.Count > 0)
     {
-        <dl class="cw-report-weights"><div><dt>Financial weight</dt><dd>@Model.Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight).ToString("0.##")<small>%</small></dd></div><div><dt>Technical weight</dt><dd>@Model.Criteria.Where(c => c.Category == "Requirements").Sum(c => c.Weight).ToString("0.##")<small>%</small></dd></div><div><dt>Committee approvals</dt><dd>@approved<small> / 4</small></dd></div></dl>
+        <dl class="cw-report-weights"><div><dt>Financial weight</dt><dd>@Model.FinancialWeight.ToString("0.##")<small>%</small></dd></div><div><dt>Technical weight</dt><dd>@Model.TechnicalWeight.ToString("0.##")<small>%</small></dd></div><div><dt>Committee approvals</dt><dd>@approved<small> / 4</small></dd></div></dl>
     }
     <section class="cw-recommended" aria-labelledby="recommendation-heading"><span class="cw-document" aria-hidden="true"><partial name="_AdminSidebarIcon" model='@("Offers")' /></span><div><h3 id="recommendation-heading">Recommended offer</h3>
     @if(recommended != null) { <strong>@recommended.Invitation.SupplierProfile.CompanyName</strong><p>Offer #@recommended.BidId · @CommitteeEvaluationPage.Total(recommended).ToString("N2") @recommended.Currency · @recommended.DeliveryDays-day delivery</p> }
     else { <strong>No offer recommended yet</strong><p>The recommendation appears once the committee prepares its report.</p> }
     </div></section>
-    <section class="cw-report-copy" aria-labelledby="findings-heading"><header><h3 id="findings-heading">Committee report</h3><span class="cw-status">@(report == null ? "Not prepared" : CommitteeEvaluationPage.StatusLabel(report.Status))</span></header>
-    @if(!string.IsNullOrWhiteSpace(report?.CommitteeSummary)) { <p class="ev-report-text">@report.CommitteeSummary</p> }
-    else { <div class="cw-report-missing"><p>No report has been prepared for this tender. After all four approvals, generate it in the evaluation workspace.</p></div> }
-    </section>
-    @if(!string.IsNullOrWhiteSpace(report?.OfficerSummary)) { <section class="cw-officer-note"><h3>Sourcing officer review</h3><p>@report.OfficerSummary</p></section> }
+    <partial name="_CommitteeReportSummary" model="Model" />
     <footer class="cw-report-footer"><span>Shared weights and individual approvals</span><a class="cw-button cw-button-secondary" asp-action="Evaluations" asp-route-id="@tender.TenderId">Open evaluation <span aria-hidden="true">↗</span></a></footer>
-</section>
-<section class="cw-panel cw-approval-record" aria-labelledby="approval-record-heading"><header class="cw-panel-header"><div><h2 id="approval-record-heading">Approval record</h2><p>Each member approves the same shared evaluation.</p></div><span class="cw-status">@approved / 4 approved</span></header>
-@if(Model.Members.Count == 0) { <p class="cw-not-started">Approvals will appear after the committee evaluation is started.</p> }
-else
-{
-    <div class="cw-approval-grid">
-    @foreach(var member in Model.Members)
-    { var isApproved = Model.Approvals.Any(a => a.UserId == member.UserId && a.Decision == "Approved");
-      <div><span class="cw-approval-check @(isApproved ? "is-approved" : "")" aria-hidden="true">@(isApproved ? "✓" : "–")</span><span><strong>@CommitteeEvaluationPage.MemberName(member.Position) @(member.UserId == Model.UserId ? "(you)" : "")</strong><small>@(isApproved ? "Approved" : "Awaiting approval")</small></span></div>
-    }
-    </div>
-}
 </section>

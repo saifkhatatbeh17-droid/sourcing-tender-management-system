@@ -8,7 +8,7 @@
     <div class="field"><label asp-for="Password">Password</label><input asp-for="Password" class="form-control" autocomplete="new-password" /><span asp-validation-for="Password" class="text-danger"></span></div>
     <div class="field"><label asp-for="Role">Role</label><select asp-for="Role" class="form-select">
         <option value="">Choose a role</option>
-        @foreach (var role in SourcingTenderManagement.Data.RoleNames.Primary.Where(r => r != "Supplier")) { <option value="@role">@System.Text.RegularExpressions.Regex.Replace(role, "([a-z])([A-Z0-9])", "$1 $2")</option> }
+        @foreach (var role in SourcingTenderManagement.Data.RoleNames.Primary.Where(r => r != "Supplier")) { <option value="@role">@SourcingTenderManagement.Data.RoleNames.DisplayName(role)</option> }
     </select><span asp-validation-for="Role" class="text-danger"></span></div>
     <div class="field"><label asp-for="CommitteeRole">Committee Position</label><select asp-for="CommitteeRole" class="form-select">
         <option value="">Not a committee member</option>

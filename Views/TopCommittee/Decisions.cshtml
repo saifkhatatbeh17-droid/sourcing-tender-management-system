@@ -5,7 +5,7 @@
     var tenderPage = Model.Tenders;
     var totalPages = Math.Max(1, (int)Math.Ceiling((double)tenderPage.TotalCount / tenderPage.PageSize));
 }
-<div class="workspace-heading"><div><h1>Decisions</h1><p>Review your assigned tenders awaiting a Top Committee decision.</p></div><div class="tc-heading-actions"><a class="btn" asp-action="Dashboard">Back to dashboard</a></div></div>
+<div class="workspace-heading"><div><h1>Decisions</h1><p>Review your assigned tenders awaiting a CEO & Chiefs decision.</p></div><div class="tc-heading-actions"><a class="btn" asp-action="Dashboard">Back to dashboard</a></div></div>
 <form asp-action="Decisions" method="get" class="workspace-section" aria-label="Filter pending tenders">
     <div asp-validation-summary="All" class="text-danger" role="alert"></div>
     <div class="row g-3 align-items-end tc-filter-grid">

@@ -1,0 +1,53 @@
+@model CommitteeEvaluationPage
+@using SourcingTenderManagement.Services.Evaluation
+@{
+    var tender = Model.Tender!;
+    var report = tender.EvaluationReport;
+    var hasReport = !string.IsNullOrWhiteSpace(report?.CommitteeSummary);
+    var complete = AllOfferScoring.Complete(Model);
+    var approved = Model.Approvals.Count(a => a.Decision == "Approved");
+    var canGenerate = !Model.Locked && Model.IsDepartmentManager && Model.WeightsReady && Model.SelectionReady && approved == 4 && complete;
+    var offerCount = Math.Min(Model.Offers.Count, 3);
+    var evaluationWorkspace = string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Evaluations", StringComparison.OrdinalIgnoreCase);
+}
+<section class="committee-report-summary" aria-labelledby="committee-report-heading">
+    <div class="cr-document-heading">
+        <span class="cr-document-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M8 12h8M8 16h6"/></svg></span>
+        <div><h3 id="committee-report-heading">Committee report</h3><p>@(hasReport ? "Prepared · Full report available as PDF" : "Not prepared yet")</p></div>
+        @if (hasReport)
+        { <a class="cr-action cr-action-primary" asp-action="EvaluationReportPdf" asp-route-id="@tender.TenderId"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></svg>Download full report <span class="cr-file-type">PDF</span></a> }
+    </div>
+    <p class="cr-description">@(hasReport
+        ? "The complete report includes the committee recommendation, shortlisted offer comparisons, recorded scores and each member’s review. Download the PDF to read the full record."
+        : "Prepare the report after all four members have reviewed every offer and the winner is confirmed. It will include the shortlisted offers and the complete review record.")</p>
+    <dl class="cr-report-facts"><div><dt>Report scope</dt><dd>@(offerCount == 1 ? "1 eligible offer" : $"Top {offerCount} offers")</dd></div><div><dt>Evaluation weights</dt><dd>@Model.FinancialWeight.ToString("0.##")% financial · @Model.TechnicalWeight.ToString("0.##")% technical</dd></div><div><dt>Workflow status</dt><dd>@CommitteeEvaluationPage.StatusLabel(tender.Status)</dd></div></dl>
+    @if (!hasReport)
+    {
+        <div class="cr-next-action">
+        @if (!Model.Locked && Model.IsDepartmentManager && evaluationWorkspace)
+        {
+            <form asp-action="RecommendBids" method="post" data-ai-report>
+                <input type="hidden" name="id" value="@tender.TenderId" />
+                <input type="hidden" name="writeReport" value="true" />
+                <input type="hidden" name="financialWeight" value="@Model.FinancialWeight.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+                <input type="hidden" name="requirementsWeight" value="@Model.TechnicalWeight.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+                <button class="cr-action cr-action-primary" disabled="@(!canGenerate)">Generate report &amp; send to officer <span aria-hidden="true">→</span></button>
+                <span class="cr-progress" role="status" hidden>Preparing the report. Keep this page open…</span>
+            </form>
+            <p>@(canGenerate ? "Sends the top-offer report to the sourcing officer. The manager’s later summary covers the winner only." : "Available when all offer reviews are complete and any tie is resolved.")</p>
+        }
+        else if (!Model.Locked && Model.IsDepartmentManager)
+        { <a class="cr-action cr-action-primary" asp-action="Evaluations" asp-route-id="@tender.TenderId" asp-route-tab="report">Prepare report in evaluation <span aria-hidden="true">→</span></a> }
+        else
+        { <p>@(Model.Locked ? "No report is available for this evaluation." : "The Department Manager prepares and sends this report once every offer review is complete.")</p> }
+        </div>
+    }
+    <details class="cr-approval-details"><summary><span>Member approval record</span><span>@approved / 4 approved <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
+        <ul>@foreach (var member in Model.Members)
+        { var isApproved = Model.Approvals.Any(a => a.UserId == member.UserId && a.Decision == "Approved");
+            <li><span>@CommitteeEvaluationPage.MemberName(member.Position)</span><span class="@(isApproved ? "is-approved" : "")">@(isApproved ? "✓ Approved" : "Pending")</span></li>
+        }</ul>
+    </details>
+    @if (!string.IsNullOrWhiteSpace(report?.OfficerSummary))
+    { <details class="cr-approval-details"><summary>Sourcing officer’s review</summary><p class="cr-officer-note">@report.OfficerSummary</p></details> }
+</section>

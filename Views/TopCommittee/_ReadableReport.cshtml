@@ -1,7 +1,2 @@
 @model string
-<div class="tc-readable-report">
-    @foreach (var paragraph in System.Text.RegularExpressions.Regex.Split(Model.Trim(), @"\r?\n\s*\r?\n"))
-    {
-        <p>@paragraph</p>
-    }
-</div>
+<partial name="_FormattedReport" model="Model" />

@@ -14,9 +14,9 @@
         : tender.Status == "UnderEvaluation" ? 3
         : Model.ComplianceStatus == "Compliant" || Model.Status == "Compliant" ? 3
         : Model.Status == "Submitted" || Model.Status == "UnderReview" || Model.Status == "NonCompliant" ? 2 : 1;
-    var progressMessage = Model.Status == "Accepted" ? "Your offer was selected by the Top Committee."
+    var progressMessage = Model.Status == "Accepted" ? "Your offer was selected by the CEO & Chiefs."
         : Model.Status == "Rejected" ? "The final decision is complete. This offer was not selected."
-        : reportStatus == "ManagerApproved" ? "The Sourcing Manager approved the recommendation; the Top Committee is recording its final decision."
+        : reportStatus == "ManagerApproved" ? "The Sourcing Manager approved the recommendation; the CEO & Chiefs is recording its final decision."
         : reportStatus == "OfficerSubmitted" ? "The Sourcing Officer approved the consolidated report; it is now with the Sourcing Manager."
         : reportStatus is "CommitteeApproved" or "ReturnedForReview" ? "The four-member evaluation report is with the Sourcing Officer for review and approval."
         : tender.Status == "UnderEvaluation" ? "The evaluation committee is reviewing eligible offers and recording its shared decision."
@@ -37,7 +37,7 @@
 else
 {
 <section class="supplier-card offer-progress-card"><div class="offer-progress-heading"><div><span class="eyebrow">OFFER REVIEW TRACKER</span><h2>Where your offer is</h2></div><span class="offer-stage-count">@(stage == 0 ? "Draft · not submitted" : stage == 7 ? "Final stage" : $"Stage {stage} of 7")</span></div><div class="offer-progress-steps" aria-label="Offer workflow progress">
-    @foreach (var item in new[] { (1, "Offer submitted"), (2, "Officer review"), (3, "4-member committee"), (4, "Officer approval"), (5, "Source manager"), (6, "Top committee"), (7, "Final decision") })
+    @foreach (var item in new[] { (1, "Offer submitted"), (2, "Officer review"), (3, "4-member committee"), (4, "Officer approval"), (5, "Source manager"), (6, "CEO & Chiefs"), (7, "Final decision") })
     {
         <div class="offer-progress-step @(item.Item1 == stage ? "current" : item.Item1 < stage ? "complete" : "")"><span>@(item.Item1 < stage ? "✓" : item.Item1.ToString("00"))</span><small>@item.Item2</small></div>
     }

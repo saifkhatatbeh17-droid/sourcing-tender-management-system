@@ -1,6 +1,6 @@
 @model CommitteeReportPage
 @using SourcingTenderManagement.Services.TopCommittee
-@{ViewData["Title"]="Top Committee Reports";var f=Model.Filter;var pages=Math.Max(1,(int)Math.Ceiling(Model.Summary.Matching/20d));}
+@{ViewData["Title"]="CEO & Chiefs Reports";var f=Model.Filter;var pages=Math.Max(1,(int)Math.Ceiling(Model.Summary.Matching/20d));}
 @section Styles{<partial name="_ReadStyles" />}
 <div class="workspace-heading"><div><h1>Reports</h1><p>Review assigned tenders and recorded decisions. Filter dates refer to tender creation and use UTC.</p></div><div class="tc-heading-actions"><a class="btn" asp-action="Dashboard">Dashboard</a></div></div>
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>

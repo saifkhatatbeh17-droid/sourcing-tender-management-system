@@ -11,15 +11,15 @@ public static class CommitteeConsensus
         if (page.Locked || member == null || page.Members.Count != 4) return "Four assigned committee members are required.";
         if (page.ConsensusLocked || page.WeightProposals.Any(p => p.CommitteeAssignmentId == member.CommitteeAssignmentId))
             return "Your confirmed percentage is locked and cannot be changed.";
-        if (financialWeight is not > 0 or not < 100 || decimal.Round(financialWeight.Value, 2) != financialWeight)
-            return "Enter a financial percentage between 0.01 and 99.99, with at most two decimal places.";
+        if (financialWeight is not > 0 or not < 100 || decimal.Truncate(financialWeight.Value) != financialWeight)
+            return "Enter a whole-number financial percentage between 1 and 99.";
         page.Tender!.CommitteeWeightProposals.Add(new CommitteeWeightProposal
         {
             TenderId = page.Tender.TenderId, CommitteeAssignmentId = member.CommitteeAssignmentId,
             FinancialWeight = financialWeight.Value, ConfirmedAt = now
         });
         if (page.WeightProposals.Count != 4) return null;
-        var average = decimal.Round(page.WeightProposals.Average(p => p.FinancialWeight), 2, MidpointRounding.AwayFromZero);
+        var average = decimal.Round(page.WeightProposals.Average(p => p.FinancialWeight), 0, MidpointRounding.AwayFromZero);
         foreach (var category in new[] { "Financial", "Requirements" })
         {
             var criteria = page.Criteria.Where(c => c.Category == category).ToList();

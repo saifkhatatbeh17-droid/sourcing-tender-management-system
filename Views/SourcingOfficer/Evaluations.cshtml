@@ -174,7 +174,7 @@
                 <dl>
                     <dt>Report status</dt><dd><span class="so-status-badge" data-status="@report.Status">@report.Status</span></dd>
                     <dt>Recommended offer</dt><dd>@(recommendationBids.FirstOrDefault(b => b.BidId == report.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName ?? (report.RecommendedBidId.HasValue ? "Offer #" + report.RecommendedBidId : "No offer recommended"))</dd>
-                    <dt>Committee report</dt><dd style="white-space: pre-wrap">@report.CommitteeSummary</dd>
+                    <dt>Committee report</dt><dd><partial name="_FormattedReport" model="report.CommitteeSummary" /></dd>
                 </dl>
                 @if (report.Status == "CommitteeApproved" && selectedTenderStatus == "AwaitingOfficerSummary" && allFourApprovalsRecorded && selectedTenderId.HasValue)
                 {

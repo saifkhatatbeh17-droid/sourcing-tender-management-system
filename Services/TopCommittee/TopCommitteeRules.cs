@@ -41,7 +41,7 @@ internal static class TopCommitteeRules
         var reason = rejected ? "Committee voting has permanently ended after a rejection."
             : tender.Status != "AwaitingCommitteeDecision" ? "Tender is not awaiting a committee decision."
             : tender.AwardedBidId.HasValue || tender.AwardedAt.HasValue ? "An award has already been recorded."
-            : !fourMembers ? "Exactly four distinct, active Top Committee members must be assigned."
+            : !fourMembers ? "Exactly four distinct, active CEO & Chiefs members must be assigned."
             : !HasValidVotes(tender, members) ? "Recorded votes do not match the current committee assignments. Contact the system administrator."
             : !manager ? "One active referring Sourcing Manager with a recorded approval is required."
             : !validNomination ? "A submitted, eligible bid from this tender must be nominated."

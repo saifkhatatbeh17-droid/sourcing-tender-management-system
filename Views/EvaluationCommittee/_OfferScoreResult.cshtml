@@ -1,0 +1,32 @@
+@model CommitteeEvaluationPage
+@using SourcingTenderManagement.Services.Evaluation
+@{ var ranking = AllOfferScoring.Ranking(Model); var leaders = AllOfferScoring.Leaders(Model); var winnerId = AllOfferScoring.Winner(Model); var winner = ranking.FirstOrDefault(r => r.BidId == winnerId); var shortlistIds = AllOfferScoring.Shortlist(Model).Select(r => r.BidId).ToHashSet(); }
+@if (!AllOfferScoring.Complete(Model) && !Model.Locked)
+{ <p class="ev-notice">The result opens after all four members review every offer. <button type="button" class="ev-reference-link" data-open-evaluation-tab="forms-tab">Continue evaluations →</button></p> }
+@if (ranking.Count > 0)
+{
+    <section class="ev-score-result" aria-labelledby="score-result-title">
+    @if (winner != null)
+    {
+        var quote = Model.Offers.Single(b => b.BidId == winner.BidId);
+        <header class="ev-winner-summary"><div><span class="ev-result-eyebrow"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>Highest-scoring offer</span><h3 id="score-result-title">@winner.Supplier</h3><p>Offer #@winner.BidId · @winner.Total.ToString("N2") @winner.Currency · @quote.DeliveryDays-day delivery</p><span class="ev-result-ready">@(Model.Locked ? CommitteeEvaluationPage.StatusLabel(Model.Tender!.Status) : "Ready for the committee report")</span></div><div class="ev-winner-score"><span>Committee score</span><strong>@winner.Score.ToString("0.##")<small> / 100</small></strong><p>@winner.Financial.ToString("0.##") financial + @winner.Requirements.ToString("0.##") technical</p></div></header>
+    }
+    else { <header class="ev-result-pending"><h3 id="score-result-title">Highest score is tied</h3><p>All reviews are complete. Resolve the tie below to identify the winning offer.</p></header> }
+    <div class="ev-ranking-heading"><div><h4>Final ranking</h4><p>Ranked by the committee’s average score. Top three included in the report.</p></div><span>@Model.Offers.Sum(b => AllOfferScoring.Count(Model,b)) / @(Model.Offers.Count * 4) reviews complete</span></div>
+    <div class="ev-ranking-list"><table class="ev-result-table"><caption class="visually-hidden">Offers ranked by exact average committee score. The winning offer is identified by its result label.</caption><colgroup><col class="ev-col-offer"/><col class="ev-col-mark"/><col class="ev-col-mark"/><col class="ev-col-mark"/><col class="ev-col-result"/></colgroup><thead><tr><th scope="col">Supplier</th><th scope="col">Financial <small>/ @Model.FinancialWeight</small></th><th scope="col">Technical <small>/ @Model.TechnicalWeight</small></th><th scope="col">Total <small>/ 100</small></th><th scope="col">Result</th></tr></thead><tbody>
+    @foreach (var row in ranking.OrderByDescending(r=>r.BidId==winnerId).ThenByDescending(r=>r.Score).ThenBy(r=>r.BidId).Select((value,index)=>new{Value=value,Rank=index+1}))
+    { <tr class="@(row.Value.BidId == winnerId ? "is-winner" : "")"><th scope="row"><span class="ev-result-offer"><span class="ev-result-rank">@row.Rank.ToString("00")</span><span class="ev-result-supplier">@row.Value.Supplier<small>Offer #@row.Value.BidId</small></span></span></th><td data-label="Financial">@row.Value.Financial.ToString("0.##")</td><td data-label="Technical">@row.Value.Requirements.ToString("0.##")</td><td class="ev-result-total" data-label="Total / 100">@row.Value.Score.ToString("0.##")</td><td class="ev-result-state"><span class="ev-result-label">@(row.Value.BidId == winnerId ? "✓ Winner" : winnerId == null && leaders.Any(l=>l.BidId==row.Value.BidId) ? "Tied highest" : shortlistIds.Contains(row.Value.BidId) ? "Shortlisted" : "Not shortlisted")</span></td></tr> }
+    </tbody></table></div><p class="ev-result-footnote">Average of four member reviews. The winner progresses for approval; this is not a final award.</p>
+    @if (leaders.Count > 1 && winnerId == null)
+    {
+        <p class="ev-notice" role="status">The report is paused until all four members agree on one of the tied offers. Original marks stay locked.</p>
+        @foreach (var row in leaders)
+        {
+            <div class="ev-tie-choice"><span>@row.Supplier · @Model.Tender!.CommitteeTieVotes.Count(v => v.BidId == row.BidId && Model.Members.Any(m => m.CommitteeAssignmentId == v.CommitteeAssignmentId)) / 4 agree</span>
+            @if (!Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId))
+            { <form asp-action="ResolveScoreTie" method="post"><input type="hidden" name="id" value="@Model.Tender.TenderId" /><input type="hidden" name="bidId" value="@row.BidId" /><input type="hidden" name="version" value="@Model.SharedVersion" /><button class="btn ev-button-secondary">Confirm tied offer</button></form> }
+            </div>
+        }
+    }
+    </section>
+}

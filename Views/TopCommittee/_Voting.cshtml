@@ -25,7 +25,7 @@
         <section class="tc-member-form @(mine ? "tc-member-form-own" : "")" aria-labelledby="top-member-@member.Position">
             <header>
                 <span class="tc-member-access">@(mine ? "Your form" : "Read-only")</span>
-                <h3 id="top-member-@member.Position">Top Committee Member @member.Position</h3>
+                <h3 id="top-member-@member.Position">CEO & Chiefs Member @member.Position</h3>
                 <p>@member.FullName</p>
                 <strong class="tc-member-state">@(vote == null ? "Not approved" : CommitteeDisplay.Status(vote.Decision))</strong>
             </header>

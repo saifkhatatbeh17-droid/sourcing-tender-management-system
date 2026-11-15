@@ -50,7 +50,7 @@ internal sealed class TopCommitteeVotingService(ITopCommitteeVotingStore store) 
                     tender.Status = "Awarded";
                     tender.AwardedBidId = context.Nomination.BidId;
                     tender.AwardedAt = now;
-                    tender.AwardNotes = $"Automatically awarded to nominated bid #{context.Nomination.BidId} after four valid Top Committee approvals.";
+                    tender.AwardNotes = $"Automatically awarded to nominated bid #{context.Nomination.BidId} after four valid CEO & Chiefs approvals.";
                 }
                 await session.SaveAsync(ct);
                 return new CommitteeVoteResult(tender.TenderId, input.Decision, award);

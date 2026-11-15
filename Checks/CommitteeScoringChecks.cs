@@ -12,7 +12,7 @@ public static class CommitteeScoringChecks
         var page = Fixture();
         Check(CommitteeConsensus.ConfirmWeight(page, null, now) != null, "Missing proposal rejected");
         Check(CommitteeConsensus.ConfirmWeight(page, 100, now) != null, "Zero technical maximum rejected");
-        Check(CommitteeConsensus.ConfirmWeight(page, 20.001m, now) != null, "Excess precision rejected");
+        Check(CommitteeConsensus.ConfirmWeight(page, 20.5m, now) != null, "Excess precision rejected");
         for (int i = 1; i <= 4; i++)
         {
             page.UserId = "member" + i;
@@ -25,8 +25,8 @@ public static class CommitteeScoringChecks
         Check(page.Tender!.Status == "UnderEvaluation" && page.Approvals.Count == 0 && page.Tender.EvaluationReport == null,
             "Averaging cannot choose an offer, approve it or advance the tender");
         var rounding = Fixture();
-        for (int i = 1; i <= 4; i++) { rounding.UserId = "member" + i; CommitteeConsensus.ConfirmWeight(rounding, i / 100m, now); }
-        Check(rounding.FinancialWeight == .03m && rounding.TechnicalWeight == 99.97m, "Consensus rounding is deterministic");
+        for (int i = 1; i <= 4; i++) { rounding.UserId = "member" + i; CommitteeConsensus.ConfirmWeight(rounding, i, now); }
+        Check(rounding.FinancialWeight == 3m && rounding.TechnicalWeight == 97m, "Consensus rounding is deterministic");
         Console.WriteLine("PASS: independent percentage proposals, locked average and original approval gating.");
     }
 

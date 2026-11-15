@@ -920,6 +920,8 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             tender.Status = "UnderEvaluation";
             report.Status = "ReturnedForReview";
             report.RecommendedBidId = null;
+            report.CommitteeSummary = null;
+            db.CommitteeTieVotes.RemoveRange(await db.CommitteeTieVotes.Where(v => v.TenderId == tenderId).ToListAsync());
             db.TenderApprovals.RemoveRange(tender.TenderApprovals.Where(a => a.Stage == "Evaluation"));
             foreach (var evaluation in await db.Evaluations.Where(e => e.TenderId == tenderId).ToListAsync()) { evaluation.Status = "Submitted"; evaluation.ApprovedAt = null; }
         }

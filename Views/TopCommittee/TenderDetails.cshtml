@@ -6,7 +6,7 @@
     ViewData["Title"] = $"Tender #{tender.TenderId}";
 }
 <div class="tc-tender">
-<nav class="mb-3" aria-label="Breadcrumb"><a asp-action="Dashboard">Top Committee dashboard</a><span class="text-secondary"> / Tender #@tender.TenderId</span></nav>
+<nav class="mb-3" aria-label="Breadcrumb"><a asp-action="Dashboard">CEO & Chiefs dashboard</a><span class="text-secondary"> / Tender #@tender.TenderId</span></nav>
 <div class="workspace-heading">
     <div><h1 class="text-break">@tender.Title</h1><p>Review the recommendation, compare offers, and record your decision.</p></div>
     <div class="tc-heading-actions"><a class="btn btn-outline-secondary" asp-action="Decisions">Pending tenders</a></div>
@@ -158,7 +158,7 @@ else if (!tender.Readiness.IsVotingOpen)
     }
     @foreach (var vote in tender.Votes)
     { <div class="tc-record-note"><strong>@vote.MemberName · @CommitteeDisplay.Status(vote.Decision)</strong><p class="tc-report-copy mb-0">@CommitteeDisplay.Text(vote.Justification)</p></div> }
-    @if (tender.Votes.Count == 0) { <p class="mb-0">No Top Committee votes have been recorded.</p> }
+    @if (tender.Votes.Count == 0) { <p class="mb-0">No CEO & Chiefs votes have been recorded.</p> }
 </section>
 <a asp-action="Dashboard">Back to dashboard</a>
 </div>

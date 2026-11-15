@@ -1,5 +1,5 @@
 @model SourcingTenderManagement.Models.TopCommittee.CommitteeNotificationBellViewModel
-@* Selected only for the Top Committee workspace; other roles keep the shared bell. *@
+@* Selected only for the CEO & Chiefs workspace; other roles keep the shared bell. *@
 <link rel="stylesheet" href="~/css/top-committee-notifications.css" asp-append-version="true" />
 <script src="~/js/top-committee-notifications.js" asp-append-version="true" defer></script>
 <div class="dropdown tc-notification-bell" data-open-notifications="@(Model.OpenOnLoad ? "true" : "false")">

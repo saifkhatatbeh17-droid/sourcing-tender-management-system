@@ -34,7 +34,7 @@ public sealed class TopCommitteeReferralContract(ApplicationDbContext db, TopCom
             throw new CommitteeIntegrationException("The nomination must be a submitted, eligible bid belonging to this tender.");
         var members = await access.GetMembersAsync(tenderId, cancellationToken);
         if (!TopCommitteeRules.HasFourMembers(members))
-            throw new CommitteeIntegrationException("Assign exactly four distinct, active Top Committee members before referral.");
+            throw new CommitteeIntegrationException("Assign exactly four distinct, active CEO & Chiefs members before referral.");
 
         return new CommitteeReferralPreparation(tenderId, nomination!.BidId, nomination.Invitation.SupplierProfileId,
             nomination.Invitation.SupplierProfile.CompanyName, managerId, report.ManagerSummary,

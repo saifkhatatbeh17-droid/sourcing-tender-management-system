@@ -1,0 +1,3 @@
+@model string
+@foreach (var span in SourcingTenderManagement.Services.Reports.ReportContent.Inline(Model))
+{ if (span.Emphasis) { <strong>@span.Text</strong> } else { @span.Text } }

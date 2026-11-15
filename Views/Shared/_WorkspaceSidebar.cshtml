@@ -19,10 +19,10 @@
             @foreach (var role in roles)
             {
             <details class="workspace-role-branch @(roles.Length == 1 ? "is-single-role" : "") @(controller == role ? "is-current-role" : "")" open="@(controller == role || roles.Length == 1)">
-                <summary title="@System.Text.RegularExpressions.Regex.Replace(role, "([a-z])([A-Z])", "$1 $2")">
+                <summary title="@SourcingTenderManagement.Data.RoleNames.DisplayName(role)">
                     <svg class="workspace-branch-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 4 4 4-4 4" /></svg>
                     <partial name="_AdminSidebarIcon" model='@(role == "SourcingOfficer" ? "Requests" : role == "TopCommittee" ? "Decisions" : "Dashboard")' />
-                    <span>@System.Text.RegularExpressions.Regex.Replace(role, "([a-z])([A-Z])", "$1 $2")</span>
+                    <span>@SourcingTenderManagement.Data.RoleNames.DisplayName(role)</span>
                 </summary>
             <div class="workspace-branch-pages">
             @foreach (var item in PageNavigation.Menus[role])

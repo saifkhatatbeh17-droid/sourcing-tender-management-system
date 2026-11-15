@@ -31,7 +31,7 @@ public static class ReportPdfExport
         var r=new Report("Evaluation report details","Sourcing Officer");
         r.Field("Report",report.EvaluationReportId.ToString());
         r.Field("Tender",report.Tender.Title);r.Field("Status",report.Status);
-        r.Field("Committee Summary",report.CommitteeSummary);
+        r.Heading("Committee Summary");r.Formatted(report.CommitteeSummary);
         r.Field("Sourcing Officer Summary",report.OfficerSummary);
         r.Field("Prepared By",report.PreparedByUser?.FullName??"Not recorded");
         r.Field("Submitted (UTC)",Date(report.SubmittedAt));
@@ -77,7 +77,7 @@ public static class ReportPdfExport
                 (e.Notes??"")+"\n"+string.Join("\n",e.EvaluationScores.Select(s=>$"{s.EvaluationCriterion.Name}: {s.Score} - {s.Notes}"))}),"No committee evaluation records are available for this Tender.");
         r.Heading("Committee report review");r.Field("Report status",report.Status);
         r.Field("Recommended offer",bids.FirstOrDefault(b=>b.BidId==report.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName??(report.RecommendedBidId.HasValue?"Offer #"+report.RecommendedBidId:"No offer recommended"));
-        r.Field("Committee report",report.CommitteeSummary);
+        r.Heading("Committee report");r.Formatted(report.CommitteeSummary);
         if(!string.IsNullOrWhiteSpace(report.OfficerSummary))r.Field("Officer decision",report.OfficerSummary);
         if(!string.IsNullOrWhiteSpace(report.ManagerSummary))r.Field("Manager review",report.ManagerSummary);
         return r.Pdf();
@@ -102,7 +102,7 @@ public static class ReportPdfExport
             r.Text($"Offer #{recommended.BidId} - {CommitteeEvaluationPage.Total(recommended):N2} {recommended.Currency} - {recommended.DeliveryDays}-day delivery");
         }
         else r.Text("No offer recommended yet");
-        r.Heading("Committee report");r.Field("Report status",CommitteeEvaluationPage.StatusLabel(report.Status));r.Text(report.CommitteeSummary);
+        r.Heading("Committee report");r.Field("Report status",CommitteeEvaluationPage.StatusLabel(report.Status));r.Formatted(report.CommitteeSummary);
         if(!string.IsNullOrWhiteSpace(report.OfficerSummary))r.Field("Sourcing officer review",report.OfficerSummary);
         r.Heading("Approval record");r.Text("Shared weights and individual approvals. Four independent member approvals are required.");
         r.Rows(["Member","Approval"],[17,9.7],page.Members.Select(m=>new[]{CommitteeEvaluationPage.MemberName(m.Position)+(m.UserId==page.UserId?" (you)":""),
@@ -120,7 +120,7 @@ public static class ReportPdfExport
         r.Field("Suggested offer",winner?.Invitation.SupplierProfile.CompanyName??"No clear recommendation");
         if(winner!=null)r.Text($"{CommitteeEvaluationPage.Total(winner):N2} {winner.Currency} | Offer #{winner.BidId} | {winner.DeliveryDays}-day delivery");
         r.Text($"{scenario.FinancialWeight:0.##}% financial / {100-scenario.FinancialWeight:0.##}% technical");
-        r.Field("Why this suggestion?",scenario.Reason);
+        r.Heading("Why this suggestion?");r.Formatted(scenario.Reason);
         r.Heading($"Compare all {page.Offers.Count} offers");
         foreach(var comparison in result.Comparisons)
         {
@@ -148,7 +148,7 @@ public static class ReportPdfExport
         var r=new Report("Committee submission and supplier comparison","Sourcing Manager");
         r.Field("Tender",$"#{report.TenderId} - {report.Tender.Title}");r.Field("Report",$"#{report.EvaluationReportId} - {report.Status}");
         r.Field("Recommended supplier",recommended?.Invitation.SupplierProfile.CompanyName??"Unavailable");
-        r.Field("Committee report",report.CommitteeSummary??"No summary was provided.");
+        r.Heading("Committee report");r.Formatted(report.CommitteeSummary??"No summary was provided.");
         if(!string.IsNullOrWhiteSpace(report.OfficerSummary))r.Field("Sourcing officer summary",report.OfficerSummary);
         r.Heading("Supplier comparison");
         r.Rows(["Supplier","Total including tax and fees","Delivery","Compliance"],[7,5,3,11.7],page.Offers.Select(b=>new[]{b.Invitation.SupplierProfile.CompanyName,
@@ -167,14 +167,14 @@ public static class ReportPdfExport
                 if(!string.IsNullOrWhiteSpace(evaluation.Notes))r.Text(evaluation.Notes);
             }
         }
-        if(report.Status=="ManagerApproved"&&!string.IsNullOrWhiteSpace(report.ManagerSummary))r.Field("Refer to the Top Committee",report.ManagerSummary);
+        if(report.Status=="ManagerApproved"&&!string.IsNullOrWhiteSpace(report.ManagerSummary))r.Field("Refer to the CEO & Chiefs",report.ManagerSummary);
         return r.Pdf();
     }
 
     public static byte[] UnifiedReport(CommitteeTenderPage page)
     {
         var t=page.Tender;var report=t.Report!;var request=t.PurchaseRequest;
-        var r=new Report("Unified evaluation report","Top Committee");
+        var r=new Report("Unified evaluation report","CEO & Chiefs");
         r.Field("Tender",$"#{t.TenderId} - {t.Title}");r.Field("Status",CommitteeDisplay.Status(t.Status));
         r.Heading("Purchase request and tender");r.Field("Request",$"#{request.RequestId} - {request.Title}");r.Field("Department",request.Department);
         r.Field("Reason",request.Reason);r.Field("Priority",request.Priority);r.Field("Target date",CommitteeDisplay.Date(request.TargetDate));
@@ -204,11 +204,11 @@ public static class ReportPdfExport
             }
         }
         r.Heading("Unified evaluation report");r.Field("Report",$"#{report.ReportId} - {CommitteeDisplay.Status(report.Status)}");r.Field("Submitted",CommitteeDisplay.Utc(report.SubmittedAt));
-        r.Field("Committee summary",CommitteeDisplay.Text(report.CommitteeSummary));r.Field("Officer summary",CommitteeDisplay.Text(report.OfficerSummary));r.Field("Manager summary",CommitteeDisplay.Text(report.ManagerSummary));
+        r.Heading("Committee summary");r.Formatted(CommitteeDisplay.Text(report.CommitteeSummary));r.Field("Officer summary",CommitteeDisplay.Text(report.OfficerSummary));r.Field("Manager summary",CommitteeDisplay.Text(report.ManagerSummary));
         r.Heading("Committee records");r.Rows(["Member","Eligibility","Recorded decision","Recorded at"],[7,6,6,7.7],t.Members.Select(m=>
         {var vote=t.Votes.FirstOrDefault(v=>v.UserId==m.UserId);return new[]{m.FullName,m.IsEligible?"Active member":"Not currently eligible",vote==null?"No vote recorded":CommitteeDisplay.Status(vote.Decision),CommitteeDisplay.Utc(vote?.DecidedAt)};}),"No committee members are recorded.");
         foreach(var vote in t.Votes)r.Field(vote.MemberName+" - "+CommitteeDisplay.Status(vote.Decision),CommitteeDisplay.Text(vote.Justification));
-        if(t.Votes.Count==0)r.Text("No Top Committee votes have been recorded.");
+        if(t.Votes.Count==0)r.Text("No CEO & Chiefs votes have been recorded.");
         return r.Pdf();
     }
 
@@ -224,8 +224,8 @@ public static class ReportPdfExport
             t.Status=="UnderEvaluation"?3:bid.ComplianceStatus=="Compliant"||bid.Status=="Compliant"?3:
             bid.Status is "Submitted" or "UnderReview" or "NonCompliant"?2:1;
         r.Field("Where your offer is",stage==0?"Draft - not submitted":stage==7?"Final stage":$"Stage {stage} of 7");
-        r.Text(bid.Status=="Accepted"?"Your offer was selected by the Top Committee.":bid.Status=="Rejected"?"The final decision is complete. This offer was not selected.":
-            reportStatus=="ManagerApproved"?"The Sourcing Manager approved the recommendation; the Top Committee is recording its final decision.":
+        r.Text(bid.Status=="Accepted"?"Your offer was selected by the CEO & Chiefs.":bid.Status=="Rejected"?"The final decision is complete. This offer was not selected.":
+            reportStatus=="ManagerApproved"?"The Sourcing Manager approved the recommendation; the CEO & Chiefs is recording its final decision.":
             reportStatus=="OfficerSubmitted"?"The Sourcing Officer approved the consolidated report; it is now with the Sourcing Manager.":
             reportStatus is "CommitteeApproved" or "ReturnedForReview"?"The four-member evaluation report is with the Sourcing Officer for review and approval.":
             t.Status=="UnderEvaluation"?"The evaluation committee is reviewing eligible offers and recording its shared decision.":
@@ -263,6 +263,24 @@ public static class ReportPdfExport
             // Flow full paragraphs; split only over-wide tokens, without removing
             // Unicode characters or imposing a report/row/text length limit.
             AddPdfText(section,text);
+        }
+        public void Formatted(string? text)
+        {
+            foreach (var block in ReportContent.Parse(text))
+            {
+                if (block.Kind == "heading")
+                {
+                    var heading = section.AddParagraph(block.Lines[0]);
+                    heading.Format.Font.Size = 12; heading.Format.Font.Bold = true;
+                    heading.Format.Font.Color = block.Lines[0] is "Recommendation" or "Chosen offer"
+                        ? Color.FromRgb(0, 123, 126) : Color.FromRgb(21, 44, 50);
+                    heading.Format.SpaceBefore = 18; heading.Format.SpaceAfter = 6;
+                    heading.Format.KeepWithNext = true;
+                }
+                else if (block.Kind == "list")
+                    foreach (var line in block.Lines) Text("• " + string.Concat(ReportContent.Inline(line).Select(s => s.Text)));
+                else Text(string.Concat(ReportContent.Inline(string.Join(" ", block.Lines)).Select(s => s.Text)));
+            }
         }
         public void Rows(string[] headers,double[] widths,IEnumerable<string[]> values,string empty)
         {

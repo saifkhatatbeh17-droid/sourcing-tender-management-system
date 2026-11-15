@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="~/css/root.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/committee-evaluations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/committee-evaluations-webex.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/committee-report-summary.css" asp-append-version="true" />
 }
 <div class="evaluation-page">
     @if (tender == null) { <header class="ev-page-heading"><div><h1>Tender evaluations</h1></div></header> }
@@ -97,6 +98,9 @@
                     var lowest = currenciesMatch && CommitteeEvaluationPage.Total(offer) == offers.Min(CommitteeEvaluationPage.Total);
                     var selected = Model.SelectionReady && tender.EvaluationReport?.RecommendedBidId == offer.BidId;
                     <article class="ev-offer-card @(selected ? "ev-offer-selected" : "")" aria-label="@offer.Invitation.SupplierProfile.CompanyName">
+                        <div class="ev-offer-review-status" role="status"><span>@SourcingTenderManagement.Services.Evaluation.AllOfferScoring.Count(Model, offer) / 4 approved</span><span>@(SourcingTenderManagement.Services.Evaluation.AllOfferScoring.Count(Model, offer) == 4 ? "Reviews complete" : "Awaiting member reviews")</span></div>
+                        @if (Model.Members.Any(m => m.UserId == Model.UserId))
+                        { <p class="ev-personal-review @(Model.MyReviewApproved(offer) ? "is-approved" : "is-pending")"><span aria-hidden="true">@(Model.MyReviewApproved(offer) ? "✓" : "○")</span> @(Model.MyReviewApproved(offer) ? "Your review approved" : "Not reviewed yet")</p> }
                         <div class="ev-offer-top"><span class="ev-subtle">Offer #@offer.BidId</span><span class="ev-offer-label">@(lowest ? "Lowest price" : "Compliant")</span></div>
                         <h4>@offer.Invitation.SupplierProfile.CompanyName</h4>
                         <p class="ev-price">@CommitteeEvaluationPage.Total(offer).ToString("N2") <span>@offer.Currency</span></p>
@@ -105,15 +109,9 @@
                         <details class="ev-offer-details"><summary>View item breakdown <span aria-hidden="true">+</span></summary>
                         @foreach (var item in offer.BidItems) { <div><strong>@item.Quantity.ToString("0.###") × @item.UnitPrice.ToString("N2") @offer.Currency</strong><p>@item.OfferedSpecifications</p></div> }
                         <p>Tax: @offer.TaxAmount.ToString("N2") @offer.Currency<br />Additional costs: @offer.AdditionalCosts.ToString("N2") @offer.Currency</p></details>
-                        @if (!Model.Locked && Model.Members.Any(m => m.UserId == Model.UserId))
-                        {
-                            <form asp-action="SelectOffer" method="post" class="ev-offer-selection">
-                                <input type="hidden" name="id" value="@tender.TenderId" /><input type="hidden" name="bidId" value="@offer.BidId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
-                                @if (selected) { <span class="ev-selected-label"><span aria-hidden="true">✓</span> Committee-selected offer</span> }
-                                <button disabled="@(!Model.ConsensusLocked)" class="btn @(selected ? "ev-button-secondary" : "ev-button-primary")">@(selected ? "Continue to approvals" : "Select this offer")<span class="visually-hidden"> — @offer.Invitation.SupplierProfile.CompanyName</span><span aria-hidden="true"> →</span></button>
-                            </form>
-                        }
-                        else if (selected) { <p class="ev-selected-label">✓ Committee-selected offer</p> }
+                        @if (!Model.Locked)
+                        { <a class="btn @(Model.MyReviewApproved(offer) ? "ev-button-secondary" : "ev-button-primary")" asp-action="Evaluations" asp-route-id="@tender.TenderId" asp-route-offerId="@offer.BidId" asp-route-tab="forms">@(Model.MyReviewApproved(offer) ? "View your review" : "Review this offer") <span aria-hidden="true">→</span></a> }
+                        @if (selected) { <p class="ev-selected-label">✓ Highest-scoring offer · ready for report</p> }
                     </article>
                 }
                 </div>

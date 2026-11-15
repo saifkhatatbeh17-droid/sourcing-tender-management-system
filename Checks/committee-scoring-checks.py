@@ -17,7 +17,7 @@ project.write_text(
     '<ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>'
     '<ItemGroup><ProjectReference Include="' + str(repo / 'SourcingTenderManagement.CodeFirst.csproj') + '" />'
     '</ItemGroup></Project>', encoding="utf-8")
-shutil.copyfile(repo / "Checks/committee-scoring-harness.cs.txt", work / "Program.cs")
+shutil.copyfile(repo / "Checks/all-offer-scoring-harness.cs.txt", work / "Program.cs")
 print("Harness:", work, flush=True)
 output = work / "out"
 subprocess.run(["dotnet", "build", str(project), "-p:UseAppHost=false", "-o", str(output), "-v:q"], check=True)

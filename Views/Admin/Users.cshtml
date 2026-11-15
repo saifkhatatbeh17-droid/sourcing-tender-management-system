@@ -41,7 +41,7 @@
             <option value="">All roles</option>
             @foreach (var role in RoleNames.Primary)
             {
-                <option value="@role" selected="@(Model.Role == role)">@System.Text.RegularExpressions.Regex.Replace(role, "([a-z])([A-Z0-9])", "$1 $2")</option>
+                <option value="@role" selected="@(Model.Role == role)">@SourcingTenderManagement.Data.RoleNames.DisplayName(role)</option>
             }
         </select>
     </div>
@@ -86,7 +86,7 @@ else
                             <span class="admin-record-avatar" aria-hidden="true">@account.FullName.Trim().FirstOrDefault()</span>
                             <span class="admin-user-name">@account.FullName<small>@(account.Email ?? "—")</small></span>
                         </div></th>
-                        <td><div class="admin-role-list">@if (account.Roles.Count == 0) { <span>Unassigned</span> } @foreach (var role in account.Roles) { <span>@System.Text.RegularExpressions.Regex.Replace(role, "([a-z])([A-Z0-9])", "$1 $2")</span> }</div></td>
+                        <td><div class="admin-role-list">@if (account.Roles.Count == 0) { <span>Unassigned</span> } @foreach (var role in account.Roles) { <span>@SourcingTenderManagement.Data.RoleNames.DisplayName(role)</span> }</div></td>
                         <td>@(account.DepartmentName ?? "—")</td>
                         <td>
                             <span class="badge rounded-pill @(account.IsActive ? "text-bg-success" : "text-bg-secondary")">

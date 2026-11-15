@@ -93,8 +93,8 @@
         const form = event.currentTarget;
         const number = form.elements.financialWeight.valueAsNumber;
         form.querySelector('[data-financial-percentage]').textContent = `${number}%`;
-        form.elements.financialWeight.setAttribute('aria-valuetext', `${number}% financial, ${Number((100 - number).toFixed(2))}% technical`);
-        form.querySelector('[data-technical-percentage]').textContent = `${Number((100 - number).toFixed(2))}%`;
+        form.elements.financialWeight.setAttribute('aria-valuetext', `${number}% financial, ${Number((100 - number).toFixed(0))}% technical`);
+        form.querySelector('[data-technical-percentage]').textContent = `${Number((100 - number).toFixed(0))}%`;
         const slider = form.elements.financialWeight;
         slider.style.setProperty('--slider-fill', `${(number - Number(slider.min)) / (Number(slider.max) - Number(slider.min)) * 100}%`);
     });

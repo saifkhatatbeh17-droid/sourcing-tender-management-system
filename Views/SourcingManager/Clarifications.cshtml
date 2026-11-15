@@ -46,7 +46,7 @@
             @if (Model.Recipients.Count > 0)
             {
                 <form asp-action="CreateClarification" method="post" class="mr-compose"><input type="hidden" name="TenderId" value="@Model.SelectedTenderId" />
-                <fieldset><legend>Committee member</legend><div class="mr-recipients">@foreach (var recipient in Model.Recipients) { <label><input type="radio" name="RecipientId" value="@recipient.UserId" required /><span><strong>@recipient.User.FullName</strong><small>@(recipient.CommitteeType == "Top" ? "Top Committee" : "Evaluation Committee")</small></span></label> }</div></fieldset>
+                <fieldset><legend>Committee member</legend><div class="mr-recipients">@foreach (var recipient in Model.Recipients) { <label><input type="radio" name="RecipientId" value="@recipient.UserId" required /><span><strong>@recipient.User.FullName</strong><small>@(recipient.CommitteeType == "Top" ? "CEO & Chiefs" : "Evaluation Committee")</small></span></label> }</div></fieldset>
                 <label for="subject" class="form-label">Subject</label><input id="subject" name="Subject" class="form-control" required maxlength="200" placeholder="What needs clarification?" />
                 <label for="description" class="form-label">Question</label><textarea id="description" name="Description" class="form-control" rows="4" required maxlength="4000" placeholder="Include enough detail for the committee member to respond."></textarea>
                 <button type="submit" class="btn btn-primary">Send question ↗</button></form>
