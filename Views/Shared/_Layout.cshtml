@@ -15,6 +15,8 @@
     }
     var standaloneLogin = ViewData["StandaloneLogin"] is true;
     var isHomeLanding = ViewData["HomeLanding"] is true;
+    var useLandingNavigation = ViewData["UseLandingNavigation"] is true;
+    var hasLandingNavigation = isHomeLanding || useLandingNavigation;
     if (!PageNavigation.Menus.ContainsKey(workspaceController) || !User.IsInRole(workspaceController))
         workspaceController = RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     var showWorkspace = !isHomeLanding && User.Identity?.IsAuthenticated == true
@@ -64,11 +66,11 @@
 {
     <partial name="_WorkspaceNavbar" />
 }
-else if (!standaloneLogin)
+else if (!standaloneLogin && ViewData["HidePublicNavigation"] is not true)
 {
-<header class="@(isHomeLanding ? "landing-header" : "border-bottom bg-white")">
-    <nav class="container-fluid d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-nav" : "p-3")" aria-label="Main navigation">
-        @if (isHomeLanding)
+<header class="@(isHomeLanding ? "landing-header" : useLandingNavigation ? "landing-header is-scrolled is-past-hero registration-navbar" : "border-bottom bg-white")">
+    <nav class="container-fluid d-flex flex-wrap align-items-center gap-3 @(hasLandingNavigation ? "landing-nav" : "p-3")" aria-label="Main navigation">
+        @if (hasLandingNavigation)
         {
             <a class="pharma-brand landing-brand" asp-controller="Home" asp-action="Index"><partial name="_PharmaBrand" /></a>
         }
@@ -76,17 +78,21 @@ else if (!standaloneLogin)
         {
             <a class="pharma-brand text-decoration-none text-dark me-auto" asp-controller="Home" asp-action="Index"><partial name="_PharmaBrand" /></a>
         }
-        <div class="d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-links" : "")">
+        <div class="d-flex flex-wrap align-items-center gap-3 @(hasLandingNavigation ? "landing-links" : "")">
             <a asp-controller="Home" asp-action="Index" aria-current="@(isHomeLanding ? "page" : null)">Home</a>
-            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "About")" asp-fragment="@(isHomeLanding ? "about" : null)">About</a>
-            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "HowItWorks")" asp-fragment="@(isHomeLanding ? "how-it-works" : null)">How It Works</a>
-            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "Contact")" asp-fragment="@(isHomeLanding ? "contact" : null)">Contact</a>
+            <a asp-controller="Home" asp-action="@(hasLandingNavigation ? "Index" : "About")" asp-fragment="@(hasLandingNavigation ? "about" : null)">About</a>
+            <a asp-controller="Home" asp-action="@(hasLandingNavigation ? "Index" : "HowItWorks")" asp-fragment="@(hasLandingNavigation ? "how-it-works" : null)">How It Works</a>
+            <a asp-controller="Home" asp-action="@(hasLandingNavigation ? "Index" : "Contact")" asp-fragment="@(hasLandingNavigation ? "contact" : null)">Contact</a>
+            @if (hasLandingNavigation)
+            {
+                <a asp-controller="Home" asp-action="Team">Our Team</a>
+            }
         </div>
-        <div class="d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-account" : "")">
+        <div class="d-flex flex-wrap align-items-center gap-3 @(hasLandingNavigation ? "landing-account" : "")">
         <partial name="_ThemeToggle" />
         @if (User.Identity?.IsAuthenticated == true)
         {
-            @if (!isHomeLanding)
+            @if (!hasLandingNavigation)
             {
                 <a asp-controller="Account" asp-action="GoToDashboard">My Dashboard</a>
             }
@@ -100,7 +106,7 @@ else if (!standaloneLogin)
         else
         {
             <a asp-controller="Account" asp-action="Login">Login</a>
-            <a class="@(isHomeLanding ? "landing-register" : "")" asp-controller="Account" asp-action="Register">Supplier Registration</a>
+            <a class="@(hasLandingNavigation ? "landing-register" : "")" aria-current="@(useLandingNavigation && currentAction == "Register" ? "page" : null)" asp-controller="Account" asp-action="Register">Supplier Registration</a>
         }
         </div>
     </nav>

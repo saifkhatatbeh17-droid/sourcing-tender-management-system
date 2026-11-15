@@ -12,7 +12,7 @@
     <div class="tc-heading-actions"><a class="btn btn-outline-secondary" asp-action="Decisions">Pending tenders</a></div>
 </div>
 <p><span class="badge text-bg-secondary">@CommitteeDisplay.Status(tender.Status)</span><span class="ms-2">Tender #@tender.TenderId</span></p>
-@await Component.InvokeAsync("DetailsQr", new { controller = "TopCommittee", action = "TenderDetails", id = tender.TenderId, label = "Tender" })
+@await Component.InvokeAsync("DetailsQr", new { controller = "TopCommittee", action = "TenderDetails", id = tender.TenderId, label = "Tender", title = tender.Title, status = CommitteeDisplay.Status(tender.Status), description = tender.Description })
 <div class="tc-summary" aria-label="Committee decision summary">
     <span><strong>@tender.Votes.Count(v => v.Decision == "Approved") / 4</strong> recorded approvals</span>
     <span><strong>Nominated bid:</strong> @(nominated == null ? "Not available" : $"#{nominated.BidId} · {nominated.SupplierName}")</span>

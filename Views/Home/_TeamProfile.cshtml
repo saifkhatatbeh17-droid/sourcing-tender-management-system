@@ -1,0 +1,12 @@
+@model TeamMember
+
+<div class="team-profile-portrait team-portrait" data-portrait-fallback="@Model.Name[0]">
+    <img src="@Url.Content(Model.Portrait)" alt="Illustrative portrait for @Model.Name" width="384" height="432" />
+</div>
+<div class="team-profile-copy">
+    <p class="team-profile-index">@Model.Id.ToString("D2") / 07 · Fictional profile</p>
+    <h2 id="team-member-name">@Model.Name</h2>
+    <p class="team-profile-role">@Model.Role</p>
+    <p class="team-profile-department">@Model.Department</p>
+    <p class="team-profile-bio">@Model.Bio</p>
+</div>

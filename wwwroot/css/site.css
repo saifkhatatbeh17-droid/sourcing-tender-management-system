@@ -28,40 +28,95 @@ h1 { font-size: 1.8rem; margin-bottom: 1.5rem; } h2 { font-size: 1.15rem; }
     display: inline-flex;
     align-items: center;
     gap: .5rem;
-    border-radius: .625rem;
+    min-height: 2.5rem;
+    padding-inline: .85rem;
+    border-radius: .75rem;
+    font-weight: 600;
 }
-.details-qr-toggle::-webkit-details-marker { display: none; }
-.details-qr-toggle::after {
-    content: "";
-    width: .45rem;
-    height: .45rem;
-    margin-inline: .2rem;
-    border: solid currentColor;
-    border-width: 0 1.5px 1.5px 0;
-    transform: translateY(-.1rem) rotate(45deg);
+.details-qr-dialog {
+    width: min(42rem, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    padding: 0;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 1.25rem;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1.5rem 4rem #102b4a40;
 }
-.details-qr[open] > .details-qr-toggle::after { transform: translateY(.1rem) rotate(225deg); }
+.details-qr-dialog::backdrop { background: #091d32a6; backdrop-filter: blur(3px); }
+.details-qr-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--line);
+}
+.details-qr-dialog .details-qr-dialog-header h2 { margin: 0; font-weight: 700; }
+.details-qr-preview { padding: clamp(1.25rem, 5vw, 2rem); overflow-wrap: anywhere; }
+.details-qr-preview h2 { font-size: clamp(1.25rem, 5vw, 1.75rem); font-weight: 700; }
+.details-qr-status { display: flex; flex-wrap: wrap; gap: .5rem; color: var(--muted); }
+.details-qr-description { white-space: pre-line; }
+html:has(.details-qr-dialog[open]) { overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+    .details-qr-dialog[open] { animation: details-qr-enter 180ms ease-out; }
+    @keyframes details-qr-enter {
+        from { opacity: 0; transform: translateY(.5rem) scale(.98); }
+        to { opacity: 1; transform: none; }
+    }
+}
 .details-qr-panel {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 1rem;
-    max-width: 35rem;
-    margin-top: .75rem;
-    padding: 1rem;
-    border: 1px solid var(--line);
-    border-radius: 1rem;
-    background: var(--surface);
+    gap: clamp(1rem, 3vw, 1.75rem);
+    padding: clamp(1rem, 3vw, 1.5rem);
+    background: linear-gradient(130deg, #00a3a61a, transparent 65%), var(--surface);
+    color: var(--ink);
 }
-.details-qr-panel > div { flex: 1 1 13rem; min-width: 0; }
-.details-qr-image {
-    display: block;
-    width: min(100%, 12rem);
-    height: auto;
-    border-radius: .5rem;
+.details-qr-frame {
+    flex: 0 1 12rem;
+    max-width: 100%;
+    margin-inline: auto;
+    padding: .375rem;
+    border: 1px solid var(--line);
+    border-radius: .875rem;
     background: #fff;
+    box-shadow: 0 4px 14px #12304a12;
+}
+.details-qr-frame .details-qr-image {
+    display: block;
+    width: 100%;
+    height: auto;
     image-rendering: pixelated;
 }
+.details-qr-content { flex: 1 1 17rem; min-width: 0; }
+.details-qr-type {
+    margin-bottom: .4rem;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+.details-qr-title { margin-bottom: .3rem; font-size: 1.25rem; font-weight: 700; line-height: 1.25; }
+.details-qr-help, .details-qr-note, .details-qr-address { font-size: .875rem; color: var(--muted); }
+.details-qr-help { margin-bottom: .875rem; }
+.details-qr-note {
+    margin-bottom: .875rem;
+    padding: .55rem .7rem;
+    border-inline-start: 2px solid var(--color-supporting-accent, var(--accent));
+    background: #00a3a613;
+}
+.details-qr-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.details-qr-actions .btn { display: inline-flex; align-items: center; gap: .35rem; min-height: 2.25rem; }
+.details-qr-address {
+    margin: .875rem 0 0;
+    padding-top: .75rem;
+    border-top: 1px solid var(--line);
+    overflow-wrap: anywhere;
+}
+.details-qr-address span { display: block; font-weight: 600; }
 .workspace-columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,2fr); gap: 1rem; }
 .committee-section h3 { font-size: 1.1rem; }
 .notification-bell { display: inline-flex; align-items: center; gap: .3rem; min-height: 40px; }

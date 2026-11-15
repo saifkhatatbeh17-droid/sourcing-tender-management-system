@@ -9,6 +9,6 @@ public static class PageNavigation
         ["EvaluationCommittee"] = [("Dashboard", "Dashboard"), ("Evaluations", "Evaluations"), ("Reports", "Combined Reports"), ("Clarifications", "Clarifications")],
         ["SourcingManager"] = [("Dashboard", "Dashboard"), ("Submissions", "Committee Submissions"), ("ChosenOffers", "Chosen Offers"), ("Reports", "Reports"), ("Clarifications", "Clarifications")],
         ["TopCommittee"] = [("Dashboard", "Dashboard"), ("Decisions", "Decisions"), ("History", "Tender History"), ("Reports", "Reports"), ("Clarifications", "Clarifications"), ("Notifications", "Notifications")],
-        ["Supplier"] = [("Dashboard", "Dashboard"), ("Invitations", "Invitations"), ("Offers", "My Offers"), ("Clarifications", "Clarifications"), ("History", "History")],
+        ["Supplier"] = [("Dashboard", "Dashboard"), ("Invitations", "Invitations"), ("Offers", "My Offers"), ("Clarifications", "Clarifications")],
     };
 }

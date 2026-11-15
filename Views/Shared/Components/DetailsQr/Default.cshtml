@@ -1,29 +1,65 @@
 @model SourcingTenderManagement.ViewComponents.DetailsQrViewModel
-@{ var showQr = Context.Request.Query["showQr"] == "true"; }
+@{
+    var showQr = Context.Request.Query["showQr"] == "true";
+    var scanned = Context.Request.Query["scan"] == "true";
+}
 
-<details class="details-qr mb-3" open="@showQr">
-    <summary class="btn btn-outline-primary btn-sm details-qr-toggle">
+<div class="details-qr mb-3" data-details-qr>
+    <button type="button" class="btn btn-outline-primary btn-sm details-qr-toggle"
+            aria-haspopup="dialog" aria-controls="details-qr-code" data-qr-trigger>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M2 2h4v4H2zM10 2h4v4h-4zM2 10h4v4H2zM10 9v3h3v2h1M9 14h1M13 9h1" />
         </svg>
-        QR code
-    </summary>
-    <div class="details-qr-panel">
-        <img class="details-qr-image" src="@Model.ImageData" width="192" height="192" alt="QR code for these @Model.Label.ToLowerInvariant() details" />
-        <div>
-            <p class="fw-semibold mb-1">Scan to open details</p>
-            <p class="small mb-2">Use your phone’s camera. Sign in with an account that has access to this record.</p>
-            <p class="small mb-2 text-break">
-                Scan address <a href="@Model.ScanUrl">@Model.ScanUrl</a>
-            </p>
+        Scan QR code
+    </button>
+    <dialog id="details-qr-code" class="details-qr-dialog" aria-labelledby="details-qr-code-title"
+            data-qr-auto="@showQr.ToString().ToLowerInvariant()">
+        <header class="details-qr-dialog-header">
+            <h2 id="details-qr-code-title">Scan QR code</h2>
+            <form method="dialog"><button type="submit" class="btn btn-outline-secondary btn-sm" autofocus>Close</button></form>
+        </header>
+        <div class="details-qr-panel">
+        <div class="details-qr-frame">
+            <img class="details-qr-image" src="@Model.ImageData" width="192" height="192" alt="QR code for these @Model.Label.ToLowerInvariant() details" />
+        </div>
+        <div class="details-qr-content">
+            <p class="details-qr-type">@Model.Label</p>
+            <p class="details-qr-title">Open on your phone</p>
+            <p class="details-qr-help">Scan with your camera and sign in with an account that has access.</p>
             @if (Model.IsLoopback)
             {
-                <p class="small mb-2">This link uses a local address. To scan on a phone, open the site using an address the phone can reach.</p>
+                <p class="details-qr-note">This address works on this device. Use the computer’s network address to scan from your phone.</p>
             }
-            <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-primary btn-sm" href="@Model.ImageData" download="record-details-qr.png">Download PNG</a>
+            <div class="details-qr-actions">
+                <a class="btn btn-primary btn-sm" href="@Model.ImageData" download="record-details-qr.png">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M8 2v8m-3-3 3 3 3-3M3 11v2h10v-2" />
+                    </svg>
+                    Download PNG
+                </a>
                 <a class="btn btn-outline-primary btn-sm" href="@Model.DetailsUrl">Open details</a>
             </div>
+            <p class="details-qr-address"><span>Scan address</span> <a href="@Model.ScanUrl">@Model.ScanUrl</a></p>
         </div>
-    </div>
-</details>
+        </div>
+    </dialog>
+    @if (scanned)
+    {
+        <dialog class="details-qr-dialog" aria-labelledby="details-qr-preview-title" data-qr-auto="true">
+            <header class="details-qr-dialog-header">
+                <p class="details-qr-type mb-0">@Model.Label</p>
+                <form method="dialog"><button type="submit" class="btn btn-outline-secondary btn-sm" autofocus>Close</button></form>
+            </header>
+            <div class="details-qr-preview">
+                <h2 id="details-qr-preview-title">@Model.Title</h2>
+                <p class="details-qr-status"><strong>Status</strong> @Model.Status</p>
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <p class="details-qr-description">@Model.Description</p>
+                }
+                <a class="btn btn-primary" href="@Model.DetailsUrl">View full details</a>
+            </div>
+        </dialog>
+    }
+</div>
+<script src="~/js/details-qr.js" asp-append-version="true" defer></script>

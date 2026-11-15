@@ -89,7 +89,7 @@
             }
             else
             {
-                @await Component.InvokeAsync("DetailsQr", new { controller = "SourcingOfficer", action = "Details", id = selectedRequest.PurchaseRequestId, label = "Purchase request" })
+                @await Component.InvokeAsync("DetailsQr", new { controller = "SourcingOfficer", action = "Details", id = selectedRequest.PurchaseRequestId, label = "Purchase request", title = selectedRequest.Title, status = selectedRequest.Status, description = selectedRequest.Reason })
                 <dl>
                     <dt>Title</dt><dd>@selectedRequest.Title</dd>
                     <dt>Department</dt><dd>@selectedRequest.Department.Name</dd>

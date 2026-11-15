@@ -1,7 +1,8 @@
 /* Homepage composition; shared public pages retain their own layouts. */
+:root { --landing-nav-surface: #123032f5; }
 .landing-main { --accent:#00a3a6; color:#123032; background:#fff; font-size:16px; }
 .landing-header, .landing-header.is-scrolled:not(.is-past-hero) { background:transparent; box-shadow:none; backdrop-filter:none; }
-.landing-header.is-past-hero { background:#123032f5; }
+.landing-header.is-past-hero { background:var(--landing-nav-surface); }
 .landing-nav { max-width:1200px; }
 .landing-hero { min-height:100svh; padding:160px max(24px,calc((100vw - 1152px)/2)) 96px; background:#123032; }
 .landing-hero::before { background:#092e32a8; }

@@ -31,7 +31,7 @@
 <div class="tab-pane fade @(Model.SelectedTender != null ? "show active" : "")" id="tenders-1" role="tabpanel" aria-labelledby="tenders-1-tab" tabindex="0">
 <section class="workspace-section"><div class="so-section-heading"><div><h2>Tender Details</h2></div></div>@if (TempData["TenderSuccess"] is string successMessage) { <div class="alert alert-success" role="status">@successMessage</div> }@if (TempData["TenderError"] is string tenderError) { <div class="alert alert-danger" role="alert">@tenderError</div> }@if (Model.SelectedTender is { } selected)
 {
-    @await Component.InvokeAsync("DetailsQr", new { controller = "SourcingOfficer", action = "Tenders", id = selected.TenderId, label = "Tender" })
+    @await Component.InvokeAsync("DetailsQr", new { controller = "SourcingOfficer", action = "Tenders", id = selected.TenderId, label = "Tender", title = selected.Title, status = selected.Status, description = selected.Description })
     <dl><dt>Title</dt><dd>@selected.Title</dd><dt>Status</dt><dd><span class="so-status-badge" data-status="@selected.Status">@selected.Status</span></dd><dt>Description</dt><dd>@selected.Description</dd><dt>Terms</dt><dd>@selected.Terms</dd><dt>Submission deadline (UTC)</dt><dd>@selected.ClosesAt.ToString("yyyy-MM-dd HH:mm")</dd></dl>
 }
 else { <p class="text-secondary">Select a tender to view its details.</p> }</section><section class="workspace-section"><h2>Chosen Offer</h2>@if (Model.SelectedTender is { Status: "Awarded", Bid: { } winner } awarded)

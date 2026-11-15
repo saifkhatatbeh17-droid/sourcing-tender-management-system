@@ -9,7 +9,7 @@
 </div>
 <div class="workspace-content">
     <section class="workspace-section">
-        @await Component.InvokeAsync("DetailsQr", new { controller = "Department", action = "Details", id = Model.PurchaseRequestId, label = "Purchase request" })
+        @await Component.InvokeAsync("DetailsQr", new { controller = "Department", action = "Details", id = Model.PurchaseRequestId, label = "Purchase request", title = Model.Title, status = Model.Status, description = Model.Reason })
         <partial name="_PurchaseRequestDetails" model="Model" />
         @if (Model.Status is "Submitted" or "UnderReview" or "Returned")
         {

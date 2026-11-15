@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Supplier Registration";
     ViewData["HideWorkspaceSidebar"] = true;
+    ViewData["UseLandingNavigation"] = true;
     var hasErrors = !ViewData.ModelState.IsValid;
 }
 
@@ -11,12 +12,13 @@
         <div class="registration-reveal">
             <div class="registration-capsule-stage" aria-hidden="true">
                 <span class="registration-capsule-halo"></span>
+                <span class="registration-capsule-light"></span>
                 <span class="registration-burst">
                     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
                 </span>
                 <span class="registration-capsule">
-                    <span class="registration-capsule-left"><b>✚</b></span>
-                    <span class="registration-capsule-right"><b>APEX PHARMA</b></span>
+                    <span class="registration-capsule-left"><span class="registration-capsule-cross"></span></span>
+                    <span class="registration-capsule-right"><b class="registration-capsule-brand">TIRYAQ</b></span>
                 </span>
             </div>
             <div class="registration-form-card">
@@ -128,7 +130,11 @@
     </div>
 </section>
 
-@section Styles { <link rel="stylesheet" href="~/css/register.css" asp-append-version="true" /> }
+@section Styles {
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/home-polish.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/register.css" asp-append-version="true" />
+}
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>

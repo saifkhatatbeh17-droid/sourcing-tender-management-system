@@ -1,3 +1,12 @@
+.landing-header.registration-navbar {
+    position: sticky;
+    margin-block: .75rem;
+}
+.registration-navbar .landing-account [aria-current="page"] {
+    background-color: #edf6f5;
+    color: #123032;
+}
+
 .main-content:has(.registration-page) {
     padding: 0 !important;
     background: #f4f8fa;
@@ -7,6 +16,7 @@
     --reg-teal: #0f766e;
     --reg-navy: #12304a;
     --reveal-easing: cubic-bezier(.19, 1, .22, 1);
+    --capsule-open-at: 1050ms;
     --capsule-seam: max(4rem, calc((100svh - 5rem) / 2 - 3.75rem));
     min-height: calc(100vh - 76px);
     background: #f4f8f7;
@@ -44,7 +54,7 @@
 
 .registration-page:not(.registration-has-errors) .registration-form-card {
     transform-origin: center top;
-    animation: registration-unfold 750ms 900ms var(--reveal-easing) backwards;
+    animation: registration-unfold 750ms calc(var(--capsule-open-at) + 100ms) var(--reveal-easing) backwards;
 }
 
 .registration-capsule-stage {
@@ -55,25 +65,34 @@
     display: grid;
     place-items: center;
     pointer-events: none;
-    animation: registration-stage-out 1ms 1500ms forwards;
+    animation: registration-stage-out 1ms calc(var(--capsule-open-at) + 760ms) forwards;
 }
 
-.registration-capsule-halo, .registration-capsule, .registration-burst { grid-area: 1 / 1; }
+.registration-capsule-halo, .registration-capsule-light, .registration-capsule, .registration-burst { grid-area: 1 / 1; }
 .registration-capsule-halo {
     width: min(78%, 47rem);
     height: clamp(5rem, 14vw, 13rem);
     border-radius: 50%;
-    background: #3ba99e70;
+    background: radial-gradient(ellipse, #32cfc48c, #0f766e33 56%, transparent 75%);
     filter: blur(clamp(1.3rem, 5vw, 3rem));
-    animation: registration-halo 1.45s ease-out both;
+    animation: registration-halo 1.8s ease-out both;
+}
+
+.registration-capsule-light {
+    z-index: 1;
+    width: clamp(4rem, 24vw, 14rem);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 5%, #b9fff0a6 24%, #20cdb34d 43%, transparent 70%);
+    animation: registration-flash 620ms var(--capsule-open-at) ease-out both;
 }
 
 .registration-capsule {
     display: flex;
     width: min(85%, 50rem, 110svh);
     aspect-ratio: 4 / 1;
-    filter: drop-shadow(0 1.2rem 1.6rem #12304a38);
-    animation: registration-sway 1.3s var(--reveal-easing) both;
+    filter: drop-shadow(0 1.6rem 1.3rem #12304a35);
+    animation: registration-sway var(--capsule-open-at) cubic-bezier(.24, .72, .25, 1) both;
 }
 
 .registration-capsule-left, .registration-capsule-right {
@@ -81,29 +100,52 @@
     display: grid;
     place-items: center;
     width: 50%;
-    box-shadow: inset 0 .3rem .7rem #ffffff80, inset 0 -.5rem 1.1rem #12304a22;
-    animation: registration-split 620ms 830ms var(--reveal-easing) both;
+    box-shadow: inset 0 .15rem .45rem #ffffff80, inset 0 -.65rem 1.3rem #092b3840;
+    overflow: hidden;
+    animation: registration-split 740ms var(--capsule-open-at) var(--reveal-easing) both;
+}
+
+.registration-capsule-left::before, .registration-capsule-right::before {
+    content: "";
+    position: absolute;
+    inset: 9% 0 auto;
+    height: 39%;
+    border-radius: inherit;
+    background: linear-gradient(180deg, #ffffff52, transparent);
+    pointer-events: none;
 }
 
 .registration-capsule-left {
-    --split-x: -84%;
-    --split-y: -32%;
-    --split-angle: -30deg;
+    --split-x: -64%;
+    --split-y: -15%;
+    --split-angle: -19deg;
     border-radius: 999px 0 0 999px;
-    background: #f4f8f7;
+    background: linear-gradient(160deg, #fff, #eaf7f5 55%, #cfe5e6);
     color: var(--reg-teal);
-    font-size: clamp(1.6rem, 6vw, 4.2rem);
 }
 
 .registration-capsule-right {
-    --split-x: 84%;
-    --split-y: 24%;
-    --split-angle: 30deg;
+    --split-x: 64%;
+    --split-y: 15%;
+    --split-angle: 19deg;
     border-radius: 0 999px 999px 0;
-    background: #00a3a6;
-    color: #fff;
-    font-size: clamp(.6rem, 1.9vw, 1.25rem);
-    letter-spacing: .16em;
+    border-inline-start: 1px solid #ffffff3d;
+    background: var(--landing-nav-surface);
+    color: #f5fffd;
+}
+
+.registration-capsule-cross, .registration-capsule-brand { position: relative; }
+.registration-capsule-cross {
+    width: 15%;
+    aspect-ratio: 1;
+    background: linear-gradient(145deg, #159b8c, #0b6263);
+    clip-path: polygon(36% 0, 64% 0, 64% 36%, 100% 36%, 100% 64%, 64% 64%, 64% 100%, 36% 100%, 36% 64%, 0 64%, 0 36%, 36% 36%);
+}
+.registration-capsule-brand {
+    font-size: clamp(.85rem, 3vw, 2.15rem);
+    font-weight: 800;
+    letter-spacing: .18em;
+    text-shadow: 0 1px 2px #073b4d90;
 }
 
 .registration-burst {
@@ -113,16 +155,6 @@
     place-items: center;
     width: clamp(9rem, 40vw, 29rem);
     aspect-ratio: 2 / 1;
-}
-
-.registration-burst::before {
-    content: "";
-    grid-area: 1 / 1;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: transparent;
-    animation: registration-flash 480ms 830ms ease-out both;
 }
 
 .registration-burst i {
@@ -140,7 +172,7 @@
     margin-left: 50%;
     border-radius: 50%;
     background: #17a793;
-    animation: registration-particle 570ms 850ms var(--reveal-easing) both;
+    animation: registration-particle 610ms calc(var(--capsule-open-at) + 65ms) var(--reveal-easing) both;
 }
 
 .registration-burst i:nth-child(2) { --angle: 34deg; }
@@ -152,10 +184,10 @@
 .registration-burst i:nth-child(8) { --angle: 308deg; }
 
 @keyframes registration-sway {
-    0% { transform: translateY(.7rem) rotate(-13deg) scale(.88); opacity: 0; }
-    34% { transform: rotate(-7deg) scale(1); opacity: 1; }
-    64% { transform: translateY(0) rotate(3deg) scale(1.04); }
-    100% { transform: rotate(0); }
+    0% { transform: translateY(.5rem) rotate(-9deg) scale(.94); opacity: 0; }
+    35% { transform: rotate(-7deg); opacity: 1; }
+    73% { transform: rotate(-3deg); }
+    100% { transform: rotate(0) scale(1.02); }
 }
 
 @keyframes registration-split {
@@ -165,7 +197,7 @@
 }
 
 @keyframes registration-unfold {
-    from { visibility: hidden; opacity: 0; transform: translateY(var(--capsule-seam)) scale(.32, .8); clip-path: inset(0 0 100% round 1.5rem); }
+    from { visibility: hidden; opacity: 0; transform: translateY(var(--capsule-seam)) scale(.62, .94); clip-path: inset(0 0 100% round 1.5rem); }
     25% { visibility: visible; opacity: 1; }
     to { opacity: 1; transform: none; clip-path: inset(0 round 1.5rem); }
 }

@@ -84,14 +84,14 @@ public class SourcingOfficerController(ApplicationDbContext db) : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Details(int id)
+    public async Task<IActionResult> Details(int id, bool scan = false)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return Forbid();
         var request = await ReviewableRequests(userId).AsNoTracking()
             .SingleOrDefaultAsync(r => r.PurchaseRequestId == id);
         if (request == null) return NotFound();
-        return RedirectToAction(nameof(Requests), new { id, status = request.Status });
+        return RedirectToAction(nameof(Requests), new { id, status = request.Status, scan = scan ? "true" : null });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
