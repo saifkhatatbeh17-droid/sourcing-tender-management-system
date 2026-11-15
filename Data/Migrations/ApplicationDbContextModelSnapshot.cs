@@ -1237,6 +1237,10 @@ namespace SourcingTenderManagement.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<string>("OfferShortfallReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<DateTime>("OpensAt")
                         .HasColumnType("datetime2");
 
@@ -1404,6 +1408,35 @@ namespace SourcingTenderManagement.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_TenderDocuments_1", "([FileSizeBytes]>(0))");
                         });
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.TenderOfferExtension", b =>
+                {
+                    b.Property<int>("TenderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Deadline")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Outreach")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PreviousCompliantOffers")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PreviousDeadline")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("TenderId", "Round");
+
+                    b.ToTable("TenderOfferExtensions", (string)null);
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.UserFaceCredential", b =>
@@ -1987,6 +2020,15 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("Tender");
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.TenderOfferExtension", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Tender", null)
+                        .WithMany("OfferExtensions")
+                        .HasForeignKey("TenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.UserFaceCredential", b =>
                 {
                     b.HasOne("SourcingTenderManagement.Data.ApplicationUser", "User")
@@ -2116,6 +2158,8 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("EvaluationReport");
 
                     b.Navigation("Invitations");
+
+                    b.Navigation("OfferExtensions");
 
                     b.Navigation("TenderApprovals");
 

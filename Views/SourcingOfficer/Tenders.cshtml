@@ -135,6 +135,7 @@ else { <p class="text-secondary">The chosen offer appears here after the final d
         </div>
         <div class="col-md-6 mb-3">
             <label for="ClosesAt" class="form-label">Tender deadline (UTC)</label>
+            <p class="form-text">The first round can close early once three suppliers have submitted offers. Suppliers see this rule on the invitation.</p>
             <input id="ClosesAt" name="ClosesAt" type="datetime-local" value="@(createTender.ClosesAt == default ? "" : createTender.ClosesAt.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" required />
             @Html.ValidationMessage("ClosesAt", "", new { @class = "text-danger" })
         </div>

@@ -23,6 +23,10 @@ public class Tender
 
     public string? Terms { get; set; }
 
+    public string? OfferShortfallReason { get; set; }
+
+    public ICollection<TenderOfferExtension> OfferExtensions { get; set; } = new List<TenderOfferExtension>();
+
     public DateTime OpensAt { get; set; }
 
     public DateTime ClosesAt { get; set; }
