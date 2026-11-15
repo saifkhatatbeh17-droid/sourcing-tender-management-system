@@ -135,7 +135,8 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
 
         var profile = new AccountProfileViewModel(
             account.FullName, account.Email, account.PhoneNumber, account.Department?.Name,
-            roles.OrderBy(role => role).ToList());
+            roles.OrderBy(role => role).ToList(), account.UserName,
+            account.Department?.IsActive);
 
         return View(profile);
     }
@@ -186,6 +187,49 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         TempData["ProfileFeedback"] = "Phone number saved.";
         return RedirectToAction(nameof(Profile));
     }
+
+    [HttpGet, Authorize]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public IActionResult ChangePassword() => RedirectToProfileSecurity();
+
+    [HttpPost, Authorize, ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("ChangePassword")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel input)
+    {
+        var account = await users.GetUserAsync(User);
+        if (account == null || !account.IsActive)
+        {
+            return Challenge();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            TempData["PasswordChangeErrors"] = ModelState.Values
+                .SelectMany(field => field.Errors)
+                .Select(error => string.IsNullOrEmpty(error.ErrorMessage)
+                    ? "Check the password fields and try again."
+                    : error.ErrorMessage)
+                .Distinct()
+                .ToArray();
+            return RedirectToProfileSecurity();
+        }
+
+        var result = await users.ChangePasswordAsync(account, input.CurrentPassword, input.NewPassword);
+        if (!result.Succeeded)
+        {
+            TempData["PasswordChangeErrors"] = result.Errors.Select(error => error.Description).ToArray();
+            return RedirectToProfileSecurity();
+        }
+
+        await signIn.RefreshSignInAsync(account);
+        TempData["PasswordChangeSuccess"] = "Password changed successfully.";
+        return RedirectToProfileSecurity();
+    }
+
+    private RedirectToActionResult RedirectToProfileSecurity() =>
+        RedirectToAction(nameof(Profile), User.IsInRole(RoleNames.Supplier) ? "Supplier" : "Account",
+            routeValues: null, fragment: "profile-security");
 
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout(string? returnUrl = null)

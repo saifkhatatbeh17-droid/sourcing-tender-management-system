@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
@@ -20,6 +22,17 @@ builder.Services.AddTopCommitteeFoundation();
 builder.Services.AddFaceEnrollment();
 builder.Services.AddFaceVerification(builder.Configuration);
 builder.Services.AddFaceLogin();
+builder.Services.AddRateLimiter(options =>
+    options.AddPolicy("ChangePassword", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(5),
+            QueueLimit = 0
+        })));
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
 {
     o.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
