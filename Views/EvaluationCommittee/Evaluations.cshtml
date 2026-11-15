@@ -1,6 +1,6 @@
 @model CommitteeEvaluationPage
 @using System.Globalization
-@{ ViewData["Title"] = "Committee evaluation"; var tender = Model.Tender; }
+@{ ViewData["Title"] = "Committee evaluation"; var tender = Model.Tender; var scoringLocked = Model.UsesScoredWorkflow && !Model.ConsensusLocked; }
 @section Styles {
     <link rel="stylesheet" href="~/css/committee-evaluations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/committee-evaluations-webex.css" asp-append-version="true" />
@@ -33,7 +33,7 @@
             { <div class="cs-notice"><strong>Returned for review</strong><p>The percentage remains locked. Review the feedback and accept a fresh form for every offer.</p><p>@tender.EvaluationReport.OfficerSummary</p><p>@tender.EvaluationReport.ManagerSummary</p></div> }
             <nav class="nav cs-tabs" role="tablist" aria-label="Evaluation sections">
                 <button class="nav-link active" id="offers-tab" data-bs-toggle="tab" data-bs-target="#offers" type="button" role="tab" aria-controls="offers" aria-selected="true">Tender &amp; offers <span>@Model.Offers.Count</span></button>
-                <button class="nav-link" id="forms-tab" data-bs-toggle="tab" data-bs-target="#forms" type="button" role="tab" aria-controls="forms" aria-selected="false">Evaluation forms</button>
+                <button class="nav-link" id="forms-tab" data-bs-toggle="tab" data-bs-target="#forms" type="button" role="tab" aria-controls="forms" aria-selected="false" disabled="@scoringLocked" aria-describedby="@(scoringLocked ? "consensus-lock-reason" : null)">Evaluation forms @(scoringLocked ? "· Locked" : "")</button>
                 <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" type="button" role="tab" aria-controls="report" aria-selected="false">Scores &amp; report</button>
             </nav>
             <div class="tab-content">
@@ -43,11 +43,14 @@
                         <p>@tender.Terms</p><small>Closing date: @tender.ClosesAt.ToString("dd MMM yyyy HH:mm") UTC</small>
                     </details>
                     <partial name="_AiBidRecommendation" model="Model" />
-                    <div class="cs-section-heading"><div><h3>Eligible offers</h3><p>Review the evidence before recording your marks.</p></div><button type="button" class="cs-button" data-open-evaluation-tab="forms-tab">Open evaluation forms</button></div>
+                    <div class="cs-section-heading"><div><h3>Eligible offers</h3><p>Review the evidence before recording your marks.</p></div><button type="button" class="cs-button" data-open-evaluation-tab="forms-tab" disabled="@scoringLocked">@(scoringLocked ? "Scoring locked · waiting for percentages" : "Open evaluation forms")</button></div>
                     <div class="cs-offers">
                     @foreach (var offer in Model.Offers)
                     {
-                        <article class="cs-panel cs-offer-preview"><header><span class="cs-reference">Offer #@offer.BidId</span><span class="cs-pill">@(Model.UsesScoredWorkflow ? $"{Model.AcceptedCount(offer)} / 4 accepted" : "Historical offer")</span></header><h3>@offer.Invitation.SupplierProfile.CompanyName</h3><p class="cs-price">@CommitteeEvaluationPage.Total(offer).ToString("N2") <span>@offer.Currency</span></p><p>@offer.DeliveryDays-day delivery · @(offer.PaymentTerms ?? "Payment terms not supplied")</p><p>@offer.TechnicalDetails</p>
+                        <article class="cs-panel cs-offer-preview">
+                        @if (Model.UsesScoredWorkflow)
+                        { <div class="cs-offer-approval"><strong>@Model.AcceptedCount(offer) / 4 accepted</strong><span>@(scoringLocked ? "Locked until all four percentages are confirmed" : Model.AcceptedCount(offer) == 4 ? "All four member forms accepted" : "Waiting for member review forms")</span><div class="cs-acceptance-dots" aria-hidden="true">@foreach (var member in Model.Members) { <span class="@(Model.IsAccepted(Model.Evaluation(member, offer)) ? "is-complete" : "")"></span> }</div></div> }
+                        <header><span class="cs-reference">Offer #@offer.BidId</span></header><h3>@offer.Invitation.SupplierProfile.CompanyName</h3><p class="cs-price">@CommitteeEvaluationPage.Total(offer).ToString("N2") <span>@offer.Currency</span></p><p>@offer.DeliveryDays-day delivery · @(offer.PaymentTerms ?? "Payment terms not supplied")</p><p>@offer.TechnicalDetails</p>
                         <details><summary>Item breakdown</summary>@foreach (var item in offer.BidItems) { <div class="cs-line-item"><strong>@item.Quantity.ToString("0.###") × @item.UnitPrice.ToString("N2") @offer.Currency</strong><p>@item.OfferedSpecifications</p></div> }<small>Tax @offer.TaxAmount.ToString("N2") · Additional costs @offer.AdditionalCosts.ToString("N2") @offer.Currency</small></details></article>
                     }
                     </div>

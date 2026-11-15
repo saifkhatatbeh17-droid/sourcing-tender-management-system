@@ -1,7 +1,7 @@
 @model CommitteeEvaluationPage
 @using System.Globalization
 <section class="cs-panel cs-consensus" aria-labelledby="consensus-heading">
-    <div class="cs-section-heading"><div><h3 id="consensus-heading">@(Model.ConsensusLocked ? "Committee percentages are locked" : "Agree how offers will be scored")</h3><p>@(Model.ConsensusLocked ? "The average of four confirmed proposals applies to every offer and the AI comparison." : "Each member confirms a financial percentage. Technical is the remainder; the four proposals are then averaged.")</p></div><span class="cs-pill @(Model.ConsensusLocked ? "is-success" : "")">@Model.WeightProposals.Count / 4 confirmed</span></div>
+    <div class="cs-section-heading"><div><h3 id="consensus-heading">@(Model.ConsensusLocked ? "Committee percentages are locked" : "Enter all four percentages to unlock scoring")</h3><p id="consensus-lock-reason">@(Model.ConsensusLocked ? "The average of four confirmed proposals applies to every offer and the AI comparison. Nobody can edit the calculated percentage." : "Scoring, voting and offer selection are locked. Each member must confirm their financial percentage first. After all four confirmations, the average is calculated once and locked; only then do the evaluation forms open.")</p></div><span class="cs-pill @(Model.ConsensusLocked ? "is-success" : "")">@Model.WeightProposals.Count / 4 confirmed</span></div>
     @if (Model.Members.Count == 0 && !Model.Locked)
     { <form asp-action="Start" method="post"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><button class="cs-button is-primary">Start committee evaluation</button></form> }
     @if (Model.ConsensusLocked)

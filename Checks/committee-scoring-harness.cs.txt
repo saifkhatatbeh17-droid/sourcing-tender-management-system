@@ -70,7 +70,8 @@ try{
  string Value(string html,string name)=>WebUtility.HtmlDecode(Regex.Match(html,"name=\""+name+"\"[^>]*value=\"([^\"]*)\"").Groups[1].Value);
  async Task<HttpResponseMessage> Post(int member,int tender,string action,params (string,string)[] values){var html=await Html(member,tender);var body=values.ToDictionary(x=>x.Item1,x=>x.Item2);body["id"]=tender.ToString();body["version"]=Value(html,"version");if(string.IsNullOrEmpty(body["version"]))body["version"]=Value(await Html(1,tender),"version");body["__RequestVerificationToken"]=Value(html,"__RequestVerificationToken");return await clients[member].PostAsync("/EvaluationCommittee/"+action,new FormUrlEncodedContent(body));}
  var first=tenderIds[0];var offers=bidIds[first];
- var initial=await Html(1,first);Check(initial.Contains("Agree how offers will be scored")&&initial.Contains("readonly"),"percentage-first UI and read-only AI fields");
+ var initial=await Html(1,first);Check(initial.Contains("Enter all four percentages to unlock scoring")&&initial.Contains("readonly"),"percentage-first UI and read-only AI fields");
+ Check(Regex.IsMatch(initial,"id=\"forms-tab\"[^>]*disabled")&&initial.Contains("0 / 4 accepted")&&!initial.Contains("Select this offer"),"scoring tab locked and per-offer acceptance visible before consensus");
  var csrf=await clients[1].PostAsync("/EvaluationCommittee/ConfirmPercentage",new FormUrlEncodedContent(new Dictionary<string,string>{{"id",first.ToString()},{"financialWeight","40"}}));Check(csrf.StatusCode==HttpStatusCode.BadRequest,"antiforgery token required");
  var outsider=await Post(5,first,"ConfirmPercentage",("financialWeight","40"));Check(outsider.StatusCode==HttpStatusCode.Forbidden,"unassigned member cannot confirm");
  await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","20"),("technicalMark","30"));
@@ -78,6 +79,7 @@ try{
  for(int i=1;i<=4;i++)Check((await Post(i,first,"ConfirmPercentage",("financialWeight",(20+i*10).ToString()))).StatusCode==HttpStatusCode.Redirect,"percentage confirmation saves");
  await Post(1,first,"ConfirmPercentage",("financialWeight","80"));
  await WithDb(async db=>{var t=await db.Tenders.FindAsync(first);Check(t!.CommitteeFinancialWeight==45&&await db.CommitteeWeightProposals.CountAsync(p=>p.TenderId==first)==4,"average frozen and duplicate proposals rejected");});
+ var unlocked=await Html(1,first);Check(!Regex.IsMatch(unlocked,"id=\"forms-tab\"[^>]*disabled")&&unlocked.Contains("Committee percentages are locked"),"four confirmed proposals unlock scoring while the average stays locked");
  await Post(1,first,"RecommendBids",("financialWeight","99"),("requirementsWeight","1"));Check(NoAi.Calls==0,"tampered AI percentages rejected before network call");
  Check((await Post(1,first,"SelectOffer",("bidId",offers[0].ToString()))).StatusCode==HttpStatusCode.BadRequest,"legacy manual selection blocked");
  await Post(1,first,"AcceptScoredOffer",("bidId",offers[0].ToString()),("financialMark","46"),("technicalMark","20"));

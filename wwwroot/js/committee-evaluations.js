@@ -27,7 +27,7 @@
     const storageKey = `evaluation-tab-${page.querySelector('#tender')?.value}`;
     function openTab(id) {
         const button = document.getElementById(id);
-        if (button) bootstrap.Tab.getOrCreateInstance(button).show();
+        if (button && !button.disabled) bootstrap.Tab.getOrCreateInstance(button).show();
     }
     page.querySelectorAll('[data-bs-toggle="tab"]').forEach(button => button.addEventListener('shown.bs.tab', () => {
         try { sessionStorage.setItem(storageKey, button.id); } catch { /* Optional local navigation memory. */ }

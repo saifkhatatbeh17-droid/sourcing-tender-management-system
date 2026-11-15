@@ -81,6 +81,11 @@
 .cs-text-link { color: var(--color-link); text-underline-offset: 3px; font-size: .8rem; }
 .cs-offers { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
 .cs-offer-preview header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .8rem; }
+.cs-offer-approval { padding: .8rem 1rem; margin: -1.4rem -1.4rem 1rem; background: var(--color-surface-alt); border-bottom: 1px solid var(--color-border); border-radius: 1rem 1rem 0 0; }
+.cs-offer-approval > strong { display: block; color: var(--color-link); font-size: .9rem; }
+.cs-offer-approval > span { display: block; margin-top: .25rem; color: var(--color-text-secondary); font-size: .75rem; }
+.cs-offer-approval .cs-acceptance-dots { justify-content: flex-start; }
+.committee-scoring .cs-tabs .nav-link:disabled { opacity: .55; cursor: not-allowed; }
 .cs-offer-preview h3 { font-size: 1rem; }
 .cs-offer-preview .cs-price { font-size: 1.65rem; font-weight: 650; letter-spacing: -.035em; color: var(--color-text); margin: .7rem 0; }
 .cs-price > span { font-size: .8rem; font-weight: 400; color: var(--color-text-secondary); }
@@ -145,6 +150,7 @@
 @media (max-width: 500px) {
     .cs-proposals { grid-template-columns: 1fr; }
     .cs-panel { padding: 1rem; }
+    .cs-offer-approval { margin: -1rem -1rem 1rem; }
     .cs-section-heading, .cs-score-offer-heading { flex-wrap: wrap; }
     .cs-tender-heading { flex-direction: column; }
     .cs-steps li > div { display: block; }
