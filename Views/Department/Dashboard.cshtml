@@ -69,7 +69,8 @@
             <div class="dr-recent-list">
                 @foreach (var request in Model.Take(5))
                 {
-                    var readableStatus = System.Text.RegularExpressions.Regex.Replace(request.Status, "([a-z])([A-Z])", "$1 $2");
+                    var progress = DepartmentRequestProgress.Code(request);
+                    var readableStatus = DepartmentRequestProgress.Label(progress);
                     <a class="dr-recent-row" asp-action="Details" asp-route-id="@request.PurchaseRequestId">
                         <span class="dr-id-badge">#@request.PurchaseRequestId</span>
                         <div class="dr-recent-main">
@@ -79,7 +80,7 @@
                             </span>
                         </div>
                         <span class="dr-priority" data-priority="@request.Priority">@request.Priority</span>
-                        <span class="dr-status" data-status="@request.Status">@readableStatus</span>
+                        <span class="dr-status" data-status="@progress">@readableStatus</span>
                         <span class="dr-row-arrow" aria-hidden="true">→</span>
                     </a>
                 }

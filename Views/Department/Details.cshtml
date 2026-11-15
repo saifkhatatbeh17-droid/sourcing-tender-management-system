@@ -1,7 +1,9 @@
 @model SourcingTenderManagement.Models.Entities.PurchaseRequest
 @{
     ViewData["Title"] = $"Request #{Model.PurchaseRequestId} — {Model.Title}";
-    var readableStatus = System.Text.RegularExpressions.Regex.Replace(Model.Status, "([a-z])([A-Z])", "$1 $2");
+    var progress = DepartmentRequestProgress.Code(Model);
+    var readableStatus = DepartmentRequestProgress.Label(progress);
+    ViewData["DisplayRequestProgress"] = progress;
     var step = Model.Status switch
     {
         "Submitted" => 1,
@@ -23,7 +25,7 @@
         <div class="dr-details-title-block">
             <div class="dr-badges-row">
                 <span class="dr-id-badge">#@Model.PurchaseRequestId</span>
-                <span class="dr-status" data-status="@Model.Status">@readableStatus</span>
+                <span class="dr-status" data-status="@progress">@readableStatus</span>
                 <span class="dr-priority" data-priority="@Model.Priority">@Model.Priority priority</span>
             </div>
             <h1>@Model.Title</h1>
@@ -66,7 +68,7 @@
         </li>
         <li class="@(step >= 4 ? "is-done is-current" : "")">
             <span class="dr-step-dot">4</span>
-            <div><strong>Converted to Tender</strong><small>@(Model.Status == "ConvertedToTender" ? "Active tender" : "Final stage")</small></div>
+            <div><strong>Converted to Tender</strong><small>@(Model.Status == "ConvertedToTender" ? readableStatus : "After request approval")</small></div>
         </li>
     </ol>
 

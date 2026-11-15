@@ -1,6 +1,7 @@
 @model SourcingTenderManagement.Models.Entities.PurchaseRequest
 @{
-    var readableStatus = System.Text.RegularExpressions.Regex.Replace(Model.Status, "([a-z])([A-Z])", "$1 $2");
+    var displayStatus = ViewData["DisplayRequestProgress"] as string ?? Model.Status;
+    var readableStatus = DepartmentRequestProgress.Label(displayStatus);
 }
 
 <div class="dr-details-body">
@@ -29,7 +30,7 @@
             <div><dt>Requested by</dt><dd>@Model.RequestedByUser.FullName</dd></div>
             <div><dt>Priority</dt><dd><span class="dr-priority" data-priority="@Model.Priority">@Model.Priority</span></dd></div>
             <div><dt>Target date</dt><dd>@Model.TargetDate.ToString("yyyy-MM-dd")</dd></div>
-            <div><dt>Status</dt><dd><span class="dr-status" data-status="@Model.Status">@readableStatus</span></dd></div>
+            <div><dt>Status</dt><dd><span class="dr-status" data-status="@displayStatus">@readableStatus</span></dd></div>
             <div><dt>Created</dt><dd>@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</dd></div>
             @if (Model.SubmittedAt is DateTime submitted)
             {

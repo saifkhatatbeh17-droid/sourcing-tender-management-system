@@ -33,7 +33,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
             q = q.Trim();
             requests = requests.Where(r => r.Title.Contains(q) || r.PurchaseRequestId.ToString() == q);
         }
-        if (!string.IsNullOrWhiteSpace(status)) requests = requests.Where(r => r.Status == status);
+        if (!string.IsNullOrWhiteSpace(status)) requests = DepartmentRequestProgress.Filter(requests, status);
         ViewBag.Query = q;
         ViewBag.Status = status;
         return View(await requests.OrderByDescending(r => r.CreatedAt).ToListAsync());
@@ -140,7 +140,8 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
     public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
 
     private IQueryable<PurchaseRequest> DepartmentRequests(ApplicationUser user) =>
-        db.PurchaseRequests.AsNoTracking().Include(r => r.Department).Where(r => r.DepartmentId == user.DepartmentId);
+        db.PurchaseRequests.AsNoTracking().AsSplitQuery().Include(r => r.Department).Include(r => r.Tenders)
+            .Where(r => r.DepartmentId == user.DepartmentId);
 
     private void SetEditViewData(PurchaseRequest request)
     {
