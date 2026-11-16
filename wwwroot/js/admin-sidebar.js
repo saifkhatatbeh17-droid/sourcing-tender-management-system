@@ -2,13 +2,28 @@ const reviewDialog = document.getElementById('supplier-review-dialog');
 if (reviewDialog) {
     let request;
     let opener;
+    let reviewApplication;
+    let refreshListOnClose = false;
     const content = reviewDialog.querySelector('[data-supplier-content]');
     const modal = bootstrap.Modal.getOrCreateInstance(reviewDialog);
 
     reviewDialog.addEventListener('hidden.bs.modal', () => {
         request?.abort();
+        if (refreshListOnClose) {
+            window.location.reload();
+            return;
+        }
         opener?.focus();
     });
+
+    function renderSupplierDetails(markup) {
+        const page = new DOMParser().parseFromString(markup, 'text/html');
+        const flow = page.querySelector('[data-review-flow]');
+        if (!flow) throw new Error('Supplier details unavailable');
+        if (!reviewApplication) flow.querySelector('[data-review-step="Decision"]')?.remove();
+        content.replaceChildren(flow);
+        initializeReview(flow);
+    }
 
     document.addEventListener('click', async event => {
         const link = event.target.closest('[data-supplier-dialog]');
@@ -16,6 +31,7 @@ if (reviewDialog) {
         event.preventDefault();
         opener = link;
         request?.abort();
+        content.removeAttribute('aria-busy');
         const pending = new AbortController();
         request = pending;
         reviewDialog.querySelector('.modal-title').textContent = link.dataset.company;
@@ -26,21 +42,13 @@ if (reviewDialog) {
         content.replaceChildren(loading);
         modal.show();
         const url = new URL(link.href);
+        reviewApplication = url.searchParams.get('reviewApplication') === 'true';
 
         try {
             const response = await fetch(url, { signal: pending.signal });
             if (!response.ok || response.redirected) throw new Error('Supplier details unavailable');
             const markup = await response.text();
-            if (!pending.signal.aborted) {
-                const page = new DOMParser().parseFromString(markup, 'text/html');
-                const flow = page.querySelector('[data-review-flow]');
-                if (!flow) throw new Error('Supplier details unavailable');
-                if (url.searchParams.get('reviewApplication') !== 'true') {
-                    flow.querySelector('[data-review-step="Decision"]')?.remove();
-                }
-                content.replaceChildren(flow);
-                initializeReview(content.querySelector('[data-review-flow]'));
-            }
+            if (!pending.signal.aborted) renderSupplierDetails(markup);
         } catch {
             if (pending.signal.aborted) return;
             const fallback = document.createElement('a');
@@ -51,6 +59,45 @@ if (reviewDialog) {
             error.setAttribute('role', 'alert');
             error.textContent = 'Supplier details could not load here.';
             content.replaceChildren(error, fallback);
+        }
+    });
+
+    content.addEventListener('submit', async event => {
+        const form = event.target;
+        if (event.defaultPrevented || !form.matches('[data-supplier-popup-form]')) return;
+        event.preventDefault();
+        if (content.getAttribute('aria-busy') === 'true') return;
+
+        const pending = new AbortController();
+        request = pending;
+        const button = event.submitter;
+        const data = new FormData(form);
+        if (button) button.disabled = true;
+        content.setAttribute('aria-busy', 'true');
+        form.querySelector('[data-supplier-save-error]')?.remove();
+        try {
+            const response = await fetch(form.action, { method: 'POST', body: data, signal: pending.signal });
+            if (!response.ok) throw new Error('Supplier update failed');
+            const markup = await response.text();
+            if (pending.signal.aborted) return;
+            renderSupplierDetails(markup);
+            if (content.querySelector('[data-supplier-review-saved]')) refreshListOnClose = true;
+            const focusTarget = content.querySelector('.validation-summary-errors, [data-supplier-review-saved], .alert-warning');
+            if (focusTarget) {
+                focusTarget.tabIndex = -1;
+                focusTarget.focus();
+            }
+        } catch {
+            if (pending.signal.aborted) return;
+            const error = document.createElement('p');
+            error.dataset.supplierSaveError = '';
+            error.className = 'text-danger';
+            error.setAttribute('role', 'alert');
+            error.textContent = 'The result could not be confirmed. Reopen supplier details to check the saved values.';
+            form.prepend(error);
+        } finally {
+            if (request === pending) content.removeAttribute('aria-busy');
+            if (button) button.disabled = false;
         }
     });
 }

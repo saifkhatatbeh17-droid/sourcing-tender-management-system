@@ -9,8 +9,8 @@
 
 <div class="manager-shell manager-refresh">
     <header class="mr-heading"><div><h1>Reports &amp; decisions</h1><p>Review your recorded decisions, comments and tender outcomes.</p></div><span class="mr-count">@Model.Decisions.Count records</span></header>
-    <section class="workspace-section" aria-label="Reports">
-        <form class="mr-filters" method="get" asp-action="Reports">
+    <form class="mr-filters workspace-search-card" method="get" asp-action="Reports">
+        <h2 class="workspace-search-title">Find a report</h2>
             <div class="col-sm-5">
                 <label for="search" class="form-label">Tender title</label>
                 <div class="voice-search-control">
@@ -44,6 +44,8 @@
                 </div>
             </div>
         </form>
+
+<section class="workspace-section" aria-label="Reports">
         <div class="mr-record-heading mr-results-heading">
             <h2 id="manager-report-results">Decision history</h2>
             <a class="btn btn-outline-primary" asp-action="ReportsPdf" asp-route-search="@Model.Search" asp-route-decision="@Model.Decision">Download results (PDF)</a>
@@ -59,7 +61,7 @@
                 else
                 {
                     <h3>No decisions recorded</h3><p>Decisions appear here after a committee submission has been reviewed.</p>
-                    <a class="btn btn-outline-primary" asp-action="Submissions">Open committee submissions</a>
+                    <a class="btn btn-outline-primary" asp-action="Submissions">Open Officer Submissions</a>
                 }
             </div>
         }

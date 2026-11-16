@@ -8,8 +8,8 @@
     <div><h1>Contact messages</h1><p>Read messages sent through the Contact Us form.</p></div>
 </header>
 
-<section class="admin-records" aria-label="Contact messages">
-    <form asp-action="ContactMessages" method="get" class="row g-3 align-items-end m-0 p-3 border-bottom">
+<form asp-action="ContactMessages" method="get" class="row g-3 align-items-end workspace-search-card">
+    <h2 class="workspace-search-title">Find a message</h2>
         <div class="col-12 col-md">
             <label class="form-label" for="contact-search">Search messages</label>
             <input class="form-control" id="contact-search" name="search" type="search" maxlength="254" value="@Model.Search" placeholder="Name, email, or subject" />
@@ -27,6 +27,8 @@
             @if (hasFilters) { <a class="btn btn-outline-primary" asp-action="ContactMessages">Clear filters</a> }
         </div>
     </form>
+
+<section class="admin-records" aria-label="Contact messages">
 
     @if (Model.Messages.Count == 0)
     {

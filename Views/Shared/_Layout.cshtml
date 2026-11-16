@@ -46,6 +46,7 @@
     <script src="~/js/site-theme.js" asp-append-version="true"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] — Sourcing &amp; Tender Management</title>
+    <link rel="icon" type="image/png" href="~/images/tiryaq-mark.png" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/formatted-report.css" asp-append-version="true" />
@@ -144,6 +145,7 @@ else if (!standaloneLogin && ViewData["HidePublicNavigation"] is not true)
 }
 
 <script src="~/js/voice-search.js" asp-append-version="true"></script>
+<script src="~/js/notification-center.js" asp-append-version="true"></script>
 
 <script src="~/js/workflow-ux.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)

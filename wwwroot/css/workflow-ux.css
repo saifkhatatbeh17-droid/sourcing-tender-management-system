@@ -6,7 +6,7 @@
 .rq-stage-nav { margin:0 0 20px; }.rq-stage-nav ol { display:flex;gap:16px;padding:0;margin:0;list-style:none; }.rq-stage-nav li { flex:1; }.rq-stage-nav button { display:flex;align-items:center;gap:10px;width:100%;min-height:48px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface);color:var(--color-text-secondary);font-size:14px;text-align:left;padding:10px 14px; }.rq-stage-nav button span { display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:var(--color-surface-alt);font-weight:600; }.rq-stage-nav button[aria-current="step"] { border-color:var(--color-link);color:var(--color-text); }.rq-stage-nav button[aria-current="step"] span { background:var(--brand-highlight,#ff6b4a);color:#111; }.rq-stage-nav p { margin:10px 0 0;color:var(--color-text-secondary);font-size:12px; }
 .rq-form [hidden],.rq-form [data-request-step][hidden] { display:none!important; }
 [data-flash-message],.action-success,[data-admin-feedback] { transition:opacity 180ms ease; } .flash-leaving { opacity:0; }
-.action-confirmation[data-intent="registration"] [data-action-proceed] { background:var(--brand-highlight,#ff6b4a);border-color:var(--brand-highlight,#ff6b4a);color:#111; }.action-confirmation[data-intent="registration"] [data-action-proceed]:hover { background:#f05c3c;border-color:#f05c3c; }.action-confirmation[data-intent="registration"] .action-confirmation-icon { background:#fff0eb;color:#993c24; }
+.action-confirmation[data-intent="registration"] .action-confirmation-icon { background:#fff0eb;color:#993c24; }
 @media(max-width:700px){.rr-pagination { align-items:flex-start;flex-direction:column; }.rr-pagination>div { width:100%;justify-content:space-between; }.rq-stage-nav ol { gap:8px; }.rq-stage-nav button { font-size:12px;gap:7px;padding:9px; }.rq-footer-actions { flex-wrap:wrap; }}
 @media(prefers-reduced-motion:reduce){[data-flash-message],.action-success,[data-admin-feedback]{transition:none;}}
 
@@ -17,3 +17,193 @@
 .feedback-dismiss { position:absolute;top:6px;right:6px;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:0;border-radius:6px;background:transparent;color:inherit;font-size:25px;line-height:1;cursor:pointer; }
 .feedback-dismiss:hover { background:color-mix(in srgb,currentColor 8%,transparent); }
 .feedback-dismiss:focus-visible { outline:2px solid currentColor;outline-offset:-4px; }
+/* Site-wide action colors and search controls. */
+:root {
+    --action-petrol: #305b5c;
+    --action-petrol-hover: #234748;
+    --action-petrol-pressed: #1b393a;
+    --action-petrol-text: #fff;
+    --search-height: 48px;
+    --search-radius: 8px;
+}
+
+:is(#main, #action-confirmation) :is(.btn-primary, .btn-success, .dashboard-cta, .landing-primary, .dr-primary,
+    .cw-button-primary, .ev-button-primary, .ci-primary, .biometric-primary,
+    .cr-action-primary, .cs-button.is-primary, .tc-ai-action, .os-quick-action,
+    .admin-applications-button, [data-action-proceed]):not(.btn-danger, .btn-outline-danger, [data-destructive="true"] *) {
+    --button-surface: var(--action-petrol);
+    background: var(--button-surface);
+    border-color: var(--button-surface);
+    color: var(--action-petrol-text);
+
+    &:is(:hover, :focus-visible) {
+        --button-surface: var(--action-petrol-hover);
+        background-color: var(--button-surface);
+        border-color: var(--button-surface);
+        color: var(--action-petrol-text);
+    }
+
+    &:active { --button-surface: var(--action-petrol-pressed); }
+}
+
+.workspace-shell :is(.admin-filter-bar, .supplier-local-search, .supplier-offer-filters,
+    .tc-search-panel > .tc-query, .rr-server-filter, .dr-filters, .rp-toolbar) {
+    border-radius: 12px;
+}
+
+.workspace-shell .supplier-local-search {
+    padding: 16px;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+}
+
+/* Match the standalone search card while leaving embedded filters in their workspace. */
+html body .workspace-shell .workspace-search-card {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: clamp(14px, 2vw, 20px);
+    margin: 0 0 20px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+}
+html body .workspace-shell .workspace-search-title {
+    flex: 0 0 100%;
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 0;
+    margin: 0 0 4px;
+    color: var(--color-text);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+html body .admin-shell > .main-content > .workspace-search-card {
+    max-width: var(--container-max-width);
+    margin-inline: auto;
+}
+.workspace-shell .admin-record-filters.workspace-search-card { align-items: end; }
+.workspace-shell .mr-filters.workspace-search-card > div:first-of-type { flex: 2 1 280px; }
+.workspace-shell .rr-server-filter.workspace-search-card { margin-inline: clamp(12px, 2vw, 28px); }
+.workspace-shell :is(.mr-list-search, .ev-report-search, .rp-toolbar, .ev-tender-search-field.ev-voice-search) {
+    padding: clamp(10px, 1.3vw, 16px);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+}
+.workspace-shell :is(.ev-report-search, .rp-toolbar) { margin: 0 12px 12px; }
+@media (max-width: 900px) {
+    .admin-shell .admin-record-filters.workspace-search-card > .workspace-search-title + div { grid-column: 1 / -1; }
+}
+@media (max-width: 650px) {
+    .workspace-shell .workspace-search-card.mr-filters > div:first-of-type { flex-basis: auto; }
+}
+
+.workspace-shell :is(input[type="search"], input[data-voice-search]) {
+    min-width: 0;
+    min-height: var(--search-height);
+    border: 1px solid var(--color-border);
+    border-radius: var(--search-radius);
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    font-size: .875rem;
+}
+
+html body .workspace-shell .voice-search-control > .input-group {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0;
+    min-width: 0;
+}
+
+html body .workspace-shell .voice-search-control > .input-group > .form-control {
+    width: 1%;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: var(--search-height);
+    border-start-start-radius: var(--search-radius);
+    border-end-start-radius: var(--search-radius);
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+    margin-bottom: 0;
+}
+
+html body .workspace-shell .voice-search-control [data-voice-search-language] {
+    flex: 0 0 clamp(76px, 12vw, 104px);
+    min-width: 0;
+    max-width: 104px;
+    min-height: var(--search-height);
+    padding-inline: 9px 23px;
+    border-radius: 0;
+    font-size: .8125rem;
+}
+
+html body .workspace-shell .voice-search-control [data-voice-search-button] {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 var(--search-height);
+    width: var(--search-height);
+    height: var(--search-height);
+    min-height: var(--search-height);
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+    border-start-end-radius: var(--search-radius);
+    border-end-end-radius: var(--search-radius);
+    background-color: var(--color-surface);
+    color: var(--color-link);
+}
+
+html body .workspace-shell :is(.rr-server-filter, .mr-filters) .voice-search-control
+    > .input-group > :is(.form-control, .form-select, [data-voice-search-button]) { border-width: 1px; }
+html body .workspace-shell .voice-search-control [data-voice-search-button]:is(:hover, [aria-pressed="true"]) {
+    background-color: var(--color-selection);
+}
+.workspace-shell .voice-search-control [data-voice-search-status]:empty { display: none; }
+.workspace-shell .voice-search-control :is(.form-control, .form-select, .btn):focus-visible {
+    z-index: 3;
+    outline: 2px solid var(--color-link);
+    outline-offset: -2px;
+}
+.workspace-shell .voice-search-control.ev-voice-search #tender-search { padding-inline-end: 12px; }
+.rr-inbox-status > .rr-search-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; width: auto; }
+@media (max-width: 480px) {
+    .so-page.rr-page .rr-inbox-status { flex-wrap: wrap; }
+    .rr-inbox-status > .rr-search-actions { flex: 1 0 100%; }
+}
+.admin-shell .admin-filter-bar .admin-record-filters { align-items: end; }
+
+html body .workspace-shell :is(
+    form[method="get"]:has(input[type="search"], input[data-voice-search]), .rp-toolbar
+) :is(.form-select, input[type="date"], .btn:not([data-voice-search-button]), .dr-primary) {
+    min-height: var(--search-height);
+    border-radius: var(--search-radius);
+}
+
+html body .workspace-shell form[method="get"]:has(input[type="search"], input[data-voice-search]) :is(
+    button[type="submit"], input[type="submit"]
+) {
+    background: var(--action-petrol);
+    border-color: var(--action-petrol);
+    color: var(--action-petrol-text);
+}
+
+html body .workspace-shell form[method="get"]:has(input[type="search"], input[data-voice-search]) :is(
+    button[type="submit"], input[type="submit"]
+):hover { background: var(--action-petrol-hover); border-color: var(--action-petrol-hover); }
+
+html body .workspace-shell form[method="get"]:has(input[type="search"], input[data-voice-search]) :is(
+    a.btn, button[type="reset"]
+) {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-link);
+    text-decoration: none;
+}
+
+html body .workspace-shell form[method="get"]:has(input[type="search"], input[data-voice-search]) :is(
+    a.btn, button[type="reset"]
+):hover { background: var(--color-selection); }

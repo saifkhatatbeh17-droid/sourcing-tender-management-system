@@ -146,8 +146,8 @@ html[data-theme="dark"] .registration-page {
 .registration-stage-heading { font-size:1.15rem;margin:26px 0 8px;color:var(--reg-navy); }
 .registration-stage-copy { color:var(--reg-copy);line-height:1.6; }
 .registration-navigation { display:flex;gap:12px;margin-left:auto; }
-.registration-form-card :is(.registration-continue,.registration-submit) { display:inline-flex;justify-content:center;align-items:center;gap:14px;min-height:48px;padding:12px 20px;background:var(--brand-highlight,#ff6b4a)!important;color:#111!important;border:1px solid var(--brand-highlight,#ff6b4a);font-size:.9375rem;font-weight:650;box-shadow:none;transform:none; }
-.registration-form-card :is(.registration-continue,.registration-submit):hover { background:#f05c3c!important;border-color:#f05c3c;box-shadow:none; }
+.registration-form-card :is(.registration-continue,.registration-submit) { display:inline-flex;justify-content:center;align-items:center;gap:14px;min-height:48px;padding:12px 20px;background:var(--action-petrol)!important;color:var(--action-petrol-text)!important;border:1px solid var(--action-petrol);font-size:.9375rem;font-weight:650;box-shadow:none;transform:none; }
+.registration-form-card :is(.registration-continue,.registration-submit):hover { background:var(--action-petrol-hover)!important;border-color:var(--action-petrol-hover);box-shadow:none; }
 .registration-form-card .registration-previous { min-height:48px;padding:12px 18px;background:var(--reg-control-bg);color:var(--reg-control-ink);border:1px solid var(--color-border,#b7c8c5); }
 .registration-summary { display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px 14px;margin:24px 0;padding:18px;border:1px solid var(--color-border,#d9e2df);border-radius:10px;color:var(--reg-label); }
 .registration-summary dt { font-weight:500; }.registration-summary dd { margin:0;overflow-wrap:anywhere; }

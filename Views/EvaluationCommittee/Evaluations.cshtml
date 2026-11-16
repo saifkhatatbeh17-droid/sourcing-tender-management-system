@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Tender evaluations";
     var tender = Model.Tender;
-    var offers = Model.Offers;
+    var offers = Model.Offers.OrderByDescending(offer => offer.SubmittedAt).ThenByDescending(offer => offer.BidId).ToList();
     var currenciesMatch = offers.Select(o => o.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1;
     string StatusLabel(string status) => status switch { "UnderEvaluation" => "Under evaluation", "AwaitingOfficerSummary" => "Sent to sourcing officer", _ => System.Text.RegularExpressions.Regex.Replace(status, "([a-z])([A-Z])", "$1 $2") };
 }
@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="~/css/committee-report-summary.css" asp-append-version="true" /><link rel="stylesheet" href="~/css/committee-refinement.css" asp-append-version="true" />
 }
 <div class="evaluation-page">
-    @if (tender == null) { <header class="ev-page-heading"><div><h1>Tender evaluations</h1><p class="text-secondary">Open a tender to review its offers and record your committee decision.</p></div></header> }
+    @if (tender == null) { <header class="ev-page-heading"><div><h1>Tender evaluations</h1><p>Open a tender to review its offers and record your committee decision.</p></div></header> }
     @if (TempData["CommitteeError"] is string error) { <div data-flash-message class="ev-notice ev-notice-error" role="alert">@error</div> }
     @if (TempData["CommitteeSuccess"] is string success) { <div data-flash-message class="ev-notice ev-notice-success" role="status">@success</div> }
     <div class="ev-tender-content">

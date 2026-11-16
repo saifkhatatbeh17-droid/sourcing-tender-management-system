@@ -2,15 +2,15 @@
 @{ var tender = Model.Tender; string StatusLabel(string status) => status switch { "UnderEvaluation" => "Under evaluation", "AwaitingOfficerSummary" => "Sent to sourcing officer", _ => System.Text.RegularExpressions.Regex.Replace(status, "([a-z])([A-Z])", "$1 $2") }; }
 <details class="ev-tender-switcher"><summary><span><strong>Find a tender</strong><small>@(tender == null ? "Choose an evaluation to get started" : $"Currently viewing #{tender.TenderId} · {tender.Title}")</small></span><span>@Model.Tenders.Count tenders · Change <span aria-hidden="true">⌄</span></span></summary><div class="ev-tender-browser" aria-label="Choose tender">
         <div class="ev-tender-browser-heading"><span>Tenders <small>@Model.Tenders.Count</small></span><div class="ev-tender-search-field voice-search-control ev-voice-search">
-            <div class="ev-search-input-row">
+            <div class="ev-search-input-row input-group">
                 <svg class="ev-tender-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>
                 <input type="search" id="tender-search" placeholder="Search title, number or status" aria-label="Search tenders" class="form-control" data-voice-search data-voice-search-mode="local" aria-describedby="committee-tender-voice-status" />
+                <select id="tender-voice-language" class="form-select" data-voice-search-language aria-label="Voice search language"><option value="en-US">English</option><option value="ar-JO">العربية</option></select>
                 <button type="button" class="btn ev-voice-button" data-voice-search-button aria-label="Start voice search" aria-pressed="false" aria-describedby="committee-tender-voice-status">
                     <svg data-voice-icon="mic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg>
                     <svg data-voice-icon="stop" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" hidden><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
                 </button>
             </div>
-            <div class="ev-voice-options"><label for="tender-voice-language">Voice language</label><select id="tender-voice-language" data-voice-search-language aria-label="Voice search language"><option value="en-US">English</option><option value="ar-JO">العربية</option></select></div>
             <div id="committee-tender-voice-status" class="form-text small" data-voice-search-status role="status" aria-live="polite"></div>
         </div></div>
         <nav class="ev-tender-rail" aria-label="Tenders">

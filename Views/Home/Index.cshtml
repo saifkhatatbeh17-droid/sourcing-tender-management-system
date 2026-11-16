@@ -11,7 +11,14 @@
         <h1 id="landing-title">Quality starts with better sourcing.</h1>
         <p class="landing-intro">Tiryaq connects qualified suppliers with our pharmaceutical procurement team, from tender invitation to final decision.</p>
         <div class="landing-hero-actions">
-            <a class="landing-primary" asp-controller="Account" asp-action="Register">Register as a supplier <span aria-hidden="true">→</span></a>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a class="landing-primary" asp-controller="Account" asp-action="GoToDashboard">Go to My Dashboard <span aria-hidden="true">→</span></a>
+            }
+            else
+            {
+                <a class="landing-primary" asp-controller="Account" asp-action="Register">Register as a supplier <span aria-hidden="true">→</span></a>
+            }
             <a class="landing-secondary" href="#how-it-works">Explore the process <span aria-hidden="true">↓</span></a>
         </div>
     </div>

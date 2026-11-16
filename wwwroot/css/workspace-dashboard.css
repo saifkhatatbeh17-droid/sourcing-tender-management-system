@@ -19,8 +19,10 @@ html[data-theme] body:has(.unified-dashboard) { background:var(--color-backgroun
 .unified-dashboard .dashboard-heading p { color:var(--color-text-secondary); font-size:14px; line-height:1.6; margin:10px 0 0; max-width:65ch; }
 .dashboard-heading-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
 .unified-dashboard .btn { min-height:42px; padding:10px 16px; border-radius:18px; font-size:14px; font-weight:600; box-shadow:none; }
-.unified-dashboard .dashboard-cta { display:inline-flex; align-items:center; justify-content:center; gap:16px; padding:12px 18px; background:#ff6b4a; border:1px solid #ff6b4a; color:#123032; white-space:nowrap; text-decoration:none; border-radius:18px; font-size:14px; font-weight:600; min-height:44px; }
-.unified-dashboard .dashboard-cta:hover { background:#f05c3c; border-color:#f05c3c; }
+.unified-dashboard .dashboard-cta { display:inline-flex; align-items:center; justify-content:center; gap:16px; padding:12px 18px; background:var(--workspace-sidebar-accent); border:1px solid var(--workspace-sidebar-accent); color:#fff; white-space:nowrap; text-decoration:none; border-radius:18px; font-size:14px; font-weight:600; min-height:44px; }
+.unified-dashboard .dashboard-cta:hover { background:var(--workspace-sidebar-hover); border-color:var(--workspace-sidebar-hover); }
+.unified-dashboard .tc-page-heading .dashboard-cta { background:#a74e32; border-color:#a74e32; }
+.unified-dashboard .tc-page-heading .dashboard-cta:hover { background:#8f3e27; border-color:#8f3e27; }
 .dashboard-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-bottom:28px; }
 .dashboard-metrics.is-four { grid-template-columns:repeat(4,minmax(0,1fr)); }
 .dashboard-metrics.is-five { grid-template-columns:repeat(5,minmax(0,1fr)); }
