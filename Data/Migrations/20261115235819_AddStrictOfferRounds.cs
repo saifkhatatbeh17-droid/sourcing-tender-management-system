@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -30,12 +30,8 @@ END");
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "TenderOfferExtensions");
-
-            migrationBuilder.DropColumn(
-                name: "OfferShortfallReason",
-                table: "Tenders");
+            // AddTenderOfferExtensions owns this schema after the branch histories were merged.
+            // Rolling back this compatibility migration must preserve that earlier migration.
         }
     }
 }
