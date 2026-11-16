@@ -1,0 +1,3 @@
+# Exclude local QA and setup scripts from GitHub language statistics.
+Checks/**/*.py linguist-detectable=false
+scripts/**/*.ps1 linguist-detectable=false
