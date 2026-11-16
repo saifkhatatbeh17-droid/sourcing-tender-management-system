@@ -3,16 +3,16 @@
    ========================================================================== */
 
 .login-main {
-    --tq-abyss: #072224;
-    --tq-deep: #0d3538;
-    --tq-forest: #123032;
+    --tq-abyss: #0c252d;
+    --tq-deep: #0c252d;
+    --tq-forest: #0c252d;
     --tq-teal: var(--pharma-primary);
-    --tq-teal-bright: #18c5c8;
-    --tq-teal-dark: #0b6e68;
-    --tq-mint: #64f4dc;
-    --tq-mint-soft: #a1f2e0;
-    --tq-coral: #ff6b4a;
-    --tq-coral-hover: #f05c3c;
+    --tq-teal-bright: #efb85c;
+    --tq-teal-dark: #1d5560;
+    --tq-mint: #efb85c;
+    --tq-mint-soft: #f6d49a;
+    --tq-coral: #efb85c;
+    --tq-coral-hover: #e5a23e;
     --tq-canvas: #ebf4f3;
     --tq-panel-bg: rgba(255, 255, 255, 0.88);
     --tq-panel-border: rgba(16, 86, 82, 0.14);
@@ -125,7 +125,7 @@ html[data-theme="dark"] .login-main {
     height: 260px;
     top: 22%;
     right: -60px;
-    background: #ff6b4a;
+    background: #efb85c;
     opacity: 0.22;
     animation-delay: -11s;
 }
@@ -316,8 +316,8 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
     height: 11px;
     top: 18px;
     left: 24px;
-    background: #64f4dc;
-    box-shadow: 0 0 18px #64f4dc;
+    background: #efb85c;
+    box-shadow: 0 0 18px #efb85c;
 }
 
 .orbit-node.node-2 {
@@ -334,8 +334,8 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
     height: 7px;
     top: 50%;
     right: -4px;
-    background: #a1f2e0;
-    box-shadow: 0 0 12px #a1f2e0;
+    background: #f6d49a;
+    box-shadow: 0 0 12px #f6d49a;
 }
 
 .orbit-three {
@@ -362,7 +362,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 
 .orbit-progress-circle {
     fill: none;
-    stroke: #64f4dc;
+    stroke: #efb85c;
     stroke-width: 3.5;
     stroke-linecap: round;
     stroke-dasharray: 578;
@@ -404,8 +404,8 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #64f4dc;
-    box-shadow: 0 0 10px #64f4dc;
+    background: #efb85c;
+    box-shadow: 0 0 10px #efb85c;
 }
 
 .chip-spark {
@@ -444,7 +444,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 }
 
 .identity-core:hover {
-    border-color: #64f4dc;
+    border-color: #efb85c;
     box-shadow:
         0 28px 60px rgba(0, 15, 18, 0.6),
         0 0 65px rgba(100, 244, 220, 0.38),
@@ -504,8 +504,8 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 }
 
 .tq-eye {
-    fill: #64f4dc;
-    filter: drop-shadow(0 0 5px #64f4dc);
+    fill: #efb85c;
+    filter: drop-shadow(0 0 5px #efb85c);
     animation: eye-blink 5.5s infinite;
     transform-origin: center;
 }
@@ -524,7 +524,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 }
 
 .tq-verified-check {
-    stroke: #64f4dc;
+    stroke: #efb85c;
     opacity: 0;
     stroke-dasharray: 30;
     stroke-dashoffset: 30;
@@ -556,7 +556,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 }
 
 .core-wordmark-pill .core-arabic {
-    color: #64f4dc;
+    color: #efb85c;
     font-weight: 700;
 }
 
@@ -574,7 +574,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
     position: absolute;
     width: 16px;
     height: 16px;
-    border-color: #64f4dc;
+    border-color: #efb85c;
     border-style: solid;
 }
 
@@ -589,8 +589,8 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
     right: 6px;
     top: 15%;
     height: 2px;
-    background: linear-gradient(90deg, transparent, #64f4dc, transparent);
-    box-shadow: 0 0 12px #64f4dc;
+    background: linear-gradient(90deg, transparent, #efb85c, transparent);
+    box-shadow: 0 0 12px #efb85c;
     animation: face-laser-scan 1.8s ease-in-out infinite alternate;
 }
 
@@ -610,7 +610,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 .passkey-waves span {
     position: absolute;
     inset: 0;
-    border: 1.5px solid #64f4dc;
+    border: 1.5px solid #efb85c;
     border-radius: 42px;
     animation: passkey-ripple 2.1s ease-out infinite;
 }
@@ -630,7 +630,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 /* 1. Email Focus: Attentive Tracking Mode */
 .login-identity[data-focus="email"] .identity-core {
     transform: rotateX(var(--tilt-rx)) rotateY(var(--tilt-ry)) rotate(0deg) translateY(-5px) scale(1.04);
-    border-color: #64f4dc;
+    border-color: #efb85c;
     box-shadow: 0 26px 60px rgba(0, 20, 22, 0.55), 0 0 70px rgba(100, 244, 220, 0.38);
 }
 
@@ -695,7 +695,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 
 .login-identity[data-biometric="face"] .identity-core {
     transform: rotate(0deg) scale(1.06);
-    border-color: #64f4dc;
+    border-color: #efb85c;
 }
 
 .login-identity[data-biometric="passkey"] .passkey-waves {
@@ -704,13 +704,13 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 
 .login-identity[data-biometric="passkey"] .identity-core {
     transform: rotate(0deg) scale(1.06);
-    border-color: #64f4dc;
+    border-color: #efb85c;
 }
 
 /* 4. Access Lifecycle States (pending, verified, failed) */
 .login-identity[data-access="pending"] .orbit-one {
     animation-duration: 2.2s;
-    border-color: #64f4dc;
+    border-color: #efb85c;
 }
 
 .login-identity[data-access="pending"] .orbit-two {
@@ -727,7 +727,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 
 .login-identity[data-access="verified"] .identity-core {
     background: linear-gradient(145deg, rgba(22, 163, 122, 0.45), rgba(6, 78, 59, 0.85));
-    border-color: #64f4dc;
+    border-color: #efb85c;
     transform: rotate(0deg) scale(1.1);
     box-shadow: 0 0 95px rgba(100, 244, 220, 0.72);
 }
@@ -795,7 +795,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 
 .pillar-pill.is-active {
     background: rgba(0, 163, 166, 0.28);
-    border-color: #64f4dc;
+    border-color: #efb85c;
     color: #ffffff;
     box-shadow: 0 6px 18px rgba(0, 163, 166, 0.24);
 }
@@ -877,8 +877,8 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
     height: 8px;
     width: 8px;
     border-radius: 50%;
-    background: #64f4dc;
-    box-shadow: 0 0 12px #64f4dc;
+    background: #efb85c;
+    box-shadow: 0 0 12px #efb85c;
     flex-shrink: 0;
 }
 
@@ -899,7 +899,7 @@ html[data-theme="dark"] .login-brand .tiryaq-logo img {
 
 .interaction-dots span.is-lit {
     width: 14px;
-    background: #64f4dc;
+    background: #efb85c;
     box-shadow: 0 0 8px rgba(100, 244, 220, 0.7);
 }
 
@@ -1009,7 +1009,7 @@ html body .login-main .login-page .login-panel {
 
 html[data-theme="dark"] .panel-Reaction-badge {
     background: rgba(100, 244, 220, 0.14);
-    color: #64f4dc;
+    color: #efb85c;
 }
 
 .reaction-dot {
@@ -1163,7 +1163,7 @@ html[data-theme="dark"] .panel-Reaction-badge {
 }
 
 html[data-theme="dark"] .login-password-toggle {
-    color: #64f4dc;
+    color: #efb85c;
     background: rgba(100, 244, 220, 0.12);
 }
 
@@ -1183,7 +1183,7 @@ html[data-theme="dark"] .login-password-toggle {
     min-height: 54px;
     padding: 12px 14px 12px 22px;
     border-radius: 16px;
-    background: linear-gradient(135deg, var(--pharma-primary) 0%, #0b6e68 100%);
+    background: linear-gradient(135deg, var(--pharma-primary) 0%, #1d5560 100%);
     color: #ffffff;
     font-size: 14.5px;
     font-weight: 700;
@@ -1213,7 +1213,7 @@ html[data-theme="dark"] .login-password-toggle {
 
 .login-main .login-submit:hover .submit-arrow {
     background: var(--tq-coral);
-    color: #072224;
+    color: #0c252d;
     transform: translate(2px, -2px);
 }
 
@@ -1336,7 +1336,7 @@ html[data-theme="dark"] .login-password-toggle {
 }
 
 html[data-theme="dark"] .login-registration a {
-    color: #64f4dc;
+    color: #efb85c;
 }
 
 .login-registration a:hover {

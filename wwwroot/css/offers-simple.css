@@ -126,7 +126,7 @@
 }
 
 /* Unread offers and a separate quick action beside the disclosure arrow. */
-.os-unread-dot,.os-unread-key { display:inline-block;width:8px;height:8px;background:var(--brand-highlight,#ff6b4a);border-radius:50%;flex-shrink:0; }
+.os-unread-dot,.os-unread-key { display:inline-block;width:8px;height:8px;background:var(--brand-highlight,#efb85c);border-radius:50%;flex-shrink:0; }
 .os-unread-dot { margin-right:8px;vertical-align:middle; }
 .os-unread-key { margin:0 3px;vertical-align:middle; }
 .os-unread-dot[hidden] { display:none!important; }
@@ -135,8 +135,8 @@
 .offer-simple .os-expand { justify-content:flex-end; }
 .os-expand svg { width:20px;height:20px;flex-shrink:0; }
 .os-offer-details[open] .os-expand svg { transform:rotate(180deg); }
-html body main .offer-simple .os-quick-action { position:absolute;z-index:1;top:24px;right:58px;min-height:44px;border:1px solid var(--brand-highlight,#ff6b4a);border-radius:8px;padding:9px 13px;background:var(--brand-highlight,#ff6b4a);color:var(--brand-highlight-ink,#123032);font-size:12px;font-weight:600;line-height:1.5; }
-html body main .offer-simple .os-quick-action:hover { background:var(--brand-highlight-hover,#f05c3c);border-color:var(--brand-highlight-hover,#f05c3c); }
+html body main .offer-simple .os-quick-action { position:absolute;z-index:1;top:24px;right:58px;min-height:44px;border:1px solid var(--brand-highlight,#efb85c);border-radius:8px;padding:9px 13px;background:var(--brand-highlight,#efb85c);color:var(--brand-highlight-ink,#0c252d);font-size:12px;font-weight:600;line-height:1.5; }
+html body main .offer-simple .os-quick-action:hover { background:var(--brand-highlight-hover,#e5a23e);border-color:var(--brand-highlight-hover,#e5a23e); }
 .os-quick-action:focus-visible { outline:3px solid var(--so-accent-hover);outline-offset:3px; }
 .offer-simple .os-detail-content:focus { outline:none; }
 .offer-simple .os-detail-content:focus-visible { outline:2px solid var(--so-accent-hover);outline-offset:-2px; }

@@ -1,9 +1,9 @@
 .main-content:has(.team-page) { padding: 0 !important; }
 
 .team-page {
-    --team-ink: #092b3c;
-    --tablet-light: #94e9de;
-    --tablet-base: #087f85;
+    --team-ink: #0c252d;
+    --tablet-light: #f6d49a;
+    --tablet-base: #1d5560;
     display: grid;
     position: relative;
     isolation: isolate;
@@ -332,9 +332,9 @@
     font-size: clamp(1.2rem, 4vw, 3rem);
     font-weight: 750;
 }
-.team-capsule:is(:focus-visible, [aria-expanded="true"]) { outline: 2px solid #007c81; outline-offset: 3px; }
+.team-capsule:is(:focus-visible, [aria-expanded="true"]) { outline: 2px solid #1d5560; outline-offset: 3px; }
 @media (hover: hover) {
-    .team-capsule:hover { transform: translateY(-5px); box-shadow: 0 0 0 2px #007c8150, 0 7px 15px #164a5d4a, inset 0 1px 4px #4771806b; }
+    .team-capsule:hover { transform: translateY(-5px); box-shadow: 0 0 0 2px #1d556050, 0 7px 15px #164a5d4a, inset 0 1px 4px #4771806b; }
     .team-capsule:hover::after { opacity: 1; transform: translateX(24%) rotate(5deg); }
 }
 
@@ -356,7 +356,7 @@
 }
 .team-dialog[open] { display: grid; place-items: center; }
 .team-dialog.is-visible { opacity: 1; }
-.team-dialog::backdrop { background: #092b3c94; backdrop-filter: blur(7px); opacity: 0; transition: opacity .25s ease; }
+.team-dialog::backdrop { background: #0c252d94; backdrop-filter: blur(7px); opacity: 0; transition: opacity .25s ease; }
 .team-dialog.is-visible::backdrop { opacity: 1; }
 html:has(.team-dialog[open]) { overflow: hidden; }
 .team-profile {
@@ -366,7 +366,7 @@ html:has(.team-dialog[open]) { overflow: hidden; }
     background: linear-gradient(135deg, #f8fbfc, #eaf6f3);
     border: 1px solid #fff;
     border-radius: 1.75rem;
-    box-shadow: 0 1.5rem 4rem #092b3c55;
+    box-shadow: 0 1.5rem 4rem #0c252d55;
 }
 .team-profile-content { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); align-items: center; gap: clamp(1.1rem, 4vw, 2.8rem); }
 .team-profile-portrait { aspect-ratio: 4 / 4.5; overflow: hidden; border: 1px solid #fff; border-radius: 1rem; }
@@ -382,11 +382,11 @@ html:has(.team-dialog[open]) { overflow: hidden; }
     border-radius: 50%;
     border: 1px solid #91b2b6;
     background: #f8fbfc;
-    color: #092b3c;
+    color: #0c252d;
     font-size: 1.6rem;
     line-height: 1;
 }
-.team-profile-close:focus-visible { outline-color: #007c81; }
+.team-profile-close:focus-visible { outline-color: #1d5560; }
 .team-profile-index { color: #006d73; font-size: .75rem; font-weight: 750; letter-spacing: .14em; }
 .team-profile-copy { container-type: inline-size; }
 .team-profile-copy h2 { margin: 0 0 .35rem; font-size: min(3.4rem, 10cqi); line-height: 1.08; letter-spacing: -.045em; white-space: nowrap; }
@@ -413,7 +413,7 @@ html:has(.team-dialog[open]) { overflow: hidden; }
     text-decoration: none;
 }
 .team-profile-links a:hover { background: #d8eeea; color: #06444a; }
-.team-profile-links a:focus-visible { outline: 2px solid #007c81; outline-offset: 3px; }
+.team-profile-links a:focus-visible { outline: 2px solid #1d5560; outline-offset: 3px; }
 .team-flying-portrait { position: fixed; z-index: 3; object-fit: cover; pointer-events: none; transform-origin: top left; }
 .team-static-profiles { margin-top: 1.5rem; color: #f8fbfc; }
 .team-static-profiles details { margin-bottom: .65rem; }

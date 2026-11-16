@@ -1,8 +1,8 @@
 .landing-header.contact-navbar { position: sticky; }
 
 .public-guide {
-    --guide-navy: #12304a;
-    --guide-teal: #0f766e;
+    --guide-navy: #0c252d;
+    --guide-teal: #1d5560;
     --guide-copy: #3c5869;
     --guide-line: #cfe4de;
     --guide-pad: clamp(1.3rem, 5vw, 4rem);
@@ -87,7 +87,7 @@
 .contact-form label { display: block; margin-bottom: .3rem; font-weight: 650; }
 .contact-form .form-control { border-color: #c6d9d5; }
 .contact-wide { grid-column: 1 / -1; }
-.contact-form .contact-send { justify-self: start; background: #0f766e; border-color: #0f766e; color: #fff; }
+.contact-form .contact-send { justify-self: start; background: #1d5560; border-color: #1d5560; color: #fff; }
 @media (max-width: 520px) { .contact-form { grid-template-columns: 1fr; } }
 .landing-main > .public-guide { width: min(calc(100% - 2rem), 76rem); margin: clamp(3rem, 7vw, 6rem) auto; }
 .public-guide > section + section { margin-block-start: clamp(1.2rem, 3vw, 2rem); }

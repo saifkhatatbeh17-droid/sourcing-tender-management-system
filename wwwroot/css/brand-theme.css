@@ -1,0 +1,84 @@
+/* Tiryaq brand theme. Loaded LAST by _Layout so it wins over page stylesheets.
+   Two brand colors only:
+     primary   = deep teal  #1d5560  (sidebars, links, selection, focus, secondary buttons)
+     secondary = honey      #efb85c  (main call-to-action buttons, current-item markers, accents on dark)
+   Status colors (success / warning / danger) stay semantic, and are never the only signal.
+   Selectors use body:not(#tq-x) to lift specificity to ID level, so ID-scoped page rules (e.g. #login-stage) cannot override the brand.
+   Contrast: ivory #f4eee2 on teal = 7.4:1, ink #0a1f26 on honey = 10.5:1, honey on #0c252d = 9.6:1. */
+:root {
+  --tq-primary: #1d5560; --tq-primary-hover: #174750; --tq-primary-deep: #0c252d; --tq-on-primary: #f4eee2;
+  --tq-primary-soft: #e3eeec;
+  --tq-secondary: #efb85c; --tq-secondary-hover: #e5a23e; --tq-secondary-deep: #d98a2b; --tq-on-secondary: #0a1f26;
+  --tq-focus: #1d5560;
+  --bs-primary: #1d5560; --bs-primary-rgb: 29, 85, 96;
+  --bs-link-color: #1d5560; --bs-link-color-rgb: 29, 85, 96; --bs-link-hover-color: #174750; --bs-link-hover-color-rgb: 23, 71, 80;
+  --bs-focus-ring-color: rgba(29, 85, 96, .3);
+}
+html[data-theme="dark"] {
+  --tq-primary-soft: #143840; --tq-focus: #efb85c;
+  --bs-link-color: #efb85c; --bs-link-color-rgb: 239, 184, 92; --bs-link-hover-color: #f6d49a; --bs-link-hover-color-rgb: 246, 212, 154;
+  --bs-focus-ring-color: rgba(239, 184, 92, .35);
+}
+/* Shared brand tokens: forced on every element so page-level re-definitions cannot drift from the brand. */
+html :is(body, body *) {
+  --pharma-primary: #1d5560 !important; --pharma-primary-hover: #174750 !important; --pharma-on-primary: #f4eee2 !important;
+  --pharma-link: #1d5560 !important; --pharma-focus: #1d5560 !important; --pharma-selection: #e3eeec !important;
+  --brand-highlight: #efb85c !important; --brand-highlight-hover: #e5a23e !important; --brand-highlight-ink: #0a1f26 !important;
+  --workspace-sidebar-accent: #1d5560 !important; --workspace-sidebar-hover: #174750 !important; --workspace-sidebar-active: #0c252d !important;
+}
+html[data-theme="dark"] :is(body, body *) { --pharma-link: #efb85c !important; --pharma-focus: #efb85c !important; --pharma-selection: #143840 !important; }
+
+/* ---------- Main buttons: honey with ink text ---------- */
+html body:not(#tq-x) .btn-primary,
+html body:not(#tq-x) :is(.cw-button-primary, .dr-primary, .ci-primary, .dashboard-cta, .admin-review-button, .landing-primary, .landing-register, .login-submit)
+{
+  background-color: var(--tq-secondary) !important; border-color: var(--tq-secondary) !important; color: var(--tq-on-secondary) !important;
+}
+html body:not(#tq-x) .btn-primary:hover,
+html body:not(#tq-x) :is(.cw-button-primary, .dr-primary, .ci-primary, .dashboard-cta, .admin-review-button, .landing-primary, .landing-register, .login-submit):hover
+{
+  background-color: var(--tq-secondary-hover) !important; border-color: var(--tq-secondary-hover) !important; color: var(--tq-on-secondary) !important;
+}
+html body:not(#tq-x) .btn-primary:active, html body:not(#tq-x) .btn-primary.active { background-color: var(--tq-secondary-deep) !important; border-color: var(--tq-secondary-deep) !important; }
+html body:not(#tq-x) .btn-primary:disabled, html body:not(#tq-x) .btn-primary.disabled { background-color: #ead7b3 !important; border-color: #ead7b3 !important; color: #5b5a50 !important; opacity: 1; }
+html body:not(#tq-x) .btn-primary:focus-visible { box-shadow: 0 0 0 .25rem rgba(239, 184, 92, .45) !important; }
+
+/* Secondary actions: outlined in the primary teal */
+html body:not(#tq-x) .btn-outline-primary { color: var(--tq-primary) !important; border-color: var(--tq-primary) !important; background: transparent !important; }
+html body:not(#tq-x) .btn-outline-primary:hover, html body:not(#tq-x) .btn-outline-primary.active { color: var(--tq-on-primary) !important; background: var(--tq-primary) !important; }
+html[data-theme="dark"] body:not(#tq-x) .btn-outline-primary { color: var(--tq-secondary) !important; border-color: var(--tq-secondary) !important; }
+html[data-theme="dark"] body:not(#tq-x) .btn-outline-primary:hover { color: var(--tq-on-secondary) !important; background: var(--tq-secondary) !important; }
+
+/* ---------- Sidebars: primary teal ---------- */
+html body:not(#tq-x) .admin-sidebar {
+  --sidebar-bg: #1d5560; --sidebar-ink: #f4eee2; --sidebar-muted: #c5d6d1; --sidebar-line: #2e6a74; --sidebar-hover: #174750; --sidebar-active: #0c252d; --sidebar-accent: #efb85c;
+  background: var(--tq-primary) !important; color: var(--tq-on-primary) !important; border-color: transparent !important;
+}
+html body:not(#tq-x) .admin-sidebar :is(a, button, summary, span, strong, small, .admin-sidebar-role) { color: inherit; }
+html body:not(#tq-x) .admin-sidebar :is(.admin-sidebar-item, .admin-sidebar-toggle, summary):hover { background: var(--tq-primary-hover) !important; color: #fff !important; }
+html body:not(#tq-x) .admin-sidebar .admin-sidebar-item:is(.is-active, [aria-current="page"]) {
+  background: var(--tq-primary-deep) !important; color: #fff !important; box-shadow: inset 3px 0 var(--tq-secondary) !important;
+}
+html body:not(#tq-x) .admin-sidebar .admin-sidebar-item:is(.is-active, [aria-current="page"]) svg { color: var(--tq-secondary); }
+html body:not(#tq-x) .admin-sidebar :is(.admin-sidebar-item, .admin-sidebar-toggle, summary):focus-visible { outline: 3px solid var(--tq-secondary) !important; outline-offset: 2px; }
+html body:not(#tq-x) .admin-sidebar .admin-sidebar-bottom { border-top-color: rgba(244, 238, 226, .22) !important; }
+html[data-theme="dark"] body:not(#tq-x) .admin-sidebar { background: #12343c !important; }
+
+/* ---------- Links, focus, selection, form controls ---------- */
+::selection { background: rgba(239, 184, 92, .45); color: #0a1f26; }
+html body:not(#tq-x) .form-control:focus, html body:not(#tq-x) .form-select:focus { border-color: var(--tq-primary) !important; box-shadow: 0 0 0 .2rem rgba(29, 85, 96, .22) !important; }
+html[data-theme="dark"] body:not(#tq-x) .form-control:focus, html[data-theme="dark"] body:not(#tq-x) .form-select:focus { border-color: var(--tq-secondary) !important; box-shadow: 0 0 0 .2rem rgba(239, 184, 92, .3) !important; }
+html body:not(#tq-x) .form-check-input:checked { background-color: var(--tq-primary) !important; border-color: var(--tq-primary) !important; }
+html body:not(#tq-x) .form-range::-webkit-slider-thumb { background: var(--tq-primary); }
+html body:not(#tq-x) :is(.nav-pills .nav-link.active, .page-item.active .page-link, .progress-bar, .bg-primary, .badge.bg-primary, .list-group-item.active) {
+  background-color: var(--tq-primary) !important; border-color: var(--tq-primary) !important; color: var(--tq-on-primary) !important;
+}
+html body:not(#tq-x) .page-link { color: var(--tq-primary); }
+html body:not(#tq-x) .text-primary { color: var(--tq-primary) !important; }
+html[data-theme="dark"] body:not(#tq-x) .text-primary, html[data-theme="dark"] body:not(#tq-x) .page-link { color: var(--tq-secondary) !important; }
+html body:not(#tq-x) .border-primary { border-color: var(--tq-primary) !important; }
+html body:not(#tq-x) :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--tq-focus); }
+
+/* ---------- Public header (Contact, Register, Team pages) ---------- */
+html body:not(#tq-x) .landing-header:is(.is-past-hero, .registration-navbar, .is-scrolled) { background: rgba(12, 37, 45, .94) !important; }
+html body:not(#tq-x) .pharma-footer { background: var(--tq-primary-deep) !important; }

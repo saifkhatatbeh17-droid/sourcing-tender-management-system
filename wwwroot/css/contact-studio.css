@@ -9,18 +9,18 @@
 .contact-studio .contact-form label { font-size:14px;font-weight:600;margin-bottom:8px; }
 .contact-studio .contact-form .form-control { min-height:48px;padding:12px 14px;font-size:16px;border-radius:8px;border:1px solid var(--color-border,#cbd8da);background:var(--color-surface,#fff);color:inherit; }
 .contact-studio .contact-form textarea.form-control { min-height:168px;resize:vertical; }
-.contact-studio .contact-form .form-control:focus { outline:2px solid #087f85;outline-offset:2px;box-shadow:none;border-color:#087f85; }
-.contact-studio .contact-form .contact-send { grid-column:1/-1;justify-self:stretch;min-height:48px;background:#315c60;border:1px solid #315c60;border-radius:8px;color:#fff;font-weight:600;font-size:16px; }
+.contact-studio .contact-form .form-control:focus { outline:2px solid #1d5560;outline-offset:2px;box-shadow:none;border-color:#1d5560; }
+.contact-studio .contact-form .contact-send { grid-column:1/-1;justify-self:stretch;min-height:48px;background:#1d5560;border:1px solid #1d5560;border-radius:8px;color:#fff;font-weight:600;font-size:16px; }
 .contact-studio .contact-form .contact-send:hover { background:#24474b; }
-.contact-studio .contact-form .contact-send:focus-visible { outline:2px solid #087f85;outline-offset:3px; }
+.contact-studio .contact-form .contact-send:focus-visible { outline:2px solid #1d5560;outline-offset:3px; }
 .contact-studio .contact-form .text-danger { display:block;font-size:13px;margin-top:6px; }
 .contact-preview { min-width:0;padding:14px 12px 0; }
-.contact-clipboard { position:relative;padding:30px 20px 20px;border-radius:20px;background:#315c60;box-shadow:0 18px 38px #173e491a;transform:rotate(1.5deg);animation:contact-note-arrive 700ms cubic-bezier(.2,.7,.2,1) both; }
+.contact-clipboard { position:relative;padding:30px 20px 20px;border-radius:20px;background:#1d5560;box-shadow:0 18px 38px #173e491a;transform:rotate(1.5deg);animation:contact-note-arrive 700ms cubic-bezier(.2,.7,.2,1) both; }
 .contact-clip { position:absolute;z-index:1;top:-12px;left:50%;transform:translateX(-50%);width:106px;height:38px;border:1px solid #9aadae;border-radius:9px 9px 14px 14px;background:linear-gradient(#e9efef,#bccbca);box-shadow:0 3px 5px #173e4920; }
-.contact-clip::after { content:'';position:absolute;left:19px;right:19px;top:10px;height:9px;border-radius:6px;background:#315c60;box-shadow:inset 0 2px 3px #173e4940; }
+.contact-clip::after { content:'';position:absolute;left:19px;right:19px;top:10px;height:9px;border-radius:6px;background:#1d5560;box-shadow:inset 0 2px 3px #173e4940; }
 .contact-paper { padding:28px 26px 18px;background:#fff;color:#162e36;border-radius:3px;min-height:470px;box-shadow:0 3px 6px #102d3825; }
-.contact-paper-header { display:flex;align-items:center;gap:16px;border-bottom:2px solid #315c60;padding-bottom:20px; }
-.contact-rx { font:48px/1 Georgia,serif;color:#087f85; }
+.contact-paper-header { display:flex;align-items:center;gap:16px;border-bottom:2px solid #1d5560;padding-bottom:20px; }
+.contact-rx { font:48px/1 Georgia,serif;color:#1d5560; }
 .contact-paper-header strong { display:block;font-size:23px;letter-spacing:-.03em; }
 .contact-paper-header div>span { display:block;font-size:12px;color:#597178;margin-top:3px; }
 .contact-paper-details { margin:20px 0;display:grid;gap:8px; }
@@ -36,7 +36,7 @@
 .contact-paper [data-note-row] { transition:background-color 180ms; }
 .contact-paper [data-note-row].is-active { background-color:#eaf6f3; }
 .contact-paper-footer { display:flex;align-items:center;justify-content:space-between;border-top:1px solid #dce7e5;padding-top:14px;margin-top:16px;color:#597178;font-size:11px; }
-.contact-note-mark { color:#087f85;font-size:20px; }
+.contact-note-mark { color:#1d5560;font-size:20px; }
 .contact-preview-caption { text-align:center;font-size:13px;color:var(--color-text-secondary,#51666b);margin:22px 0 0; }
 @keyframes contact-note-arrive { from { opacity:0;transform:translateY(18px) rotate(-2deg); } to { opacity:1;transform:translateY(0) rotate(1.5deg); } }
 @media(max-width:850px) { .contact-layout { gap:28px; }.contact-paper { padding:24px 18px 18px; }.contact-studio .contact-form { grid-template-columns:1fr; } }
@@ -44,7 +44,7 @@
 @media(prefers-reduced-motion:reduce) { .contact-clipboard { animation:none; }.contact-paper [data-note-row] { transition:none; } }
 /* A clearer correspondence sheet, with a signature and contact desk seal. */
 .contact-clipboard { padding:34px 18px 18px;transform:rotate(.75deg); }
-.contact-paper { padding:30px 28px 20px;border-top:5px solid #087f85;min-height:570px;background:linear-gradient(90deg,#f5f8f7 0,white 9px,white calc(100% - 5px),#f5f8f7); }
+.contact-paper { padding:30px 28px 20px;border-top:5px solid #1d5560;min-height:570px;background:linear-gradient(90deg,#f5f8f7 0,white 9px,white calc(100% - 5px),#f5f8f7); }
 .contact-paper-header { padding-bottom:16px; }
 .contact-paper-header strong { font-size:27px; }
 .contact-paper-header div>span { font-size:13px; }
@@ -60,8 +60,8 @@
 .contact-signature>span { display:block;color:#597178;font-size:11px;margin-bottom:6px; }
 .contact-signature svg { display:block;width:min(100%,200px);height:50px;overflow:visible; }
 .contact-signature path { fill:none;stroke:#155268;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1; }
-.contact-signature strong { display:block;color:#315c60;font-size:13px;font-weight:500;overflow-wrap:anywhere;opacity:.55; }
-.contact-stamp { flex:0 0 96px;width:96px;height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px double #087f85;border-radius:50%;color:#087f85;opacity:0;transform:scale(1.6) rotate(-18deg); }
+.contact-signature strong { display:block;color:#1d5560;font-size:13px;font-weight:500;overflow-wrap:anywhere;opacity:.55; }
+.contact-stamp { flex:0 0 96px;width:96px;height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px double #1d5560;border-radius:50%;color:#1d5560;opacity:0;transform:scale(1.6) rotate(-18deg); }
 .contact-stamp span { font-weight:750;letter-spacing:.08em;font-size:14px; }
 .contact-stamp b { font-size:24px;line-height:1.2; }
 .contact-stamp small { font-size:10px; }
