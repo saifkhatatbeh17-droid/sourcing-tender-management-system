@@ -8,7 +8,7 @@ namespace SourcingTenderManagement.Controllers;
 public partial class SourcingOfficerController
 {
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> CloseSubmissionsEarly(int tenderId)
+    public async Task<IActionResult> CloseSubmissionsEarly(int tenderId, bool sendToCommittee = false)
     {
         var officerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
@@ -36,9 +36,29 @@ public partial class SourcingOfficerController
             return RedirectToAction(nameof(Offers), new { tenderId });
         }
 
+        if (sendToCommittee)
+        {
+            var offers = await db.Bids.Include(b => b.Invitation)
+                .Where(b => b.TenderId == tenderId && b.SubmittedAt != null && b.Status != "Withdrawn").ToListAsync();
+            string? error = offers.Any(b => b.ComplianceStatus is not ("Compliant" or "NonCompliant"))
+                ? "Review every offer for compliance before sending to the committee."
+                : offers.Where(b => b.ComplianceStatus == "Compliant").Select(b => b.Invitation.SupplierProfileId).Distinct().Count() < TenderOfferExtension.RequiredCompliantOffers
+                    ? "At least three compliant suppliers are required to close submissions and send to the committee." : null;
+            if (error == null && await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
+                ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn"))))
+                error = "Resolve open questions before sending to the committee.";
+            if (error == null)
+                error = await SourcingTenderManagement.Services.Evaluation.CommitteeSetup.Prepare(db, tender);
+            if (error != null)
+            {
+                TempData["TenderError"] = error;
+                return RedirectToAction(nameof(Offers), new { tenderId });
+            }
+        }
+
         var previousDeadline = tender.ClosesAt;
         tender.ClosesAt = now;
-        tender.Status = "Closed";
+        tender.Status = sendToCommittee ? "UnderEvaluation" : "Closed";
         var recipients = await db.Invitations.Where(i => i.TenderId == tenderId)
             .Select(i => i.SupplierProfile.UserId).Distinct().ToListAsync();
         db.Notifications.AddRange(recipients.Select(userId => new Notification
@@ -51,7 +71,9 @@ public partial class SourcingOfficerController
         }));
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
-        TempData["TenderSuccess"] = "Submissions closed and invited suppliers were notified. You can now review offers.";
+        TempData["TenderSuccess"] = sendToCommittee
+            ? "Submissions closed and compliant offers sent to the committee."
+            : "Submissions closed and invited suppliers were notified. You can now review offers.";
         return RedirectToAction(nameof(Offers), new { tenderId });
     }
 

@@ -11,7 +11,7 @@ else
 {
 <div class="supplier-history-list">@foreach (var bid in Model) {
 var status = bid.Invitation.Tender.Status == "Cancelled" ? "Cancelled" : bid.Status;
-<article class="supplier-history-record"><div><span class="supplier-reference">Offer #@bid.BidId</span><h2><a asp-action="Offer" asp-route-id="@bid.BidId">@bid.Invitation.Tender.Title</a></h2><p>Submitted @bid.SubmittedAt?.ToString("dd MMM yyyy · HH:mm") UTC · @CommitteeEvaluationPage.Total(bid).ToString("N2") @bid.Currency</p></div><span class="status-badge status-@status.ToLowerInvariant()">@CommitteeEvaluationPage.StatusLabel(status)</span><a class="btn btn-outline-primary" asp-action="DownloadSummary" asp-route-id="@bid.BidId">Download summary</a></article>
+<article class="supplier-history-record"><div><span class="supplier-reference">Offer #@bid.BidId</span><h2><a asp-action="Offer" asp-route-id="@bid.BidId">@bid.Invitation.Tender.Title</a></h2><p>Submitted @bid.SubmittedAt?.ToString("dd MMM yyyy · HH:mm") UTC · @CommitteeEvaluationPage.Total(bid).ToString("N2") @(bid.Currency == "JOD" ? "JD" : bid.Currency)</p></div><span class="status-badge status-@status.ToLowerInvariant()">@CommitteeEvaluationPage.StatusLabel(status)</span><a class="btn btn-outline-primary" asp-action="DownloadSummary" asp-route-id="@bid.BidId">Download summary</a></article>
 }</div>
 }
 </section></div>

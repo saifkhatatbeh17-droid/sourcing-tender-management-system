@@ -1,6 +1,6 @@
 (() => {
     function attachSearch(input, rows, count, empty, noun) {
-        if (!input) return;
+        if (!input || input.hasAttribute("data-server-search")) return;
         input.addEventListener('input', () => {
             const query = input.value.trim().toLocaleLowerCase();
             let visible = 0;

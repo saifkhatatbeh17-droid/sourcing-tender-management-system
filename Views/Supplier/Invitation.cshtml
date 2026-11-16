@@ -55,8 +55,8 @@
         </div>
     </header>
 
-    @if (TempData["Success"] is string success) { <div class="alert alert-success" role="status">@success</div> }
-    @if (TempData["Error"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
+    @if (TempData["Success"] is string success) { <div data-flash-message class="alert alert-success" role="status">@success</div> }
+    @if (TempData["Error"] is string error) { <div data-flash-message class="alert alert-danger" role="alert">@error</div> }
     @if (Model.Status == "Accepted" && status != "Cancelled" && Model.Tender.ClosesAt <= DateTime.UtcNow && bid?.Status == "Draft")
     {
         <p class="alert alert-info" role="status">Submission period has ended.</p>
@@ -71,10 +71,12 @@
     {
         <p>The officer may close submissions early once offers from three different suppliers are on file.</p>
     }
-    @await Component.InvokeAsync("DetailsQr", new { controller = "Supplier", action = "Invitation", id = Model.InvitationId, label = "Tender" })
-    <div class="supplier-detail-grid"><section class="supplier-card"><h2>Terms and dates</h2><dl class="detail-list"><dt>Tender category</dt><dd>@(Model.Tender.Category ?? "Uncategorized")</dd><dt>Tender deadline (UTC)</dt><dd>@Model.Tender.ClosesAt.ToString("dddd, dd MMM yyyy · HH:mm")</dd><dt>Invitation received</dt><dd>@Model.SentAt.ToLocalTime().ToString("dd MMM yyyy · HH:mm")</dd><dt>Participation response</dt><dd>@(Model.RespondedAt?.ToLocalTime().ToString("dd MMM yyyy · HH:mm") ?? "No response recorded")</dd><dt>Terms and conditions</dt><dd>@(string.IsNullOrWhiteSpace(Model.Tender.Terms) ? "See tender documents" : Model.Tender.Terms)</dd></dl></section>
+    <div class="supplier-detail-grid"><section class="supplier-card"><h2>Terms and dates</h2><dl class="detail-list"><dt>Tender category</dt><dd>@(Model.Tender.Category ?? "Uncategorized")</dd><dt>Tender deadline (UTC)</dt><dd>@Model.Tender.ClosesAt.ToString("dddd, dd MMM yyyy · HH:mm")</dd><dt>Invitation received</dt><dd>@Model.SentAt.ToLocalTime().ToString("dd MMM yyyy · HH:mm")</dd><dt>Participation response</dt><dd>@(Model.RespondedAt?.ToLocalTime().ToString("dd MMM yyyy · HH:mm") ?? "No response recorded")</dd><dt>Terms and conditions</dt><dd>@(string.IsNullOrWhiteSpace(Model.Tender.Terms) ? "No additional terms specified" : Model.Tender.Terms)</dd></dl></section>
     <section class="supplier-card"><h2>Requested items</h2>@foreach (var item in Model.Tender.PurchaseRequest.PurchaseRequestItems) { <div class="requested-item"><div><strong>@item.ItemName</strong><small>@item.Quantity.ToString("N3") @item.Unit requested</small></div><p>@item.Specifications</p></div> }</section></div>
-    <section class="supplier-card mt-3"><h2>Tender documents</h2><p class="text-secondary">Download the requirements and attach your responses when preparing an offer. Documents marked Required need a supporting upload.</p>@if (!Model.Tender.TenderDocuments.Any()) { <p class="text-muted mb-0">No tender documents are attached.</p> } else { <ul class="document-list">@foreach (var doc in Model.Tender.TenderDocuments) { <li><a asp-action="DownloadTenderDocument" asp-route-id="@doc.TenderDocumentId">@doc.OriginalFileName</a><small>@(doc.IsMandatory ? "Required" : "Optional")</small></li> }</ul> }</section>
+    @if (Model.Tender.TenderDocuments.Any())
+    {
+        <section class="supplier-card mt-3"><h2>Tender documents</h2><p class="text-secondary">Download the requirements and attach your responses when preparing an offer. Required documents need a supporting upload.</p><ul class="document-list">@foreach (var doc in Model.Tender.TenderDocuments) { <li><a asp-action="DownloadTenderDocument" asp-route-id="@doc.TenderDocumentId">@doc.OriginalFileName</a><small>@(doc.IsMandatory ? "Required" : "Optional")</small></li> }</ul></section>
+    }
     @if (Model.Tender.EvaluationCriteria.Any()) { <section class="supplier-card mt-3"><h2>How offers will be evaluated</h2><div class="criteria-grid">@foreach (var criterion in Model.Tender.EvaluationCriteria) { <div><strong>@criterion.Name</strong><small>@criterion.Category · @criterion.Weight.ToString("N0")%</small><p>@criterion.Description</p></div> }</div></section> }
 
     <section class="supplier-card supplier-offer-clarifications mt-3" aria-labelledby="invitation-clarification-title">

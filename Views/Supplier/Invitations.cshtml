@@ -5,7 +5,7 @@
 <div class="supplier-local-search"><label for="supplier-search">Search invitations</label><input id="supplier-search" type="search" class="form-control" placeholder="Search by title, reference or details" data-supplier-search=".supplier-invitation-row"/><p class="form-text" data-supplier-search-status role="status" aria-live="polite"></p></div>
 
 <form method="get" class="supplier-filters"><label for="status">Status</label><select id="status" name="status" class="form-select"><option value="">All invitations</option>@foreach (var s in new[] { "Pending", "Accepted", "Declined", "Expired", "Cancelled" }) { <option value="@s" selected="@(selected == s)">@s</option> }</select><button class="btn btn-outline-primary">Filter</button>@if (!string.IsNullOrEmpty(selected)) { <a asp-action="Invitations" class="btn btn-link">Clear</a> }</form>
-@if (TempData["Success"] is string success) { <div class="alert alert-success" role="status">@success</div> } @if (TempData["Error"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
+@if (TempData["Success"] is string success) { <div data-flash-message class="alert alert-success" role="status">@success</div> } @if (TempData["Error"] is string error) { <div data-flash-message class="alert alert-danger" role="alert">@error</div> }
 <section class="supplier-card supplier-invitation-list"><div class="supplier-card-heading"><h2>Invitations to your company</h2><span class="supplier-count">@Model.Count()</span></div>
 @if (!Model.Any()) { <div class="empty-state"><h2>No invitations found</h2><p>New invitations and the tenders you’re participating in will appear here.</p></div> }
 @foreach (var invitation in Model)
@@ -27,7 +27,8 @@
             <div class="supplier-invitation-status">
                 <span class="status-badge status-@(cancelled ? "cancelled" : expired ? "expired" : invitation.Status.ToLowerInvariant())">@(cancelled ? "Cancelled" : expired ? "Expired" : invitation.Status)</span>
             </div>
-            <a class="btn btn-primary" asp-action="Invitation" asp-route-id="@invitation.InvitationId">View tender <span aria-hidden="true">↗</span></a>
+<div class="supplier-invitation-buttons">            <a class="btn btn-primary" asp-action="Invitation" asp-route-id="@invitation.InvitationId">View tender <span aria-hidden="true">↗</span></a>
+@await Component.InvokeAsync("DetailsQr", new { controller = "Supplier", action = "Invitation", id = invitation.InvitationId, label = "Tender", compact = true })</div>
         </div>
     </article>
 }

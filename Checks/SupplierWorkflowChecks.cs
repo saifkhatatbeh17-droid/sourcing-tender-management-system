@@ -44,7 +44,7 @@ public static class SupplierWorkflowChecks
         {
             await using (var tx = await db.Database.BeginTransactionAsync())
             {
-                foreach (var status in new[] { "Published", "Open", "Draft", "Cancelled", "UnderEvaluation" })
+                foreach (var status in new[] { "Published", "Open", "Cancelled", "UnderEvaluation" })
                 {
                     await db.Tenders.Where(t => t.TenderId == tender.TenderId).ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, status));
                     await TenderClosureService.CloseExpired(db, DateTime.UtcNow, ownerId: officer.Id);
@@ -124,6 +124,28 @@ public static class SupplierWorkflowChecks
             var past = DateTime.UtcNow.AddDays(-1);
             var testTender = db.Tenders.Where(t => t.TenderId == tender.TenderId);
             var testBid = db.Bids.Where(b => b.BidId == draft.BidId);
+            var originalDeadline = await testTender.Select(t => t.ClosesAt).SingleAsync();
+            foreach (var decision in new[] { "Compliant", "NonCompliant" })
+            {
+                foreach (var bulkSave in new[] { false, true })
+                {
+                    if (bulkSave)
+                        await Officer(officer.Id).ReviewAndSend(tender.TenderId, new() { [draft.BidId] = decision }, saveOnly: true);
+                    else
+                        await Officer(officer.Id).ReviewCompliance(draft.BidId, decision, null);
+                    db.ChangeTracker.Clear();
+                    Require(await testBid.AnyAsync(b => b.Status == decision && b.ComplianceStatus == decision &&
+                        b.ComplianceReviewedByUserId == officer.Id && b.ComplianceReviewedAt != null),
+                        $"Pre-deadline {decision} failed (bulk save: {bulkSave})");
+                    Require(await testTender.AnyAsync(t => t.Status == "Published" && t.ClosesAt == originalDeadline),
+                        "Compliance review closed submissions or advanced the tender");
+                    await testBid.ExecuteUpdateAsync(u => u.SetProperty(b => b.Status, "Submitted")
+                        .SetProperty(b => b.ComplianceStatus, (string?)null)
+                        .SetProperty(b => b.ComplianceReviewedByUserId, (string?)null)
+                        .SetProperty(b => b.ComplianceReviewedAt, (DateTime?)null));
+                }
+            }
+            Console.WriteLine("PASS: both compliance decisions save before the deadline through individual review and bulk save.");
             await Officer(officer.Id).ReviewAndSend(tender.TenderId, new() { [draft.BidId] = "Compliant" });
             db.ChangeTracker.Clear();
             Require(await testTender.AnyAsync(t => t.Status == "Published"), "Early committee handoff changed tender status");
@@ -146,6 +168,28 @@ public static class SupplierWorkflowChecks
             var canceledOffers = (ViewResult)await Controller().Offers(null, "Cancelled");
             Require(((List<Bid>)canceledOffers.Model!).Any(b => b.BidId == draft.BidId && b.Invitation.Tender.Status == "Cancelled"), "Canceled tender missing from supplier offers");
             Require(await Controller().SaveOffer(Form(), "Submit", null) is ForbidResult, "Canceled tender still accepts offers");
+            await testTender.ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, "Published").SetProperty(t => t.ClosesAt, future));
+            await testBid.ExecuteUpdateAsync(u => u.SetProperty(b => b.Status, "Compliant").SetProperty(b => b.ComplianceStatus, "Compliant"));
+            var additionalSuppliers = await db.SupplierProfiles.Where(s => s.Status == "Approved" && s.User.IsActive && s.SupplierProfileId != supplier.SupplierProfileId)
+                .Select(s => s.SupplierProfileId).Take(2).ToListAsync();
+            Require(additionalSuppliers.Count == 2, "Two additional demo suppliers are required");
+            foreach (var supplierId in additionalSuppliers)
+            {
+                var extraInvitation = new Invitation { TenderId = tender.TenderId, SupplierProfileId = supplierId, InvitedByUserId = officer.Id, Status = "Accepted", SentAt = DateTime.UtcNow };
+                db.Invitations.Add(extraInvitation);
+                db.Bids.Add(new Bid { Invitation = extraInvitation, TenderId = tender.TenderId, Currency = "JOD", Status = "Submitted", SubmittedAt = DateTime.UtcNow });
+            }
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            await Officer(officer.Id).CloseSubmissionsEarly(tender.TenderId, sendToCommittee: true);
+            db.ChangeTracker.Clear();
+            Require(await testTender.AnyAsync(t => t.Status == "Published" && t.ClosesAt == future), "Unreviewed offers closed submissions");
+            await db.Bids.Where(b => b.TenderId == tender.TenderId).ExecuteUpdateAsync(u => u.SetProperty(b => b.Status, "Compliant").SetProperty(b => b.ComplianceStatus, "Compliant"));
+            await Officer(officer.Id).CloseSubmissionsEarly(tender.TenderId, sendToCommittee: true);
+            db.ChangeTracker.Clear();
+            Require(await testTender.AnyAsync(t => t.Status == "UnderEvaluation" && t.ClosesAt <= DateTime.UtcNow), "Combined closure and committee handoff failed");
+            Require(await db.CommitteeAssignments.CountAsync(a => a.TenderId == tender.TenderId) == 4 && await db.EvaluationReports.AnyAsync(r => r.TenderId == tender.TenderId), "Committee setup missing after handoff");
+            Console.WriteLine("PASS: combined close-and-send rejects pending review, then closes submissions and prepares committee evaluation.");
             Console.WriteLine("PASS: early handoff and expired cancellation guards, owner-only tender cancellation, supplier withdrawal, and shared cancellation status.");
             Console.WriteLine("PASS: deadline transitions and future dates; new/draft attachment failures rolled back with file cleanup; successful submission; supplier-scoped history.");
         }
@@ -154,7 +198,11 @@ public static class SupplierWorkflowChecks
             environment.ContentRootPath = originalRoot;
             db.ChangeTracker.Clear();
             await using var cleanup = await db.Database.BeginTransactionAsync();
-            await db.Notifications.Where(n => n.RelativeUrl == $"/SourcingOfficer/Offers?tenderId={tender.TenderId}").ExecuteDeleteAsync();
+            await db.Notifications.Where(n => n.RelativeUrl == $"/SourcingOfficer/Offers?tenderId={tender.TenderId}" ||
+                n.RelativeUrl == $"/Supplier/Invitations#tender-{tender.TenderId}" || n.RelativeUrl == $"/EvaluationCommittee/Evaluations/{tender.TenderId}").ExecuteDeleteAsync();
+            await db.EvaluationReports.Where(r => r.TenderId == tender.TenderId).ExecuteDeleteAsync();
+            await db.EvaluationCriteria.Where(c => c.TenderId == tender.TenderId).ExecuteDeleteAsync();
+            await db.CommitteeAssignments.Where(a => a.TenderId == tender.TenderId).ExecuteDeleteAsync();
             await db.BidDocuments.Where(d => d.Bid.TenderId == tender.TenderId).ExecuteDeleteAsync();
             await db.BidItems.Where(i => i.Bid.TenderId == tender.TenderId).ExecuteDeleteAsync();
             await db.Bids.Where(b => b.TenderId == tender.TenderId).ExecuteDeleteAsync();

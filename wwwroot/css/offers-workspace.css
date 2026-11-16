@@ -204,3 +204,59 @@ html body main .oc-confirm .btn.oc-negative { background:#a4483e;border-color:#a
 .tc-links .ow-text-button { display:inline-flex;align-items:center;gap:8px;font-size:13px;min-height:46px; }
 @media(max-width:750px) { .tc-heading { padding:18px;align-items:flex-start;gap:12px; }.tc-identity h2 { font-size:19px; }.tc-switch { font-size:12px;padding:8px 10px; }.tc-switch svg { display:none; }.offer-redesign .tc-facts { grid-template-columns:1fr 1fr;padding:0 18px 18px;gap:18px; }.tc-links { padding:0 18px;gap:16px;flex-wrap:wrap; }.tc-links .ow-text-button { font-size:12px; } }
 @media(max-width:420px) { .tc-heading { flex-direction:column; }.tc-switch { align-self:flex-end;margin-top:-4px; }.offer-redesign .tc-facts { column-gap:12px; } }
+
+/* Offer details open in a focused dialog; decisions stay in their own row. */
+.offer-redesign .os-list-labels,.offer-redesign .os-offer-row { grid-template-columns:minmax(150px,2fr) minmax(135px,1.2fr) 80px 260px 116px;gap:18px; }
+.offer-redesign .os-offer-row { display:grid;align-items:center;padding:20px 22px;min-height:94px; }
+.offer-redesign .os-offer-overview { display:contents; }
+.offer-redesign .os-offer-overview>.os-supplier { grid-column:1;grid-row:1; }
+.offer-redesign .os-offer-overview>.os-price { grid-column:2;grid-row:1; }
+.offer-redesign .os-offer-overview>.os-delivery { grid-column:3;grid-row:1; }
+.offer-redesign .os-offer-overview>:is(.ow-decision-space,.ow-recorded-decision) { grid-column:4;grid-row:1;justify-self:start; }
+.offer-redesign .os-offer-row .ow-row-decision { position:static;grid-column:4;grid-row:1;width:auto;max-width:none;min-width:0;margin:0;padding:0; }
+.os-offer-trigger { grid-column:5;grid-row:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:44px;border:1px solid var(--so-line);border-radius:8px;padding:8px 10px;color:var(--so-accent-hover);background:var(--so-surface);font-size:12px;font-weight:600;white-space:nowrap; }
+.os-offer-trigger svg { width:18px;height:18px;flex-shrink:0; }
+.os-offer-trigger:hover,.os-offer-trigger:active { background:var(--so-surface-alt); }
+.os-offer-trigger:focus-visible { outline:3px solid var(--so-accent-hover);outline-offset:2px; }
+.ow-offer-modal .modal-content { border:1px solid var(--so-line);border-radius:16px;background:var(--so-surface);color:var(--so-ink);overflow:hidden; }
+.ow-offer-modal .modal-header { padding:22px 24px;border-color:var(--so-line);gap:16px;align-items:start; }
+.ow-offer-modal .modal-title { font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.4;overflow-wrap:anywhere; }
+.ow-offer-reference { font-size:12px;color:var(--so-muted);margin:0 0 6px; }
+.ow-offer-modal .modal-body { padding:0; }
+.ow-offer-modal .modal-footer { border-color:var(--so-line);padding:14px 24px; }
+.ow-offer-modal .modal-footer .btn { min-height:44px; }
+.ow-offer-modal .ow-extra h3 { font-size:14px;font-weight:600;margin:6px 0; }
+.ow-offer-modal .oi-heading h3 { margin:0; }
+.tc-attention-count { display:inline-flex;align-items:center;justify-content:center;min-width:22px;min-height:22px;border-radius:50%;padding:2px 5px;font-size:11px;background:var(--so-accent-soft);color:var(--so-ink); }
+@media(max-width:1350px) {
+ .offer-redesign .os-list-labels { display:none; }
+ .offer-redesign .os-offer-row { grid-template-columns:minmax(0,1fr) auto;gap:10px 18px; }
+ .offer-redesign .os-offer-overview>.os-supplier { grid-column:1;grid-row:1; }
+ .offer-redesign .os-offer-overview>.os-price { grid-column:1;grid-row:2; }
+ .offer-redesign .os-offer-overview>.os-delivery { grid-column:1;grid-row:3; }
+ .offer-redesign .os-offer-overview>.os-delivery::before { content:"Delivery: "; }
+ .offer-redesign .os-offer-overview>.ow-recorded-decision { grid-column:1;grid-row:4; }
+ .offer-redesign .os-offer-row .ow-row-decision { grid-column:1/-1;grid-row:4;justify-self:start; }
+ .offer-redesign .os-offer-overview>.ow-decision-space { display:none; }
+ .offer-redesign .os-offer-trigger { grid-column:2;grid-row:1/4;align-self:center; }
+}
+@media(max-width:600px) {
+ .offer-redesign .os-offer-row { padding:18px;gap:8px 10px; }
+ .ow-offer-modal .modal-dialog { margin:12px; }
+ .ow-offer-modal .modal-header { padding:18px; }
+ .ow-offer-modal .modal-title { font-size:19px; }
+ .offer-redesign .ow-offer-modal .os-detail-content { padding:18px; }
+ .ow-offer-modal .modal-footer { padding:12px 18px; }
+}
+@media(prefers-reduced-motion:reduce) { .ow-offer-modal.fade .modal-dialog { transition:none!important;transform:none!important; } }
+
+/* Offer review stays inside the details dialog. */
+.ow-review-footer { justify-content:space-between;gap:16px; }
+.ow-detail-decision { display:flex;gap:12px;flex-wrap:wrap;margin:0; }
+.ow-review-footer .btn { min-height:44px;padding:10px 20px; }
+.offer-redesign .ow-committee-handoff { display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px;border-radius:12px;background:var(--color-selection);margin-top:24px;color:var(--so-ink); }
+.ow-committee-handoff h2 { font-size:18px;font-weight:600;margin:0 0 6px; }
+.ow-committee-handoff p { margin:0;color:var(--so-muted);font-size:14px; }
+.ow-committee-handoff form { margin:0;flex-shrink:0; }
+.ow-committee-handoff .btn { min-height:44px;padding:10px 20px; }
+@media(max-width:800px) { .offer-redesign .ow-committee-handoff { align-items:stretch;flex-direction:column;padding:20px;gap:16px; }.ow-committee-handoff .btn { width:100%;white-space:normal; }.ow-review-footer,.ow-detail-decision { width:100%; }.ow-detail-decision .btn { flex:1; } }

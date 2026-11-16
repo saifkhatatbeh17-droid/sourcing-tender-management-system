@@ -11,7 +11,7 @@
     var alreadySent = ViewBag.WorkspaceReport is EvaluationReport;
     var now = DateTime.UtcNow;
     var canInvite = tender?.CanCancel(now) == true;
-    var editable = !alreadySent && tender != null && tender.ClosesAt <= now && (ViewBag.RoundRejected is not true) && (tender.Status is "Published" or "Open" or "Closed");
+    var editable = !alreadySent && tender != null && (ViewBag.RoundRejected is not true) && (tender.Status is "Published" or "Open" or "Closed");
     ViewData["CanReviewCompliance"] = editable;
     var activeOfferCount = Model.Count(b => b.Status != "Withdrawn");
 }
@@ -24,12 +24,12 @@
 }
 <div class="so-page offer-review offer-simple offer-redesign">
 <header class="so-page-header"><div><h1>Supplier offers</h1><p class="so-page-description">Review supplier offers and move your tender forward.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-primary officer-prepare" asp-action="Create">Prepare tender ＋</a></div></header>
-@if (TempData["TenderSuccess"] is string success) { <div class="alert alert-success" role="status">@success</div> }
-@if (TempData["TenderError"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
-@if (TempData["EvaluationSuccess"] is string reviewSuccess) { <div class="alert alert-success" role="status">@reviewSuccess</div> }
-@if (TempData["EvaluationError"] is string reviewError) { <div class="alert alert-danger" role="alert">@reviewError</div> }
-@if (TempData["ComplianceSuccess"] is string saved) { <div class="alert alert-success" role="status">@saved</div> }
-@if (TempData["ComplianceError"] is string failed) { <div class="alert alert-danger" role="alert">@failed</div> }
+@if (TempData["TenderSuccess"] is string success) { <div data-flash-message class="alert alert-success" role="status">@success</div> }
+@if (TempData["TenderError"] is string error) { <div data-flash-message class="alert alert-danger" role="alert">@error</div> }
+@if (TempData["EvaluationSuccess"] is string reviewSuccess) { <div data-flash-message class="alert alert-success" role="status">@reviewSuccess</div> }
+@if (TempData["EvaluationError"] is string reviewError) { <div data-flash-message class="alert alert-danger" role="alert">@reviewError</div> }
+@if (TempData["ComplianceSuccess"] is string saved) { <div data-flash-message class="alert alert-success" role="status">@saved</div> }
+@if (TempData["ComplianceError"] is string failed) { <div data-flash-message class="alert alert-danger" role="alert">@failed</div> }
 @if (tender == null) { <section class="workspace-section"><h2>No tenders yet</h2><p>Prepare a tender from a purchase request to begin.</p><a asp-action="Create">Prepare tender →</a></section> }
 else
 {
@@ -49,7 +49,7 @@ else
     }
     @if (ViewBag.ForwardedRejection is TenderApproval rejection)
     {
-        <section class="workspace-section" aria-label="Forwarded rejection"><h2>Replacement tender needed</h2><p>Rejected by @rejection.User.FullName · @rejection.DecidedAt.ToString("dd MMM yyyy, HH:mm") UTC</p><p class="tw-preserve">@rejection.Notes</p>
+        <section class="workspace-section" aria-label="Forwarded rejection"><h2>@(ViewBag.ReplacementTender is Tender ? "Replacement tender prepared" : "Replacement tender needed")</h2><p>Rejected by @rejection.User.FullName · @rejection.DecidedAt.ToString("dd MMM yyyy, HH:mm") UTC</p><p class="tw-preserve">@rejection.Notes</p>
         @if (ViewBag.ReplacementTender is Tender replacement) { <a asp-action="Offers" asp-route-tenderId="@replacement.TenderId">View replacement tender #@replacement.TenderId →</a> }
         else { <a class="btn btn-primary officer-prepare" asp-action="Create" asp-route-replacesTenderId="@tender.TenderId">Prepare replacement tender</a> }
         </section>
@@ -72,6 +72,7 @@ else
         }
         <partial name="_StrictOfferHandoff" />
     </form>
+    <partial name="_OfferDetails" model="Model" />
     <partial name="_StrictOfferRound" />
     @if (tender.Status == "UnderEvaluation")
     {
@@ -97,7 +98,6 @@ else
         }
     </div></div></div></div>
 }
-<partial name="_ComplianceConfirm" />
 @if (ViewBag.OpenCreateModal == true) { <partial name="_CreateTenderModal" /> }
 </div>
 

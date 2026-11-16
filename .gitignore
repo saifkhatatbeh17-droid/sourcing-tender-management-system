@@ -17,3 +17,5 @@ output/playwright/
 output/qa/
 __pycache__/
 *.pyc
+
+output/supplier-build/

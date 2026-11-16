@@ -19,7 +19,7 @@
 
 @if (TempData["ContactMessageFeedback"] is string feedback)
 {
-    <div class="admin-feedback" role="status">@feedback</div>
+    <div data-flash-message class="admin-feedback" role="status">@feedback</div>
 }
 
 <article class="workspace-section" aria-labelledby="contact-message-title">

@@ -65,6 +65,7 @@
     }
     @if (showWorkspace) { <link rel="stylesheet" href="~/css/workspace-shell.css" asp-append-version="true" /> }
     @if (showWorkspace && currentAction == "Dashboard") { <link rel="stylesheet" href="~/css/workspace-dashboard.css" asp-append-version="true" /> }
+    <link rel="stylesheet" href="~/css/workflow-ux.css" asp-append-version="true" />
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -134,6 +135,7 @@ else if (!standaloneLogin)
 
 <script src="~/js/voice-search.js" asp-append-version="true"></script>
 
+<script src="~/js/workflow-ux.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -1,0 +1,8 @@
+(() => {
+ 'use strict';
+ document.querySelectorAll('[data-qr-open]').forEach(trigger=>{const dialog=document.getElementById(trigger.dataset.qrOpen);if(!dialog)return;trigger.addEventListener('click',()=>dialog.showModal());dialog.querySelector('[data-qr-close]').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>trigger.focus());dialog.addEventListener('click',event=>{const r=dialog.getBoundingClientRect();if(event.target===dialog&&(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom))dialog.close();});});
+ function flash(message){if(message.dataset.flashReady)return;message.dataset.flashReady='true';let timer;const remove=()=>{if(message.contains(document.activeElement))return;message.classList.add('flash-leaving');setTimeout(()=>message.remove(),180);};const start=()=>{clearTimeout(timer);timer=setTimeout(remove,3000);};message.addEventListener('mouseenter',()=>clearTimeout(timer));message.addEventListener('mouseleave',start);message.addEventListener('focusin',()=>clearTimeout(timer));message.addEventListener('focusout',start);start();}
+ document.querySelectorAll('[data-flash-message],.action-success,[data-admin-feedback]').forEach(flash);
+ // Admin actions can replace their feedback markup without reloading.
+ new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(!(node instanceof Element))return;if(node.matches('[data-flash-message],.action-success,[data-admin-feedback]'))flash(node);node.querySelectorAll('[data-flash-message],.action-success,[data-admin-feedback]').forEach(flash);}))).observe(document.querySelector('main')||document.body,{childList:true,subtree:true});
+})();

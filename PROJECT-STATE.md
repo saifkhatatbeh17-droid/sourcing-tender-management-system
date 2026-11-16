@@ -42,3 +42,8 @@ Completed the user's full local QA and remaining-role UI/UX rework. Read `QA-REP
 New work saved locally on ghaith. The current request did not authorize publishing another push or merging into develop. Preserve this distinction when reporting.
 Full report and local raw evidence are saved before the user-requested non-forced shutdown. A non-forced shutdown may be blocked by unsaved applications; do not claim powered-off status without observation.
 Credentials remain outside Git in the existing encrypted DPAPI file; follow the user's AGENTS instructions. Raw browser screenshots/logs are local under output/qa and excluded from Git.
+
+## Latest UI follow-up — 16 November 2026
+Implemented the user-requested three-stage registration and supplier offer entry, two-stage department request form, Admin review stages, corrected authentication/confirmation actions,10-row request pagination/search/Clear/voice, row QR dialogs, offer detail popups, JD display and percentage-tax contract. Removed At a glance/open-round copy/empty tender-documents UI; transient notices dismiss after about3seconds; replacement indicators cover all applicable owned tenders. See UI-FOLLOWUP-2026-11-16.md for exact scope and verification.
+Tax is now entered as TaxPercentage (0–100); server derives stored Bid.TaxAmount from item subtotal. Raw TaxAmount posts are not trusted. ISO storage stays JOD, displayed as JD.
+Current app is running on7130 from this canonical project. No shutdown should be carried over from the earlier overnight task. No new push/merge is authorized by this follow-up.

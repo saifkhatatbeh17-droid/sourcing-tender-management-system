@@ -11,7 +11,7 @@
 
 @if (TempData["DepartmentsFeedback"] is string feedback)
 {
-    <div class="admin-feedback" data-admin-feedback role="status">@feedback</div>
+    <div data-flash-message class="admin-feedback" data-admin-feedback role="status">@feedback</div>
 }
 
 <div class="admin-filter-bar">

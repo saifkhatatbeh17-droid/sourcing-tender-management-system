@@ -41,7 +41,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
 
         return View();
     }
-    public async Task<IActionResult> Requests(int? id, string status = "All")
+    public async Task<IActionResult> Requests(int? id, string status = "All", string? q = null, int page = 1)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return Forbid();
@@ -56,12 +56,18 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         if (status != "All")
             requestQuery = requestQuery.Where(r => r.Status == status);
 
+        q = q?.Trim();
+        if (!string.IsNullOrWhiteSpace(q))
+            requestQuery = requestQuery.Where(r => r.Title.Contains(q) || r.Department.Name.Contains(q) || r.PurchaseRequestId.ToString() == q);
+        const int pageSize = 10;
+        var total = await requestQuery.CountAsync();
+        var pages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+        page = Math.Clamp(page, 1, pages);
         var requests = await requestQuery
-            .OrderBy(r => r.Status == "Submitted" || r.Status == "UnderReview" ? 0
-                : r.Status == "Approved" && r.ReviewedByUserId == userId ? 1 : 2)
-            .ThenByDescending(r => r.SubmittedAt ?? r.CreatedAt)
-            .ThenByDescending(r => r.PurchaseRequestId)
-            .ToListAsync();
+            .OrderBy(r => r.Status == "Submitted" || r.Status == "UnderReview" ? 0 : r.Status == "Approved" && r.ReviewedByUserId == userId ? 1 : 2)
+            .ThenByDescending(r => r.SubmittedAt ?? r.CreatedAt).ThenByDescending(r => r.PurchaseRequestId)
+            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+        ViewBag.RequestTotal = total; ViewBag.RequestPage = page; ViewBag.RequestPages = pages; ViewBag.RequestQuery = q;
 
         PurchaseRequest? selectedRequest = null;
         if (id.HasValue)
@@ -604,7 +610,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             .Where(b => b.TenderId == tenderId && b.SubmittedAt != null && b.Status != "Withdrawn").ToListAsync();
         string? error = null;
         if (tender.Status is not ("Published" or "Open" or "Closed")) error = "This tender has already moved beyond offer review.";
-        else if (tender.ClosesAt > DateTime.UtcNow) error = "Wait until the tender deadline passes before sending offers to the committee.";
+        else if (!saveOnly && tender.ClosesAt > DateTime.UtcNow) error = "Wait until the tender deadline passes before sending offers to the committee.";
         else if (bids.Count == 0) error = "At least one submitted offer is required.";
         else if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
             ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn"))))
@@ -730,7 +736,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         }
         if (bid.Status is not ("Submitted" or "UnderReview") ||
             !await db.Tenders.AnyAsync(t => t.TenderId == tenderId &&
-                (t.Status == "Open" || t.Status == "Published" || t.Status == "Closed") && t.ClosesAt <= DateTime.UtcNow &&
+                (t.Status == "Open" || t.Status == "Published" || t.Status == "Closed") &&
                 !t.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected")))
         {
             TempData["ComplianceError"] = "This offer is not waiting for compliance review.";

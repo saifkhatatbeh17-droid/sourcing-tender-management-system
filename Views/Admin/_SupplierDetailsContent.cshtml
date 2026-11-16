@@ -5,6 +5,11 @@
 }
 
 <div data-review-flow>
+<header class="admin-review-overview" data-review-overview>
+    <span class="admin-review-eyebrow">APPLICATION REVIEW</span>
+    <p>Current status: <strong>@SupplierListViewModel.StatusLabel(supplier.Status)</strong></p>
+    <p class="text-secondary">Check the company details and official documents before recording your decision.</p>
+</header>
 <section class="workspace-section" data-review-step="Company" aria-labelledby="company-details">
     <h2 id="company-details">Company details</h2>
     <dl class="row mb-0">
@@ -88,6 +93,7 @@
 
 <section class="workspace-section" data-review-step="Decision" aria-labelledby="review-heading">
     <h2 id="review-heading">Record a decision</h2>
+    <p class="text-secondary">Approval gives this company access to supplier tenders. Your reason is shared with the supplier and recorded with this review.</p>
     <form asp-action="ReviewSupplier" method="post">
         <input asp-for="Review.Id" type="hidden" />
         <input asp-for="Review.PreviousStatus" type="hidden" />

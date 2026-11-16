@@ -10,8 +10,8 @@
 
 <div class="manager-shell manager-refresh">
 <header class="mr-heading"><div><h1>Clarifications</h1><p>Ask a committee member about a tender, follow replies, and confirm when the question is resolved.</p></div><a asp-action="Clarifications" asp-route-tenderId="@Model.SelectedTenderId" asp-route-compose="true" asp-fragment="manager-conversation" class="btn btn-primary">Ask a new question</a></header>
-@if (TempData["ClarificationError"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
-@if (TempData["ManagerMessage"] is string message) { <div class="alert alert-info" role="status">@message</div> }
+@if (TempData["ClarificationError"] is string error) { <div data-flash-message class="alert alert-danger" role="alert">@error</div> }
+@if (TempData["ManagerMessage"] is string message) { <div data-flash-message class="alert alert-info" role="status">@message</div> }
 <div class="mr-inbox">
     <section class="workspace-section mr-conversations"><div class="mr-list-heading"><h2>Conversations</h2><span class="mr-count">@Model.Conversations.Count</span></div>
     @if (Model.Conversations.Count == 0) { <p class="mr-muted">No committee questions yet.</p> }

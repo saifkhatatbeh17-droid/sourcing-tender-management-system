@@ -8,7 +8,7 @@
 }
 @section Styles { <link rel="stylesheet" href="~/css/dashboard-overview.css" asp-append-version="true" /> <partial name="_CommitteePageStyles" /> }
 <div class="evaluation-page committee-workspace unified-dashboard">
-    <header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Committee dashboard</h1><p>Your tenders, shared evaluations, and next actions.</p></div><a class="cw-button cw-button-secondary" asp-action="Evaluations" asp-route-id="@next?.TenderId">Open evaluations <span aria-hidden="true">↗</span></a></header>
+    <header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Committee dashboard</h1><p>Your tenders, shared evaluations, and next actions.</p></div><a class="cw-button cw-button-secondary" asp-action="Evaluations">Open evaluations <span aria-hidden="true">↗</span></a></header>
     <dl class="cw-metrics">
         <div class="cw-metric-primary"><dt>Under evaluation</dt><dd>@active.Count</dd><dd class="cw-metric-description">Open for committee review</dd></div>
         <div class="cw-metric-attention"><dt>Needs your review</dt><dd>@pending.Count</dd><dd class="cw-metric-description">Assigned evaluations to complete</dd></div>

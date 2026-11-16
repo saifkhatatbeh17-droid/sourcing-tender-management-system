@@ -37,7 +37,7 @@
 .cw-report-detail { min-width:0; }
 .ev-clarification-guide { padding:24px; max-width:800px; }
 .ev-clarification-guide p { color:var(--color-text-secondary); line-height:1.6; }
-.cw-metrics .cw-metric-primary { background:var(--color-surface); color:var(--color-text); }
+.cw-metrics .cw-metric-primary { background:var(--color-selection); border-color:var(--color-selection); color:var(--color-text); }
 .cw-metrics .cw-metric-primary :is(dt,span) { color:var(--color-text-secondary); }
 .cw-metrics .cw-metric-primary dd { color:var(--color-link); }
 .evaluation-page :is(summary,a,button,input,textarea,select):focus-visible { outline:3px solid var(--color-link); outline-offset:3px; }
@@ -57,4 +57,4 @@
 .ev-report-switcher nav { display:block; }
 @media(max-width:760px) { .ev-offer-review-section .ev-forms-grid { grid-template-columns:1fr; } }
 
-.committee-workspace .cw-metrics .cw-metric-description { margin:0;font-size:12px;font-weight:400;letter-spacing:0;line-height:1.5;color:var(--color-text-secondary); }.committee-workspace .cw-metric-primary .cw-metric-description { color:var(--pharma-on-primary); }
+.committee-workspace .cw-metrics .cw-metric-description { margin:0;font-size:12px;font-weight:400;letter-spacing:0;line-height:1.5;color:var(--color-text-secondary); }

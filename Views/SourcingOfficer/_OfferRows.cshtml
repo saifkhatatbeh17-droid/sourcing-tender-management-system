@@ -2,7 +2,6 @@
 @model List<Bid>
 @{
     var tender = ViewBag.SelectedTender as Tender;
-    var canReview = ViewData["CanReviewCompliance"] is true;
 }
 @if (Model.Count > 0)
 {
@@ -11,50 +10,17 @@
 @foreach (var bid in Model.OrderByDescending(b => b.SubmittedAt ?? b.CreatedAt).ThenByDescending(b => b.BidId))
 {
     var total = bid.BidItems.Sum(i => i.Quantity * i.UnitPrice) + bid.TaxAmount + bid.AdditionalCosts;
-    var finalDecision = bid.ComplianceStatus is "Compliant" or "NonCompliant";
+    var currency = bid.Currency == "JOD" ? "JD" : bid.Currency;
     var state = tender?.Status == "Cancelled" ? "Cancelled" : bid.Status == "Withdrawn" ? "Withdrawn" : bid.ComplianceStatus;
     var label = state switch { "Compliant" => "Compliant", "NonCompliant" => "Non-compliant", "Cancelled" => "Cancelled", "Withdrawn" => "Withdrawn", _ => "Needs review" };
     <article class="offer-review-card os-offer-row" data-offer-id="@bid.BidId" data-supplier="@bid.Invitation.SupplierProfile.CompanyName" data-unread="@((bid.OfficerOpenedAt == null).ToString().ToLowerInvariant())" data-open-url="@Url.Action("MarkOfferOpened", new { id = bid.BidId })">
-        @if (canReview && !finalDecision && (bid.Status is "Submitted" or "UnderReview"))
-        {
-            <fieldset class="ow-decision ow-row-decision"><legend class="visually-hidden">Compliance decision for offer #@bid.BidId</legend><div class="ow-row-options">
-                <label><input type="radio" name="decisions[@bid.BidId]" value="Compliant" /><span>Compliant</span></label>
-                <label><input type="radio" name="decisions[@bid.BidId]" value="NonCompliant" /><span>Non-compliant</span></label>
-            </div><span class="ow-decision-hint visually-hidden" role="status">Choose a decision to review and confirm.</span></fieldset>
-        }
-        <details class="os-offer-details">
-            <summary>
+        <div class="os-offer-overview">
                 <span class="os-supplier"><strong><span class="os-unread-dot" title="Unopened offer" hidden="@(bid.OfficerOpenedAt != null)"><span class="visually-hidden">Unopened offer: </span></span>@bid.Invitation.SupplierProfile.CompanyName</strong><small>Offer #@bid.BidId</small></span>
-                <span class="os-price"><strong>@total.ToString("N2") <small>@bid.Currency</small></strong><small>Including tax &amp; extra costs</small></span>
+                <span class="os-price"><strong>@total.ToString("N2") <small>@currency</small></strong><small>Including tax &amp; extra costs</small></span>
                 <span class="os-delivery">@bid.DeliveryDays days</span>
-                @if (!(canReview && !finalDecision && (bid.Status is "Submitted" or "UnderReview"))) { <span class="so-status-badge ow-recorded-decision" data-status="@(state ?? "Pending")">@label</span> }
-                else { <span class="ow-decision-space" aria-hidden="true"></span> }
-                <span class="os-expand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></span>
-            </summary>
-            <div class="os-detail-content" id="offer-content-@bid.BidId" tabindex="-1">
-                <header class="oi-heading"><h3>Items &amp; pricing</h3><span>@bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems.Count @(bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems.Count == 1 ? "requested item" : "requested items")</span></header>
-                <div class="oi-items">
-                @foreach (var requested in bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems)
-                {
-                    var offered = bid.BidItems.Where(i => i.PurchaseRequestItemId == requested.PurchaseRequestItemId).ToList();
-                    <section class="oi-item"><header><h4>@requested.ItemName</h4><span>@requested.Quantity.ToString("0.###") @requested.Unit requested</span></header>
-                    <div class="oi-specs"><div><h5>Requested specifications</h5><p>@requested.Specifications</p></div><div><h5>Offered specifications</h5>
-                    @if (offered.Count == 0) { <p class="ow-missing">Not included in this offer</p> }
-                    @foreach (var item in offered) { <p>@item.OfferedSpecifications</p> }
-                    </div></div>
-                    @foreach (var item in offered)
-                    {
-                        <div class="oi-price-line"><span>@item.Quantity.ToString("0.###") @requested.Unit <span aria-hidden="true">×</span> @item.UnitPrice.ToString("N2") @bid.Currency per @requested.Unit</span><strong>@((item.Quantity * item.UnitPrice).ToString("N2")) <small>@bid.Currency</small></strong></div>
-                    }
-                    </section>
-                }
-                </div>
-                <div class="oi-summary"><div class="oi-payment"><span>Payment terms</span><strong>@(string.IsNullOrWhiteSpace(bid.PaymentTerms) ? "Not specified" : bid.PaymentTerms)</strong></div><dl><div><dt>Items subtotal</dt><dd>@bid.BidItems.Sum(i => i.Quantity * i.UnitPrice).ToString("N2") @bid.Currency</dd></div><div><dt>Tax</dt><dd>@bid.TaxAmount.ToString("N2") @bid.Currency</dd></div><div><dt>Extra costs</dt><dd>@bid.AdditionalCosts.ToString("N2") @bid.Currency</dd></div><div class="oi-total"><dt>Total offer</dt><dd>@total.ToString("N2") @bid.Currency</dd></div></dl></div>
-                @if (!string.IsNullOrWhiteSpace(bid.TechnicalDetails)) { <details class="ow-extra"><summary>Supplier notes</summary><p>@bid.TechnicalDetails</p></details> }
-                @if (bid.BidDocuments.Count > 0) { <details class="ow-extra"><summary>Documents (@bid.BidDocuments.Count)</summary><ul>@foreach (var document in bid.BidDocuments) { <li>@document.OriginalFileName · @document.DocumentType</li> }</ul></details> }
-                @if (tender?.Status != "Cancelled" && bid.Status != "Withdrawn") { <a class="os-question" asp-controller="Clarification" asp-action="Index" asp-route-kind="bid" asp-route-recordId="@bid.BidId">Ask supplier for clarification ↗</a> }
-            </div>
-        </details>
+                <span class="so-status-badge ow-recorded-decision" data-status="@(state ?? "Pending")">@label</span>
+                <button type="button" class="os-offer-trigger" data-bs-toggle="modal" data-bs-target="#offer-details-@bid.BidId" aria-label="View details for @bid.Invitation.SupplierProfile.CompanyName, offer #@bid.BidId"><span>View details</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></button>
+        </div>
     </article>
 }
 </div>

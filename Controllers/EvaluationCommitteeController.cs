@@ -19,7 +19,7 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
     public async Task<IActionResult> Dashboard() => View(await LoadPage(null));
     public async Task<IActionResult> Evaluations(int? id, int? offerId = null)
     {
-        var page = await LoadPage(id);
+        var page = await LoadPage(id, selectFirst: false);
         if (offerId.HasValue && !page.Offers.Any(b => b.BidId == offerId.Value)) return NotFound();
         page.ReviewOfferId = offerId;
         return View(page);
@@ -33,14 +33,14 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
     }
     public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
 
-    private async Task<CommitteeEvaluationPage> LoadPage(int? id)
+    private async Task<CommitteeEvaluationPage> LoadPage(int? id, bool selectFirst = true)
     {
         var page = new CommitteeEvaluationPage { UserId = UserId };
         page.Tenders = await db.Tenders.AsNoTracking()
             .AsSplitQuery().Include(t => t.EvaluationReport).Include(t => t.CommitteeAssignments).Include(t => t.TenderApprovals)
             .Where(t => t.Status == "UnderEvaluation" || t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == UserId))
             .OrderByDescending(t => t.CreatedAt).ToListAsync();
-        var selected = id ?? page.Tenders.FirstOrDefault()?.TenderId;
+        var selected = id ?? (selectFirst ? page.Tenders.FirstOrDefault()?.TenderId : null);
         if (selected != null && page.Tenders.Any(t => t.TenderId == selected))
         {
             page.Tender = await TenderQuery().SingleAsync(t => t.TenderId == selected);

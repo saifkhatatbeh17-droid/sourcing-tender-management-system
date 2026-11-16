@@ -4,10 +4,14 @@
 {
  @if(tender.ClosesAt>DateTime.UtcNow)
  {
-  <div class="offer-handoff"><div><strong>Offer round @round of 4 is open</strong><p>Review starts after submissions close. Three compliant suppliers are required for standard committee handoff.</p></div>
   @if(round==1 && bids.Where(b=>b.Status!="Withdrawn").Select(b=>b.Invitation.SupplierProfileId).Distinct().Count()>=3 && tender.IsAcceptingOffers(DateTime.UtcNow))
-  {<form asp-action="CloseSubmissionsEarly" method="post"><input type="hidden" name="tenderId" value="@tender.TenderId"/><button class="btn btn-outline-primary">Close submissions &amp; start review</button></form>}
-  </div>
+  {
+   var openQuestions = ViewBag.OpenQuestions is List<int> questions && questions.Count > 0;
+   <section class="ow-committee-handoff" aria-labelledby="committee-handoff-title">
+    <div><h2 id="committee-handoff-title">Send offers to the committee</h2><p>@(pending ? "Review each offer in View details before continuing." : compliant < 3 ? "At least three compliant suppliers are required." : openQuestions ? "Resolve open questions before continuing." : "Close submissions and begin committee evaluation.")</p></div>
+    <form asp-action="CloseSubmissionsEarly" method="post"><input type="hidden" name="tenderId" value="@tender.TenderId"/><input type="hidden" name="sendToCommittee" value="true"/><button class="btn btn-primary" disabled="@(pending || compliant < 3 || openQuestions)">Close submissions and send to committee</button></form>
+   </section>
+  }
  }
  else if(!pending && compliant<3 && round<4)
  {

@@ -13,11 +13,11 @@
 <p class="so-page-description">Check each offer against the purchase requirements.</p></div></header>
 @if (TempData["ComplianceSuccess"] is string successMessage)
 {
-    <div class="alert alert-success" role="status">@successMessage</div>
+    <div data-flash-message class="alert alert-success" role="status">@successMessage</div>
 }
 @if (TempData["ComplianceError"] is string errorMessage)
 {
-    <div class="alert alert-danger" role="alert">@errorMessage</div>
+    <div data-flash-message class="alert alert-danger" role="alert">@errorMessage</div>
 }
 <section class="so-summary-grid" aria-label="Compliance summary">
     <article class="so-summary-card"><span class="so-summary-label">Offers in review list</span><strong>@Model.Count</strong></article>

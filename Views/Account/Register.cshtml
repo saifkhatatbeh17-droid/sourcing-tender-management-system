@@ -9,28 +9,24 @@
     <div class="registration-form-area">
         <a class="registration-back" asp-controller="Home" asp-action="Index"><span aria-hidden="true">←</span> Back to Tiryaq</a>
         <div class="registration-reveal">
-            <div class="registration-capsule-stage" aria-hidden="true">
-                <span class="registration-capsule-halo"></span>
-                <span class="registration-burst">
-                    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-                </span>
-                <span class="registration-capsule">
-                    <span class="registration-capsule-left"><b>✚</b></span>
-                    <span class="registration-capsule-right"><b>TIRYAQ</b></span>
-                </span>
-            </div>
             <div class="registration-form-card">
                 <header class="form-heading">
                     <span class="form-step">SUPPLIER ONBOARDING</span>
                     <h1 id="registration-title">Create your supplier profile</h1>
-                    <p>Enter your company information and attach the required official documents.</p>
+                    <p>Complete three steps to send your application for review. Supplier workspace access starts after approval.</p>
                 </header>
 
+                <ol class="registration-stepper" aria-label="Application progress">
+                    <li aria-current="step"><span>1</span><strong>Company</strong></li>
+                    <li><span>2</span><strong>Contact &amp; sign-in</strong></li>
+                    <li><span>3</span><strong>Documents</strong></li>
+                </ol>
+                <p class="registration-progress" role="status" aria-live="polite">Step 1 of 3 · Company</p>
                 <form asp-controller="Account" asp-action="Register" method="post" enctype="multipart/form-data" class="supplier-registration-form">
                     @Html.AntiForgeryToken()
-                    <div asp-validation-summary="All" class="registration-validation" role="alert"></div>
+                    <div asp-validation-summary="All" class="registration-validation" role="alert" tabindex="-1"></div>
 
-                    <fieldset class="registration-section">
+                    <div data-registration-step="Company"><fieldset class="registration-section">
                         <legend><span>01</span><span><strong>Company information</strong><small>Legal details used to verify your business</small></span></legend>
                         <div class="registration-fields">
                             <div class="registration-field field-wide">
@@ -45,18 +41,20 @@
                                 <span asp-validation-for="RegistrationNumber" class="field-error"></span>
                             </div>
                             <div class="registration-field">
-                                <label asp-for="TaxNumber">Tax number <b>*</b></label>
+                                <label asp-for="TaxNumber">Tax number <span class="optional-label">(optional)</span></label>
                                 <input asp-for="TaxNumber" class="form-control" placeholder="Enter tax number" />
                                 <span asp-validation-for="TaxNumber" class="field-error"></span>
                             </div>
                             <div class="registration-field field-wide">
-                                <label asp-for="Address">Registered business address <b>*</b></label>
+                                <label asp-for="Address">Registered business address <span class="optional-label">(optional)</span></label>
                                 <input asp-for="Address" class="form-control" autocomplete="street-address" placeholder="Street, city, country" />
                                 <span asp-validation-for="Address" class="field-error"></span>
                             </div>
                         </div>
                     </fieldset>
 
+                    </div>
+                    <div data-registration-step="Contact &amp; sign-in">
                     <fieldset class="registration-section">
                         <legend><span>02</span><span><strong>Primary contact</strong><small>Who should we contact about your application?</small></span></legend>
                         <div class="registration-fields">
@@ -79,7 +77,7 @@
                     </fieldset>
 
                     <fieldset class="registration-section">
-                        <legend><span>03</span><span><strong>Secure your account</strong><small>Use a password that only your team can access</small></span></legend>
+                        <legend><span aria-hidden="true">↳</span><span><strong>Secure your account</strong><small>Use a password that only your team can access</small></span></legend>
                         <div class="registration-fields">
                             <div class="registration-field">
                                 <label asp-for="Password">Password <b>*</b></label>
@@ -106,6 +104,10 @@
                         </div>
                     </fieldset>
 
+                    </div>
+                    <div data-registration-step="Documents">
+                    <h2 class="registration-stage-heading" tabindex="-1">Official documents</h2>
+                    <p class="registration-stage-copy">Attach your company license and relevant certificates. Administration reviews these with your company details.</p>
                     <div class="registration-field document-field">
                         <label for="officialDocuments">Official company documents <b>*</b></label>
                         <label class="document-dropzone" for="officialDocuments">
@@ -118,9 +120,14 @@
                         <span class="field-error">@Html.ValidationMessage("officialDocuments")</span>
                     </div>
 
+                    </div>
                     <div class="registration-submit-row">
                         <span><i aria-hidden="true">♢</i> Your information is handled securely.</span>
+                        <div class="registration-navigation">
+                        <button class="btn registration-previous" type="button" hidden>Previous</button>
+                        <button class="btn registration-continue" type="button" hidden>Continue <span aria-hidden="true">→</span></button>
                         <button class="btn btn-primary registration-submit" type="submit">Submit application <span aria-hidden="true">→</span></button>
+                        </div>
                     </div>
                 </form>
                 <p class="registration-login-note">Already registered? <a asp-controller="Account" asp-action="Login">Sign in to your account</a></p>
@@ -137,44 +144,5 @@
 @section Scripts {
     <script src="~/js/procurement-categories.js" asp-append-version="true" defer></script>
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        (() => {
-            // Validate each field as the supplier edits it, rather than waiting for submit.
-            if (window.jQuery && jQuery.validator) {
-                jQuery(() => {
-                    const form = document.querySelector('.supplier-registration-form');
-                    const validator = form && jQuery(form).data('validator');
-                    if (!validator) return;
-
-                    form.querySelectorAll('input:not([type="file"]), select, textarea').forEach(field => {
-                        field.addEventListener('input', () => validator.element(field));
-                        field.addEventListener('change', () => validator.element(field));
-                        field.addEventListener('blur', () => validator.element(field));
-                    });
-                });
-            }
-
-            document.querySelectorAll('[data-password-toggle]').forEach(button => {
-                button.addEventListener('click', () => {
-                    const field = document.getElementById(button.dataset.passwordToggle);
-                    if (!field) return;
-                    const willShow = field.type === 'password';
-                    field.type = willShow ? 'text' : 'password';
-                    button.setAttribute('aria-pressed', String(willShow));
-                    button.setAttribute('aria-label', willShow ? 'Hide password' : 'Show password');
-                    button.title = willShow ? 'Hide password' : 'Show password';
-                    field.focus({ preventScroll: true });
-                });
-            });
-            const input = document.getElementById('officialDocuments');
-            const output = document.querySelector('.document-file-list');
-            if (!input || !output) return;
-            const hint = 'PDF, DOCX, JPG or PNG · Maximum 10 MB per file';
-            input.addEventListener('change', () => {
-                const files = Array.from(input.files || []);
-                output.textContent = files.length ? files.map(file => file.name).join(' · ') : hint;
-                output.classList.toggle('has-files', files.length > 0);
-            });
-        })();
-    </script>
+    <script src="~/js/registration-steps.js" asp-append-version="true" defer></script>
 }

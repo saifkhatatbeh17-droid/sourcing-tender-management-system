@@ -63,12 +63,12 @@
                         <div class="supplier-offer-record-heading">
                             <div>
                                 <p class="supplier-reference">Offer #@bid.BidId · Tender #@tender.TenderId</p>
-                                <h3><a asp-action="Offer" asp-route-id="@bid.BidId">@tender.Title</a></h3>
+                                <h3><a asp-action="Offer" asp-route-id="@bid.BidId" data-offer-details>@tender.Title</a></h3>
                             </div>
                             <span class="status-badge status-@status.ToLowerInvariant()">@StatusLabel(status)</span>
                         </div>
                         <dl class="supplier-offer-facts">
-                            <div><dt>Total amount</dt><dd>@CommitteeEvaluationPage.Total(bid).ToString("N2") @bid.Currency</dd></div>
+                            <div><dt>Total amount</dt><dd>@CommitteeEvaluationPage.Total(bid).ToString("N2") @(bid.Currency == "JOD" ? "JD" : bid.Currency)</dd></div>
                             <div><dt>Submitted</dt><dd>@(bid.SubmittedAt?.ToLocalTime().ToString("dd MMM yyyy") ?? "Not submitted")</dd></div>
                             <div><dt>Deadline (UTC)</dt><dd>@tender.ClosesAt.ToString("dd MMM yyyy, HH:mm")</dd></div>
                             <div><dt>Tender stage</dt><dd>@CommitteeEvaluationPage.StatusLabel(tender.Status)</dd></div>
@@ -76,12 +76,12 @@
                         <footer class="supplier-offer-record-actions">
                             @if (canEdit || canRevise)
                             {
-                                <a asp-action="Offer" asp-route-id="@bid.BidId" class="btn btn-outline-primary">View details</a>
+                                <a asp-action="Offer" asp-route-id="@bid.BidId" data-offer-details class="btn btn-outline-primary">View details</a>
                                 <a asp-action="CreateOffer" asp-route-invitationId="@bid.InvitationId" asp-route-bidId="@bid.BidId" class="btn btn-primary">@(canRevise ? "Revise offer" : "Edit draft") <span aria-hidden="true">→</span></a>
                             }
                             else
                             {
-                                <a asp-action="Offer" asp-route-id="@bid.BidId" class="btn btn-primary">View details <span aria-hidden="true">→</span></a>
+                                <a asp-action="Offer" asp-route-id="@bid.BidId" data-offer-details class="btn btn-primary">View details <span aria-hidden="true">→</span></a>
                             }
                         </footer>
                     </article>
@@ -92,3 +92,6 @@
 </div>
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
+
+<dialog class="supplier-offer-dialog" data-offer-dialog aria-labelledby="supplier-dialog-title"><header><h2 id="supplier-dialog-title">Offer details</h2><button type="button" class="btn btn-outline-secondary" data-offer-dialog-close aria-label="Close offer details">Close</button></header><p data-dialog-status role="status"></p><div data-dialog-content></div></dialog>
+@section Scripts { <script src="~/js/supplier-workspace.js" asp-append-version="true" defer></script> }

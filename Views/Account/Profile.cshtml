@@ -18,7 +18,7 @@
 
     @if (TempData["ProfileFeedback"] is string feedback)
     {
-        <div class="alert alert-success" role="status">@feedback</div>
+        <div data-flash-message class="alert alert-success" role="status">@feedback</div>
     }
 
     <div class="ap-columns">

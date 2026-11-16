@@ -27,7 +27,7 @@
     </header>
     @if (TempData["ManagerMessage"] is string message)
     {
-        <div class="alert alert-info" role="status">@message</div>
+        <div data-flash-message class="alert alert-info" role="status">@message</div>
     }
 
     <div class="mr-review-layout">

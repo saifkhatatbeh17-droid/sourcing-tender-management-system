@@ -67,8 +67,8 @@
         <a asp-action="Offers"><span aria-hidden="true">←</span> Back to my offers</a>
     </nav>
 
-    @if (TempData["Success"] is string success) { <div class="alert alert-success" role="status">@success</div> }
-    @if (TempData["Error"] is string error) { <div class="alert alert-warning" role="alert">@error</div> }
+    @if (TempData["Success"] is string success) { <div data-flash-message class="alert alert-success" role="status">@success</div> }
+    @if (TempData["Error"] is string error) { <div data-flash-message class="alert alert-warning" role="alert">@error</div> }
 
     <section class="supplier-card supplier-offer-summary" aria-labelledby="offer-title">
         <header class="supplier-offer-title">
@@ -93,7 +93,7 @@
         </div>
 
         <dl class="supplier-offer-summary-facts">
-            <div><dt>Offer total</dt><dd>@total.ToString("N2") @Model.Currency</dd></div>
+            <div><dt>Offer total</dt><dd>@total.ToString("N2") @(Model.Currency == "JOD" ? "JD" : Model.Currency)</dd></div>
             <div><dt>Submitted (local time)</dt><dd>@(Model.SubmittedAt?.ToLocalTime().ToString("dd MMM yyyy, HH:mm") ?? "Not submitted")</dd></div>
             <div><dt>Tender deadline (UTC)</dt><dd>@tender.ClosesAt.ToString("dd MMM yyyy, HH:mm")</dd></div>
         </dl>
@@ -113,8 +113,8 @@
                         <tr>
                             <th scope="row">@item.PurchaseRequestItem.ItemName<small class="d-block text-secondary">Requested: @item.PurchaseRequestItem.Quantity.ToString("N3") @item.PurchaseRequestItem.Unit</small><small class="d-block text-secondary">@item.PurchaseRequestItem.Specifications</small></th>
                             <td data-label="Your quantity">@item.Quantity.ToString("N3") @item.PurchaseRequestItem.Unit</td>
-                            <td data-label="Unit price">@item.UnitPrice.ToString("N2") @Model.Currency</td>
-                            <td data-label="Line total">@((item.Quantity * item.UnitPrice).ToString("N2")) @Model.Currency</td>
+                            <td data-label="Unit price">@item.UnitPrice.ToString("N2") @(Model.Currency == "JOD" ? "JD" : Model.Currency)</td>
+                            <td data-label="Line total">@((item.Quantity * item.UnitPrice).ToString("N2")) @(Model.Currency == "JOD" ? "JD" : Model.Currency)</td>
                             <td data-label="Technical response">@item.OfferedSpecifications</td>
                         </tr>
                     }
@@ -123,7 +123,7 @@
             </div>
             @if (Model.TaxAmount != 0 || Model.AdditionalCosts != 0)
             {
-                <p class="supplier-offer-cost-note">Offer total includes @Model.TaxAmount.ToString("N2") @Model.Currency tax and @Model.AdditionalCosts.ToString("N2") @Model.Currency additional costs.</p>
+                <p class="supplier-offer-cost-note">Offer total includes @Model.TaxAmount.ToString("N2") @(Model.Currency == "JOD" ? "JD" : Model.Currency) tax and @Model.AdditionalCosts.ToString("N2") @(Model.Currency == "JOD" ? "JD" : Model.Currency) additional costs.</p>
             }
         }
         else
@@ -131,14 +131,14 @@
             <p class="text-secondary mb-0">No items have been added to this offer.</p>
         }
 
-        <details class="supplier-offer-disclosure supplier-offer-commercial" open>
-            <summary><span>Delivery, payment and notes</span><small>@Model.DeliveryDays days for delivery</small></summary>
+        <section class="supplier-offer-commercial">
+            <h3>Delivery, payment and notes</h3><p>@Model.DeliveryDays days for delivery</p>
             <dl class="supplier-offer-terms">
                 <div><dt>Supplier</dt><dd>@Model.Invitation.SupplierProfile.CompanyName</dd></div>
                 <div><dt>Payment terms</dt><dd>@(Model.PaymentTerms ?? "Not specified")</dd></div>
                 <div><dt>Technical notes</dt><dd>@(Model.TechnicalDetails ?? "Not provided")</dd></div>
             </dl>
-        </details>
+        </section>
     </section>
 
     <div class="supplier-offer-sections">
@@ -182,8 +182,7 @@
     {
         <section class="supplier-card supplier-offer-cancel">
             <div><h2>Cancel this offer</h2><p>Cancel if you no longer want this offer to be considered.</p></div>
-            <form asp-action="CancelOffer" asp-route-id="@Model.BidId" method="post"
-                  onsubmit="return confirm('Cancel this submitted offer?');">
+            <form asp-action="CancelOffer" asp-route-id="@Model.BidId" method="post">
                 <button type="submit" class="btn btn-outline-danger">Cancel offer</button>
             </form>
         </section>

@@ -124,58 +124,71 @@ document.querySelectorAll('[data-auto-filter]').forEach(form => {
 });
 
 function initializeReview(flow) {
-    if (!flow) return;
+    if (!flow || flow.dataset.reviewInitialized) return;
+    flow.dataset.reviewInitialized = 'true';
     const steps = [...flow.querySelectorAll('[data-review-step]')];
+    if (!steps.length) return;
+    const stepper = document.createElement('ol');
+    stepper.className = 'admin-review-stepper';
+    stepper.setAttribute('aria-label', 'Supplier review progress');
+    const markers = steps.map((step, index) => {
+        const item = document.createElement('li');
+        const number = document.createElement('span'); number.textContent = String(index + 1);
+        const label = document.createElement('strong'); label.textContent = step.dataset.reviewStep;
+        item.append(number, label); stepper.append(item); return item;
+    });
     const controls = document.createElement('div');
     controls.className = 'admin-review-controls';
     const progress = document.createElement('p');
     progress.className = 'admin-review-progress';
     progress.setAttribute('aria-live', 'polite');
-
     function button(text) {
         const element = document.createElement('button');
-        element.type = 'button';
-        element.className = 'btn btn-outline-primary';
-        element.textContent = text;
+        element.type = 'button'; element.className = 'btn btn-outline-primary'; element.textContent = text;
         return element;
     }
-
-    const back = button('Back');
-    const next = button('Next');
-    const done = button('Done');
+    const back = button('Previous');
+    const next = button('Review documents'); next.className = 'btn btn-primary';
+    const done = button('Close details');
     done.setAttribute('data-bs-dismiss', 'modal');
     controls.append(back, next, done);
     const decisionActions = flow.querySelector('[data-decision-actions]');
-    flow.prepend(progress);
+    const heading = flow.querySelector('[data-review-overview]');
+    if (heading) heading.after(stepper, progress); else flow.prepend(stepper, progress);
     flow.append(controls);
-    let index = 0;
-
+    const invalidIndex = steps.findIndex(step => step.querySelector('.field-validation-error,.validation-summary-errors'));
+    let index = invalidIndex >= 0 ? invalidIndex : 0;
     function show(moveFocus = false) {
         steps.forEach((step, position) => { step.hidden = position !== index; });
+        markers.forEach((marker, position) => {
+            marker.classList.toggle('is-complete', position < index);
+            if (position === index) marker.setAttribute('aria-current', 'step'); else marker.removeAttribute('aria-current');
+        });
         progress.textContent = `Step ${index + 1} of ${steps.length} · ${steps[index].dataset.reviewStep}`;
         const isLastStep = index === steps.length - 1;
-        if (isLastStep && decisionActions) {
-            decisionActions.prepend(back);
-            controls.hidden = true;
-        } else {
-            controls.prepend(back);
-            controls.hidden = false;
-        }
+        if (isLastStep && decisionActions) { decisionActions.prepend(back); controls.hidden = true; }
+        else { controls.prepend(back); controls.hidden = false; }
         back.hidden = index === 0;
         next.hidden = isLastStep;
-        done.hidden = !isLastStep || Boolean(decisionActions);
+        next.textContent = index === 0 ? 'Review documents' : 'Continue to decision';
+        done.hidden = !isLastStep || Boolean(decisionActions) || !flow.closest('.modal');
         if (moveFocus) {
-            const heading = steps[index].querySelector('h2');
-            heading.tabIndex = -1;
-            heading.focus();
+            const title = steps[index].querySelector('h2');
+            title.tabIndex = -1; title.focus();
             flow.closest('.modal-body')?.scrollTo(0, 0);
         }
     }
-
     back.addEventListener('click', () => { index--; show(true); });
     next.addEventListener('click', () => { index++; show(true); });
-    show();
+    const decision = flow.querySelector('[name="Review.Status"]');
+    const submit = flow.querySelector('[data-review-decision-submit]');
+    const labels = { Approved: 'Approve supplier', Rejected: 'Reject application', ChangesRequested: 'Request changes', Suspended: 'Suspend supplier', Pending: 'Keep pending' };
+    function updateDecision() { if (submit) submit.textContent = labels[decision?.value] || 'Save decision'; }
+    decision?.addEventListener('change', updateDecision);
+    updateDecision(); show();
 }
+
+document.querySelectorAll('[data-review-flow]').forEach(initializeReview);
 
 function applyLocalPage(results, filter) {
     const pager = results.querySelector('[data-local-pager]');

@@ -16,8 +16,8 @@
 }
 <div class="evaluation-page">
     @if (tender == null) { <header class="ev-page-heading"><div><h1>Tender evaluations</h1><p class="text-secondary">Open a tender to review its offers and record your committee decision.</p></div></header> }
-    @if (TempData["CommitteeError"] is string error) { <div class="ev-notice ev-notice-error" role="alert">@error</div> }
-    @if (TempData["CommitteeSuccess"] is string success) { <div class="ev-notice ev-notice-success" role="status">@success</div> }
+    @if (TempData["CommitteeError"] is string error) { <div data-flash-message class="ev-notice ev-notice-error" role="alert">@error</div> }
+    @if (TempData["CommitteeSuccess"] is string success) { <div data-flash-message class="ev-notice ev-notice-success" role="status">@success</div> }
     <div class="ev-tender-content">
     <input type="hidden" id="tender" value="@tender?.TenderId" />
     @if (tender != null)
@@ -39,7 +39,7 @@
     <partial name="_TenderBrowser" model="Model" />
     @if (tender == null)
     {
-        <div class="ev-empty"><h2>Your next evaluation starts here</h2><p>Tenders will appear when the sourcing officer sends eligible offers to the committee.</p></div>
+        <div class="ev-empty"><h2>@(Model.Tenders.Count > 0 ? "Choose a tender to begin" : "Your next evaluation starts here")</h2><p>@(Model.Tenders.Count > 0 ? "Select a tender above to confirm committee percentages and review its offers." : "Tenders will appear when the sourcing officer sends eligible offers to the committee.")</p></div>
     }
     else
     {

@@ -39,3 +39,5 @@ html body main .rp-review-modal .btn-danger:hover { color:#fff;border-color:#842
 
 html[data-theme="dark"] body main .rp-review-modal .btn-outline-danger { color:#ffb4ac;border-color:#b47771;background:transparent; }
 html[data-theme="dark"] body main .rp-review-modal .btn-outline-danger:hover { color:#ffd5d0;background:#492d2b;border-color:#ffb4ac; }
+
+.rp-table h3 + .rp-reference { display:block;margin-top:6px; }

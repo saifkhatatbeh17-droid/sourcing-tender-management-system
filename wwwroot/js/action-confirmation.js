@@ -9,7 +9,7 @@
     const value = (form, name, button) => button?.name?.toLowerCase() === name.toLowerCase() ? button.value
         : Array.from(form.elements).find(e => e.name?.toLowerCase() === name.toLowerCase() && !e.disabled &&
             !['submit', 'button', 'reset', 'image'].includes(e.type) && (!['radio', 'checkbox'].includes(e.type) || e.checked))?.value;
-    function ask({title, description, confirm = 'Confirm', destructive = false, approval = false}) {
+    function ask({title, description, confirm = 'Confirm', destructive = false, approval = false, intent = ''}) {
         if (waiting) return Promise.resolve(false);
         const trigger = document.activeElement;
         dialog.querySelector('h2').textContent = title;
@@ -17,6 +17,7 @@
         proceed.textContent = confirm;
         dialog.dataset.destructive = String(destructive);
         dialog.dataset.approval = String(approval);
+        dialog.dataset.intent = intent;
         return new Promise(resolve => { waiting = {resolve, trigger}; dialog.showModal(); });
     }
     function finish(accepted) { if (!waiting) return; const pending = waiting; waiting = null; dialog.close(); if (pending.trigger?.isConnected) pending.trigger.focus({preventScroll:true}); pending.resolve(accepted); }
@@ -47,7 +48,11 @@
                 case 'publishtender': return describe('Publish this tender?', 'The tender will become available for supplier invitations.', 'Publish tender');
                 case 'publishandinvite': case 'createinvitation': return describe('Send supplier invitations?', 'This publishes the tender if needed and invites the selected approved suppliers. Existing invitations are kept.', 'Send invitations');
                 case 'reviewandsend': case 'sendtoevaluation': return describe('Send this tender to the committee?', 'Your compliance decisions will be saved and the four-member committee will be prepared for evaluation. Further supplier submissions will stop.', 'Send to committee');
-                case 'reviewcompliance': return form.hasAttribute('data-compliance-confirm') ? null : describe('Save compliance decision?', 'This records the offer’s final compliance decision for committee eligibility.', 'Save decision');
+                case 'reviewcompliance': return form.hasAttribute('data-compliance-confirm') ? null : describe(
+                    decision === 'Compliant' ? 'Mark this offer as compliant?' : 'Mark this offer as non-compliant?',
+                    (decision === 'Compliant' ? 'This offer will be eligible for committee review.' : 'This offer will be excluded from committee review.') + ' This decision is final and cannot be changed.',
+                    decision === 'Compliant' ? 'Confirm compliant' : 'Confirm non-compliant', decision !== 'Compliant');
+                case 'closesubmissionsearly': return describe('Close submissions and send to committee?', 'Suppliers will no longer be able to submit or withdraw offers. The compliant offers will be sent to the evaluation committee.', 'Close submissions and send');
                 case 'reviewcommitteereport': return decision === 'Approve'
                     ? approve('Approve and forward this report?', 'The committee report and chosen offer will be forwarded unchanged to the sourcing manager.', 'Approve & forward')
                     : describe(decision === 'Reject' ? 'Reject this report?' : 'Return this report for edits?', decision === 'Reject' ? 'This cancels the tender and records your reason.' : 'The committee will need to revise its recommendation and collect four fresh approvals.', 'Confirm decision', decision === 'Reject');
@@ -65,6 +70,7 @@
             }
         }
         if (controller === 'supplier') {
+            if (action === 'canceloffer') return describe('Cancel this offer?', 'Your submitted offer will no longer be considered for this tender.', 'Cancel offer', true);
             if (action === 'saveoffer' && value(form, 'submissionCommand', button) === 'Submit') return describe('Submit this offer?', 'Your pricing, technical response and documents will be submitted to the sourcing officer for review.', 'Submit offer');
             if (action === 'respond') return value(form, 'response', button) === 'Accepted'
                 ? describe('Accept this invitation?', 'You can then prepare and submit an offer for this tender.', 'Accept invitation')
@@ -97,7 +103,7 @@
                 }
             }
         }
-        if (controller === 'account' && ['register', 'editregistration'].includes(action)) return describe('Submit your supplier application?', 'Your company details and supporting documents will be sent to administration for review.', 'Submit application');
+        if (controller === 'account' && ['register', 'editregistration'].includes(action)) return {...describe('Submit supplier application?', `${value(form, 'CompanyName', button) || 'Your company'}\nThe admin team will review your details and documents. Supplier tools become available after approval.`, 'Submit application'), intent:'registration'};
         return null;
     }
     document.addEventListener('submit', async event => {
@@ -109,6 +115,7 @@
         if (!details) return;
         event.preventDefault();
         event.stopImmediatePropagation();
+        if (typeof form.tiryaqValidate === "function" && !form.tiryaqValidate()) return;
         if (!form.reportValidity()) return;
         // Respect existing unobtrusive validation before presenting a decision.
         if (window.jQuery?.validator && !window.jQuery(form).valid()) return;

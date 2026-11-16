@@ -1,0 +1,50 @@
+@using SourcingTenderManagement.Models.Entities
+@model List<Bid>
+@{ var tender = ViewBag.SelectedTender as Tender; }
+@foreach (var bid in Model)
+{
+    var total = bid.BidItems.Sum(i => i.Quantity * i.UnitPrice) + bid.TaxAmount + bid.AdditionalCosts;
+    var currency = bid.Currency == "JOD" ? "JD" : bid.Currency;
+    <div class="modal fade ow-offer-modal" id="offer-details-@bid.BidId" tabindex="-1" aria-labelledby="offer-title-@bid.BidId" aria-hidden="true" data-offer-id="@bid.BidId">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+            <div class="modal-header"><div><p class="ow-offer-reference">Offer #@bid.BidId · @bid.DeliveryDays days delivery</p><h2 class="modal-title" id="offer-title-@bid.BidId">@bid.Invitation.SupplierProfile.CompanyName</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close offer details"></button></div>
+            <div class="modal-body">
+            <div class="os-detail-content" id="offer-content-@bid.BidId" tabindex="-1">
+                <header class="oi-heading"><h3>Items &amp; pricing</h3><span>@bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems.Count @(bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems.Count == 1 ? "requested item" : "requested items")</span></header>
+                <div class="oi-items">
+                @foreach (var requested in bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems)
+                {
+                    var offered = bid.BidItems.Where(i => i.PurchaseRequestItemId == requested.PurchaseRequestItemId).ToList();
+                    <section class="oi-item"><header><h4>@requested.ItemName</h4><span>@requested.Quantity.ToString("0.###") @requested.Unit requested</span></header>
+                    <div class="oi-specs"><div><h5>Requested specifications</h5><p>@requested.Specifications</p></div><div><h5>Offered specifications</h5>
+                    @if (offered.Count == 0) { <p class="ow-missing">Not included in this offer</p> }
+                    @foreach (var item in offered) { <p>@item.OfferedSpecifications</p> }
+                    </div></div>
+                    @foreach (var item in offered)
+                    {
+                        <div class="oi-price-line"><span>@item.Quantity.ToString("0.###") @requested.Unit <span aria-hidden="true">×</span> @item.UnitPrice.ToString("N2") @currency per @requested.Unit</span><strong>@((item.Quantity * item.UnitPrice).ToString("N2")) <small>@currency</small></strong></div>
+                    }
+                    </section>
+                }
+                </div>
+                <div class="oi-summary"><div class="oi-payment"><span>Payment terms</span><strong>@(string.IsNullOrWhiteSpace(bid.PaymentTerms) ? "Not specified" : bid.PaymentTerms)</strong></div><dl><div><dt>Items subtotal</dt><dd>@bid.BidItems.Sum(i => i.Quantity * i.UnitPrice).ToString("N2") @currency</dd></div><div><dt>Tax</dt><dd>@bid.TaxAmount.ToString("N2") @currency</dd></div><div><dt>Extra costs</dt><dd>@bid.AdditionalCosts.ToString("N2") @currency</dd></div><div class="oi-total"><dt>Total offer</dt><dd>@total.ToString("N2") @currency</dd></div></dl></div>
+                @if (!string.IsNullOrWhiteSpace(bid.TechnicalDetails)) { <section class="ow-extra"><h3>Supplier notes</h3><p>@bid.TechnicalDetails</p></section> }
+                @if (bid.BidDocuments.Count > 0) { <section class="ow-extra"><h3>Documents (@bid.BidDocuments.Count)</h3><ul>@foreach (var document in bid.BidDocuments) { <li>@document.OriginalFileName · @document.DocumentType</li> }</ul></section> }
+                @if (tender?.Status != "Cancelled" && bid.Status != "Withdrawn") { <a class="os-question" asp-controller="Clarification" asp-action="Index" asp-route-kind="bid" asp-route-recordId="@bid.BidId">Ask supplier for clarification ↗</a> }
+            </div>
+
+            </div>
+            <div class="modal-footer ow-review-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close details</button>
+                @if (ViewData["CanReviewCompliance"] is true && bid.ComplianceStatus is not ("Compliant" or "NonCompliant") && bid.Status is "Submitted" or "UnderReview")
+                {
+                    <form asp-action="ReviewCompliance" method="post" class="ow-detail-decision">
+                        <input type="hidden" name="id" value="@bid.BidId" />
+                        <button type="submit" name="decision" value="NonCompliant" class="btn btn-outline-danger">Non-compliant</button>
+                        <button type="submit" name="decision" value="Compliant" class="btn btn-primary">Compliant</button>
+                    </form>
+                }
+            </div>
+        </div></div>
+    </div>
+}
