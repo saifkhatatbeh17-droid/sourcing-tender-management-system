@@ -1,0 +1,37 @@
+@using SourcingTenderManagement.Models.Entities
+@{
+ var tenders = ViewBag.OfferTenders as List<Tender> ?? [];
+ var selected = ViewBag.SelectedTender as Tender;
+ var invitations = ViewBag.WorkspaceInvitations as List<Invitation> ?? [];
+ var offers = ViewData.Model as List<Bid> ?? [];
+ var invite = selected?.CanCancel(DateTime.UtcNow) == true;
+}
+@if (selected != null)
+{
+<div class="tc-overview">
+ <div class="tc-heading">
+  <div class="tc-identity"><div class="ow-reference"><span>Tender #@selected.TenderId</span><span class="so-status-badge" data-status="@selected.Status">@SourcingTenderManagement.Models.CommitteeEvaluationPage.StatusLabel(selected.Status)</span></div><h2 id="tw-tender-title">@selected.Title</h2></div>
+  <button type="button" class="btn btn-outline-primary tc-switch" data-bs-toggle="modal" data-bs-target="#tender-picker"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></svg>Switch tender</button>
+ </div>
+ <dl class="tc-facts">
+  <div><dt>Category</dt><dd>@(selected.Category ?? "Uncategorized")</dd></div>
+  <div><dt>Submission deadline <span>UTC</span></dt><dd>@selected.ClosesAt.ToString("dd MMM yyyy") <span>· @selected.ClosesAt.ToString("HH:mm")</span></dd></div>
+  <div><dt>Offers received</dt><dd>@offers.Count(b => b.Status != "Withdrawn") <span> / @invitations.Count invited</span></dd></div>
+  <div><dt>Compliant offers</dt><dd>@offers.Count(b => b.Status != "Withdrawn" && b.ComplianceStatus == "Compliant")</dd></div>
+ </dl>
+ <div class="tc-links"><button type="button" class="ow-text-button" data-bs-toggle="modal" data-bs-target="#tender-requirements">View requested items <span aria-hidden="true">↗</span></button><button type="button" class="ow-text-button" data-bs-toggle="modal" data-bs-target="#tender-suppliers">View invitations (@invitations.Count) <span aria-hidden="true">↗</span></button></div>
+</div>
+<div class="modal fade ow-picker" id="tender-picker" tabindex="-1" aria-labelledby="tender-picker-title" aria-hidden="true">
+ <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+ <div class="modal-header"><div><h2 id="tender-picker-title" class="modal-title">Choose a tender</h2><p>Find a tender to view its offers and progress.</p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close tender picker"></button></div>
+ <div class="modal-body"><label for="tender-search" class="visually-hidden">Search tenders</label><input id="tender-search" type="search" class="form-control" placeholder="Search title, number or status" autocomplete="off" /><p class="tb-result" role="status" aria-live="polite">@tenders.Count tenders</p><nav class="tb-list" aria-label="Choose a tender">
+ @foreach (var item in tenders)
+ {
+  var label = SourcingTenderManagement.Models.CommitteeEvaluationPage.StatusLabel(item.Status);
+  <div class="tb-choice-row"><a class="tb-choice" asp-action="Offers" asp-route-tenderId="@item.TenderId" aria-current="@(item.TenderId == selected.TenderId ? "page" : null)" data-search="@($"{item.TenderId} {item.Title} {label}")"><span><small>Tender #@item.TenderId</small><strong>@item.Title</strong></span><span class="so-status-badge" data-status="@item.Status">@label</span><span aria-hidden="true">@(item.TenderId == selected.TenderId ? "✓" : "→")</span></a>
+  </div>
+ }
+ </nav><p class="tb-no-results" hidden>No matching tenders. Try another title or number.</p></div>
+ </div></div>
+</div>
+}

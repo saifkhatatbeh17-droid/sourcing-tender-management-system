@@ -36,6 +36,8 @@ public class Bid
 
     public DateTime? ComplianceReviewedAt { get; set; }
 
+    public DateTime? OfficerOpenedAt { get; set; }
+
     public DateTime? SubmittedAt { get; set; }
 
     public DateTime CreatedAt { get; set; }

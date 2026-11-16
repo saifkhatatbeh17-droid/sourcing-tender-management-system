@@ -10,7 +10,24 @@
 {
     var cancelled = invitation.Tender.Status == "Cancelled";
     var expired = invitation.Tender.ClosesAt <= DateTime.UtcNow && invitation.Status == "Pending";
-    <article class="supplier-invitation-row"><div class="supplier-invitation-main"><span class="supplier-reference">Invitation #@invitation.InvitationId · Tender #@invitation.TenderId</span><a class="supplier-record-title" asp-action="Invitation" asp-route-id="@invitation.InvitationId">@invitation.Tender.Title</a><span class="supplier-record-note">Received @invitation.SentAt.ToLocalTime().ToString("dd MMM yyyy")</span></div><div class="supplier-deadline"><span>Tender deadline (UTC)</span><strong>@invitation.Tender.ClosesAt.ToString("dd MMM yyyy")</strong><small>@invitation.Tender.ClosesAt.ToString("HH:mm")</small></div><span class="status-badge status-@(cancelled ? "cancelled" : expired ? "expired" : invitation.Status.ToLowerInvariant())">@(cancelled ? "Cancelled" : expired ? "Expired" : invitation.Status)</span><a class="btn btn-outline-primary" asp-action="Invitation" asp-route-id="@invitation.InvitationId">View tender ↗</a></article>
+    <article id="tender-@invitation.TenderId" class="supplier-invitation-row">
+        <div class="supplier-invitation-main">
+            <span class="supplier-reference">Invitation #@invitation.InvitationId · Tender #@invitation.TenderId</span>
+            <a class="supplier-record-title" asp-action="Invitation" asp-route-id="@invitation.InvitationId">@invitation.Tender.Title</a>
+            <span class="supplier-record-note">Received @invitation.SentAt.ToLocalTime().ToString("dd MMM yyyy")</span>
+        </div>
+        <div class="supplier-deadline">
+            <span>Tender deadline (UTC)</span>
+            <strong>@invitation.Tender.ClosesAt.ToString("dd MMM yyyy")</strong>
+            <small>@invitation.Tender.ClosesAt.ToString("HH:mm")</small>
+        </div>
+        <div class="supplier-invitation-actions">
+            <div class="supplier-invitation-status">
+                <span class="status-badge status-@(cancelled ? "cancelled" : expired ? "expired" : invitation.Status.ToLowerInvariant())">@(cancelled ? "Cancelled" : expired ? "Expired" : invitation.Status)</span>
+            </div>
+            <a class="btn btn-primary" asp-action="Invitation" asp-route-id="@invitation.InvitationId">View tender <span aria-hidden="true">↗</span></a>
+        </div>
+    </article>
 }
 </section>
 

@@ -1,0 +1,55 @@
+@model SourcingTenderManagement.Models.Entities.ContactMessage
+@{
+    ViewData["Title"] = "Contact Message";
+    string? replyUrl = null;
+    if (ContactMessageInput.IsValidAddress(Model.Email))
+    {
+        var at = Model.Email.LastIndexOf('@');
+        var recipient = Uri.EscapeDataString(Model.Email[..at]) + "@" + Uri.EscapeDataString(Model.Email[(at + 1)..]);
+        var subject = new string(Model.Subject.Select(character => char.IsControl(character) ? ' ' : character).ToArray());
+        replyUrl = $"mailto:{recipient}?subject={Uri.EscapeDataString($"Re: {subject}")}";
+    }
+}
+
+<header class="workspace-heading">
+    <div><h1>Contact Message</h1><p>Read the sender’s message and reply from your email app.</p></div>
+</header>
+
+<div class="admin-pager mb-3"><a class="btn btn-outline-primary" asp-action="ContactMessages">Back to Contact Messages</a></div>
+
+@if (TempData["ContactMessageFeedback"] is string feedback)
+{
+    <div class="admin-feedback" role="status">@feedback</div>
+}
+
+<article class="workspace-section" aria-labelledby="contact-message-title">
+    <header class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-4">
+        <div class="text-break"><span class="text-secondary small">Message #@Model.ContactMessageId</span><h2 class="h4 mb-0" id="contact-message-title">@Model.Subject</h2></div>
+        <span class="badge @(Model.IsUnread ? "text-bg-warning" : "text-bg-secondary")">@(Model.IsUnread ? "Unread" : "Read")</span>
+    </header>
+    <dl class="row g-3">
+        <div class="col-12 col-md-4"><dt>Full Name</dt><dd class="text-break">@Model.FullName</dd></div>
+        <div class="col-12 col-md-4"><dt>Email Address</dt><dd class="text-break">@Model.Email</dd></div>
+        <div class="col-12 col-md-4"><dt>Received Date</dt><dd>@Model.SubmittedAt.ToString("dd MMM yyyy · HH:mm") UTC</dd></div>
+    </dl>
+    <section class="border-top pt-3 mt-3" aria-labelledby="contact-message-body">
+        <h3 class="h6" id="contact-message-body">Message</h3>
+        <p class="text-break mb-0" style="white-space: pre-wrap">@Model.Message</p>
+    </section>
+    <div class="d-flex flex-wrap gap-2 border-top pt-3 mt-4">
+        @if (replyUrl != null)
+        {
+            <a href="@replyUrl" class="btn btn-primary" aria-describedby="reply-by-email-help">Reply by Email</a>
+        }
+        @if (Model.IsUnread)
+        {
+            <form asp-action="MarkContactMessageRead" method="post">
+                <input type="hidden" name="id" value="@Model.ContactMessageId" />
+                <button type="submit" class="btn btn-outline-primary">Mark as Read</button>
+            </form>
+        }
+    </div>
+    <p class="small text-secondary mt-2 mb-0" id="reply-by-email-help">
+        @(replyUrl != null ? "Opens a draft in your default email app so you can write and send your reply there." : "A draft could not be prepared because the saved email address is invalid.")
+    </p>
+</article>

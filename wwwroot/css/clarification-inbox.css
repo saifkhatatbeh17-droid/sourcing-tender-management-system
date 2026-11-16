@@ -1,5 +1,5 @@
 /* Shared clarification inbox: contextual records and readable conversations. */
-body:has(.clarification-inbox) { --accent:#00a3a6; --color-primary:#00a3a6; --color-on-primary:#002e30; --color-background:#f5f7f9; --color-surface:#fff; --color-surface-alt:#f5f7f9; --color-text:#152c32; --color-text-secondary:#607278; --color-border:#dfe7e8; --color-link:#007b7e; --color-selection:#eef8f6; background:var(--color-background); }
+body:has(.clarification-inbox) { --accent:var(--pharma-primary); --color-primary:var(--pharma-primary); --color-on-primary:var(--pharma-on-primary); --color-background:#f5f7f9; --color-surface:#fff; --color-surface-alt:#f5f7f9; --color-text:#152c32; --color-text-secondary:#607278; --color-border:#dfe7e8; --color-link:#007b7e; --color-selection:#eef8f6; background:var(--color-background); }
 html[data-theme="dark"] body:has(.clarification-inbox) { --color-background:#101817; --color-surface:#192321; --color-surface-alt:#202d2a; --color-text:#edf5f2; --color-text-secondary:#a6bbb5; --color-border:#34443f; --color-link:#70d9d3; --color-selection:#173a34; }
 .app-shell:has(.clarification-inbox) .main-content { padding:24px 32px 40px !important; }
 .clarification-inbox { max-width:1280px; margin:auto; font-family:"Segoe UI",Arial,sans-serif; color:var(--color-text); font-size:14px; }
@@ -9,7 +9,7 @@ html[data-theme="dark"] body:has(.clarification-inbox) { --color-background:#101
 .ci-heading p { margin:10px 0 0; color:var(--color-text-secondary); font-size:14px; line-height:1.6; }
 .ci-button { display:inline-flex; align-items:center; justify-content:center; gap:12px; min-height:44px; padding:11px 18px; border:1px solid transparent; border-radius:18px; font:600 14px/1.5 "Segoe UI",sans-serif; text-decoration:none; white-space:nowrap; transition:background-color 160ms ease; }
 .ci-primary { background:var(--accent); color:#002e30; }
-.ci-primary:hover { background:color-mix(in oklab,#00a3a6,black 8%); color:#002e30; }
+.ci-primary:hover { background:color-mix(in oklab,var(--pharma-primary),black 8%); color:#002e30; }
 .ci-heading > .ci-primary { background:#ff6b4a; }
 .ci-heading > .ci-primary:hover { background:#f05c3c; }
 .ci-secondary { background:var(--color-surface); border-color:var(--color-border); color:var(--color-link); }

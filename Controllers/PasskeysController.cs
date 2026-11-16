@@ -62,7 +62,15 @@ public class PasskeysController(UserManager<ApplicationUser> users, SignInManage
         if (User.Identity?.IsAuthenticated == true) return Conflict();
         if (string.IsNullOrWhiteSpace(credential)) return BadRequest();
 
-        var result = await signIn.PerformPasskeyAssertionAsync(credential);
+        PasskeyAssertionResult<ApplicationUser> result;
+        try
+        {
+            result = await signIn.PerformPasskeyAssertionAsync(credential);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("No passkey assertion is underway.", StringComparison.Ordinal))
+        {
+            return Unauthorized(new { message = "Your passkey sign-in attempt expired. Please start again or sign in with your password." });
+        }
         if (!result.Succeeded || !result.User.IsActive ||
             !await signIn.CanSignInAsync(result.User) || await users.IsLockedOutAsync(result.User) ||
             await users.GetTwoFactorEnabledAsync(result.User))

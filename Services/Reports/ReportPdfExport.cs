@@ -88,6 +88,8 @@ public static class ReportPdfExport
         var tender=page.Tender!;var report=tender.EvaluationReport!;
         var recommended=page.Offers.FirstOrDefault(b=>b.BidId==report.RecommendedBidId);
         var r=new Report("Combined committee report","Evaluation Committee");
+        var rounds = OfferRoundContext.Describe(tender);
+        if (rounds.Length > 0 && report.CommitteeSummary?.Contains(rounds, StringComparison.Ordinal) != true) r.Formatted(rounds);
         r.Field("Tender",$"#{tender.TenderId} - {tender.Title}");r.Field("Tender status",CommitteeEvaluationPage.StatusLabel(tender.Status));
         if(page.Criteria.Count>0)
         {
@@ -146,6 +148,8 @@ public static class ReportPdfExport
     {
         var report=page.Selected!;var recommended=page.Offers.FirstOrDefault(o=>o.BidId==report.RecommendedBidId);
         var r=new Report("Committee submission and supplier comparison","Sourcing Manager");
+        var rounds = OfferRoundContext.Describe(report.Tender);
+        if (rounds.Length > 0 && report.CommitteeSummary?.Contains(rounds, StringComparison.Ordinal) != true) r.Formatted(rounds);
         r.Field("Tender",$"#{report.TenderId} - {report.Tender.Title}");r.Field("Report",$"#{report.EvaluationReportId} - {report.Status}");
         r.Field("Recommended supplier",recommended?.Invitation.SupplierProfile.CompanyName??"Unavailable");
         r.Heading("Committee report");r.Formatted(report.CommitteeSummary??"No summary was provided.");
@@ -162,7 +166,14 @@ public static class ReportPdfExport
             foreach(var evaluation in offer.Evaluations.OrderBy(e=>e.CommitteeAssignmentId))
             {
                 r.Heading($"Evaluation #{evaluation.EvaluationId} ({evaluation.Status})");
-                r.Rows(["Category","Criterion","Weight","Score","Notes"],[3.5,6,2,2,13.2],evaluation.EvaluationScores.OrderBy(s=>s.EvaluationCriterion.Category).ThenBy(s=>s.EvaluationCriterion.Name)
+                if(evaluation.FinancialMark.HasValue && evaluation.TechnicalMark.HasValue)
+                {
+                    r.Field("Member",CommitteeEvaluationPage.MemberName(evaluation.CommitteeAssignment.Position));
+                    r.Field("Financial mark",$"{evaluation.FinancialMark:0.##} / {report.Tender.CommitteeFinancialWeight:0.##}");
+                    r.Field("Technical mark",$"{evaluation.TechnicalMark:0.##} / {100-report.Tender.CommitteeFinancialWeight:0.##}");
+                    r.Field("Total mark",$"{evaluation.FinancialMark+evaluation.TechnicalMark:0.##} / 100");
+                }
+                else r.Rows(["Category","Criterion","Weight","Score","Notes"],[3.5,6,2,2,13.2],evaluation.EvaluationScores.OrderBy(s=>s.EvaluationCriterion.Category).ThenBy(s=>s.EvaluationCriterion.Name)
                     .Select(s=>new[]{s.EvaluationCriterion.Category=="Requirements"?"Technical":"Financial",s.EvaluationCriterion.Name,s.EvaluationCriterion.Weight.ToString("0.##")+"%",s.Score.ToString("0.##"),s.Notes??""}),"No scores recorded.");
                 if(!string.IsNullOrWhiteSpace(evaluation.Notes))r.Text(evaluation.Notes);
             }
@@ -186,7 +197,7 @@ public static class ReportPdfExport
         r.Heading("Bid comparison");r.Text("Totals include item prices, taxes and additional costs in each bid's own currency. Evaluation scores are shown as recorded; no currency conversion or combined ranking is applied.");
         r.Rows(["Supplier / bid","Total","Delivery","Compliance","Evaluation results"],[5,4,2.5,4,11.2],t.Bids.Select(b=>new[]{
             $"{b.SupplierName}\nBid #{b.BidId} - {CommitteeDisplay.Status(b.Status)}"+(b.IsNominated?"\nManager nominated":""),$"{CommitteeDisplay.Money(b.Total)} {b.Currency}",$"{b.DeliveryDays} days",CommitteeDisplay.Status(b.ComplianceStatus),
-            b.Evaluations.Count==0?"No submitted evaluation results":string.Join("\n",b.Evaluations.Select(e=>$"{e.Evaluator} - {CommitteeDisplay.Status(e.Status)}\n"+(e.Scores.Count==0?"No scores recorded":string.Join("\n",e.Scores.Select(s=>$"{(s.Category=="Requirements"?"Technical":s.Category)}: {s.Criterion} - {CommitteeDisplay.Quantity(s.Score)}/100")))))}),"No submitted bids are available for this tender.");
+            b.Evaluations.Count==0?"No submitted evaluation results":string.Join("\n",b.Evaluations.Select(e=>$"{e.Evaluator} - {CommitteeDisplay.Status(e.Status)}\n"+(e.Scores.Count==0?"No scores recorded":string.Join("\n",e.Scores.Select(s=>$"{(s.Category=="Requirements"?"Technical":s.Category)}: {s.Criterion} - {CommitteeDisplay.Quantity(s.Score)}/{CommitteeDisplay.Quantity(s.Maximum)}")))))}),"No submitted bids are available for this tender.");
         if(page.SelectedBid is {} bid)
         {
             r.Heading($"Bid #{bid.BidId} - {bid.SupplierName}");r.Field("Status",CommitteeDisplay.Status(bid.Status));r.Field("Submitted",CommitteeDisplay.Utc(bid.SubmittedAt));
@@ -200,7 +211,7 @@ public static class ReportPdfExport
             foreach(var e in bid.Evaluations)
             {
                 r.Heading(e.Evaluator+" - "+CommitteeDisplay.Status(e.Status));r.Text(CommitteeDisplay.Text(e.Notes));r.Text($"Submitted: {CommitteeDisplay.Utc(e.SubmittedAt)} - Approved: {CommitteeDisplay.Utc(e.ApprovedAt)}");
-                r.Rows(["Criterion","Category","Weight","Score","Notes"],[5,3,2.5,2.5,13.7],e.Scores.Select(s=>new[]{s.Criterion,s.Category=="Requirements"?"Technical":s.Category,CommitteeDisplay.Quantity(s.Weight)+"%",CommitteeDisplay.Quantity(s.Score)+"/100",CommitteeDisplay.Text(s.Notes)}),"No criterion scores are recorded for this evaluation.");
+                r.Rows(["Criterion","Category","Weight","Score","Notes"],[5,3,2.5,2.5,13.7],e.Scores.Select(s=>new[]{s.Criterion,s.Category=="Requirements"?"Technical":s.Category,CommitteeDisplay.Quantity(s.Weight)+"%",CommitteeDisplay.Quantity(s.Score)+"/"+CommitteeDisplay.Quantity(s.Maximum),CommitteeDisplay.Text(s.Notes)}),"No criterion scores are recorded for this evaluation.");
             }
         }
         r.Heading("Unified evaluation report");r.Field("Report",$"#{report.ReportId} - {CommitteeDisplay.Status(report.Status)}");r.Field("Submitted",CommitteeDisplay.Utc(report.SubmittedAt));

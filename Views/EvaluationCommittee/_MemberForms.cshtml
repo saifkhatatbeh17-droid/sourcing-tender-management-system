@@ -32,7 +32,7 @@
                         <label for="technical-@key">Technical <span>out of @Model.TechnicalWeight.ToString("0")</span><input id="technical-@key" type="number" name="technicalMark" min="0" max="@Model.TechnicalWeight" step="1" inputmode="numeric" required disabled="@(!editable)" value="@(approved ? review?.TechnicalMark?.ToString("0") : null)" class="form-control" /></label>
                     </div>
                     <label for="comment-@key">Comment <span>Optional · included in the report</span></label><textarea id="comment-@key" name="comment" rows="3" maxlength="4000" disabled="@(!editable)" class="form-control">@(approved ? review?.Notes : null)</textarea>
-                    @if (editable) { <p class="ev-field-help">Check both marks. Submitting locks this offer’s review.</p><button class="btn ev-button-primary">Approve review</button> }
+                    @if (editable) { <p class="ev-field-help">Check both marks. Submitting locks this offer’s review.</p><button class="btn ev-button-primary pharma-action-approve">Approve review</button> }
                     else { <p class="ev-field-help">@(approved ? "Review submitted · locked" : mine ? "Review unavailable" : "Awaiting this member")</p> }
                 </form>
             </section>

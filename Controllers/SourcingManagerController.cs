@@ -46,6 +46,16 @@ public partial class SourcingManagerController : Controller
         var pendingQuestions = _context.Clarifications.Count(question =>
             question.RecipientUserId == ManagerId && question.Status == "Pending");
 
+        ViewBag.DashboardReportStates = _context.EvaluationReports.AsNoTracking()
+            .Where(r => r.Status == "OfficerSubmitted" || r.Status == "ManagerApproved" || r.Status == "ManagerRejected" ||
+                r.Status == "TopApproved" || r.ManagerSummary != null || r.Tender.Status == AwaitingManagerReview ||
+                r.Tender.Status == AwaitingCommitteeDecision || r.Tender.Status == "Awarded")
+            .GroupBy(r => r.Status == "ManagerRejected" || r.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") ? "Rejected" :
+            r.Tender.Status == AwaitingManagerReview && r.Status == ManagerApproved ? "Ready to forward" :
+            r.Tender.Status == AwaitingManagerReview && (r.Status == "OfficerSubmitted" || r.Status == "CommitteeApproved") ? "Needs your review" :
+            r.Tender.Status == AwaitingCommitteeDecision ? "With CEO & Chiefs" : r.Tender.Status == "Awarded" ? "Awarded" :
+            r.Tender.Status == "Cancelled" ? "Cancelled" : r.Status == "ReturnedForReview" ? "Back with committee" : "With sourcing team")
+            .Select(g => new { Status = g.Key, Count = g.Count() }).ToDictionary(g => g.Status, g => g.Count);
         var dashboard = new ManagerDashboard(
             reportsAwaitingReview, approvedRecommendations, tendersWithTopCommittee, pendingQuestions);
         return View(dashboard);
@@ -63,7 +73,7 @@ public partial class SourcingManagerController : Controller
         ViewBag.RejectedTenders = rejections.OrderByDescending(t => t.CreatedAt).ToList();
         ViewBag.OpenRejections = showRejections || rejectedTenderId.HasValue;
         var evaluationReports = _context.EvaluationReports
-            .Include(report => report.Tender)
+            .Include(report => report.Tender).ThenInclude(t => t.OfferExtensions)
             .Where(report => !report.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") && report.Tender.Status == AwaitingManagerReview &&
                 (report.Status == "OfficerSubmitted" ||
                  report.Status == "CommitteeApproved" ||
@@ -106,11 +116,14 @@ public partial class SourcingManagerController : Controller
             .Include(bid => bid.Evaluations.Where(evaluation =>
                 evaluation.Status == "Submitted" || evaluation.Status == "Approved"))
             .ThenInclude(evaluation => evaluation.EvaluationScores)
-            .ThenInclude(score => score.EvaluationCriterion);
+            .ThenInclude(score => score.EvaluationCriterion)
+            .Include(bid => bid.Evaluations.Where(evaluation =>
+                evaluation.Status == "Submitted" || evaluation.Status == "Approved"))
+            .ThenInclude(evaluation => evaluation.CommitteeAssignment);
 
         var supplierOffers = bidsWithEvaluations.AsSplitQuery()
             .OrderBy(bid => bid.BidId)
-            .ToList();
+            .ToList().OrderByDescending(bid => bid.BidId == selectedReport.RecommendedBidId).ToList();
 
         var page = new ManagerReviewPage(evaluationReports, selectedReport, supplierOffers, selectedReport.SubmittedAt);
         return View(page);
@@ -229,6 +242,7 @@ public partial class SourcingManagerController : Controller
         [FromServices] SourcingTenderManagement.Services.Evaluation.BidRecommendationService ai, CancellationToken cancellationToken)
     {
         var report = await _context.EvaluationReports.AsNoTracking().Include(r => r.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.Department)
+            .Include(r => r.Tender).ThenInclude(t => t.OfferExtensions)
             .Include(r => r.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
             .Include(r => r.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.SupplierProfile)
             .Include(r => r.Bid).ThenInclude(b => b!.BidItems)
@@ -244,6 +258,7 @@ public partial class SourcingManagerController : Controller
             var excludedSuppliers = await _context.Bids.AsNoTracking().Where(b => b.TenderId == report.TenderId && b.BidId != report.Bid.BidId)
                 .Select(b => b.Invitation.SupplierProfile.CompanyName).Distinct().ToListAsync(cancellationToken);
             var summary = await ai.DraftReferral(new { tender = report.Tender.Title, report.Tender.Description, report.Tender.Terms,
+                offerRoundsAndException = SourcingTenderManagement.Services.Reports.OfferRoundContext.Describe(report.Tender),
                 purchaseRequest = new { report.Tender.PurchaseRequest.Title, report.Tender.PurchaseRequest.Reason,
                     department = report.Tender.PurchaseRequest.Department.Name, report.Tender.PurchaseRequest.Priority, report.Tender.PurchaseRequest.TargetDate,
                     items = report.Tender.PurchaseRequest.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId)
@@ -343,6 +358,7 @@ public partial class SourcingManagerController : Controller
         {
             evaluationReport.ManagerSummary += $"\n\nReferral reason: {reason}";
         }
+        _context.Entry(tender).Collection(t => t.OfferExtensions).Load();
         evaluationReport.ManagerSummary = SourcingTenderManagement.Services.Reports.ManagerReferralContext.Describe(tender, winningOffer)
             + "\n\n## Manager assessment\n" + evaluationReport.ManagerSummary;
 

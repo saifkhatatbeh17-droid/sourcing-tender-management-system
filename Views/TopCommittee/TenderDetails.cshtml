@@ -6,6 +6,7 @@
     ViewData["Title"] = $"Tender #{tender.TenderId}";
 }
 <div class="tc-tender">
+@if (!string.IsNullOrWhiteSpace(tender.OfferRoundSummary)) { <section class="workspace-section"><partial name="_FormattedReport" model="tender.OfferRoundSummary" /></section> }
 <nav class="mb-3" aria-label="Breadcrumb"><a asp-action="Dashboard">CEO & Chiefs dashboard</a><span class="text-secondary"> / Tender #@tender.TenderId</span></nav>
 <div class="workspace-heading">
     <div><h1 class="text-break">@tender.Title</h1><p>Review the recommendation, compare offers, and record your decision.</p></div>
@@ -20,6 +21,12 @@
 </div>
 @if (TempData["VotingSuccess"] is string votingSuccess) { <p class="border rounded p-3" role="status">@votingSuccess</p> }
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if (!string.IsNullOrWhiteSpace(tender.OfferRoundSummary))
+{
+    <section class="workspace-section" aria-label="Offer rounds and exception">
+        <partial name="_FormattedReport" model="tender.OfferRoundSummary" />
+    </section>
+}
 <nav class="workspace-toolbar" aria-label="Tender sections">
     <a href="#voting">Voting</a><a href="#request">Purchase request</a><a href="#recommendation">Manager recommendation</a><a href="#bid-comparison">Bid comparison</a><a href="#evaluation-report">Evaluation report</a><a href="#committee">Committee records</a>
 </nav>

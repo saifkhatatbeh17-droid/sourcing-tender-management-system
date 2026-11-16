@@ -23,6 +23,9 @@ public class Tender
 
     public string? Terms { get; set; }
 
+    public string? OfferShortfallReason { get; set; }
+    public ICollection<TenderOfferExtension> OfferExtensions { get; set; } = new List<TenderOfferExtension>();
+
     public DateTime OpensAt { get; set; }
 
     public DateTime ClosesAt { get; set; }
@@ -33,7 +36,7 @@ public class Tender
         Status is ("Open" or "Published") && OpensAt <= now && now < ClosesAt;
 
     public bool CanCancel(DateTime now) =>
-        Status is ("Draft" or "Open" or "Published") && now < ClosesAt;
+        Status is ("Open" or "Published") && now < ClosesAt;
 
     public int? AwardedBidId { get; set; }
 

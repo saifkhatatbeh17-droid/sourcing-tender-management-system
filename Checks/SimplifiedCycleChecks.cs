@@ -47,17 +47,12 @@ public static class SimplifiedCycleChecks
             db.Bids.Add(bid); await db.SaveChangesAsync(); db.ChangeTracker.Clear();
             await Controller().ReviewAndSend(tenderId, new()); db.ChangeTracker.Clear();
             Require(await db.Tenders.AnyAsync(t => t.TenderId == tenderId && t.Status == "Published"), "Incomplete review forwarded");
-            await Controller().ReviewAndSend(tenderId, new() { [bid.BidId] = "Compliant" }); db.ChangeTracker.Clear();
-            Require(await db.Tenders.AnyAsync(t => t.TenderId == tenderId && t.Status == "Published"), "Handoff before deadline succeeded");
-            var expired = DateTime.UtcNow.AddMinutes(-1);
-            await db.Tenders.Where(t => t.TenderId == tenderId).ExecuteUpdateAsync(u => u
-                .SetProperty(t => t.OpensAt, expired.AddDays(-1)).SetProperty(t => t.ClosesAt, expired));
             var question = new Clarification { TenderId = tenderId, SenderUserId = officer.Id, RecipientUserId = source.RequestedByUserId, Subject = "Temporary question", Description = "Temporary", Status = "Pending", CreatedAt = DateTime.UtcNow }; db.Clarifications.Add(question); await db.SaveChangesAsync();
             await Controller().ReviewAndSend(tenderId, new() { [bid.BidId] = "Compliant" }); db.ChangeTracker.Clear();
             Require(await db.Bids.AnyAsync(b => b.BidId == bid.BidId && b.ComplianceStatus == null), "Blocked handoff partially saved review");
             await db.Clarifications.Where(c => c.ClarificationId == question.ClarificationId).ExecuteDeleteAsync();
             await Controller().ReviewAndSend(tenderId, new() { [bid.BidId] = "Compliant" }); db.ChangeTracker.Clear();
-            Require(await db.Tenders.AnyAsync(t => t.TenderId == tenderId && t.Status == "UnderEvaluation"), "Handoff failed");
+            Require(await db.Tenders.AnyAsync(t => t.TenderId == tenderId && t.Status == "UnderEvaluation"), "Early handoff before the future deadline failed");
             Require(await db.CommitteeAssignments.CountAsync(a => a.TenderId == tenderId) == 4, "Committee not initialized");
             Require(await db.EvaluationCriteria.Where(c => c.TenderId == tenderId).SumAsync(c => c.Weight) == 100, "Default weights missing");
             Require(await db.EvaluationReports.AnyAsync(r => r.TenderId == tenderId && r.Status == "Draft" && r.RecommendedBidId == null), "Manual choice not preserved");

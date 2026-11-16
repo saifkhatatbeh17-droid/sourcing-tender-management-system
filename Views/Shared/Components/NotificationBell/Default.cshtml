@@ -1,29 +1,47 @@
 @model NotificationBellViewModel
+@{
+    var contactDetailsPrefix = User.IsInRole(SourcingTenderManagement.Data.RoleNames.Admin)
+        ? Url.Action("ContactMessageDetails", "Admin", new { id = "" }) + "/"
+        : null;
+}
 <div class="dropdown">
     <button type="button" class="btn btn-outline-secondary notification-bell" id="notification-bell"
-            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications, @Model.UnreadCount unread">
+            data-bs-toggle="dropdown" aria-expanded="false" aria-controls="workspace-notification-menu" aria-label="Notifications, @Model.UnreadCount unread">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         @if (Model.UnreadCount > 0) { <span class="badge text-bg-primary">@Model.UnreadCount</span> }
     </button>
-    <div class="dropdown-menu dropdown-menu-end notification-dropdown p-2" aria-labelledby="notification-bell">
+    <div class="dropdown-menu dropdown-menu-end notification-dropdown p-2" id="workspace-notification-menu" aria-labelledby="notification-bell">
         <h2 class="fs-6 px-2 pt-2">Notifications</h2>
+        @if (Model.UnreadCount > 0) { <p class="small notification-meta px-2 mb-2">@Model.UnreadCount unread</p> }
         @if (Model.Items.Count == 0)
         {
-            <p class="text-secondary px-2 mb-2">No notifications yet.</p>
+            <p class="text-secondary px-2 mb-2">You're all caught up. New updates will appear here.</p>
         }
         else
         {
-            <ul class="list-unstyled mb-0">
+            <ul class="list-unstyled mb-0" aria-label="Your notifications">
             @foreach (var notification in Model.Items)
             {
-                <li class="notification-item">
+                <li class="notification-item @(!notification.IsRead ? "is-unread" : null)">
                     <strong class="@(notification.IsRead ? "fw-normal" : "")">@notification.Title</strong>
                     <p class="mb-1">@notification.Message</p>
+                    <p class="small notification-meta mb-2"><time datetime="@notification.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture)">@notification.CreatedAt.ToString("dd MMM yyyy, HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture)</time> · @(notification.IsRead ? "Read" : "Unread")</p>
                     @if (Url.IsLocalUrl(notification.RelativeUrl))
                     {
-                        <a href="@notification.RelativeUrl">View details</a>
+                        @if (!notification.IsRead && contactDetailsPrefix != null
+                            && notification.RelativeUrl!.StartsWith(contactDetailsPrefix, StringComparison.OrdinalIgnoreCase)
+                            && int.TryParse(notification.RelativeUrl.AsSpan(contactDetailsPrefix.Length), out var messageId) && messageId > 0)
+                        {
+                            <form asp-controller="Admin" asp-action="OpenContactNotification" method="post">
+                                <button type="submit" name="id" value="@notification.NotificationId" class="btn btn-link p-0 text-start">View details</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a href="@notification.RelativeUrl">View details</a>
+                        }
                     }
                 </li>
             }

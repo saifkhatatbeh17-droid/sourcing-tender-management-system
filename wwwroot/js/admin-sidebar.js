@@ -19,7 +19,11 @@ if (reviewDialog) {
         const pending = new AbortController();
         request = pending;
         reviewDialog.querySelector('.modal-title').textContent = link.dataset.company;
-        content.textContent = 'Loading supplier details…';
+        const loading = document.createElement('p');
+        loading.className = 'text-secondary mb-0';
+        loading.setAttribute('role', 'status');
+        loading.textContent = 'Loading supplier details…';
+        content.replaceChildren(loading);
         modal.show();
         const url = new URL(link.href);
 
@@ -42,7 +46,11 @@ if (reviewDialog) {
             const fallback = document.createElement('a');
             fallback.href = link.href;
             fallback.textContent = 'Open supplier details';
-            content.replaceChildren(fallback);
+            const error = document.createElement('p');
+            error.className = 'text-secondary';
+            error.setAttribute('role', 'alert');
+            error.textContent = 'Supplier details could not load here.';
+            content.replaceChildren(error, fallback);
         }
     });
 }

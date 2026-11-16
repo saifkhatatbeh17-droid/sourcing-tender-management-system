@@ -10,12 +10,14 @@ using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Controllers;
 [Authorize(Roles = RoleNames.Admin)]
-public class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
+public partial class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
     IConfiguration configuration, IWebHostEnvironment environment) : Controller
 {
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
     public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
     {
+        ViewBag.DashboardSupplierStates = await db.SupplierProfiles.AsNoTracking().GroupBy(s => s.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Status, g => g.Count, cancellationToken);
         var model = new AdminDashboardViewModel
         {
             UsersCount = await db.Users.CountAsync(cancellationToken),

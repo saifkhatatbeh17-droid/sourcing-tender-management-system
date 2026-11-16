@@ -11,13 +11,20 @@
 <header class="mr-heading"><div><h1>Chosen offers<span>.</span></h1><p>Final awarded tenders and the suppliers selected for delivery.</p></div><span class="mr-count">@Model.Count awarded</span></header>
 <section class="workspace-section">
 @if (Model.Count == 0)
-{ <div class="mr-empty"><span aria-hidden="true">✓</span><h2>No awarded offers yet</h2><p>Confirmed supplier awards will appear here when the final decision is recorded.</p><a asp-action="Submissions" class="btn btn-outline-primary">Review submissions ↗</a></div> }
+{ <div class="mr-empty"><span aria-hidden="true">✓</span><h2>No awarded offers yet</h2><p>Confirmed supplier awards appear here after the CEO & Chiefs records its final decision.</p><a asp-action="Reports" asp-route-decision="Approved" class="btn btn-outline-primary">Track approved decisions</a></div> }
 else
 {
     <div class="mr-awards">
     @foreach (var tender in Model)
     {
-        <article class="mr-award"><div><span class="mr-reference">Tender #@tender.TenderId</span><h2>@tender.Title</h2><span class="mr-status">Awarded</span></div><div class="mr-award-supplier"><span>Chosen supplier</span><strong>@(tender.Bid?.Invitation.SupplierProfile.CompanyName ?? "Not recorded")</strong><small>Recorded @tender.AwardedAt?.ToString("dd MMM yyyy · HH:mm") UTC</small></div>@if (!string.IsNullOrWhiteSpace(tender.AwardNotes)) { <details><summary>Award notes <span aria-hidden="true">⌄</span></summary><p class="manager-text">@tender.AwardNotes</p></details> }</article>
+        <article class="mr-award">
+            <div><span class="mr-reference">Tender #@tender.TenderId</span><h2>@tender.Title</h2><span class="mr-status" data-state="Approved">Awarded</span></div>
+            <div class="mr-award-supplier">
+                <span>Chosen supplier</span><strong>@(tender.Bid?.Invitation.SupplierProfile.CompanyName ?? "Not recorded")</strong>
+                @if (tender.AwardedAt.HasValue) { <small>Award recorded @tender.AwardedAt.Value.ToString("dd MMM yyyy · HH:mm") UTC</small> }
+            </div>
+            @if (!string.IsNullOrWhiteSpace(tender.AwardNotes)) { <details class="mr-disclosure"><summary>Read award notes</summary><p class="manager-text">@tender.AwardNotes</p></details> }
+        </article>
     }
     </div>
 }

@@ -1,0 +1,184 @@
+/* Offers: one tender summary, compact comparisons, details on demand. */
+.offer-simple .tw-polished-overview,.offer-simple .tw-overview { padding:0;overflow:hidden;background:var(--so-surface);border:1px solid var(--so-line);border-radius:16px;margin-bottom:24px; }
+.offer-simple .tender-browser { margin:0;border:0;border-radius:0; }
+.offer-simple .tender-browser>summary { padding:22px 24px;gap:20px; }
+.offer-simple .tender-browser summary strong { font-size:21px;letter-spacing:-.02em;line-height:1.45; }
+.tb-selection { display:flex;align-items:center;gap:22px;flex-shrink:0; }
+.offer-simple .tb-panel { padding:20px 24px; }
+.offer-simple .os-facts { display:grid;grid-template-columns:2fr 1fr 1fr;gap:24px;padding:20px 24px;margin:0;border-top:1px solid var(--so-line); }
+.os-facts dt { font-weight:400;font-size:12px;color:var(--so-muted);margin-bottom:5px; }
+.os-facts dd { font-size:16px;font-weight:600;margin:0;font-variant-numeric:tabular-nums; }
+.os-facts dd small { font-size:12px;font-weight:400;color:var(--so-muted);margin-left:8px;white-space:nowrap; }
+.os-tender-tools { border-top:1px solid var(--so-line);padding:15px 24px; }
+.offer-simple .tw-overview-actions { margin:0;padding:18px 24px; }
+.offer-simple .tw-next-step p { font-size:13px; }
+.offer-simple .tw-offers-heading { margin:24px 0 12px; }
+.offer-simple .tw-offers-heading h2 { font-size:19px; }
+.offer-simple .tw-offers-heading p { color:var(--so-muted);font-size:13px;margin:5px 0 0; }
+.os-list-labels,.offer-simple .os-offer-details>summary { display:grid;grid-template-columns:minmax(0,2fr) minmax(145px,1fr) 90px 135px 70px;align-items:center;gap:20px; }
+.os-list-labels { padding:12px 22px;font-size:12px;font-weight:600;color:var(--so-muted); }
+.offer-simple .os-offers { display:block;background:var(--so-surface);border:1px solid var(--so-line);border-radius:14px;overflow:hidden; }
+.offer-simple .os-offers:empty { display:none; }
+.offer-simple .os-offer-row { margin:0;border:0;border-radius:0;box-shadow:none;overflow:visible; }
+.offer-simple .os-offer-row+.os-offer-row { border-top:1px solid var(--so-line); }
+.offer-simple .os-offer-details { padding:0;border:0; }
+.offer-simple .os-offer-details>summary { padding:20px 22px;list-style:none;cursor:pointer;color:var(--so-ink);background:transparent;min-height:92px;font-size:14px; }
+.offer-simple .os-offer-details>summary::-webkit-details-marker { display:none; }
+.offer-simple .os-offer-details>summary:hover { background:var(--so-surface-alt); }
+.offer-simple .os-offer-details>summary:focus-visible { outline:3px solid var(--so-accent-hover);outline-offset:-3px; }
+.os-supplier,.os-price { display:grid;gap:4px;min-width:0; }
+.os-supplier strong { font-weight:600;font-size:15px;line-height:1.5;overflow-wrap:anywhere; }
+.os-supplier>small,.os-price>small { color:var(--so-muted);font-size:12px;line-height:1.5; }
+.os-price>strong { font-size:16px;line-height:1.5;font-weight:650;font-variant-numeric:tabular-nums; }
+.os-price strong small { font-size:11px;font-weight:400;color:var(--so-muted); }
+.os-delivery { font-size:13px;font-variant-numeric:tabular-nums; }
+.os-expand { display:flex;align-items:center;justify-content:end;gap:8px;color:var(--so-accent-hover);font-size:12px; }
+.os-offer-details[open] .os-expand>span:last-child { transform:rotate(180deg); }
+.offer-simple .os-offer-details>summary .so-status-badge { justify-self:start;font-size:11px;padding:5px 8px; }
+.offer-simple .os-detail-content { padding:22px;border-top:1px solid var(--so-line);background:var(--so-surface-alt); }
+.offer-simple .os-detail-content .offer-detail-columns { padding:0;gap:28px; }
+.offer-simple .os-detail-content h4 { font-size:14px;margin:0 0 12px; }
+.offer-simple .os-detail-content p,.offer-simple .os-detail-content li { font-size:13px;line-height:1.7;overflow-wrap:anywhere; }
+.os-question { display:inline-flex;align-items:center;min-height:44px;font-size:13px;margin-top:10px; }
+.offer-simple .os-offer-row>footer { padding:12px 22px;border-top:1px solid var(--so-line);background:var(--so-surface-alt); }
+.offer-simple .os-offer-row fieldset { display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0; }
+.offer-simple .os-offer-row legend { float:none;width:auto;margin:0;font-size:12px;font-weight:600;color:var(--so-muted); }
+.offer-simple .os-offer-row fieldset label { display:inline-flex;align-items:center;gap:7px;min-height:44px;font-size:13px;cursor:pointer; }
+.offer-simple .os-record { border:1px solid var(--so-line);border-radius:14px;background:var(--so-surface);margin-top:24px;overflow:hidden; }
+.offer-simple .os-record>summary { display:flex;align-items:center;justify-content:space-between;gap:20px;list-style:none;padding:20px 22px;cursor:pointer;min-height:72px; }
+.os-record>summary::-webkit-details-marker { display:none; }
+.os-record>summary>span:first-child { display:grid;gap:5px; }
+.os-record summary strong { font-size:15px;font-weight:600; }
+.os-record summary small { font-size:12px;color:var(--so-muted); }
+.os-record-open { color:var(--so-accent-hover);font-size:13px;white-space:nowrap; }
+.offer-simple .os-record>.tw-report,.offer-simple .os-record>.workspace-section { margin:0;border:0;border-radius:0;border-top:1px solid var(--so-line); }
+.os-record[open]>summary .os-record-open>span { display:inline-block;transform:rotate(180deg); }
+.os-options { margin:0 0 12px;font-size:12px;color:var(--so-muted); }
+.os-options>summary { cursor:pointer;min-height:32px;padding:4px 0;width:fit-content; }
+.os-options form { margin-top:8px; }
+.offer-simple .offer-handoff { margin-top:18px;padding:18px 22px;border-radius:12px; }
+.offer-simple .offer-handoff p { font-size:13px;margin-top:5px; }
+@media(max-width:1150px) {
+ .os-list-labels,.offer-simple .os-offer-details>summary { grid-template-columns:minmax(0,1.7fr) minmax(125px,1fr) 72px 110px 54px;gap:12px; }
+ .os-expand>span:first-child { display:none; }
+ .tb-selection { gap:12px; }
+}
+@media(max-width:950px) {
+ .os-list-labels { display:none; }
+ .offer-simple .os-offer-details>summary { grid-template-columns:minmax(0,1fr) auto;gap:12px 20px;padding:18px 20px; }
+ .os-supplier { grid-column:1; }.os-price { grid-column:1;grid-row:2; }
+ .os-delivery { grid-column:1;grid-row:3;color:var(--so-muted); }
+ .os-delivery::before { content:"Delivery: "; }
+ .offer-simple .os-offer-details>summary .so-status-badge { grid-column:2;grid-row:2;justify-self:end;max-width:130px; }
+ .os-expand { grid-column:2;grid-row:1; }.os-expand>span:first-child { display:inline; }
+ .tb-selection { align-items:end;flex-direction:column;gap:10px; }
+ .offer-simple .tender-browser summary strong { font-size:18px; }
+ .offer-simple .os-facts { grid-template-columns:1.5fr 1fr;gap:16px; }
+ .os-facts>div:first-child { grid-column:1/-1; }.os-facts dd small { display:block;margin-left:0;margin-top:4px; }
+}
+@media(max-width:600px) {
+ .offer-simple .tender-browser>summary,.offer-simple .tb-panel { padding:18px; }
+ .offer-simple .tender-browser>summary { flex-direction:column;gap:14px; }
+ .tb-selection { flex-direction:row;align-items:center;justify-content:space-between;width:100%; }
+ .offer-simple .os-facts { padding:18px; }
+ .offer-simple .os-facts dd { font-size:15px; }
+ .os-tender-tools { padding:14px 18px; }.os-tender-tools .tw-tools { display:flex;flex-wrap:wrap;gap:8px; }
+ .offer-simple .os-record>summary { padding:18px;align-items:start; }.os-record-open { font-size:12px; }
+ .offer-simple .os-detail-content { padding:18px; }.offer-simple .os-detail-content .offer-detail-columns { grid-template-columns:1fr;gap:18px; }
+ .offer-simple .os-offer-details>summary .so-status-badge { max-width:115px; }
+ .offer-simple .os-offer-row>footer { padding:10px 18px; }.offer-simple .os-offer-row fieldset { gap:10px 16px; }.offer-simple .os-offer-row legend { width:100%; }
+}
+
+.os-sent-notice { display:grid;gap:4px;padding:16px 20px;margin-top:18px;border:1px solid var(--so-line);border-radius:12px;background:var(--so-surface-alt);font-size:13px; }.os-sent-notice strong { font-size:14px;font-weight:600; }.os-sent-notice span { color:var(--so-muted); }
+
+/* Tender identity, metrics and supporting tools form two aligned rows. */
+.offer-simple :is(.tw-polished-overview,.tw-overview) .tender-browser>summary { padding:22px 24px;align-items:center;gap:24px; }
+.offer-simple .ts-heading { display:grid;gap:9px;min-width:0; }
+.ts-reference { display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;line-height:1.5;color:var(--so-muted); }
+.offer-simple .ts-reference .so-status-badge { padding:4px 8px;font-size:11px;line-height:1.3; }
+.offer-simple .tender-browser summary .ts-heading>strong { font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.4; }
+.offer-simple .tender-browser>summary>.tb-change { display:inline-flex;flex-shrink:0;min-height:44px;align-items:center;justify-content:center;gap:18px;border:1px solid var(--so-line);border-radius:9px;padding:9px 14px;background:var(--so-surface);font-size:13px;font-weight:600; }
+.offer-simple .tender-browser>summary:hover>.tb-change { background:var(--so-surface-alt); }
+.ts-summary-bottom { display:flex;align-items:center;gap:24px;padding:20px 24px;border-top:1px solid var(--so-line);background:var(--so-surface-alt); }
+.offer-simple .ts-summary-bottom .os-facts { padding:0;border:0;flex:1;min-width:0;margin:0; }
+.offer-simple .os-facts { grid-template-columns:minmax(180px,1.5fr) repeat(3,minmax(90px,1fr));gap:20px;align-items:start; }
+.offer-simple .os-facts>div { grid-column:auto;min-width:0; }
+.offer-simple .os-facts dt { font-size:12px;line-height:1.5;margin-bottom:8px; }
+.os-facts dt>span { font-size:10px;margin-left:4px; }
+.offer-simple .os-facts dd { font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-.02em; }
+.offer-simple .os-facts .ts-deadline dd { font-size:16px;letter-spacing:0; }
+.offer-simple .os-facts .ts-deadline dd small { display:block;margin:4px 0 0;font-size:12px;font-weight:400;color:var(--so-muted); }
+.offer-simple .ts-summary-bottom .os-tender-tools { padding:0;border:0;flex-shrink:0; }
+.ts-summary-bottom .tw-tools { display:flex;align-items:center;gap:8px; }
+.offer-simple .ts-summary-bottom .tw-tools .btn { min-height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;padding:9px 13px;background:var(--so-surface); }
+@media(max-width:1250px) { .ts-summary-bottom { flex-direction:column;align-items:stretch;gap:18px; }.offer-simple .ts-summary-bottom .os-tender-tools { padding-top:16px;border-top:1px solid var(--so-line); }.offer-simple .os-facts { grid-template-columns:minmax(170px,1.5fr) repeat(3,minmax(80px,1fr)); } }
+@media(max-width:700px) {
+ .offer-simple :is(.tw-polished-overview,.tw-overview) .tender-browser>summary { padding:18px;align-items:stretch;flex-direction:column;gap:16px; }
+ .offer-simple .tender-browser>summary>.tb-change { align-self:start; }
+ .offer-simple .tender-browser summary .ts-heading>strong { font-size:19px; }
+ .ts-summary-bottom { padding:18px; }
+ .offer-simple .os-facts { grid-template-columns:repeat(3,minmax(0,1fr));gap:20px 12px; }
+ .offer-simple .os-facts .ts-deadline { grid-column:1/-1; }
+ .offer-simple .os-facts .ts-deadline dd small { display:inline;margin-left:10px; }
+ .offer-simple .os-facts dt { font-size:11px; }
+ .offer-simple .os-facts dd { font-size:21px; }
+ .ts-summary-bottom .tw-tools { flex-wrap:wrap; }
+}
+
+/* Unread offers and a separate quick action beside the disclosure arrow. */
+.os-unread-dot,.os-unread-key { display:inline-block;width:8px;height:8px;background:var(--brand-highlight,#ff6b4a);border-radius:50%;flex-shrink:0; }
+.os-unread-dot { margin-right:8px;vertical-align:middle; }
+.os-unread-key { margin:0 3px;vertical-align:middle; }
+.os-unread-dot[hidden] { display:none!important; }
+.offer-simple .os-offer-row { position:relative; }
+.os-list-labels,.offer-simple .os-offer-details>summary { grid-template-columns:minmax(0,2fr) minmax(145px,1fr) 90px 135px 166px; }
+.offer-simple .os-expand { justify-content:flex-end; }
+.os-expand svg { width:20px;height:20px;flex-shrink:0; }
+.os-offer-details[open] .os-expand svg { transform:rotate(180deg); }
+html body main .offer-simple .os-quick-action { position:absolute;z-index:1;top:24px;right:58px;min-height:44px;border:1px solid var(--brand-highlight,#ff6b4a);border-radius:8px;padding:9px 13px;background:var(--brand-highlight,#ff6b4a);color:var(--brand-highlight-ink,#123032);font-size:12px;font-weight:600;line-height:1.5; }
+html body main .offer-simple .os-quick-action:hover { background:var(--brand-highlight-hover,#f05c3c);border-color:var(--brand-highlight-hover,#f05c3c); }
+.os-quick-action:focus-visible { outline:3px solid var(--so-accent-hover);outline-offset:3px; }
+.offer-simple .os-detail-content:focus { outline:none; }
+.offer-simple .os-detail-content:focus-visible { outline:2px solid var(--so-accent-hover);outline-offset:-2px; }
+@media(max-width:1200px) and (min-width:951px) {
+ .os-list-labels,.offer-simple .os-offer-details>summary { grid-template-columns:minmax(0,1.4fr) minmax(110px,1fr) 65px 100px 145px;gap:12px; }
+ html body main .offer-simple .os-quick-action { right:52px;padding-inline:10px; }
+}
+@media(max-width:950px) {
+ .offer-simple .os-offer-details>summary { grid-template-columns:minmax(0,1fr) auto;padding-top:72px; }
+ html body main .offer-simple .os-quick-action { top:14px;right:53px; }
+ .offer-simple .os-expand { position:absolute;right:18px;top:26px; }
+ .os-supplier { grid-column:1/-1; }
+}
+
+/* Edit lives beside the tender it changes, with a bounded, focused dialog. */
+.ts-selector { position:relative; }
+.ts-selector.ts-can-edit .tender-browser>summary { padding-right:82px; }
+.ts-edit-button,.ts-list-edit { width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--so-line);border-radius:9px;background:var(--so-surface);color:var(--so-accent-hover);flex-shrink:0;text-decoration:none; }
+.ts-edit-button { position:absolute;right:24px;top:50px;transform:translateY(-50%);z-index:1; }
+.ts-edit-button svg,.ts-list-edit svg { width:20px;height:20px; }
+.ts-edit-button:hover,.ts-list-edit:hover { background:var(--so-surface-alt);color:var(--so-ink); }
+.ts-edit-button:focus-visible,.ts-list-edit:focus-visible { outline:3px solid var(--so-accent-hover);outline-offset:2px; }
+.ts-edit-button:active { background:var(--so-accent-soft); }
+.tb-choice-row { display:flex;gap:8px;align-items:center; }.tb-choice-row>.tb-choice { flex:1;min-width:0; }.tb-choice-row>.ts-list-edit { margin-right:4px; }
+.te-dialog .modal-dialog { max-width:720px; }
+.te-dialog .modal-content { background:var(--so-surface);color:var(--so-ink);border:1px solid var(--so-line);border-radius:18px;box-shadow:0 24px 80px #0003;overflow:hidden;max-height:calc(100dvh - 48px); }
+.te-dialog .modal-header { padding:22px 26px;border-color:var(--so-line);align-items:start; }
+.te-reference { font-size:12px;color:var(--so-muted);margin:0 0 5px; }
+.te-dialog .modal-title { font-size:23px;font-weight:600;letter-spacing:-.02em;line-height:1.3; }
+.te-form { display:flex;flex-direction:column;min-height:0;overflow:hidden; }
+.te-dialog .modal-body { padding:22px 26px;overflow-y:auto; }
+#tender-edit-help { font-size:14px;color:var(--so-muted);margin-bottom:22px; }
+.te-field { margin-bottom:20px; }.te-field:last-child { margin-bottom:0; }
+.te-dialog label { font-size:13px;font-weight:600;margin-bottom:7px;display:block; }.te-dialog label>span { font-size:11px;font-weight:400;color:var(--so-muted);margin-left:5px; }
+.te-dialog :is(.form-control,.form-select) { min-height:44px;background-color:var(--so-surface);color:var(--so-ink);border-color:var(--so-line);font-size:14px;border-radius:9px; }
+.te-dialog textarea { line-height:1.6;resize:vertical; }
+.te-dialog .text-danger { font-size:12px; }.te-dates { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+.te-dialog .modal-footer { border-color:var(--so-line);padding:16px 26px;gap:8px; }.te-dialog .modal-footer .btn { min-height:44px;font-size:14px; }
+@media(max-width:700px) {
+ .ts-selector.ts-can-edit .tender-browser>summary { padding-right:18px; }.ts-selector.ts-can-edit .tender-browser>summary>.tb-change { margin-right:54px; }
+ .ts-edit-button { top:18px;right:18px;transform:none; }.ts-selector.ts-can-edit .ts-reference { padding-right:50px; }
+ .te-dialog .modal-dialog { margin:12px; }.te-dialog .modal-content { max-height:calc(100dvh - 24px);border-radius:14px; }
+ .te-dialog .modal-header,.te-dialog .modal-body { padding:20px; }.te-dialog .modal-footer { padding:14px 20px; }.te-dates { grid-template-columns:1fr;gap:0; }
+}
+@media(prefers-reduced-motion:reduce) { .te-dialog.fade .modal-dialog { transition:none!important;transform:none!important; } }

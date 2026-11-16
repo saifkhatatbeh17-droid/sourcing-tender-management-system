@@ -1,7 +1,7 @@
 /* Evaluation workspace: teal actions, quiet surfaces, one consistent layout. */
 body:has(.evaluation-page) {
- --accent:#00a3a6; --color-primary:var(--accent); --color-primary-hover:color-mix(in oklab,var(--accent),black 8%); --color-primary-active:color-mix(in oklab,var(--accent),black 14%);
- --color-on-primary:#002e30; --color-background:#f5f7f9; --color-surface:#fff; --color-surface-alt:#f5f7f9; --color-selection:#eef8f6; --ev-mint:#eef8f6;
+ --accent:var(--pharma-primary); --color-primary:var(--accent); --color-primary-hover:color-mix(in oklab,var(--accent),black 8%); --color-primary-active:color-mix(in oklab,var(--accent),black 14%);
+ --color-on-primary:var(--pharma-on-primary); --color-background:#f5f7f9; --color-surface:#fff; --color-surface-alt:#f5f7f9; --color-selection:#eef8f6; --ev-mint:#eef8f6;
  --color-text:#152c32; --color-text-secondary:#607278; --color-border:#dfe7e8; --color-input-border:#c7d4d6; --color-link:#007b7e; --color-focus:var(--accent);
  --radius-small:18px; --radius-card:18px; --font-family:"Segoe UI",Arial,sans-serif; --font-size-body:16px; --font-size-small:14px; --font-size-heading:30px; --font-weight-bold:600;
  --ev-success:#007366; background:var(--color-background);

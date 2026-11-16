@@ -1,26 +1,47 @@
 @model SourcingTenderManagement.Models.FaceEnrollment.FaceEnrollmentPage
 <div class="modal fade face-login-modal face-setup-modal" id="face-setup-modal" tabindex="-1" aria-labelledby="setup-title" aria-describedby="setup-description" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down"><div class="modal-content">
-        <div class="modal-header border-0"><h2 class="modal-title fs-4" id="setup-title">Set Up Face ID</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Use password only and close setup"></button></div>
-        <div class="modal-body pt-0">
-            <p id="setup-description" class="text-muted">Register your face for future sign-ins.</p>
+        <div class="modal-header">
+            <div><h2 class="modal-title fs-4" id="setup-title">Set up Face ID</h2><p id="setup-description" class="text-secondary mb-0">Optional. You can continue using your password.</p></div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Use password only and close setup"></button>
+        </div>
+        <div class="modal-body">
             <form id="face-form" method="post" data-save-url="@Url.Action("Save", "FaceEnrollment")" data-delete-url="@Url.Action("Delete", "FaceEnrollment")"
                   data-model-url="@Url.Content("~/lib/face-api/model")" data-row-version="@Model.RowVersion" data-enrolled="false"
                   data-success-redirect="@Url.Action("GoToDashboard", "Account", new { returnUrl = ViewData["ReturnUrl"] })" data-decline-url="@Url.Action("Decline", "FaceSetup")">
                 @Html.AntiForgeryToken()
-                <div class="face-setup-preview"><video id="face-video" autoplay muted playsinline aria-label="Face setup camera preview"></video><span class="face-setup-frame" aria-hidden="true"></span></div>
-                <p id="face-feedback" class="small mt-3" role="status" aria-live="polite">Camera is off. Keep one face in view when you start.</p>
-                <label for="face-progress" class="small">Face samples · 1/5 to 5/5</label><progress id="face-progress" max="5" value="0">0/5</progress>
-                <div class="form-check my-3"><input id="face-consent" type="checkbox" class="form-check-input" /><label for="face-consent" class="form-check-label small">I consent to storing encrypted facial descriptors for my account. No photos or video are stored. I can remove them later.</label></div>
-                <label for="face-password" class="form-label small">Confirm your current password</label><input id="face-password" type="password" class="form-control mb-3" autocomplete="current-password" maxlength="1024" required />
+                <div class="face-setup-grid">
+                    <div class="face-setup-checks">
+                        <section class="face-setup-step" aria-labelledby="face-privacy-title">
+                            <h3 id="face-privacy-title"><span aria-hidden="true">1</span> Privacy and consent</h3>
+                            <p>Tiryaq stores encrypted facial descriptors for your account. Photos and video are never stored. You can remove the enrollment later.</p>
+                            <div class="form-check"><input id="face-consent" type="checkbox" class="form-check-input" /><label for="face-consent" class="form-check-label">I consent to storing encrypted facial descriptors for my account.</label></div>
+                        </section>
+                        <section class="face-setup-step" aria-labelledby="face-security-title">
+                            <h3 id="face-security-title"><span aria-hidden="true">2</span> Confirm your identity</h3>
+                            <label for="face-password" class="form-label">Current password</label>
+                            <input id="face-password" type="password" class="form-control" autocomplete="current-password" maxlength="1024" required aria-describedby="face-password-help" />
+                            <p id="face-password-help" class="form-text mb-0">Your current password is required to confirm this enrollment.</p>
+                        </section>
+                    </div>
+                    <section class="face-setup-step face-capture-step" aria-labelledby="face-capture-title">
+                        <h3 id="face-capture-title"><span aria-hidden="true">3</span> Capture your face</h3>
+                        <div class="face-setup-preview"><video id="face-video" autoplay muted playsinline aria-label="Face setup camera preview"></video><span class="face-setup-frame" aria-hidden="true"></span></div>
+                        <p id="face-feedback" class="small mt-2 mb-2" role="status" aria-live="polite">Camera is off. Keep one face centered in the guide when you start.</p>
+                        <label for="face-progress">Capture progress · 5 samples required</label>
+                        <progress id="face-progress" max="5" value="0">0/5</progress>
+                    </section>
+                </div>
                 <div class="face-modal-outcome"><p id="face-message" role="status" aria-live="polite" aria-atomic="true"></p>
                     <svg class="face-setup-success" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28"/><path d="M19 33l9 9 18-20"/></svg>
                 </div>
-                <button id="face-start" type="submit" class="btn btn-primary w-100" disabled>Register My Face</button>
-                <button id="face-cancel" type="button" class="btn btn-outline-secondary w-100 mt-2" disabled>Cancel capture</button>
-                <p class="small text-muted mt-3 mb-0">Password sign-in remains available. Face similarity is not an independent authentication factor.</p>
+                <p class="small text-secondary mb-0">Face ID sign-in still requires your password.</p>
             </form>
         </div>
-        <div class="modal-footer justify-content-center"><button id="face-setup-skip" type="button" class="btn btn-link">Use password only</button></div>
+        <div class="modal-footer face-setup-actions">
+            <button id="face-setup-skip" type="button" class="btn btn-outline-secondary">Use password only</button>
+            <button id="face-cancel" type="button" class="btn btn-outline-secondary" disabled>Cancel capture</button>
+            <button id="face-start" type="submit" form="face-form" class="btn btn-primary" disabled>Start camera and register</button>
+        </div>
     </div></div>
 </div>

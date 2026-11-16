@@ -16,6 +16,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<CommitteeAssignment> CommitteeAssignments { get; set; }
     public DbSet<CommitteeWeightProposal> CommitteeWeightProposals { get; set; }
     public DbSet<CommitteeTieVote> CommitteeTieVotes { get; set; }
+    public DbSet<ContactMessage> ContactMessages { get; set; }
     public DbSet<Department> Departments { get; set; }
     public DbSet<Evaluation> Evaluations { get; set; }
     public DbSet<EvaluationCriterion> EvaluationCriteria { get; set; }
@@ -75,6 +76,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<Evaluation>().Property(e => e.TechnicalMark).HasPrecision(5, 2);
         modelBuilder.Entity<Evaluation>().ToTable("Evaluations", table => table.HasCheckConstraint("CK_Evaluations_DirectMarks",
             "([FinancialMark] IS NULL AND [TechnicalMark] IS NULL) OR ([FinancialMark] IS NOT NULL AND [TechnicalMark] IS NOT NULL AND [FinancialMark] >= 0 AND [TechnicalMark] >= 0 AND [FinancialMark] + [TechnicalMark] <= 100)"));
+        modelBuilder.Entity<ContactMessage>(entity =>
+        {
+            entity.ToTable("ContactMessages", "dbo");
+            entity.Property(message => message.UserId).HasMaxLength(450);
+            entity.Property(message => message.FullName).HasMaxLength(120).IsRequired();
+            entity.Property(message => message.Email).HasMaxLength(254).IsRequired();
+            entity.Property(message => message.Subject).HasMaxLength(150).IsRequired();
+            entity.Property(message => message.Message).HasMaxLength(2000).IsRequired();
+            entity.Property(message => message.Status).HasMaxLength(20).IsRequired();
+        });
         modelBuilder.Entity<ApplicationUser>(entity =>
         {
             entity.Property(u => u.FullName).HasMaxLength(150).IsRequired();
@@ -484,9 +495,17 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
+        modelBuilder.Entity<TenderOfferExtension>(entity =>
+        {
+            entity.ToTable("TenderOfferExtensions");
+            entity.HasKey(e => new { e.TenderId, e.Round });
+        });
         modelBuilder.Entity<Tender>(entity =>
         {
             entity.Property(e => e.Category).HasMaxLength(100);
+            entity.Property(e => e.OfferShortfallReason).HasMaxLength(2000);
+            entity.HasMany(e => e.OfferExtensions).WithOne().HasForeignKey(e => e.TenderId);
+
             entity.HasOne(e => e.ReplacesTender).WithMany().HasForeignKey(e => e.ReplacesTenderId).OnDelete(DeleteBehavior.NoAction);
             entity.HasIndex(e => e.ReplacesTenderId).IsUnique().HasFilter("[ReplacesTenderId] IS NOT NULL");
             entity.Property(e => e.RejectionForwardedByUserId).HasMaxLength(450);
@@ -666,7 +685,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             table.HasCheckConstraint("CK_Tenders_1", "([ClosesAt]>[OpensAt])");
             table.HasCheckConstraint("CK_Tenders_2", "([Status]='Awarded' AND [AwardedBidId] IS NOT NULL AND [AwardedAt] IS NOT NULL OR [Status]<>'Awarded' AND [AwardedBidId] IS NULL AND [AwardedAt] IS NULL)");
-            table.HasCheckConstraint("CK_Tenders_3", "([Status]='Cancelled' OR [Status]='Awarded' OR [Status]='AwaitingCommitteeDecision' OR [Status]='AwaitingManagerReview' OR [Status]='AwaitingOfficerSummary' OR [Status]='UnderEvaluation' OR [Status]='Closed' OR [Status]='Open' OR [Status]='Published' OR [Status]='Draft')");
+            table.HasCheckConstraint("CK_Tenders_3", "([Status]='Cancelled' OR [Status]='Awarded' OR [Status]='AwaitingCommitteeDecision' OR [Status]='AwaitingManagerReview' OR [Status]='AwaitingOfficerSummary' OR [Status]='UnderEvaluation' OR [Status]='Closed' OR [Status]='Open' OR [Status]='Published')");
         });
 
         modelBuilder.Entity<TenderApproval>().ToTable("TenderApprovals", table =>

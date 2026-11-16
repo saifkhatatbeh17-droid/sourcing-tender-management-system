@@ -1,8 +1,11 @@
 /* Homepage composition; shared public pages retain their own layouts. */
-.landing-main { --accent:#00a3a6; color:#123032; background:#fff; font-size:16px; }
+.landing-main { --accent:var(--pharma-primary); color:#123032; background:#fff; font-size:16px; }
 .landing-header, .landing-header.is-scrolled:not(.is-past-hero) { background:transparent; box-shadow:none; backdrop-filter:none; }
-.landing-header.is-past-hero { background:#123032f5; }
+.landing-header:is(.is-past-hero, .registration-navbar) { background:#123032f5; }
 .landing-nav { max-width:1200px; }
+@media (max-width: 490px) {
+    .landing-header :is(.landing-nav, .landing-links, .landing-account) { gap: .625rem !important; }
+}
 .landing-hero { min-height:100svh; padding:160px max(24px,calc((100vw - 1152px)/2)) 96px; background:#123032; }
 .landing-hero::before { background:#092e32a8; }
 .landing-hero-content { max-width:1152px; }
@@ -11,8 +14,8 @@
 .landing-intro { font-size:18px; max-width:49ch; line-height:1.7; margin-bottom:32px; }
 .landing-hero-actions { gap:14px; align-items:center; }
 .landing-hero-actions a { border-radius:18px; padding:14px 22px; font-size:15px; }
-.landing-hero-actions .landing-primary { background:#00a3a6; border-color:#00a3a6; color:#002e30; }
-.landing-hero-actions .landing-primary:hover { background:color-mix(in oklab,#00a3a6,black 8%); }
+.landing-hero-actions .landing-primary { background:var(--pharma-primary); border-color:var(--pharma-primary); color:#002e30; }
+.landing-hero-actions .landing-primary:hover { background:color-mix(in oklab,var(--pharma-primary),black 8%); }
 .landing-hero-actions .landing-secondary { border-color:transparent; background:transparent; }
 .home-section { max-width:1200px; margin:auto; padding:88px 24px; }
 .home-section h2 { margin:0 0 22px; font-size:clamp(30px,3.4vw,44px); font-weight:650; letter-spacing:-.04em; line-height:1.15; text-wrap:balance; }

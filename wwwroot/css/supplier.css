@@ -1,17 +1,17 @@
 /* Tiryaq supplier workspace. */
-body:has(.supplier-workspace) { --accent:#00a3a6; --color-link:#007b7e; --color-selection:#eef8f6; --color-text:#152c32; --color-text-secondary:#607278; --color-border:#dfe7e8; --color-surface:#fff; --color-surface-alt:#f5f7fa; background:#f5f7fa; }
+body:has(.supplier-workspace) { --accent:var(--pharma-primary); --color-link:#007b7e; --color-selection:#eef8f6; --color-text:#152c32; --color-text-secondary:#607278; --color-border:#dfe7e8; --color-surface:#fff; --color-surface-alt:#f5f7fa; background:#f5f7fa; }
 body:has(.workspace-shell):has(.supplier-workspace) { --workspace-content-width:1280px; }
 .supplier-workspace { max-width:1280px; margin:auto; font-family:"Segoe UI",Arial,sans-serif; color:var(--color-text); font-size:14px; line-height:1.7; min-width:0; }
 .supplier-page-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; margin:0 0 28px; }
 .supplier-page-heading h1 { font-size:30px; letter-spacing:-.035em; font-weight:600; line-height:1.3; margin:0; overflow-wrap:anywhere; }
-.supplier-page-heading h1::after { content:'.'; color:#00a3a6; }
+.supplier-page-heading h1::after { content:'.'; color:var(--pharma-primary); }
 .supplier-page-heading p { color:var(--color-text-secondary); margin:10px 0 0; max-width:70ch; font-size:14px; }
 .supplier-workspace .eyebrow,.supplier-reference { display:block; color:var(--color-text-secondary); font-size:12px; font-weight:400; letter-spacing:0; margin:0 0 8px; }
 .supplier-workspace a { color:var(--color-link); text-decoration:none; }.supplier-workspace a:hover { text-decoration:underline; text-underline-offset:3px; }
-.supplier-workspace :is(.btn,a,summary,input,select,textarea):focus-visible { outline:2px solid #00a3a6; outline-offset:3px; }
+.supplier-workspace :is(.btn,a,summary,input,select,textarea):focus-visible { outline:2px solid var(--pharma-primary); outline-offset:3px; }
 .supplier-workspace .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 16px; min-height:42px; font-size:14px; font-weight:500; border-radius:12px; box-shadow:none; white-space:nowrap; text-decoration:none; }
-.supplier-workspace :is(.btn-primary,.btn-success) { background:#00a3a6; color:#002e30; border-color:#00a3a6; }.supplier-workspace :is(.btn-primary,.btn-success):hover { background:#009699; border-color:#009699; }
-.supplier-workspace :is(.btn-outline-primary,.btn-outline-secondary,.btn-outline-danger,.btn-danger) { background:var(--color-surface); color:var(--color-link); border:1px solid var(--color-border); }.supplier-workspace :is(.btn-outline-primary,.btn-outline-secondary,.btn-outline-danger,.btn-danger):hover { background:var(--color-selection); border-color:#00a3a6; }
+.supplier-workspace :is(.btn-primary,.btn-success) { background:var(--pharma-primary); color:#002e30; border-color:var(--pharma-primary); }.supplier-workspace :is(.btn-primary,.btn-success):hover { background:#009699; border-color:#009699; }
+.supplier-workspace :is(.btn-outline-primary,.btn-outline-secondary,.btn-outline-danger,.btn-danger) { background:var(--color-surface); color:var(--color-link); border:1px solid var(--color-border); }.supplier-workspace :is(.btn-outline-primary,.btn-outline-secondary,.btn-outline-danger,.btn-danger):hover { background:var(--color-selection); border-color:var(--pharma-primary); }
 .supplier-workspace .btn-sm { min-height:34px; padding:6px 12px; font-size:12px; }
 .supplier-card,.supplier-workspace .workspace-section,.verification-panel { padding:24px; border:1px solid var(--color-border); border-radius:18px; background:var(--color-surface); min-width:0; box-shadow:none; }
 .supplier-workspace h2 { color:var(--color-text); font-size:18px; font-weight:600; letter-spacing:-.015em; margin:0 0 20px; }.supplier-workspace h3 { font-size:16px; font-weight:600; }
@@ -23,7 +23,7 @@ body:has(.workspace-shell):has(.supplier-workspace) { --workspace-content-width:
 .supplier-count { padding:3px 9px; font-size:12px; color:var(--color-text-secondary); background:var(--color-surface-alt); border-radius:8px; }
 .supplier-filters { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:0 0 22px; }
 .supplier-filters label { color:var(--color-text-secondary); font-size:12px; margin:0; }.supplier-filters > .form-select { width:auto; min-width:180px; }
-.supplier-workspace :is(.form-control,.form-select) { min-height:44px; border:1px solid var(--color-border); border-radius:10px; color:var(--color-text); background-color:var(--color-surface); font-size:14px; }.supplier-workspace :is(.form-control,.form-select):focus { border-color:#00a3a6; box-shadow:0 0 0 3px #00a3a619; }
+.supplier-workspace :is(.form-control,.form-select) { min-height:44px; border:1px solid var(--color-border); border-radius:10px; color:var(--color-text); background-color:var(--color-surface); font-size:14px; }.supplier-workspace :is(.form-control,.form-select):focus { border-color:var(--pharma-primary); box-shadow:0 0 0 3px color-mix(in srgb, var(--pharma-primary) 10%, transparent); }
 .supplier-workspace textarea.form-control { min-height:90px; }.supplier-workspace .form-label { font-size:13px; font-weight:500; margin-bottom:8px; }.supplier-workspace :is(.text-muted,.text-secondary,.form-text) { color:var(--color-text-secondary) !important; }.supplier-workspace .form-text { font-size:12px; }
 .supplier-filters .voice-search-control { flex:1; min-width:230px; }.supplier-filters .input-group { flex-wrap:nowrap; }.supplier-filters .input-group input { min-width:80px; }.supplier-filters [data-voice-search-language] { max-width:96px; min-width:0; }.supplier-filters [data-voice-search-status]:empty { display:none; }
 .supplier-invitation-row { display:flex; align-items:center; gap:24px; padding:22px 0; border-top:1px solid var(--color-border); }.supplier-invitation-main { flex:1; min-width:0; }.supplier-record-title { color:var(--color-text) !important; font-size:16px; font-weight:600; display:block; overflow-wrap:anywhere; }.supplier-record-note { display:block; font-size:12px; color:var(--color-text-secondary); margin-top:6px; }
@@ -32,7 +32,7 @@ body:has(.workspace-shell):has(.supplier-workspace) { --workspace-content-width:
 .supplier-workspace .offer-table { min-width:760px; }.supplier-workspace .offer-table td:first-child { min-width:220px; }.supplier-workspace .offer-table .form-control { min-width:100px; }.supplier-workspace .spec-row td { padding:0 12px 22px; }.supplier-workspace .spec-row label { margin-bottom:8px; font-size:13px; }
 .detail-list { display:grid; grid-template-columns:minmax(120px,.7fr) minmax(0,1.3fr); gap:16px 20px; margin:0; }.detail-list dt { color:var(--color-text-secondary); font-size:13px; font-weight:400; }.detail-list dd { font-size:14px; margin:0; overflow-wrap:anywhere; }
 .requested-item { border-top:1px solid var(--color-border); padding:16px 0; }.requested-item:first-of-type { border:0; padding-top:0; }.requested-item:last-child { padding-bottom:0; }.requested-item small { display:block; color:var(--color-link); font-size:12px; margin-top:4px; }.requested-item p { color:var(--color-text-secondary); margin:8px 0 0; font-size:14px; }
-.supplier-workspace--invitation .supplier-detail-grid > .supplier-card:last-child { border-top:3px solid #00a3a6; }
+.supplier-workspace--invitation .supplier-detail-grid > .supplier-card:last-child { border-top:3px solid var(--pharma-primary); }
 .document-list { list-style:none; padding:0; margin:0; }.document-list li { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:14px 0; border-top:1px solid var(--color-border); }.document-list li:first-child { border:0; padding-top:0; }.document-list small { display:block; font-size:12px; color:var(--color-text-secondary); }.document-list strong { font-weight:500; }
 .criteria-grid,.supplier-form .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }.criteria-grid > div { padding:16px; border-radius:12px; background:var(--color-surface-alt); }.criteria-grid small { display:block; color:var(--color-link); margin:4px 0 8px; }.criteria-grid p { color:var(--color-text-secondary); margin:0; }.form-span { grid-column:1/-1; }
 .supplier-summary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; }.supplier-summary-grid small { display:block; color:var(--color-text-secondary); margin-bottom:8px; }.supplier-summary-grid strong { font-size:16px; font-weight:600; }
@@ -41,14 +41,190 @@ body:has(.workspace-shell):has(.supplier-workspace) { --workspace-content-width:
 .offer-total { display:flex; flex-wrap:wrap; justify-content:end; align-items:baseline; gap:8px; padding-top:20px; border-top:1px solid var(--color-border); font-size:13px; }.offer-total strong { color:var(--color-link); font-size:26px; font-weight:600; }.offer-total small { flex-basis:100%; text-align:right; font-size:12px; color:var(--color-text-secondary); }
 .empty-state { padding:44px 20px; text-align:center; color:var(--color-text-secondary); }.empty-state h2 { margin:14px 0 8px; }.empty-state p { max-width:48ch; margin:0 auto 18px; }.empty-state.compact { text-align:left; padding:12px 0; }.empty-state.compact p { margin:0; }.empty-mark,.activity-icon { display:inline-grid; place-items:center; width:40px; height:40px; border-radius:12px; background:var(--color-selection); color:var(--color-link); }
 .activity-row { display:flex; align-items:center; gap:14px; padding:16px 0; border-top:1px solid var(--color-border); }.activity-icon { flex:0 0 40px; }.activity-row > span:nth-child(2) { display:grid; flex:1; min-width:0; }.activity-row strong { color:var(--color-text); font-size:14px; font-weight:500; }.activity-row small { color:var(--color-text-secondary); font-size:12px; }.activity-row > span:last-child { display:grid; gap:5px; justify-items:end; }
-.notification-row { display:flex; align-items:start; gap:14px; padding:18px 0; border-top:1px solid var(--color-border); }.notification-row:first-child { border:0; }.notification-row strong { font-weight:500; }.notification-row p { color:var(--color-text-secondary); margin:5px 0; }.notification-row :is(time,small) { margin-left:auto; flex-shrink:0; color:var(--color-text-secondary); font-size:12px; }.notice-dot { width:7px; height:7px; flex:0 0 7px; border-radius:50%; background:#00a3a6; margin-top:9px; }
+.notification-row { display:flex; align-items:start; gap:14px; padding:18px 0; border-top:1px solid var(--color-border); }.notification-row:first-child { border:0; }.notification-row strong { font-weight:500; }.notification-row p { color:var(--color-text-secondary); margin:5px 0; }.notification-row :is(time,small) { margin-left:auto; flex-shrink:0; color:var(--color-text-secondary); font-size:12px; }.notice-dot { width:7px; height:7px; flex:0 0 7px; border-radius:50%; background:var(--pharma-primary); margin-top:9px; }
 .supplier-workspace .alert { border:1px solid var(--color-border); border-radius:12px; background:var(--color-surface-alt); color:var(--color-text); font-size:14px; }.supplier-workspace .alert-success { background:var(--color-selection); color:var(--color-link); }.supplier-workspace .alert-danger { border-left:3px solid var(--color-text-secondary); }.supplier-workspace .validation-summary-valid { display:none; }
 .profile-note { margin-top:24px; padding:18px; border-radius:12px; background:var(--color-surface-alt); }.profile-note strong { font-weight:500; }.profile-note p { color:var(--color-text-secondary); margin:8px 0 0; }
 .offer-progress-card { margin-bottom:22px; }.offer-progress-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; }.offer-progress-heading h2 { margin-bottom:0; }.offer-stage-count { font-size:12px; color:var(--color-link); }
-.offer-progress-steps { display:grid; grid-template-columns:repeat(7,minmax(90px,1fr)); gap:12px; overflow-x:auto; padding:22px 0; }.offer-progress-step { display:grid; justify-items:center; align-content:start; gap:8px; color:var(--color-text-secondary); font-size:12px; text-align:center; }.offer-progress-step > span { display:grid; place-items:center; width:30px; height:30px; border-radius:50%; border:1px solid var(--color-border); }.offer-progress-step small { max-width:110px; }.offer-progress-step.complete > span { background:var(--color-selection); color:var(--color-link); border-color:transparent; }.offer-progress-step.current > span { background:#00a3a6; color:#002e30; border-color:#00a3a6; }.offer-progress-message { font-size:13px; color:var(--color-text-secondary); border-top:1px solid var(--color-border); padding-top:16px; margin:0; }
+.offer-progress-steps { display:grid; grid-template-columns:repeat(7,minmax(90px,1fr)); gap:12px; overflow-x:auto; padding:22px 0; }.offer-progress-step { display:grid; justify-items:center; align-content:start; gap:8px; color:var(--color-text-secondary); font-size:12px; text-align:center; }.offer-progress-step > span { display:grid; place-items:center; width:30px; height:30px; border-radius:50%; border:1px solid var(--color-border); }.offer-progress-step small { max-width:110px; }.offer-progress-step.complete > span { background:var(--color-selection); color:var(--color-link); border-color:transparent; }.offer-progress-step.current > span { background:var(--pharma-primary); color:#002e30; border-color:var(--pharma-primary); }.offer-progress-message { font-size:13px; color:var(--color-text-secondary); border-top:1px solid var(--color-border); padding-top:16px; margin:0; }
 .supplier-conversation-history { margin:20px 0; }.supplier-conversation-history > summary { display:flex; align-items:center; gap:12px; width:fit-content; cursor:pointer; list-style:none; font-size:13px; color:var(--color-link); }.supplier-conversation-history > summary::-webkit-details-marker { display:none; }.supplier-conversation-history > .workspace-section { margin-top:16px; }.supplier-conversation-history[open] > summary > span { transform:rotate(180deg); }
 .supplier-workspace .badge { color:var(--color-link) !important; background:var(--color-selection) !important; font-weight:500; }
 html[data-theme="dark"] body:has(.supplier-workspace) { --color-text:#edf5f2; --color-text-secondary:#a6bbb5; --color-surface:#192321; --color-surface-alt:#202d2a; --color-border:#34443f; --color-link:#70d9d3; --color-selection:#173a34; background:#101817; }
 html[data-theme="dark"] .supplier-workspace :is(h1,h2,h3,h4,strong) { color:var(--color-text); }
 @media(max-width:1000px) { .supplier-columns,.supplier-detail-grid { grid-template-columns:1fr; }.supplier-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.supplier-invitation-row { gap:16px; }.supplier-deadline { min-width:120px; } }
 @media(max-width:700px) { .supplier-page-heading { flex-direction:column; align-items:start; gap:14px; }.supplier-page-heading h1 { font-size:26px; }.supplier-card,.supplier-workspace .workspace-section { padding:18px; }.supplier-filters { align-items:stretch; }.supplier-filters > label { width:100%; }.supplier-filters > .form-select { flex:1; }.supplier-filters .voice-search-control { min-width:0; width:100%; flex-basis:100%; }.supplier-invitation-row { flex-wrap:wrap; }.supplier-invitation-main { flex-basis:100%; }.supplier-deadline { flex:1; }.supplier-invitation-row > .btn { width:100%; }.supplier-form .form-grid,.criteria-grid { grid-template-columns:1fr; }.form-span { grid-column:auto; }.detail-list { grid-template-columns:1fr; gap:4px; }.detail-list dd { margin-bottom:14px; }.supplier-action-bar,.verification-panel { flex-direction:column; align-items:start; }.supplier-form .supplier-action-bar { position:static; }.supplier-action-bar > div { width:100%; }.supplier-action-bar > div .btn { flex:1; }.supplier-workspace .supplier-table,.supplier-workspace .workspace-page .table { min-width:650px; }.notification-row { flex-wrap:wrap; }.notification-row :is(time,small) { margin-left:21px; }.document-list li { flex-wrap:wrap; }.supplier-card-heading { align-items:start; }.offer-progress-heading { align-items:start; flex-direction:column; gap:8px; } }
+.supplier-workspace--dashboard .verification-panel { justify-content: flex-start; }
+.supplier-invitation-actions,
+.supplier-invitation-status,
+.supplier-invitation-heading-actions { display: flex; align-items: center; gap: .625rem; }
+.supplier-invitation-actions { flex-wrap: wrap; justify-content: flex-end; }
+.supplier-invitation-heading-actions { flex-wrap: wrap; }
+.supplier-invitation-heading-actions form { margin: 0; }
+:is(.supplier-invitation-status, .supplier-invitation-heading-actions) .status-accepted {
+    color: var(--pharma-positive-text);
+    background: var(--pharma-positive-surface);
+}
+.supplier-invitation-status .supplier-qr-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    min-height: 42px;
+    padding-inline: .75rem;
+    white-space: nowrap;
+    color: var(--pharma-primary);
+    border-color: var(--pharma-primary);
+}
+.supplier-invitation-status .supplier-qr-trigger:hover {
+    color: var(--pharma-on-primary);
+    background: var(--pharma-primary);
+    border-color: var(--pharma-primary);
+}
+html[data-theme="dark"] .supplier-invitation-status .supplier-qr-trigger:not(:hover) {
+    color: var(--pharma-link);
+    border-color: var(--pharma-link);
+}
+.supplier-qr-modal { --bs-modal-width: 29rem; --bs-modal-border-radius: 16px; }
+.supplier-qr-modal .modal-content {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-color: var(--color-border);
+}
+.supplier-qr-modal :is(.modal-header, .modal-footer) { border-color: var(--color-border); }
+.supplier-qr-modal .modal-title { font-size: 1.125rem; }
+.supplier-qr-modal .supplier-qr-body {
+    display: grid;
+    grid-template-columns: 10rem minmax(0,1fr);
+    align-items: center;
+    gap: 1rem;
+    padding: 1.125rem;
+}
+.supplier-qr-modal .details-qr-image { width: 10rem; max-width: 100%; justify-self: center; border: 1px solid #dce5e6; }
+.supplier-qr-modal .supplier-qr-note { color: var(--color-text-secondary); }
+.supplier-qr-modal .supplier-qr-footer { flex-wrap: wrap; gap: .375rem; }
+.supplier-qr-modal .supplier-qr-footer > .btn { margin: 0; }
+@media (max-width: 700px) {
+    .supplier-invitation-actions { flex-basis: 100%; justify-content: flex-start; }
+}
+@media (max-width: 480px) {
+    .supplier-qr-modal .supplier-qr-body { grid-template-columns: minmax(0,1fr); text-align: center; }
+    .supplier-qr-modal .supplier-qr-footer > .btn { flex: 1 1 auto; }
+}
+
+/* My offers and offer details share the same spacing and action hierarchy. */
+.supplier-offer-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+.supplier-offer-filters > div { min-width: 0; }
+.supplier-offer-filters label { display: block; margin-bottom: .375rem; font-weight: 650; font-size: .875rem; }
+.supplier-offer-filter-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 1.7rem; }
+.supplier-offer-filters .input-group > select { flex: 0 1 auto; min-width: 0; max-width: 6.25rem; }
+.supplier-offer-filters .form-text:empty { display: none; }
+.supplier-offer-results > header { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.supplier-offer-results > header h2 { margin: 0; font-size: 1.2rem; }
+.supplier-offer-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr)); gap: 16px; }
+.supplier-offer-record { display: flex; flex-direction: column; }
+.supplier-offer-record-heading { display: flex; align-items: flex-start; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+.supplier-offer-record-heading > div { flex: 1 1 10rem; min-width: 0; }
+.supplier-offer-record-heading h3 { margin: 0; font-size: 1.125rem; overflow-wrap: anywhere; }
+.supplier-offer-record .supplier-reference, .supplier-workspace--offer .supplier-reference { margin: 0 0 .375rem; }
+.supplier-offer-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 10px; margin: 16px 0 0; }
+.supplier-offer-facts > div { padding: .75rem; background: var(--color-surface-alt); border-radius: 10px; min-width: 0; }
+.supplier-offer-facts dt, .supplier-offer-terms dt { font-size: .8125rem; color: var(--color-text-secondary); font-weight: 500; }
+.supplier-offer-facts dd, .supplier-offer-terms dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.supplier-offer-facts dd { font-weight: 650; }
+.supplier-offer-record-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 16px; margin-top: auto; }
+.supplier-offer-back { margin-bottom: 12px; }
+.supplier-offer-back a { display: inline-flex; align-items: center; gap: 8px; padding-block: .375rem; font-weight: 650; }
+.supplier-workspace--offer > :is(.supplier-card, .supplier-offer-sections) { margin-bottom: 16px; }
+.supplier-offer-title { margin-bottom: 1rem; }
+.supplier-offer-title h1 { margin: 0; font-size: clamp(1.5rem, 3vw, 2rem); overflow-wrap: anywhere; }
+.supplier-offer-current {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .75rem 1.25rem;
+    padding: .875rem 1rem;
+    background: var(--pharma-selection);
+    border-radius: 12px;
+    border-inline-start: 3px solid var(--pharma-primary);
+}
+.supplier-offer-current > div { flex: 1 1 24rem; min-width: 0; }
+.supplier-offer-current h2 { font-size: 1.125rem; margin: 0 0 .25rem; }
+.supplier-offer-current p { margin: 0; color: var(--color-text-secondary); }
+.supplier-offer-current .supplier-offer-next { margin-top: .5rem; color: var(--color-text); }
+.supplier-offer-summary-facts {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: .75rem;
+    padding: 1rem 0;
+    margin: 0;
+}
+.supplier-offer-summary-facts dt { color: var(--color-text-secondary); font-size: .8125rem; font-weight: 500; }
+.supplier-offer-summary-facts dd { margin: .25rem 0 0; font-weight: 650; overflow-wrap: anywhere; }
+.supplier-offer-summary-facts > :first-child dd { font-size: 1.15rem; }
+.supplier-offer-disclosure { border-top: 1px solid var(--color-border); }
+.supplier-offer-disclosure > summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .35rem .75rem;
+    min-height: 42px;
+    list-style: none;
+    color: var(--pharma-link);
+    font-weight: 650;
+    cursor: pointer;
+}
+.supplier-offer-disclosure > summary::-webkit-details-marker { display: none; }
+.supplier-offer-disclosure > summary small { color: var(--color-text-secondary); font-weight: 500; }
+.supplier-offer-disclosure > summary::after {
+    content: "";
+    width: .45rem;
+    height: .45rem;
+    margin-inline: auto .25rem;
+    border: solid currentColor;
+    border-width: 0 1.5px 1.5px 0;
+    transform: translateY(-.1rem) rotate(45deg);
+}
+.supplier-offer-disclosure[open] > summary::after { transform: translateY(.1rem) rotate(225deg); }
+.supplier-offer-steps { margin: 0; padding-inline-start: 1.5rem; }
+.supplier-offer-steps li { padding: .4rem .5rem; }
+.supplier-offer-steps small { margin-inline-start: .5rem; color: var(--color-text-secondary); }
+.supplier-offer-steps .current { background: var(--pharma-selection); border-radius: 6px; font-weight: 650; }
+.supplier-offer-commercial { margin-top: .875rem; }
+.supplier-offer-commercial .supplier-offer-terms { padding-top: .25rem; }
+.supplier-offer-cost-note { color: var(--color-text-secondary); font-size: .875rem; margin: .75rem 0 0; }
+.supplier-offer-pricing .supplier-table { margin-bottom: 0; }
+.supplier-offer-pricing .supplier-table :is(th,td) { overflow-wrap: anywhere; }
+.supplier-workspace--offer h2[id] { scroll-margin-block-start: 1rem; }
+.supplier-offer-sections { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.supplier-offer-sections h3 { font-size: .9375rem; margin: 1rem 0 .5rem; }
+.supplier-offer-terms { display: grid; gap: 12px; margin: 0; }
+.supplier-offer-terms dd { white-space: pre-wrap; }
+.supplier-offer-clarifications .supplier-conversation-history { margin-block: 0; }
+.supplier-offer-clarifications .supplier-conversation-history > summary { padding: .625rem 0; min-height: 40px; }
+.supplier-offer-cancel { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-inline-start: 3px solid var(--pharma-danger); }
+.supplier-offer-cancel h2 { margin-bottom: .375rem; }
+.supplier-offer-cancel p { margin: 0; color: var(--color-text-secondary); }
+.supplier-offer-cancel form { margin: 0; }
+.supplier-offer-record :is(.status-accepted, .status-compliant) {
+    background: var(--pharma-positive-surface);
+    color: var(--pharma-positive-text);
+}
+@media (max-width: 850px) {
+    .supplier-offer-filters { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .supplier-offer-filters > :first-child { grid-column: 1/-1; }
+}
+@media (max-width: 560px) {
+    .supplier-offer-filters, .supplier-offer-sections { grid-template-columns: minmax(0,1fr); }
+    .supplier-offer-summary-facts { grid-template-columns: minmax(0,1fr); }
+    .supplier-offer-filter-actions { padding-top: 0; }
+    .supplier-offer-record-actions > .btn { flex: 1 1 7rem; }
+    .supplier-offer-filters .input-group { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+    .supplier-offer-filters .input-group > :is(input, button, select) { margin-inline-start: 0; border-radius: 9px; }
+    .supplier-offer-filters .input-group > input { width: 100%; }
+    .supplier-offer-filters .input-group > select { grid-column: 1/-1; max-width: none; justify-self: start; }
+}

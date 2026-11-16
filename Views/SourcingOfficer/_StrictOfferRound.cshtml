@@ -1,0 +1,17 @@
+@using SourcingTenderManagement.Models.Entities
+@{var tender=ViewBag.SelectedTender as Tender;var bids=ViewData.Model as List<Bid> ?? [];var round=(tender?.OfferExtensions.Count ?? 0)+1;var compliant=bids.Where(b=>b.Status!="Withdrawn" && b.ComplianceStatus=="Compliant").Select(b=>b.Invitation.SupplierProfileId).Distinct().Count();var pending=bids.Any(b=>b.Status!="Withdrawn" && b.ComplianceStatus is not ("Compliant" or "NonCompliant"));var sent=ViewBag.WorkspaceReport is EvaluationReport;}
+@if(tender!=null && !sent && (ViewBag.RoundRejected is not true) && (tender.Status is "Published" or "Open" or "Closed"))
+{
+ @if(tender.ClosesAt>DateTime.UtcNow)
+ {
+  <div class="offer-handoff"><div><strong>Offer round @round of 4 is open</strong><p>Review starts after submissions close. Three compliant suppliers are required for standard committee handoff.</p></div>
+  @if(round==1 && bids.Where(b=>b.Status!="Withdrawn").Select(b=>b.Invitation.SupplierProfileId).Distinct().Count()>=3 && tender.IsAcceptingOffers(DateTime.UtcNow))
+  {<form asp-action="CloseSubmissionsEarly" method="post"><input type="hidden" name="tenderId" value="@tender.TenderId"/><button class="btn btn-outline-primary">Close submissions &amp; start review</button></form>}
+  </div>
+ }
+ else if(!pending && compliant<3 && round<4)
+ {
+  <section class="workspace-section"><h2>Open round @(round+1)</h2><p>Current offers stay on this tender. Eligible suppliers without a compliant offer will be invited or reminded.</p><form asp-action="ExtendOfferRound" method="post"><input type="hidden" name="tenderId" value="@tender.TenderId"/><input type="hidden" name="currentRound" value="@round"/><label for="strict-next-deadline" class="form-label">New submission deadline · UTC</label><input id="strict-next-deadline" type="datetime-local" name="newDeadline" class="form-control mb-2" value="@DateTime.UtcNow.AddDays(2).ToString("yyyy-MM-ddTHH:mm")" required/><p class="form-text">Allow at least 24 hours for suppliers to respond.</p><button class="btn btn-primary">Open next round &amp; notify suppliers</button></form></section>
+ }
+ <partial name="_TenderOfferRoundHistory" model="tender" />
+}

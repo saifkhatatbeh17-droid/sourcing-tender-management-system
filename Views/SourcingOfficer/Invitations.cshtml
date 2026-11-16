@@ -57,7 +57,7 @@
     <div class="so-section-heading"><div><h2 id="invitations-create-title">Invite Approved Suppliers</h2></div><span class="so-section-count">@eligibleTenders.Count tenders</span></div>
     @if (eligibleTenders.Count == 0)
     {
-        <div class="so-invitation-unavailable"><h3>No tenders are ready for invitations</h3><p>Publish a tender with a future submission deadline first. Draft, expired and closed tenders cannot receive invitations.</p><a asp-action="Tenders" class="btn btn-primary">Manage &amp; publish tenders ↗</a></div>
+        <div class="so-invitation-unavailable"><h3>No tenders are ready for invitations</h3><p>Create a tender with a future submission deadline to invite suppliers. Expired and closed tenders cannot receive invitations.</p><a asp-action="Tenders" class="btn btn-primary">View tenders ↗</a></div>
     }
     <form asp-action="CreateInvitation" method="post" class="so-invitation-form" data-filter-suppliers>
         @Html.AntiForgeryToken()

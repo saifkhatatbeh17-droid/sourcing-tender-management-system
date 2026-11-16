@@ -9,3 +9,6 @@ appsettings.Local.json
 *.ldf
 App_Data/private-files/
 .playwright-cli/
+
+# Local browser QA artifacts
+output/playwright/

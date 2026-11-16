@@ -41,7 +41,7 @@ else
                 <caption>Recorded criterion scores and configured weights.</caption>
                 <thead><tr><th scope="col">Criterion</th><th scope="col">Category</th><th scope="col">Weight</th><th scope="col">Score</th><th scope="col">Notes</th></tr></thead>
                 <tbody>@foreach (var score in evaluation.Scores)
-                { <tr><th scope="row">@score.Criterion</th><td>@(score.Category == "Requirements" ? "Technical" : score.Category)</td><td>@CommitteeDisplay.Quantity(score.Weight)%</td><td>@CommitteeDisplay.Quantity(score.Score)/100</td><td>@CommitteeDisplay.Text(score.Notes)</td></tr> }</tbody>
+                { <tr><th scope="row">@score.Criterion</th><td>@(score.Category == "Requirements" ? "Technical" : score.Category)</td><td>@CommitteeDisplay.Quantity(score.Weight)%</td><td>@CommitteeDisplay.Quantity(score.Score)/@CommitteeDisplay.Quantity(score.Maximum)</td><td>@CommitteeDisplay.Text(score.Notes)</td></tr> }</tbody>
             </table></div>
         }
         else { <p>No criterion scores are recorded for this evaluation.</p> }

@@ -153,11 +153,16 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
         .Include(t => t.EvaluationCriteria)
         .Include(t => t.CommitteeAssignments).ThenInclude(a => a.User)
         .Include(t => t.TenderApprovals)
+        .Include(t => t.OfferExtensions)
         .Include(t => t.EvaluationReport);
 
     // All committee writes lock the tender first, so simultaneous saves/approvals cannot race.
     private async Task<IActionResult> Change(int id, Func<CommitteeEvaluationPage, Task<string?>> change, bool initialize = false)
     {
+        // Navigation hints belong to this save, not an earlier tender or browser tab.
+        TempData.Remove("EvaluationOffer");
+        TempData.Remove("EvaluationFocus");
+        TempData.Remove("EvaluationTab");
         if (!ModelState.IsValid)
         {
             TempData["CommitteeError"] = "Check the entered values. Scores must be 0–100 and weights must be positive.";

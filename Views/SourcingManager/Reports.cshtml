@@ -35,18 +35,37 @@
                 </select>
             </div>
             <div class="col-sm-auto">
-                <button type="submit" class="btn btn-primary">Filter</button>
+                <div class="mr-actions">
+                    <button type="submit" class="btn btn-primary">Apply filters</button>
+                    @if (!string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.Decision))
+                    {
+                        <a class="btn btn-outline-primary" asp-action="Reports">Clear filters</a>
+                    }
+                </div>
             </div>
         </form>
-        <nav class="workspace-toolbar" aria-label="Filtered decisions export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportsPdf" asp-route-search="@Model.Search" asp-route-decision="@Model.Decision">Download PDF</a></nav>
+        <div class="mr-record-heading mr-results-heading">
+            <h2 id="manager-report-results">Decision history</h2>
+            <a class="btn btn-outline-primary" asp-action="ReportsPdf" asp-route-search="@Model.Search" asp-route-decision="@Model.Decision">Download results (PDF)</a>
+        </div>
 
         @if (Model.Decisions.Count == 0)
         {
-            <div class="mr-empty"><span aria-hidden="true">↗</span><h2>No matching decisions</h2><p>Try another title or decision filter. Recorded manager reviews appear here.</p></div>
+            <div class="mr-empty"><span aria-hidden="true">↗</span>
+                @if (!string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.Decision))
+                {
+                    <h3>No matching decisions</h3><p>Try a different tender title or clear the filters.</p>
+                }
+                else
+                {
+                    <h3>No decisions recorded</h3><p>Decisions appear here after a committee submission has been reviewed.</p>
+                    <a class="btn btn-outline-primary" asp-action="Submissions">Open committee submissions</a>
+                }
+            </div>
         }
         else
         {
-            <div class="table-responsive">
+            <div class="table-responsive" tabindex="0" role="region" aria-labelledby="manager-report-results">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr><th scope="col">Tender</th><th scope="col">Manager</th><th scope="col">Decision</th><th scope="col">Recorded (UTC)</th><th scope="col">Tender status</th><th scope="col">Comments</th></tr>
@@ -57,7 +76,7 @@
                             <tr>
                                 <td><strong class="mr-record-title">@item.Tender.Title</strong><small class="mr-reference">Tender #@item.TenderId</small></td>
                                 <td>@item.User.FullName</td>
-                                <td><span class="mr-status">@(item.Decision == "ReturnedForReview" ? "Returned for review" : item.Decision)</span></td>
+                                <td><span class="mr-status" data-state="@item.Decision">@(item.Decision == "ReturnedForReview" ? "Returned for review" : item.Decision)</span></td>
                                 <td>@item.DecidedAt.ToString("yyyy-MM-dd HH:mm")</td>
                                 <td>@System.Text.RegularExpressions.Regex.Replace(item.Tender.Status, "([a-z])([A-Z])", "$1 $2")</td>
                                 <td>@if (string.IsNullOrWhiteSpace(item.Notes)) { <span class="text-secondary">No comments</span> } else { <details class="mr-notes"><summary>Read comments</summary><p class="manager-text">@item.Notes</p></details> }</td>

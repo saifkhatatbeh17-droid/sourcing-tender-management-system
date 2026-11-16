@@ -2,219 +2,78 @@
 @{
     var requestId = ViewData["RequestId"] as int?;
     var editing = requestId.HasValue;
-    var earliestTargetDate = PurchaseRequestForm.EarliestTargetDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-    ViewData["Title"] = editing ? "Edit Purchase Request" : "Create Purchase Request";
+    var earliestDate = PurchaseRequestForm.EarliestTargetDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    ViewData["Title"] = editing ? "Edit purchase request" : "New purchase request";
 }
-@section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
-
-<div class="department-workspace department-document">
-    <div class="dr-breadcrumb-bar">
-        <a asp-action="@(editing ? "Details" : "Requests")" asp-route-id="@requestId" class="dr-back-link">
-            <span aria-hidden="true">←</span> @(editing ? $"Back to Request #{requestId}" : "Back to requests history")
-        </a>
-    </div>
-
-    <header class="dr-heading">
-        <div>
-            <span class="dr-eyebrow">@(editing ? $"Revision · Request #{requestId}" : "New Requisition")</span>
-            <h1>@ViewData["Title"]<span>.</span></h1>
-            <p>Specify your department's requirements, target delivery timeline, and itemized technical specifications.</p>
-        </div>
-    </header>
-
+@section Styles {
+    <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/purchase-request-form.css" asp-append-version="true" />
+}
+<div class="department-workspace rq-page">
+    <a asp-action="@(editing ? "Details" : "Requests")" asp-route-id="@requestId" class="rq-back"><span aria-hidden="true">←</span>@(editing ? $"Request #{requestId}" : "Purchase requests")</a>
+    <header class="rq-heading"><h1>@ViewData["Title"]</h1><p>@(editing ? "Update the returned request, then send it back for review." : "Fill in the request details, add your items, then send for review.")</p></header>
     @if (ViewData["ReviewNotes"] is string notes && !string.IsNullOrWhiteSpace(notes))
     {
-        <div class="dr-review-alert" role="region" aria-label="Sourcing officer review notes">
-            <div class="dr-review-alert-icon" aria-hidden="true">!</div>
-            <div>
-                <strong>Latest review notes from Sourcing Officer</strong>
-                <p class="text-break mb-0" style="white-space: pre-wrap">@notes</p>
-            </div>
-        </div>
+        <section class="rq-review-note" aria-labelledby="review-note-title"><h2 id="review-note-title">Changes requested by the sourcing officer</h2><p>@notes</p></section>
     }
-
-    <form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@requestId" method="post" class="dr-request-form">
-        <div asp-validation-summary="All" class="text-danger dr-validation-summary" role="alert"></div>
-
-        <section class="dr-form-section" aria-labelledby="section-overview-title">
-            <header class="dr-form-section-header">
-                <span class="dr-step-badge">01</span>
-                <div>
-                    <h2 id="section-overview-title">Request overview</h2>
-                    <p>Provide a clear title, priority level, target delivery date, and business justification.</p>
-                </div>
-            </header>
-
-            <div class="dr-form-grid">
-                <div class="dr-field dr-field-wide">
-                    <label asp-for="Title" class="form-label">Request title</label>
-                    <input asp-for="Title" class="form-control" placeholder="e.g., Q4 Active Pharmaceutical Ingredients & Sterile Packaging" />
-                    <span asp-validation-for="Title" class="text-danger small"></span>
-                </div>
-
-                <div class="dr-field">
-                    <label asp-for="Priority" class="form-label">Priority level</label>
-                    <select asp-for="Priority" class="form-select">
-                        @foreach (var priority in PurchaseRequestForm.Priorities)
-                        {
-                            <option value="@priority">@priority</option>
-                        }
-                    </select>
-                    <span asp-validation-for="Priority" class="text-danger small"></span>
-                </div>
-
-                <div class="dr-field">
-                    <label asp-for="TargetDate" class="form-label">Target delivery date</label>
-                    <input asp-for="TargetDate" type="date" class="form-control" min="@earliestTargetDate" required />
-                    <span asp-validation-for="TargetDate" class="text-danger small"></span>
-                </div>
-
-                <div class="dr-field dr-field-wide">
-                    <label asp-for="Reason" class="form-label">Business justification &amp; reason</label>
-                    <textarea asp-for="Reason" class="form-control" rows="3" placeholder="Explain why these items are needed, production schedule impact, or regulatory requirements..."></textarea>
-                    <span asp-validation-for="Reason" class="text-danger small"></span>
-                </div>
-            </div>
+    <form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@requestId" method="post" id="purchase-request-form" class="rq-form">
+        <section id="request-errors" class="rq-errors" role="alert" tabindex="-1" aria-labelledby="request-errors-title" hidden="@ViewData.ModelState.IsValid">
+            <h2 id="request-errors-title">Check the highlighted fields</h2><ul data-error-list>
+            @foreach (var entry in ViewData.ModelState.Where(entry => entry.Value!.Errors.Count > 0))
+            {
+                foreach (var error in entry.Value!.Errors)
+                {
+                    var target = string.IsNullOrEmpty(entry.Key) || entry.Key == "Items" ? "request-items" : Html.Id(entry.Key);
+                    <li><a href="#@target">@(string.IsNullOrWhiteSpace(error.ErrorMessage) ? "Check this value." : error.ErrorMessage)</a></li>
+                }
+            }
+            </ul>
         </section>
-
-        <section class="dr-form-section" aria-labelledby="section-items-title">
-            <header class="dr-form-section-header">
-                <span class="dr-step-badge">02</span>
-                <div class="dr-section-header-flex">
-                    <div>
-                        <div class="dr-section-title-row">
-                            <h2 id="section-items-title">Requested items</h2>
-                            <span class="dr-count-pill" id="items-count-badge">@Model.Items.Count item(s)</span>
-                        </div>
-                        <p id="item-name-help">Choose a pharmaceutical category suggestion or type the exact item name and specifications.</p>
-                    </div>
+        <div class="rq-document">
+            <section class="rq-section" aria-labelledby="request-details-title">
+                <header class="rq-section-heading"><div><h2 id="request-details-title">1. About your request</h2></div><span class="rq-required-note">All fields are required</span></header>
+                <div class="rq-details-grid">
+                    <div class="rq-field rq-wide"><label asp-for="Title">What is this request for?</label><input asp-for="Title" class="form-control" maxlength="200" required placeholder="e.g. Sterile packaging supplies" aria-describedby="title-error" data-required-message="Enter a request title." /><span asp-validation-for="Title" id="title-error" class="rq-field-error"></span></div>
+                    <div class="rq-field"><label asp-for="Priority">How urgent is it?</label><select asp-for="Priority" class="form-select" required aria-describedby="priority-help priority-error">@foreach (var priority in PurchaseRequestForm.Priorities) { <option value="@priority">@priority</option> }</select><p class="rq-help" id="priority-help">Use Normal unless the request needs faster attention.</p><span asp-validation-for="Priority" id="priority-error" class="rq-field-error"></span></div>
+                    <div class="rq-field"><label asp-for="TargetDate">When do you need the items?</label><input asp-for="TargetDate" type="date" class="form-control" min="@earliestDate" required aria-describedby="date-help date-error" data-required-message="Choose when the items are needed." /><p class="rq-help" id="date-help">Choose today or a future date.</p><span asp-validation-for="TargetDate" id="date-error" class="rq-field-error"></span></div>
+                    <div class="rq-field rq-wide"><label asp-for="Reason">Why is this needed?</label><textarea asp-for="Reason" class="form-control" rows="3" maxlength="2000" required placeholder="Explain how the items will be used and why they are needed." aria-describedby="reason-error" data-required-message="Explain why these items are needed."></textarea><span asp-validation-for="Reason" id="reason-error" class="rq-field-error"></span></div>
                 </div>
-            </header>
-
-            <datalist id="purchase-item-suggestions">
-                <option value="Active pharmaceutical ingredient"></option>
-                <option value="Excipient"></option>
-                <option value="Laboratory reagent"></option>
-                <option value="Reference standard"></option>
-                <option value="Sample vial"></option>
-                <option value="Blister packaging"></option>
-                <option value="Label stock"></option>
-                <option value="Nitrile gloves"></option>
-            </datalist>
-
-            <div id="request-items" class="dr-items-stack">
+            </section>
+            <section class="rq-section" aria-labelledby="request-items-title">
+                <header class="rq-section-heading"><div><h2 id="request-items-title">2. Items you need <span id="items-count-badge" class="rq-count">@Model.Items.Count</span></h2><p>For example: Nitrile gloves · 10 boxes · Medium, powder-free.</p></div></header>
+                <datalist id="purchase-item-suggestions"><option value="Nitrile gloves"></option><option value="Sterile gauze swabs"></option><option value="Sample vials"></option><option value="Laboratory reagent"></option><option value="Label stock"></option></datalist>
+                <datalist id="purchase-unit-suggestions"><option value="unit"></option><option value="box"></option><option value="pack"></option><option value="bottle"></option><option value="kg"></option><option value="L"></option></datalist>
+                <div id="request-items" class="rq-items" tabindex="-1">
                 @for (var i = 0; i < Model.Items.Count; i++)
                 {
-                    <fieldset class="dr-item-card">
-                        <div class="dr-item-card-header">
-                            <legend class="dr-item-legend">Item #@(i + 1)</legend>
-                            <button type="button" class="btn dr-item-remove" data-remove>Remove Item</button>
-                        </div>
-                        <div class="dr-item-grid">
-                            <div class="dr-field dr-item-name-col">
-                                <label asp-for="Items[i].ItemName" class="form-label">Item name</label>
-                                <input asp-for="Items[i].ItemName" class="form-control" maxlength="200" list="purchase-item-suggestions" aria-describedby="item-name-help" placeholder="Select or type item name..." />
-                            </div>
-                            <div class="dr-field">
-                                <label asp-for="Items[i].Quantity" class="form-label">Quantity</label>
-                                <input asp-for="Items[i].Quantity" type="number" min="0.001" step="0.001" class="form-control" placeholder="0.00" />
-                            </div>
-                            <div class="dr-field">
-                                <label asp-for="Items[i].Unit" class="form-label">Unit</label>
-                                <input asp-for="Items[i].Unit" class="form-control" maxlength="30" placeholder="e.g. kg, vials, boxes" />
-                            </div>
-                            <div class="dr-field dr-field-wide">
-                                <label asp-for="Items[i].Specifications" class="form-label">Technical specifications</label>
-                                <textarea asp-for="Items[i].Specifications" class="form-control" rows="2" maxlength="4000" placeholder="Grade (USP/BP/EP), purity, dimensions, or storage requirements..."></textarea>
-                            </div>
+                    <fieldset class="rq-item">
+                        <legend class="visually-hidden" data-item-label>Item @(i + 1)</legend>
+                        <div class="rq-item-heading"><h3 data-item-label>Item @(i + 1)</h3><button type="button" class="rq-remove" data-remove aria-label="Remove item @(i + 1)">Remove</button></div>
+                        <div class="rq-item-grid">
+                            <div class="rq-field rq-name"><label asp-for="Items[i].ItemName" data-for="ItemName">Item name</label><input asp-for="Items[i].ItemName" data-field="ItemName" class="form-control" maxlength="200" list="purchase-item-suggestions" placeholder="e.g. Nitrile gloves" required data-required-message="Enter the item name." /><span asp-validation-for="Items[i].ItemName" data-error-for="ItemName" class="rq-field-error"></span></div>
+                            <div class="rq-field"><label asp-for="Items[i].Quantity" data-for="Quantity">How many?</label><input asp-for="Items[i].Quantity" data-field="Quantity" type="number" min="0.001" max="999999999999999.999" step="0.001" inputmode="decimal" class="form-control" placeholder="e.g. 10" required data-required-message="Enter a quantity greater than zero." /><span asp-validation-for="Items[i].Quantity" data-error-for="Quantity" class="rq-field-error"></span></div>
+                            <div class="rq-field"><label asp-for="Items[i].Unit" data-for="Unit">Unit (box, pack, kg)</label><input asp-for="Items[i].Unit" data-field="Unit" class="form-control" maxlength="30" list="purchase-unit-suggestions" placeholder="e.g. box" required data-required-message="Enter a unit, such as box or kg." /><span asp-validation-for="Items[i].Unit" data-error-for="Unit" class="rq-field-error"></span></div>
+                            <div class="rq-field rq-wide"><label asp-for="Items[i].Specifications" data-for="Specifications">Item details</label><textarea asp-for="Items[i].Specifications" data-field="Specifications" class="form-control" rows="2" maxlength="4000" placeholder="e.g. Medium size, powder-free, 100 gloves per box." required data-required-message="Describe the size, type, or requirements for this item."></textarea><span asp-validation-for="Items[i].Specifications" data-error-for="Specifications" class="rq-field-error"></span></div>
                         </div>
                     </fieldset>
                 }
-            </div>
-
-            <button type="button" class="btn dr-add-item-btn" id="add-request-item">
-                <span aria-hidden="true">＋</span> Add another item
-            </button>
-        </section>
-
-        <footer class="dr-form-footer">
-            <a asp-action="@(editing ? "Details" : "Requests")" asp-route-id="@requestId" class="btn dr-secondary-btn">Cancel</a>
-            <button type="submit" class="btn dr-primary">
-                @(editing ? "Resubmit Request" : "Submit Request") <span aria-hidden="true">→</span>
-            </button>
-        </footer>
+                </div>
+                <div id="item-undo" class="rq-undo" hidden><p>Item removed.</p><button type="button" id="undo-remove-item">Undo</button></div>
+                <button type="button" class="rq-add" id="add-request-item"><span aria-hidden="true">＋</span>Add another item</button>
+                <span asp-validation-for="Items" class="rq-field-error"></span><p class="visually-hidden" id="request-item-status" role="status" aria-live="polite" aria-atomic="true"></p>
+            </section>
+        </div>
+        <footer class="rq-footer"><div class="rq-submit-note"><strong>What happens next?</strong><p>The sourcing officer reviews your request and contacts you if changes are needed.</p></div><div class="rq-footer-actions"><a asp-action="@(editing ? "Details" : "Requests")" asp-route-id="@requestId" class="btn rq-cancel">Cancel</a><button type="submit" class="btn btn-primary rq-submit">@(editing ? "Send updated request" : "Send for review")<span aria-hidden="true">→</span></button></div></footer>
     </form>
-
     <template id="request-item-template">
-        <fieldset class="dr-item-card">
-            <div class="dr-item-card-header">
-                <legend class="dr-item-legend">Item</legend>
-                <button type="button" class="btn dr-item-remove" data-remove>Remove Item</button>
-            </div>
-            <div class="dr-item-grid">
-                <div class="dr-field dr-item-name-col">
-                    <label class="form-label" data-for="ItemName">Item name</label>
-                    <input class="form-control" data-field="ItemName" maxlength="200" list="purchase-item-suggestions" aria-describedby="item-name-help" placeholder="Select or type item name..." />
-                </div>
-                <div class="dr-field">
-                    <label class="form-label" data-for="Quantity">Quantity</label>
-                    <input type="number" min="0.001" step="0.001" class="form-control" data-field="Quantity" placeholder="0.00" />
-                </div>
-                <div class="dr-field">
-                    <label class="form-label" data-for="Unit">Unit</label>
-                    <input class="form-control" data-field="Unit" maxlength="30" placeholder="e.g. kg, vials, boxes" />
-                </div>
-                <div class="dr-field dr-field-wide">
-                    <label class="form-label" data-for="Specifications">Technical specifications</label>
-                    <textarea class="form-control" rows="2" data-field="Specifications" maxlength="4000" placeholder="Grade (USP/BP/EP), purity, dimensions, or storage requirements..."></textarea>
-                </div>
+        <fieldset class="rq-item"><legend class="visually-hidden" data-item-label>Item</legend><div class="rq-item-heading"><h3 data-item-label>Item</h3><button type="button" class="rq-remove" data-remove>Remove</button></div>
+            <div class="rq-item-grid">
+                <div class="rq-field rq-name"><label data-for="ItemName">Item name</label><input data-field="ItemName" class="form-control" maxlength="200" list="purchase-item-suggestions" placeholder="e.g. Nitrile gloves" required data-required-message="Enter the item name." /><span data-error-for="ItemName" class="rq-field-error"></span></div>
+                <div class="rq-field"><label data-for="Quantity">How many?</label><input data-field="Quantity" type="number" min="0.001" max="999999999999999.999" step="0.001" inputmode="decimal" class="form-control" placeholder="e.g. 10" required data-required-message="Enter a quantity greater than zero." /><span data-error-for="Quantity" class="rq-field-error"></span></div>
+                <div class="rq-field"><label data-for="Unit">Unit (box, pack, kg)</label><input data-field="Unit" class="form-control" maxlength="30" list="purchase-unit-suggestions" placeholder="e.g. box" required data-required-message="Enter a unit, such as box or kg." /><span data-error-for="Unit" class="rq-field-error"></span></div>
+                <div class="rq-field rq-wide"><label data-for="Specifications">Item details</label><textarea data-field="Specifications" class="form-control" rows="2" maxlength="4000" placeholder="e.g. Medium size, powder-free, 100 gloves per box." required data-required-message="Describe the size, type, or requirements for this item."></textarea><span data-error-for="Specifications" class="rq-field-error"></span></div>
             </div>
         </fieldset>
     </template>
 </div>
-
-@section Scripts {
-    <script>
-        const items = document.getElementById('request-items');
-        const template = document.getElementById('request-item-template');
-        const countBadge = document.getElementById('items-count-badge');
-
-        function renumberItems() {
-            const rows = Array.from(items.children);
-            rows.forEach((row, index) => {
-                const legend = row.querySelector('legend');
-                if (legend) legend.textContent = `Item #${index + 1}`;
-
-                row.querySelectorAll('input:not([type=hidden]), textarea').forEach(field => {
-                    const property = field.dataset.field ?? field.name.split('.').pop();
-                    const label = row.querySelector(`label[for="${field.id}"]`) ??
-                        row.querySelector(`label[data-for="${property}"]`);
-                    field.name = `Items[${index}].${property}`;
-                    field.id = `Items_${index}__${property}`;
-                    if (label) label.htmlFor = field.id;
-                });
-                row.querySelectorAll('input[type=hidden][name=__Invariant]').forEach(field => {
-                    field.value = `Items[${index}].${field.value.split('.').pop()}`;
-                });
-                row.querySelector('[data-remove]').disabled = rows.length === 1;
-            });
-            if (countBadge) {
-                countBadge.textContent = `${rows.length} item(s)`;
-            }
-        }
-
-        document.getElementById('add-request-item').addEventListener('click', () => {
-            items.append(template.content.cloneNode(true));
-            renumberItems();
-            items.lastElementChild.querySelector('input').focus();
-        });
-        items.addEventListener('click', event => {
-            if (event.target.matches('[data-remove]') && items.children.length > 1) {
-                event.target.closest('fieldset').remove();
-                renumberItems();
-            }
-        });
-        if (items.children.length === 0) items.append(template.content.cloneNode(true));
-        renumberItems();
-    </script>
-}
+@section Scripts { <script src="~/js/purchase-request-form.js" asp-append-version="true"></script> }

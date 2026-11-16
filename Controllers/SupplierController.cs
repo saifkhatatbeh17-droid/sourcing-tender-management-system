@@ -10,7 +10,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
-[Authorize(Roles = RoleNames.Supplier)]
+[Authorize(Policy = "ApprovedSupplier")]
 public class SupplierController(ApplicationDbContext db, UserManager<ApplicationUser> users, IWebHostEnvironment env) : Controller
 {
     private string UserId => users.GetUserId(User)!;
@@ -34,10 +34,16 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             AcceptedInvitations = await invitations.CountAsync(i => i.Status == "Accepted"),
             SubmittedOffers = await bids.CountAsync(b => b.Status != "Draft"),
             AcceptedOffers = await bids.CountAsync(b => b.Status == "Accepted"),
-            RecentInvitations = await invitations.AsNoTracking().Include(i => i.Tender).OrderByDescending(i => i.SentAt).Take(5).ToListAsync(),
-            RecentOffers = await bids.AsNoTracking().Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).Include(b => b.BidItems).OrderByDescending(b => b.SubmittedAt ?? b.CreatedAt).Take(5).ToListAsync(),
-            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == UserId).OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync()
+            RecentInvitations = await invitations.AsNoTracking().Include(i => i.Tender).OrderByDescending(i => i.SentAt).Take(3).ToListAsync(),
+            RecentOffers = await bids.AsNoTracking().Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).Include(b => b.BidItems).OrderByDescending(b => b.SubmittedAt ?? b.CreatedAt).Take(3).ToListAsync(),
+            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == UserId).OrderByDescending(n => n.CreatedAt).Take(3).ToListAsync()
         };
+        ViewBag.DashboardOfferStates = await bids.AsNoTracking().GroupBy(b =>
+            b.Status == "Accepted" ? "Awarded" : b.Status == "Withdrawn" ? "Withdrawn" :
+            b.Invitation.Tender.Status == "Cancelled" ? "Tender cancelled" :
+            b.Status == "Rejected" || b.Status == "NonCompliant" || b.Invitation.Tender.Status == "Awarded" ? "Not selected" :
+            b.Status == "Draft" ? "Draft" : b.ComplianceStatus == "Compliant" ? "Passed compliance" : "Awaiting review")
+            .Select(g => new { Status = g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Status, g => g.Count);
         return View(vm);
     }
 
@@ -62,6 +68,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         var invitation = await db.Invitations.AsNoTracking().Include(i => i.Tender).ThenInclude(t => t.TenderDocuments)
             .Include(i => i.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
             .Include(i => i.Tender).ThenInclude(t => t.EvaluationCriteria).Include(i => i.Bids)
+            .Include(i => i.Tender).ThenInclude(t => t.OfferExtensions)
             .SingleOrDefaultAsync(i => i.InvitationId == id && i.SupplierProfileId == profile.SupplierProfileId);
         return invitation == null ? NotFound() : View(invitation);
     }
@@ -97,7 +104,8 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     public async Task<IActionResult> Offers(string? q, string? status)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
-        IQueryable<Bid> query = db.Bids.AsNoTracking().Where(b => b.Invitation.SupplierProfileId == profile.SupplierProfileId)
+        IQueryable<Bid> query = db.Bids.AsNoTracking().AsSplitQuery().Where(b => b.Invitation.SupplierProfileId == profile.SupplierProfileId)
+            .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.OfferExtensions)
             .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).Include(b => b.BidItems);
         if (status == "Cancelled") query = query.Where(b => b.Invitation.Tender.Status == "Cancelled");
         else if (!string.IsNullOrWhiteSpace(status)) query = query.Where(b => b.Invitation.Tender.Status != "Cancelled" && b.Status == status);
@@ -127,12 +135,15 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         if (inv == null) return NotFound();
         if (profile.Status != "Approved") return Forbid();
         if (inv.Status != "Accepted" || !inv.Tender.IsAcceptingOffers(DateTime.UtcNow)) return Forbid();
+        var extended = await db.Set<TenderOfferExtension>().AnyAsync(e => e.TenderId == inv.TenderId);
         Bid? bid = null;
         if (bidId.HasValue)
         {
-            bid = await db.Bids.Include(b => b.BidItems).SingleOrDefaultAsync(b => b.BidId == bidId && b.InvitationId == inv.InvitationId && b.Status == "Draft");
+            bid = await db.Bids.Include(b => b.BidItems).SingleOrDefaultAsync(b => b.BidId == bidId && b.InvitationId == inv.InvitationId &&
+                (b.Status == "Draft" || (extended && (b.Status == "NonCompliant" || b.Status == "Withdrawn"))));
             if (bid == null) return NotFound();
         }
+        ViewData["IsOfferRevision"] = bid is { Status: not "Draft" };
         return View(new OfferFormViewModel { InvitationId = inv.InvitationId, TenderId = inv.TenderId, BidId = bid?.BidId,
             TenderTitle = inv.Tender.Title, ClosesAt = inv.Tender.ClosesAt, Currency = bid?.Currency ?? "JOD",
             DeliveryDays = bid?.DeliveryDays ?? 0, PaymentTerms = bid?.PaymentTerms, TechnicalDetails = bid?.TechnicalDetails,
@@ -152,7 +163,15 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             .SingleOrDefaultAsync(i => i.InvitationId == model.InvitationId && i.SupplierProfileId == profile.SupplierProfileId);
         if (inv == null) return NotFound();
         if (profile.Status != "Approved" || inv.Status != "Accepted" || !inv.Tender.IsAcceptingOffers(DateTime.UtcNow)) return Forbid();
-        if (model.BidId.HasValue && !await db.Bids.AnyAsync(b => b.BidId == model.BidId && b.InvitationId == inv.InvitationId && b.Status == "Draft")) return NotFound();
+        var extended = await db.Set<TenderOfferExtension>().AnyAsync(e => e.TenderId == inv.TenderId);
+        var editableBid = db.Bids.Where(b => b.BidId == model.BidId && b.InvitationId == inv.InvitationId &&
+            (b.Status == "Draft" || (extended && (b.Status == "NonCompliant" || b.Status == "Withdrawn"))));
+        var existingStatus = await editableBid.Select(b => b.Status).SingleOrDefaultAsync();
+        if (model.BidId.HasValue && existingStatus == null) return NotFound();
+        var isRevision = existingStatus is "NonCompliant" or "Withdrawn";
+        if (submissionCommand is not ("Draft" or "Submit") || (isRevision && submissionCommand != "Submit"))
+            return BadRequest();
+        ViewData["IsOfferRevision"] = isRevision;
         var validItemIds = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(x => x.PurchaseRequestItemId).ToHashSet();
         if (model.Items.Count == 0 || model.Items.Any(i => !validItemIds.Contains(i.PurchaseRequestItemId))) ModelState.AddModelError(nameof(model.Items), "Offer items must match the tender request.");
         if (model.Items.Select(i => i.PurchaseRequestItemId).Distinct().Count() != model.Items.Count) ModelState.AddModelError(nameof(model.Items), "Each requested item can appear only once.");
@@ -185,9 +204,14 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         {
             // Serialize submission with deadline closure and concurrent draft edits.
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {inv.TenderId};");
-            if (!await db.Tenders.AnyAsync(t => t.TenderId == inv.TenderId && (t.Status == "Published" || t.Status == "Open") && t.OpensAt <= DateTime.UtcNow && t.ClosesAt > DateTime.UtcNow)) return Forbid();
-            if (model.BidId.HasValue && !await db.Bids.AnyAsync(b => b.BidId == model.BidId && b.InvitationId == inv.InvitationId && b.Status == "Draft")) return NotFound();
-        var bid = model.BidId.HasValue ? await db.Bids.Include(b => b.BidItems).SingleAsync(b => b.BidId == model.BidId) : new Bid { InvitationId = inv.InvitationId, TenderId = inv.TenderId, CreatedAt = DateTime.UtcNow, Status = "Draft" };
+            var deadline = await db.Tenders.Where(t => t.TenderId == inv.TenderId &&
+                (t.Status == "Published" || t.Status == "Open") && t.OpensAt <= DateTime.UtcNow && t.ClosesAt > DateTime.UtcNow)
+                .Select(t => (DateTime?)t.ClosesAt).SingleOrDefaultAsync();
+            if (deadline == null) return Forbid();
+            if (model.BidId.HasValue && !await editableBid.AnyAsync(b => b.Status == existingStatus)) return NotFound();
+            if (!model.BidId.HasValue && await db.Bids.AnyAsync(b => b.InvitationId == inv.InvitationId))
+                return Conflict("An offer already exists for this invitation.");
+        var bid = model.BidId.HasValue ? await editableBid.Include(b => b.BidItems).SingleAsync() : new Bid { InvitationId = inv.InvitationId, TenderId = inv.TenderId, CreatedAt = DateTime.UtcNow, Status = "Draft" };
         bid.Currency = (model.Currency ?? "JOD").ToUpperInvariant(); bid.DeliveryDays = model.DeliveryDays; bid.PaymentTerms = model.PaymentTerms?.Trim();
         bid.TechnicalDetails = model.TechnicalDetails?.Trim();
         if (model.BidId.HasValue) db.BidItems.RemoveRange(bid.BidItems);
@@ -210,7 +234,12 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         if (submissionCommand == "Submit")
         {
             var submittedAt = DateTime.UtcNow;
-            if (submittedAt >= inv.Tender.ClosesAt) return Forbid();
+            if (submittedAt >= deadline.Value) return Forbid();
+            bid.OfficerOpenedAt = null;
+            bid.ComplianceStatus = null;
+            bid.ComplianceNotes = null;
+            bid.ComplianceReviewedAt = null;
+            bid.ComplianceReviewedByUserId = null;
             bid.Status = "Submitted";
             bid.SubmittedAt = submittedAt;
             var officers = (await users.GetUsersInRoleAsync(RoleNames.SourcingOfficer)).Where(u => u.IsActive).Select(u => u.Id).ToHashSet(StringComparer.Ordinal);
@@ -280,9 +309,10 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     public async Task<IActionResult> Offer(int id)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
-        var bid = await db.Bids.AsNoTracking().Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile)
+        var bid = await db.Bids.AsNoTracking().AsSplitQuery().Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile)
             .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
             .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.EvaluationReport)
+            .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.OfferExtensions)
             .Include(b => b.BidItems).ThenInclude(i => i.PurchaseRequestItem).Include(b => b.BidDocuments)
             .SingleOrDefaultAsync(b => b.BidId == id && b.Invitation.SupplierProfileId == profile.SupplierProfileId);
         return bid == null ? NotFound() : View(bid);

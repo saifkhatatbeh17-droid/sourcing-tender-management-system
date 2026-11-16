@@ -14,6 +14,22 @@
  */
 
 :root {
+    /* Brand tokens consumed by the role workspaces. Keep these in this
+       shared file so every workspace has them before its page styles load. */
+    --pharma-primary: #305b5c;
+    --pharma-primary-hover: #26494a;
+    --pharma-on-primary: #fff;
+    --pharma-link: #305b5c;
+    --pharma-selection: #e8f3f0;
+    --pharma-focus: #356c6c;
+    --pharma-danger: #a52a35;
+    --pharma-positive-surface: #e8f4ed;
+    --pharma-positive-text: #185735;
+    --pharma-warning-surface: #fff1d8;
+    --pharma-warning-text: #774500;
+    --pharma-danger-surface: #fbe9eb;
+    --pharma-danger-text: #882530;
+
     /* Reference palette */
     --blue: #1170cf;
     --blue-hover: #0353a8;
@@ -92,6 +108,16 @@
 }
 
 [data-theme="dark"] {
+    --pharma-link: #a0d6cd;
+    --pharma-selection: #293f3e;
+    --pharma-focus: #a0d6cd;
+    --pharma-positive-surface: #233a2d;
+    --pharma-positive-text: #b8e9c9;
+    --pharma-warning-surface: #3d321e;
+    --pharma-warning-text: #f4d190;
+    --pharma-danger-surface: #472b30;
+    --pharma-danger-text: #ffc0c7;
+
     --color-background: var(--black);
     --color-surface: var(--dark-surface-1);
     --color-surface-alt: var(--dark-surface-2);

@@ -3,8 +3,8 @@
    ========================================================================== */
 
 body:has(.department-workspace) {
-    --accent: #00a3a6;
-    --dr-teal: #00a3a6;
+    --accent: var(--pharma-primary);
+    --dr-teal: var(--pharma-primary);
     --dr-teal-hover: #008a8d;
     --dr-teal-deep: #00686a;
     --dr-teal-soft: #eef8f6;
@@ -1303,4 +1303,24 @@ body:has(.workspace-shell):has(.department-workspace) {
 }
 @media (prefers-reduced-motion: reduce) {
     .department-requests .dr-history-row { transition: none; }
+}
+
+/* Requests history: shared orange entry action. */
+html body .department-requests > .dr-heading > .dr-primary {
+    background: var(--brand-highlight, #ff6b4a);
+    border-color: var(--brand-highlight, #ff6b4a);
+    color: var(--brand-highlight-ink, #123032);
+    box-shadow: none;
+}
+html body .department-requests > .dr-heading > .dr-primary:hover,
+html body .department-requests > .dr-heading > .dr-primary:active {
+    background: var(--brand-highlight-hover, #f05c3c);
+    border-color: var(--brand-highlight-hover, #f05c3c);
+    color: var(--brand-highlight-ink, #123032);
+    transform: none;
+    box-shadow: none;
+}
+html body .department-requests > .dr-heading > .dr-primary:focus-visible {
+    outline: 2px solid var(--color-focus, #1170cf);
+    outline-offset: 3px;
 }

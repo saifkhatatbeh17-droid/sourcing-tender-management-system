@@ -1,0 +1,20 @@
+@using SourcingTenderManagement.Models.Entities
+@{var tender=ViewBag.SelectedTender as Tender;var bids=ViewData.Model as List<Bid> ?? [];var round=(tender?.OfferExtensions.Count ?? 0)+1;var compliant=bids.Where(b=>b.Status!="Withdrawn" && b.ComplianceStatus=="Compliant").Select(b=>b.Invitation.SupplierProfileId).Distinct().Count();var sent=ViewBag.WorkspaceReport is EvaluationReport;var closed=tender!=null&&tender.ClosesAt<=DateTime.UtcNow&&(tender.Status is "Published" or "Open" or "Closed")&&ViewBag.RoundRejected!=true;var pending=bids.Any(b=>b.Status!="Withdrawn" && b.ComplianceStatus is not ("Compliant" or "NonCompliant"));}
+@if (tender!=null && !sent && closed)
+{
+ <div class="offer-handoff"><div><strong>@compliant of 3 compliant suppliers · Round @round of 4</strong>
+ @if(pending){<p>Confirm a compliance decision for every offer before continuing.</p>}
+ else if(compliant>=3){<p>Requirements met. Send the eligible offers to committee review.</p>}
+ else if(round<4){<p>Fewer than three compliant suppliers. Open the next round to invite or remind suppliers.</p>}
+ else if(compliant>0){<p>Final round: a written reason is required to proceed with fewer than three compliant suppliers.</p>}
+ else{<p>No compliant offers. This tender cannot proceed to committee review.</p>}
+ </div>
+ @if(!pending && (compliant>=3 || (round==4 && compliant>0)))
+ {
+  <div class="or-send-action">
+  @if(compliant<3){<label for="strict-shortfall-reason" class="form-label">Reason for the exception</label><textarea id="strict-shortfall-reason" name="shortfallReason" class="form-control mb-2" maxlength="2000" required rows="3"></textarea>}
+  <button class="btn btn-primary" type="submit" disabled="@(ViewBag.OpenQuestions is List<int> questions && questions.Count>0)">Send to committee →</button>
+  </div>
+ }
+ </div>
+}

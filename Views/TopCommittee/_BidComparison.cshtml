@@ -21,7 +21,7 @@ else
                         <li class="tc-evaluation-result"><strong>@evaluation.Evaluator</strong><span class="tc-cell-meta">@CommitteeDisplay.Status(evaluation.Status)</span>
                             @if (evaluation.Scores.Count == 0) { <span class="d-block">No scores recorded</span> }
                             @foreach (var score in evaluation.Scores)
-                            { <span class="tc-score-line"><span><strong>@(score.Category == "Requirements" ? "Technical" : score.Category)</strong><span class="d-block">@score.Criterion</span></span><span>@CommitteeDisplay.Quantity(score.Score) / 100</span></span> }
+                            { <span class="tc-score-line"><span><strong>@(score.Category == "Requirements" ? "Technical" : score.Category)</strong><span class="d-block">@score.Criterion</span></span><span>@CommitteeDisplay.Quantity(score.Score) / @CommitteeDisplay.Quantity(score.Maximum)</span></span> }
                         </li>
                     }</ul>
                 }</td>

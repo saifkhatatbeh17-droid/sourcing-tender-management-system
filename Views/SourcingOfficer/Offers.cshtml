@@ -8,100 +8,84 @@
     var members = ViewBag.WorkspaceMembers as List<CommitteeAssignment> ?? [];
     var approvals = ViewBag.WorkspaceApprovals as List<TenderApproval> ?? [];
     var invitations = ViewBag.WorkspaceInvitations as List<Invitation> ?? [];
+    var alreadySent = ViewBag.WorkspaceReport is EvaluationReport;
     var now = DateTime.UtcNow;
     var canInvite = tender?.CanCancel(now) == true;
-    var editable = tender?.Status is "Published" or "Open" or "Closed";
+    var editable = !alreadySent && tender != null && tender.ClosesAt <= now && (ViewBag.RoundRejected is not true) && (tender.Status is "Published" or "Open" or "Closed");
+    ViewData["CanReviewCompliance"] = editable;
     var activeOfferCount = Model.Count(b => b.Status != "Withdrawn");
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/offer-review.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/officer-workspace-polish.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/offers-simple.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/offers-workspace.css" asp-append-version="true" />
 }
-<div class="so-page offer-review">
-<header class="so-page-header"><div><h1>Tender workspace</h1><p class="so-page-description">Publish and invite, review offers, and follow the committee decision in one place.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-outline-primary" asp-action="Tenders">Manage tenders</a><a class="btn btn-primary" asp-action="Create">Prepare tender ＋</a></div></header>
+<div class="so-page offer-review offer-simple offer-redesign">
+<header class="so-page-header"><div><h1>Supplier offers</h1><p class="so-page-description">Review supplier offers and move your tender forward.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-primary officer-prepare" asp-action="Create">Prepare tender ＋</a></div></header>
 @if (TempData["TenderSuccess"] is string success) { <div class="alert alert-success" role="status">@success</div> }
 @if (TempData["TenderError"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
 @if (TempData["EvaluationSuccess"] is string reviewSuccess) { <div class="alert alert-success" role="status">@reviewSuccess</div> }
 @if (TempData["EvaluationError"] is string reviewError) { <div class="alert alert-danger" role="alert">@reviewError</div> }
 @if (TempData["ComplianceSuccess"] is string saved) { <div class="alert alert-success" role="status">@saved</div> }
 @if (TempData["ComplianceError"] is string failed) { <div class="alert alert-danger" role="alert">@failed</div> }
-<form asp-action="Offers" method="get" class="offer-picker">
-    <div><label for="review-tender">Tender</label><select id="review-tender" name="tenderId" class="form-select">
-    @foreach (var item in tenders) { <option value="@item.TenderId" selected="@(item.TenderId == tender?.TenderId)">@item.Title · @item.Status</option> }
-    </select></div><button class="btn btn-outline-primary" disabled="@(tenders.Count == 0)">Open tender</button>
-</form>
 @if (tender == null) { <section class="workspace-section"><h2>No tenders yet</h2><p>Prepare a tender from a purchase request to begin.</p><a asp-action="Create">Prepare tender →</a></section> }
 else
 {
-    <section class="offer-context">
-        <div><span class="text-secondary">Tender #@tender.TenderId</span><h2>@tender.Title</h2><p>@(tender.Category ?? "Uncategorized")</p><p>@Model.Count offers · @Model.Count(b => b.Status != "Withdrawn" && b.ComplianceStatus == "Compliant") compliant</p><p>Tender deadline · @tender.ClosesAt.ToString("dd MMM yyyy, HH:mm") UTC</p></div>
-        <span class="so-status-badge">@SourcingTenderManagement.Models.CommitteeEvaluationPage.StatusLabel(tender.Status)</span>
-    </section>
+    <section class="ow-tender-context" aria-labelledby="tw-tender-title"><partial name="_TenderChooser" /></section>
     @if (tender.CanCancel(now))
     {
-        <form asp-action="CancelTender" asp-route-id="@tender.TenderId" method="post" class="mb-3"
+        <details class="os-options"><summary>Tender options</summary><form asp-action="CancelTender" asp-route-id="@tender.TenderId" method="post" class="mb-3"
               onsubmit="return confirm('Cancel this tender for all invited suppliers?');">
             <button type="submit" class="btn btn-outline-danger">Cancel tender</button>
-        </form>
+        </form></details>
     }
-    @if (tender.Status == "UnderEvaluation")
-    {
-        <section class="workspace-section"><h2>Committee review in progress</h2><p>The committee is ready to choose an offer. @approvals.Count(a => a.Decision == "Approved") of 4 members have approved.</p><div class="tw-member-status">@foreach (var member in members) { <span>@SourcingTenderManagement.Models.CommitteeEvaluationPage.MemberName(member.Position) · @(approvals.Any(a => a.CommitteeAssignmentId == member.CommitteeAssignmentId && a.Decision == "Approved") ? "Approved" : "Pending")</span> }</div></section>
-    }
-    @if (ViewBag.WorkspaceReport is EvaluationReport { CommitteeSummary: not null }) { <partial name="_TenderReport" /> }
     @if (questions.Count > 0)
     {
         <aside class="workspace-section" role="status"><h2>@questions.Count open questions</h2><p>Both participants must resolve these conversations before handoff.</p>
         @foreach (var question in questions) { <a class="btn btn-outline-primary" asp-controller="Clarification" asp-action="Index" asp-route-id="@question">Open question #@question ↗</a> }
         </aside>
     }
-    <header class="tw-offers-heading"><div><h2>Supplier offers <span class="tw-offer-count">@Model.Count</span></h2><p>@(Model.Count == 0 ? "New submissions will appear here." : "Review each offer before sending to the committee.")</p></div><div class="tw-tools"><button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#tender-requirements">Requirements</button><button class="btn @(tender.Status == "Draft" ? "btn-primary" : "btn-outline-primary")" type="button" data-bs-toggle="modal" data-bs-target="#tender-suppliers">@(tender.Status == "Draft" ? "Publish & invite" : $"Suppliers · {invitations.Count}")</button></div></header>
+    @if (ViewBag.ForwardedRejection is TenderApproval rejection)
+    {
+        <section class="workspace-section" aria-label="Forwarded rejection"><h2>Replacement tender needed</h2><p>Rejected by @rejection.User.FullName · @rejection.DecidedAt.ToString("dd MMM yyyy, HH:mm") UTC</p><p class="tw-preserve">@rejection.Notes</p>
+        @if (ViewBag.ReplacementTender is Tender replacement) { <a asp-action="Offers" asp-route-tenderId="@replacement.TenderId">View replacement tender #@replacement.TenderId →</a> }
+        else { <a class="btn btn-primary officer-prepare" asp-action="Create" asp-route-replacesTenderId="@tender.TenderId">Prepare replacement tender</a> }
+        </section>
+    }
+    <header class="tw-offers-heading"><div><h2>Offers <span class="tw-offer-count">@Model.Count</span></h2></div></header>
     <form asp-action="ReviewAndSend" method="post">
         <input type="hidden" name="tenderId" value="@tender.TenderId" />
         @if (Model.Count == 0)
         {
             <section class="tw-empty-offers" aria-label="No submitted offers">
                 <span class="tw-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16v13H4zM4 7l3-4h10l3 4M8 12h8M10 16h4"/></svg></span>
-                <h3>@(tender.Status == "Draft" ? "Ready when you are" : "Waiting for the first offer")</h3>
-                <p>@(tender.Status == "Draft" ? "Publish this tender and invite suppliers to begin." : invitations.Count == 0 ? "Invite suppliers using the Suppliers button above." : $"{invitations.Count} suppliers invited. Their submitted offers will appear here.")</p>
+                <h3>Waiting for the first offer</h3>
+                <p>@(invitations.Count == 0 ? "Invite suppliers to begin receiving offers." : $"{invitations.Count} suppliers invited. Their submitted offers will appear here.")</p>
             </section>
         }
-        <div class="offer-review-list">
-        @foreach (var bid in Model)
+        <partial name="_OfferRows" model="Model" />
+        @if (alreadySent)
         {
-            var total = bid.BidItems.Sum(i => i.Quantity * i.UnitPrice) + bid.TaxAmount + bid.AdditionalCosts;
-            var finalDecision = bid.ComplianceStatus is "Compliant" or "NonCompliant";
-            <article class="offer-review-card">
-                <header><div><span class="text-secondary">Offer #@bid.BidId</span><h3>@bid.Invitation.SupplierProfile.CompanyName</h3></div><div class="offer-amount"><strong>@total.ToString("N2") @bid.Currency</strong><span>@bid.DeliveryDays-day delivery · Includes tax & additional costs</span></div></header>
-                <details open="@(ViewBag.SelectedBidId == bid.BidId)"><summary>Review requirements, pricing & documents</summary>
-                    <div class="offer-detail-columns"><section><h4>What was requested</h4><p>@bid.Invitation.Tender.Description</p>
-                    @foreach (var item in bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems) { <p><strong>@item.ItemName · @item.Quantity @item.Unit</strong><br />@item.Specifications</p> }
-                    </section><section><h4>What this supplier offers</h4><p>@bid.TechnicalDetails</p><p><strong>Payment:</strong> @bid.PaymentTerms</p><p><strong>Tender deadline:</strong> @tender.ClosesAt.ToString("dd MMM yyyy, HH:mm") UTC</p>
-                    @foreach (var item in bid.BidItems) { <p><strong>@item.PurchaseRequestItem.ItemName</strong><br />@item.OfferedSpecifications<br />@item.Quantity × @item.UnitPrice.ToString("N2") @bid.Currency</p> }
-                    @if (bid.BidDocuments.Count > 0) { <h4>Submitted documents</h4><ul>@foreach (var document in bid.BidDocuments) { <li>@document.OriginalFileName — @document.DocumentType</li> }</ul> }
-                    </section></div>
-                </details>
-                <footer>
-                    @if (editable && !finalDecision && (bid.Status is "Submitted" or "UnderReview"))
-                    {
-                        <fieldset><legend>Compliance decision</legend><label><input type="radio" name="decisions[@bid.BidId]" value="Compliant" required /> Compliant</label><label><input type="radio" name="decisions[@bid.BidId]" value="NonCompliant" required /> Non-compliant</label></fieldset>
-                    }
-                    else { <span class="so-status-badge">@(tender.Status == "Cancelled" ? "Cancelled" : bid.Status == "Withdrawn" ? "Withdrawn" : bid.ComplianceStatus == "NonCompliant" ? "Non-compliant" : bid.ComplianceStatus ?? bid.Status)</span> }
-                    @if (tender.Status != "Cancelled" && bid.Status != "Withdrawn")
-                    {
-                        <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid" asp-route-recordId="@bid.BidId">Ask a question ↗</a>
-                    }
-                </footer>
-            </article>
+            <div class="os-sent-notice" role="status"><strong>Offers sent to the committee</strong><span>Follow the review in the committee report and decisions below.</span></div>
         }
-        </div>
-        @if (editable && activeOfferCount > 0)
-        {
-            <div class="offer-handoff"><div><strong>Ready for the committee?</strong><p>After the tender deadline, this saves your decisions and sends compliant offers to the committee.</p></div><button class="btn btn-primary" disabled="@(questions.Count > 0 || now < tender.ClosesAt)">Send to committee →</button></div>
-        }
+        <partial name="_StrictOfferHandoff" />
     </form>
-    <div class="modal fade tw-dialog" id="tender-requirements" tabindex="-1" aria-labelledby="tender-requirements-title" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="tender-requirements-title">Purchase requirements</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><h3 class="fs-6">@tender.Title</h3><p class="tw-preserve">@tender.Description</p>@if (!string.IsNullOrWhiteSpace(tender.Terms)) { <h3 class="fs-6">Tender terms</h3><p class="tw-preserve">@tender.Terms</p> }<div class="tw-window"><span>Opens @tender.OpensAt.ToString("dd MMM yyyy, HH:mm") UTC</span><span>Tender deadline @tender.ClosesAt.ToString("dd MMM yyyy, HH:mm") UTC</span></div></div></div></div></div>
-    <div class="modal fade tw-dialog" id="tender-suppliers" tabindex="-1" aria-labelledby="tender-suppliers-title" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="tender-suppliers-title">@(tender.Status == "Draft" ? "Publish & invite suppliers" : "Supplier invitations")</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">
+    <partial name="_StrictOfferRound" />
+    @if (tender.Status == "UnderEvaluation")
+    {
+        <details class="os-record os-progress"><summary><strong>Committee review progress</strong><span aria-hidden="true">⌄</span></summary><section class="workspace-section"><h2>Committee review in progress</h2><p>The committee is ready to choose an offer. @approvals.Count(a => a.Decision == "Approved") of 4 members have approved.</p><div class="tw-member-status">@foreach (var member in members) { <span>@SourcingTenderManagement.Models.CommitteeEvaluationPage.MemberName(member.Position) · @(approvals.Any(a => a.CommitteeAssignmentId == member.CommitteeAssignmentId && a.Decision == "Approved") ? "Approved" : "Pending")</span> }</div></section></details>
+    }
+    @if (ViewBag.WorkspaceReport is EvaluationReport { CommitteeSummary: not null } report)
+    {
+        <details class="os-record" id="committee-section" open="@(tender.Status == "AwaitingOfficerSummary")">
+            <summary><span><strong>Committee report &amp; decisions</strong><small>@SourcingTenderManagement.Models.CommitteeEvaluationPage.StatusLabel(report.Status)</small></span><span class="os-record-open">View record <span aria-hidden="true">⌄</span></span></summary>
+            <partial name="_TenderReport" />
+        </details>
+    }
+    <partial name="_TenderRequirements" />
+    <div class="modal fade tw-dialog" id="tender-suppliers" tabindex="-1" aria-labelledby="tender-suppliers-title" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="tender-suppliers-title">Supplier invitations</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">
         @if (invitations.Count > 0)
         {
             <div class="tw-invited-list">@foreach (var invitation in invitations) { <div><strong>@invitation.SupplierProfile.CompanyName</strong><span class="so-status-badge">@invitation.Status</span></div> }</div>
@@ -109,10 +93,12 @@ else
         else if (!canInvite) { <p>No suppliers were invited to this tender.</p> }
         @if (canInvite)
         {
-            <form asp-action="PublishAndInvite" method="post"><input type="hidden" name="id" value="@tender.TenderId" /><partial name="_LaunchSuppliers" /><div class="so-action-buttons"><button class="btn btn-primary">@(tender.Status == "Draft" ? "Publish & invite →" : "Send invitations →")</button><a class="btn btn-outline-primary" asp-action="Edit" asp-route-id="@tender.TenderId">Edit tender</a></div></form>
+            <form asp-action="PublishAndInvite" method="post"><input type="hidden" name="id" value="@tender.TenderId" /><partial name="_LaunchSuppliers" /><div class="so-action-buttons"><button class="btn btn-primary">Send invitations</button></div></form>
         }
     </div></div></div></div>
 }
+<partial name="_ComplianceConfirm" />
+@if (ViewBag.OpenCreateModal == true) { <partial name="_CreateTenderModal" /> }
 </div>
 
-@section Scripts { <script src="~/js/officer-report-review.js" asp-append-version="true"></script> }
+@section Scripts { <script src="~/js/offers-workspace.js" asp-append-version="true"></script> <script src="~/js/procurement-categories.js" asp-append-version="true"></script><script src="~/js/tender-edit-modal.js" asp-append-version="true"></script> <script src="~/js/offer-read-state.js" asp-append-version="true"></script> <script src="~/js/officer-workspace-polish.js" asp-append-version="true"></script> <script src="~/js/officer-report-review.js" asp-append-version="true"></script> }
