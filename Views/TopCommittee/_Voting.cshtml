@@ -1,0 +1,103 @@
+@using System.Security.Claims
+@model CommitteeTenderPage
+@{
+    var tender = Model.Tender;
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var isAwarded = tender.Status == "Awarded";
+    var hasOutcome = isAwarded || tender.Readiness.HasRejection;
+    var heading = hasOutcome ? "Committee outcome"
+        : tender.Readiness.HasCurrentMemberVoted ? "View your decision"
+        : tender.Readiness.CanCurrentMemberVote && Model.VotingDatabaseReady ? "Record your decision" : "Check voting status";
+}
+<section id="voting" class="workspace-section" aria-labelledby="voting-heading">
+    <h2 id="voting-heading">2. @heading</h2>
+    @if (tender.Readiness.HasRejection)
+    {
+        <div class="tc-decision-outcome tc-decision-rejected">
+            <h3>Tender rejected</h3>
+            <p class="mb-0">Voting has ended on this tender. Review the recorded decisions below.</p>
+        </div>
+    }
+    else if (isAwarded)
+    {
+        var winner = tender.Bids.FirstOrDefault(b => b.BidId == tender.AwardedBidId);
+        <div class="tc-decision-outcome">
+            <h3>Tender awarded</h3>
+            <dl class="tc-detail-facts">
+                <div><dt>Winning bid</dt><dd>#@tender.AwardedBidId @(winner == null ? "" : $"· {winner.SupplierName}")</dd></div>
+                <div><dt>Awarded at</dt><dd>@CommitteeDisplay.Utc(tender.AwardedAt)</dd></div>
+                @if (!string.IsNullOrWhiteSpace(tender.AwardNotes))
+                {
+                    <div><dt>Decision notes</dt><dd class="tc-report-copy">@tender.AwardNotes</dd></div>
+                }
+            </dl>
+        </div>
+    }
+    else if (tender.OpenClarifications == 0)
+    {
+        if (tender.Readiness.CanCurrentMemberVote && !Model.VotingDatabaseReady)
+        { <p class="alert alert-info">Voting is temporarily unavailable. Contact the system administrator, then reload this page.</p> }
+        else if (tender.Readiness.HasCurrentMemberVoted)
+        { <p>Your decision is recorded. The committee needs four approvals to award the tender.</p> }
+        else if (!tender.Readiness.CanCurrentMemberVote)
+        { <p class="alert alert-info">@tender.Readiness.BlockingReason</p> }
+        else
+        { <p>All four members must approve the nominated bid to award the tender.</p> }
+    }
+    <div class="tc-member-forms">
+    @foreach (var member in tender.Members.OrderByDescending(m => m.UserId == userId).ThenBy(m => m.Position))
+    {
+        var mine = member.UserId == userId;
+        var vote = tender.Votes.SingleOrDefault(v => v.UserId == member.UserId && v.AssignmentId == member.AssignmentId);
+        var editable = mine && vote == null && tender.Readiness.CanCurrentMemberVote && Model.VotingDatabaseReady;
+        <section class="tc-member-form @(mine ? "tc-member-form-own" : "")" aria-labelledby="top-member-@member.Position">
+            <header>
+                <span class="tc-member-access">@(mine ? "Your form" : "Read-only")</span>
+                <h3 id="top-member-@member.Position">CEO & Chiefs Member @member.Position</h3>
+                <p>@member.FullName</p>
+                <strong class="tc-member-state">@(vote == null ? "Awaiting decision" : CommitteeDisplay.Status(vote.Decision))</strong>
+            </header>
+            @if (editable)
+            {
+                <p class="tc-nominated-offer">Nominated offer <strong>#@tender.Report?.RecommendedBidId</strong></p>
+                <form asp-action="SubmitVote" method="post" class="tc-member-approval-form">
+                    <input type="hidden" name="Vote.TenderId" value="@tender.TenderId" />
+                    <input type="hidden" name="Vote.ExpectedNominatedBidId" value="@tender.Report?.RecommendedBidId" />
+                    <input type="hidden" name="Vote.Decision" value="Approved" />
+                    <input type="hidden" name="Vote.Confirmed" value="true" />
+                    <label for="top-notes-@member.Position">Notes (optional)</label>
+                    <textarea asp-for="Vote!.Notes" id="top-notes-@member.Position" class="form-control" rows="4" maxlength="4000"></textarea>
+                    <span asp-validation-for="Vote!.Notes" class="text-danger"></span>
+                    <span asp-validation-for="Vote!.Decision" class="text-danger"></span>
+                    <span asp-validation-for="Vote!.Confirmed" class="text-danger"></span>
+                    <p class="tc-member-help">After you submit your decision, you can’t change it.</p>
+                    <div class="tc-member-actions"><button type="submit" class="btn btn-primary pharma-action-approve">Approve</button><button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reject-top-@member.Position">Reject</button></div>
+                </form>
+                <div class="modal fade" id="reject-top-@member.Position" tabindex="-1" aria-labelledby="reject-title-@member.Position" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+                        <form asp-action="SubmitVote" method="post">
+                            <div class="modal-header"><h2 class="modal-title fs-5" id="reject-title-@member.Position">Reject tender</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                            <div class="modal-body">
+                                <p>This ends voting and returns the tender to its Sourcing Manager.</p>
+                                <input name="Vote.TenderId" value="@tender.TenderId" type="hidden" />
+                                <input name="Vote.ExpectedNominatedBidId" value="@tender.Report?.RecommendedBidId" type="hidden" />
+                                <input name="Vote.Decision" value="Rejected" type="hidden" />
+                                <input name="Vote.Confirmed" value="true" type="hidden" />
+                                <label for="reject-reason-@member.Position">Rejection reason</label>
+                                <textarea id="reject-reason-@member.Position" name="Vote.Notes" class="form-control" required maxlength="4000" oninput="this.setCustomValidity(this.value.trim() ? '' : 'Enter a rejection reason.')"></textarea>
+                            </div>
+                            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger">Reject tender</button></div>
+                        </form>
+                    </div></div>
+                </div>
+            }
+            else
+            {
+                <details class="tc-member-record"><summary>View member notes</summary><label for="top-notes-@member.Position">Member notes</label>
+                <textarea id="top-notes-@member.Position" class="form-control" rows="4" readonly>@vote?.Justification</textarea>
+                </details><p class="tc-member-help">@(vote != null ? "This member's decision is recorded and cannot be changed." : mine ? "Approval is currently unavailable. See the message above." : "Only this member can complete their form.")</p>
+            }
+        </section>
+    }
+    </div>
+</section>

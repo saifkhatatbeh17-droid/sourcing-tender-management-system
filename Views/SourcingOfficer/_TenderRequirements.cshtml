@@ -1,0 +1,18 @@
+@using SourcingTenderManagement.Models.Entities
+@{ var tender = ViewBag.SelectedTender as Tender; var request = tender?.PurchaseRequest; }
+@if (tender != null)
+{
+<div class="modal fade ow-requirements" id="tender-requirements" tabindex="-1" aria-labelledby="tender-requirements-title" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+ <div class="modal-header"><div><p class="ow-reference">Purchase request #@tender.PurchaseRequestId · Tender #@tender.TenderId</p><h2 id="tender-requirements-title" class="modal-title">Requested items</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close requested items"></button></div>
+ <div class="modal-body">
+ @if (request?.PurchaseRequestItems.Count > 0)
+ {
+  <div class="ow-table-wrap"><table class="ow-item-table"><caption class="visually-hidden">Items and specifications requested by the department</caption><thead><tr><th scope="col">Item &amp; requirements</th><th scope="col">Quantity</th></tr></thead><tbody>
+  @foreach (var item in request.PurchaseRequestItems) { <tr><td><strong>@item.ItemName</strong><p>@item.Specifications</p></td><td>@item.Quantity.ToString("0.###") @item.Unit</td></tr> }
+  </tbody></table></div>
+ }
+ else { <p>No item specifications are recorded for this request.</p> }
+ @if (!string.IsNullOrWhiteSpace(tender.Terms)) { <section class="ow-terms"><h3>Tender terms</h3><p>@tender.Terms</p></section> }
+ </div><div class="modal-footer"><button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Close</button></div>
+</div></div></div>
+}

@@ -1,0 +1,10 @@
+<div class="modal fade oc-confirm" id="compliance-confirm" tabindex="-1" aria-labelledby="compliance-confirm-title" aria-describedby="compliance-confirm-help" aria-hidden="true">
+ <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h2 id="compliance-confirm-title" class="modal-title">Confirm compliance decision</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel compliance decision"></button></div>
+  <form asp-action="ReviewCompliance" method="post" data-compliance-confirm>
+   <input type="hidden" name="id" /><input type="hidden" name="decision" />
+   <div class="modal-body"><p class="oc-offer"></p><p id="compliance-confirm-help"></p><p class="oc-final">This decision is final and cannot be changed after confirmation.</p></div>
+   <div class="modal-footer"><button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary" data-confirm-compliance>Confirm decision</button></div>
+  </form>
+ </div></div>
+</div>

@@ -1,0 +1,54 @@
+@model SourcingTenderManagement.Models.FaceVerification.FaceVerificationPage
+@{ ViewData["Title"] = "Face verification"; }
+@section Styles { <link rel="stylesheet" href="~/css/face-enrollment.css" asp-append-version="true" /> }
+<section class="face-enrollment" aria-labelledby="verification-title">
+    <a asp-controller="Account" asp-action="GoToDashboard" class="btn btn-outline-secondary mb-3">Continue to workspace</a>
+    <header class="biometric-hero">
+        <h1 id="verification-title">Face verification</h1>
+        <p>Compare a fresh camera sample with your own enrolled face samples.</p>
+    </header>
+    @if (string.Equals(Context.Request.Query["fromLogin"], "true", StringComparison.OrdinalIgnoreCase))
+    {
+        <p class="alert alert-success" role="status">Password sign-in is complete. You may run the optional face check below or continue to your workspace. The check does not change your access.</p>
+    }
+    <div class="alert alert-info">Informational similarity check only. A match is not proof of identity, does not sign you in, and grants no permissions. This camera implementation does not provide trusted liveness or anti-spoofing.</div>
+    <p><strong>Enrollment:</strong> @(Model.Enrolled ? "Available" : "Not enrolled")</p>
+    @if (!Model.Enrolled)
+    {
+        <div class="alert alert-secondary">You have no face enrollment. Enroll your face before trying this check.</div>
+        <a asp-controller="FaceEnrollment" asp-action="Index" class="btn btn-primary">Go to face enrollment</a>
+    }
+    else
+    {
+        <div class="face-grid">
+            <div class="face-preview">
+                <video id="verification-video" autoplay muted playsinline aria-label="Live face verification camera preview"></video>
+                <p id="verification-feedback" role="status" aria-live="polite">Camera is off. Start verification to request permission.</p>
+                <label for="verification-progress">Verification progress</label>
+                <progress id="verification-progress" max="3" value="0">Not started</progress>
+            </div>
+            <form id="verification-form" data-verify-url="@Url.Action("Verify")"
+                  data-model-url="@Url.Content("~/lib/face-api/model")"
+                  data-model-identifier="@SourcingTenderManagement.Services.FaceEnrollment.FaceEnrollmentService.ModelIdentifier">
+                @Html.AntiForgeryToken()
+                <h2>Check face similarity</h2>
+                <ol><li>Use good lighting and keep only one face in view.</li><li>Allow camera access when your browser asks.</li><li>Look toward the camera until the comparison finishes.</li></ol>
+                <p>Photos and video are not uploaded. A descriptor is sent for comparison and is not stored as a verification attempt.</p>
+                <div class="face-actions">
+                    <button id="verification-start" type="submit" class="btn btn-primary">Start verification</button>
+                    <button id="verification-cancel" type="button" class="btn btn-outline-secondary" disabled>Cancel</button>
+                </div>
+                <p id="verification-result" class="mt-3" role="status" aria-live="polite"></p>
+                <a asp-controller="FaceEnrollment" asp-action="Index">Manage face enrollment</a>
+                <noscript><p class="text-danger">JavaScript is required for camera verification.</p></noscript>
+            </form>
+        </div>
+    }
+</section>
+@section Scripts {
+    @if (Model.Enrolled)
+    {
+        <script src="~/lib/face-api/face-api.js" asp-append-version="true" defer></script>
+        <script src="~/js/face-verification.js" asp-append-version="true" defer></script>
+    }
+}

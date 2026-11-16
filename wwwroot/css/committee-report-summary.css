@@ -1,0 +1,33 @@
+.evaluation-page .committee-report-summary { min-width:0; margin-block:24px; padding:24px; border:1px solid var(--color-border); border-radius:18px; background:var(--color-surface); color:var(--color-text); }
+.evaluation-page .cw-report-document > .committee-report-summary { border:0; border-top:1px solid var(--color-border); border-radius:0; padding:24px 0 0; }
+.cr-document-heading { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.cr-document-icon { display:grid; place-items:center; width:48px; height:48px; flex-shrink:0; border:1px solid var(--color-border); border-radius:12px; color:var(--color-link); }
+.evaluation-page .cr-document-heading h3 { font-size:18px; font-weight:600; line-height:1.4; margin:0 0 4px; }
+.evaluation-page .cr-document-heading p { font-size:13px; color:var(--color-text-secondary); margin:0; }
+.cr-document-heading > .cr-action { margin-left:auto; }
+.evaluation-page .cr-description { max-width:72ch; margin:20px 0 24px; font-size:15px; line-height:1.65; color:var(--color-text-secondary); }
+.cr-report-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin:0 0 24px; }
+.cr-report-facts dt { font-size:12px; font-weight:400; color:var(--color-text-secondary); margin:0 0 8px; }
+.cr-report-facts dd { font-size:14px; line-height:1.5; font-weight:500; margin:0; overflow-wrap:anywhere; }
+.evaluation-page .cr-action { display:inline-flex; align-items:center; justify-content:center; gap:12px; min-height:48px; padding:12px 22px; border:1px solid transparent; border-radius:8px; font:inherit; font-size:14px; font-weight:600; text-decoration:none; cursor:pointer; line-height:1.5; }
+.evaluation-page .cr-action-primary { background:var(--color-primary); border-color:var(--color-primary); color:var(--color-on-primary,#fff); }
+.evaluation-page .cr-action-primary:hover:not(:disabled) { background:var(--color-primary-hover); border-color:var(--color-primary-hover); color:var(--color-on-primary,#fff); }
+.evaluation-page .cr-action:focus-visible,.cr-approval-details > summary:focus-visible { outline:2px solid var(--color-link); outline-offset:4px; }
+.evaluation-page .cr-action:active { transform:translateY(1px); }
+.evaluation-page .cr-action:disabled { background:var(--color-disabled-bg); border-color:var(--color-disabled-bg); color:var(--color-disabled-text); opacity:1; cursor:not-allowed; transform:none; }
+.cr-file-type { font-size:11px; font-weight:500; border-left:1px solid currentColor; padding-left:10px; }
+.cr-next-action { margin-bottom:24px; }
+.evaluation-page .cr-next-action p { margin:12px 0 0; font-size:13px; line-height:1.6; color:var(--color-text-secondary); max-width:72ch; }
+.cr-progress { display:block; font-size:14px; color:var(--color-link); margin-top:12px; }
+.cr-progress[hidden] { display:none; }
+.cr-approval-details { border-top:1px solid var(--color-border); }
+.cr-approval-details > summary { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 0; min-height:48px; font-size:14px; font-weight:500; cursor:pointer; list-style:none; }
+.cr-approval-details > summary::-webkit-details-marker { display:none; }
+.cr-approval-details > summary > span:last-child { display:flex; align-items:center; gap:12px; color:var(--color-link); font-size:13px; white-space:nowrap; }
+.cr-approval-details[open] > summary svg { transform:rotate(180deg); }
+.cr-approval-details ul { list-style:none; padding:0; margin:0 0 8px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; }
+.cr-approval-details li { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 0; font-size:13px; border-top:1px solid var(--color-border); }
+.cr-approval-details li > span:last-child { color:var(--color-text-secondary); white-space:nowrap; }
+.cr-approval-details li > .is-approved { color:var(--color-link); }
+.evaluation-page .cr-officer-note { font-size:15px; line-height:1.65; max-width:72ch; white-space:pre-wrap; overflow-wrap:anywhere; margin:0 0 20px; }
+@media(max-width:680px) { .evaluation-page .committee-report-summary { padding:16px; } .cr-document-heading > .cr-action { width:100%; margin-left:0; margin-top:6px; } .cr-report-facts { grid-template-columns:1fr; gap:16px; } .cr-approval-details ul { grid-template-columns:1fr; } .cr-approval-details > summary { align-items:start; } .cr-next-action .cr-action { width:100%; } }

@@ -1,0 +1,82 @@
+@model SourcingTenderManagement.Models.Entities.PurchaseRequest
+@{
+    ViewData["Title"] = $"Request #{Model.PurchaseRequestId} — {Model.Title}";
+    var progress = DepartmentRequestProgress.Code(Model);
+    var readableStatus = DepartmentRequestProgress.Label(progress);
+    ViewData["DisplayRequestProgress"] = progress;
+    var step = Model.Status switch
+    {
+        "Submitted" => 1,
+        "UnderReview" => 2,
+        "Returned" or "Rejected" or "Approved" => 3,
+        "ConvertedToTender" => 4,
+        _ => 1
+    };
+}
+@section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
+
+<div class="department-workspace department-document">
+    <a class="dr-back-link" asp-action="Requests">← Requests history</a>
+
+    <header class="dr-details-header">
+        <div class="dr-details-title-block">
+            <div class="dr-badges-row">
+                <span class="dr-id-badge">#@Model.PurchaseRequestId</span>
+                <span class="dr-status" data-status="@progress">@readableStatus</span>
+                <span class="dr-priority" data-priority="@Model.Priority">@Model.Priority priority</span>
+            </div>
+            <h1>@Model.Title</h1>
+            <p class="dr-details-sub">
+                Requested by <strong>@Model.RequestedByUser.FullName</strong> (@Model.Department.Name) · Target delivery <strong>@Model.TargetDate.ToString("dd MMM yyyy")</strong>
+            </p>
+        </div>
+        <div class="dr-details-actions">
+            @if (Model.Status is "Submitted" or "UnderReview" or "Returned")
+            {
+                <a asp-controller="Clarification" asp-action="Index" asp-route-kind="request"
+                   asp-route-recordId="@Model.PurchaseRequestId" class="btn dr-secondary-btn">
+                    Ask for clarification
+                </a>
+            }
+            @if (ViewData["CanEdit"] is true)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.PurchaseRequestId" class="btn dr-primary">
+                    Edit and resubmit <span aria-hidden="true">→</span>
+                </a>
+            }
+        </div>
+    </header>
+
+    <ol class="dr-stepper" aria-label="Request progress">
+        <li class="@(step >= 1 ? "is-done" : "") @(step == 1 ? "is-current" : "")">
+            <span class="dr-step-dot">1</span>
+            <div><strong>Submitted</strong><small>@Model.CreatedAt.ToString("dd MMM yyyy")</small></div>
+        </li>
+        <li class="@(step >= 2 ? "is-done" : "") @(step == 2 ? "is-current" : "")">
+            <span class="dr-step-dot">2</span>
+            <div><strong>Officer Review</strong><small>@(Model.ReviewedByUser?.FullName ?? "Sourcing team")</small></div>
+        </li>
+        <li class="@(step >= 3 ? "is-done" : "") @(step == 3 ? "is-current" : "") @(Model.Status is "Returned" or "Rejected" ? "is-warning" : "")">
+            <span class="dr-step-dot">3</span>
+            <div>
+                <strong>@(Model.Status is "Returned" ? "Returned for Revision" : Model.Status is "Rejected" ? "Rejected" : "Review Decision")</strong>
+                <small>@(Model.ReviewedAt?.ToString("dd MMM yyyy") ?? "Pending decision")</small>
+            </div>
+        </li>
+        <li class="@(step >= 4 ? "is-done is-current" : "")">
+            <span class="dr-step-dot">4</span>
+            <div><strong>Tender created</strong><small>@(Model.Status == "ConvertedToTender" ? readableStatus : "After request approval")</small></div>
+        </li>
+    </ol>
+
+    <div class="workspace-content pt-0">
+        <section class="workspace-section dr-details-section">
+            <div class="dr-qr-wrapper">
+                @await Component.InvokeAsync("DetailsQr", new { controller = "Department", action = "Details", id = Model.PurchaseRequestId, label = "Purchase request" })
+            </div>
+            <partial name="_PurchaseRequestDetails" model="Model" />
+        </section>
+    </div>
+
+    @await Component.InvokeAsync("ClarificationHistory", new { kind = "request", recordId = Model.PurchaseRequestId })
+</div>

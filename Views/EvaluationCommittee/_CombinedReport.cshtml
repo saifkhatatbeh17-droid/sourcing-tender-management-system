@@ -1,0 +1,21 @@
+@model CommitteeEvaluationPage
+@{
+    var tender = Model.Tender!;
+    var report = tender.EvaluationReport;
+    var recommended = Model.Offers.FirstOrDefault(b => b.BidId == report?.RecommendedBidId);
+    var approved = Model.Approvals.Count(a => a.Decision == "Approved");
+}
+<section class="cw-panel cw-report-document" aria-labelledby="report-title">
+    <header class="cw-report-title"><div><p class="cw-eyebrow">Tender #@tender.TenderId · Read-only report</p><h2 id="report-title">@tender.Title</h2></div><span class="cw-status">@CommitteeEvaluationPage.StatusLabel(tender.Status)</span></header>
+    <partial name="_TenderOfferRoundHistory" model="tender" />
+    @if (Model.Criteria.Count > 0)
+    {
+        <dl class="cw-report-weights"><div><dt>Financial weight</dt><dd>@Model.FinancialWeight.ToString("0.##")<small>%</small></dd></div><div><dt>Technical weight</dt><dd>@Model.TechnicalWeight.ToString("0.##")<small>%</small></dd></div><div><dt>Committee approvals</dt><dd>@approved<small> / 4</small></dd></div></dl>
+    }
+    <section class="cw-recommended" aria-labelledby="recommendation-heading"><span class="cw-document" aria-hidden="true"><partial name="_AdminSidebarIcon" model='@("Offers")' /></span><div><h3 id="recommendation-heading">Recommended offer</h3>
+    @if(recommended != null) { <strong>@recommended.Invitation.SupplierProfile.CompanyName</strong><p>Offer #@recommended.BidId · @CommitteeEvaluationPage.Total(recommended).ToString("N2") @recommended.Currency · @recommended.DeliveryDays-day delivery</p> }
+    else { <strong>No offer recommended yet</strong><p>The recommendation appears once the committee prepares its report.</p> }
+    </div></section>
+    <partial name="_CommitteeReportSummary" model="Model" />
+    <footer class="cw-report-footer"><span>Shared weights and individual approvals</span><a class="cw-button cw-button-secondary" asp-action="Evaluations" asp-route-id="@tender.TenderId">Open evaluation <span aria-hidden="true">↗</span></a></footer>
+</section>

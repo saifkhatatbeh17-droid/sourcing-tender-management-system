@@ -1,0 +1,61 @@
+@using SourcingTenderManagement.Models.Entities
+@{
+ var eligibleRequests = ViewBag.EligiblePurchaseRequests as List<PurchaseRequest> ?? [];
+ var createTender = ViewBag.CreateTender as SourcingOfficerTenderForm ?? new SourcingOfficerTenderForm();
+}
+<div class="modal fade" id="tender-create" tabindex="-1" aria-labelledby="tender-create-title" aria-hidden="true">
+<div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+<div class="modal-header"><h2 class="modal-title fs-5" id="tender-create-title">Prepare tender &amp; invite suppliers</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+<form asp-action="Create" method="post" data-filter-suppliers>
+@Html.AntiForgeryToken()
+<input name="ReplacesTenderId" type="hidden" value="@createTender.ReplacesTenderId" />
+<div class="modal-body">
+    @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+    @if (eligibleRequests.Count == 0)
+    {
+        <p class="text-secondary" role="status">No purchase requests are available for a new tender.</p>
+    }
+    <div class="mb-3">
+        <label for="PurchaseRequestId" class="form-label">Purchase request</label>
+        <select id="PurchaseRequestId" name="PurchaseRequestId" class="form-select" required disabled="@(eligibleRequests.Count == 0)">
+            <option value="">Select a purchase request</option>
+            @foreach (var request in eligibleRequests)
+            {
+                <option value="@request.PurchaseRequestId" selected="@(createTender.PurchaseRequestId == request.PurchaseRequestId)">@request.Title (Request #@request.PurchaseRequestId)</option>
+            }
+        </select>
+        @Html.ValidationMessage("PurchaseRequestId", "", new { @class = "text-danger" })
+    </div>
+    <div class="mb-3">
+        <label for="Title" class="form-label">Tender Title</label>
+        <input id="Title" name="Title" value="@createTender.Title" maxlength="200" class="form-control" required />
+        @Html.ValidationMessage("Title", "", new { @class = "text-danger" })
+    </div>
+    <div class="mb-3">
+        <label for="Description" class="form-label">Description</label>
+        <textarea id="Description" name="Description" maxlength="4000" rows="3" class="form-control" required>@createTender.Description</textarea>
+        @Html.ValidationMessage("Description", "", new { @class = "text-danger" })
+    </div>
+    <div class="mb-3">
+        <label for="Terms" class="form-label">Terms (optional)</label>
+        <textarea id="Terms" name="Terms" maxlength="4000" rows="3" class="form-control">@createTender.Terms</textarea>
+        @Html.ValidationMessage("Terms", "", new { @class = "text-danger" })
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="OpensAt" class="form-label">Opens At (UTC)</label>
+            <input id="OpensAt" name="OpensAt" type="datetime-local" value="@(createTender.OpensAt == default ? "" : createTender.OpensAt.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" required />
+            @Html.ValidationMessage("OpensAt", "", new { @class = "text-danger" })
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="ClosesAt" class="form-label">Tender deadline (UTC)</label>
+            <input id="ClosesAt" name="ClosesAt" type="datetime-local" value="@(createTender.ClosesAt == default ? "" : createTender.ClosesAt.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" required />
+            @Html.ValidationMessage("ClosesAt", "", new { @class = "text-danger" })
+        </div>
+    </div>
+<partial name="_ProcurementCategoryFields" model='((ProcurementCategoryInput)createTender, "Create", "Tender category")' />
+<partial name="_LaunchSuppliers" />
+</div>
+<div class="modal-footer"><button type="submit" class="btn btn-primary" disabled="@(eligibleRequests.Count == 0)">Publish &amp; invite suppliers</button></div>
+</form>
+</div></div></div>

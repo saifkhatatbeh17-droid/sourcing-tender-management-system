@@ -1,0 +1,19 @@
+@model CommitteeTenderDetails
+@if (Model.Bids.Count == 0)
+{ <p class="mb-0">No submitted bids are available for this tender.</p> }
+else
+{
+    <div class="table-responsive" tabindex="0" role="region" aria-label="Submitted bid comparison"><table class="committee-bid-table table align-middle mb-0">
+        <caption>Totals include taxes and fees, in each offer’s quoted currency.</caption>
+        <thead><tr><th scope="col">Supplier and bid</th><th scope="col">Total</th><th scope="col">Delivery</th><th scope="col">Compliance</th><th scope="col">Details</th></tr></thead>
+        <tbody>@foreach (var bid in Model.Bids.OrderByDescending(bid => bid.SubmittedAt).ThenByDescending(bid => bid.BidId))
+        {
+            <tr class="@(bid.IsNominated ? "table-primary" : null)">
+                <th scope="row"><div class="tc-cell-stack"><span>@bid.SupplierName</span><span class="tc-cell-meta">Bid #@bid.BidId · @CommitteeDisplay.Status(bid.Status)</span>@if (bid.IsNominated) { <span><span class="badge text-bg-primary">Manager nominated</span></span> }</div></th>
+                <td class="text-nowrap">@CommitteeDisplay.Money(bid.Total) @bid.Currency</td>
+                <td>@bid.DeliveryDays days</td><td>@CommitteeDisplay.Status(bid.ComplianceStatus)</td>
+                <td><a asp-action="TenderDetails" asp-route-id="@Model.TenderId" asp-route-bidId="@bid.BidId" asp-fragment="selected-bid" aria-label="View bid @bid.BidId from @bid.SupplierName">View bid</a></td>
+            </tr>
+        }</tbody>
+    </table></div>
+}

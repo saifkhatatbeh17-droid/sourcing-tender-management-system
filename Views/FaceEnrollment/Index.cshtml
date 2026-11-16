@@ -1,0 +1,95 @@
+@model SourcingTenderManagement.Models.FaceEnrollment.FaceEnrollmentPage
+@{ ViewData["Title"] = "Biometric sign-in"; }
+@section Styles {
+    <link rel="stylesheet" href="~/css/face-enrollment.css" asp-append-version="true" />
+}
+<section class="face-enrollment" aria-labelledby="face-title">
+    <a asp-controller="Account" asp-action="GoToDashboard" class="biometric-back">
+        <span aria-hidden="true">←</span> Back to workspace
+    </a>
+    <header class="biometric-hero">
+        <h1 id="face-title">Biometric sign-in</h1>
+        <p>Set up a passkey for sign-in or manage the optional camera check on your account.</p>
+    </header>
+
+    <div class="biometric-methods">
+        <section id="passkey" class="biometric-card" aria-labelledby="passkey-heading">
+            <div class="biometric-card-heading">
+                <span class="biometric-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                        <path d="M3 12a9 9 0 0 1 18 0v2M6 16v-4a6 6 0 0 1 12 0v3c0 2 .5 3.5 1.5 5M9 21c1-2 1-4 1-6v-3a2 2 0 0 1 4 0v3c0 2.5-.4 5-1.5 7M6 19c.6-1 .8-3 .8-4m9.7 5.5-.5 1"/>
+                    </svg>
+                </span>
+                <h2 id="passkey-heading">Fingerprint or passkey</h2>
+            </div>
+            <p class="biometric-description">Use your device’s fingerprint, screen lock, or a compatible nearby phone to sign in with a passkey.</p>
+            <form asp-controller="Passkeys" asp-action="Enroll" method="post"
+                  data-passkey-form="enroll" data-options-url="@Url.Action("EnrollmentOptions", "Passkeys")">
+                <label for="passkey-password" class="form-label">Current password</label>
+                <input id="passkey-password" name="password" type="password" class="form-control"
+                       autocomplete="current-password" required />
+                <div class="face-actions">
+                    <button class="btn biometric-primary" type="submit">Add passkey</button>
+                </div>
+                <p role="status" class="biometric-message"></p>
+            </form>
+        </section>
+
+        <section class="biometric-card" aria-labelledby="camera-heading">
+            <div class="biometric-card-heading">
+                <span class="biometric-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3M8 9v1m8-1v1m-4-1v4m-3 3c1.5 1.5 4.5 1.5 6 0"/>
+                    </svg>
+                </span>
+                <h2 id="camera-heading">Face ID camera check</h2>
+            </div>
+            <p class="biometric-description">Enroll your face for an optional camera check after signing in with your password.</p>
+            <p class="biometric-enrollment-state">
+                <span class="biometric-status @(Model.Enrolled ? "is-enrolled" : "")">
+                    @(Model.Enrolled ? $"Enrolled · {Model.SampleCount} samples" : "Not enrolled")
+                </span>
+                @if (Model.EnrolledAt.HasValue)
+                {
+                    <span class="biometric-meta">@Model.EnrolledAt.Value.ToString("yyyy-MM-dd HH:mm") UTC</span>
+                }
+            </p>
+            @if (Context.Request.Query["saved"] == "1") { <p class="alert alert-success" role="status">Your face enrollment was saved.</p> }
+            @if (Context.Request.Query["removed"] == "1") { <p class="alert alert-success" role="status">Your face enrollment was removed.</p> }
+
+            <div class="face-preview">
+                <video id="face-video" autoplay muted playsinline aria-label="Live camera preview"></video>
+                <p id="face-feedback" role="status" aria-live="polite">Camera is off. It opens only when you start enrollment and allow access.</p>
+                <label for="face-progress">Samples captured</label>
+                <progress id="face-progress" max="5" value="0">0 of 5</progress>
+            </div>
+
+            <form id="face-form" data-save-url="@Url.Action("Save")" data-delete-url="@Url.Action("Delete")"
+                  data-model-url="@Url.Content("~/lib/face-api/model")" data-row-version="@Model.RowVersion" data-enrolled="@Model.Enrolled.ToString().ToLowerInvariant()">
+                @Html.AntiForgeryToken()
+                <h3>@(Model.Enrolled ? "Replace your enrollment" : "Set up face enrollment")</h3>
+                <p class="biometric-meta">Use good lighting, face the camera, and turn slightly between samples. Keep this page open until all five samples are saved.</p>
+                <label for="face-password" class="form-label">Current password</label>
+                <input id="face-password" class="form-control" type="password" autocomplete="current-password"
+                       maxlength="1024" aria-describedby="face-password-help" required />
+                <p id="face-password-help" class="biometric-meta biometric-help">Required to save, replace, or remove enrollment. Failed attempts count toward account lockout.</p>
+                <div class="biometric-consent">
+                    <input id="face-consent" type="checkbox" class="form-check-input" />
+                    <label for="face-consent">I consent to storing encrypted facial descriptors for this account. Photos and video are not uploaded or stored. I can remove my enrollment here. <span class="biometric-meta">Consent version: face-enrollment-v1.</span></label>
+                </div>
+                <div class="face-actions">
+                    <button id="face-start" type="submit" class="btn biometric-primary">@(Model.Enrolled ? "Capture and replace" : "Start enrollment")</button>
+                    <button id="face-cancel" type="button" class="btn btn-outline-secondary" disabled>Cancel capture</button>
+                    @if (Model.Enrolled) { <button id="face-delete" type="button" class="btn btn-outline-danger">Remove enrollment</button> }
+                </div>
+                <p id="face-message" class="biometric-message" role="alert"></p>
+                <noscript><p class="text-danger mt-3">JavaScript is required for camera enrollment. Your password login is still available.</p></noscript>
+            </form>
+        </section>
+    </div>
+</section>
+@section Scripts {
+    <script src="~/js/passkeys.js" asp-append-version="true" defer></script>
+    <script src="~/lib/face-api/face-api.js" asp-append-version="true" defer></script>
+    <script src="~/js/face-enrollment.js" asp-append-version="true" defer></script>
+}

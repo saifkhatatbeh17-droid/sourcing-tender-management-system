@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/saifkhatatbeh17-droid/sourcing-tender-management-system/final-2/wwwroot/images/tiryaq-logo.png" alt="TIRYAQ logo" width="300" />
+  <img src="https://raw.githubusercontent.com/saifkhatatbeh17-droid/sourcing-tender-management-system/main/wwwroot/images/tiryaq-logo.png" alt="TIRYAQ logo" width="300" />
 
   <h1>TIRYAQ</h1>
   <p><strong>Sourcing &amp; Tender Management System</strong></p>
@@ -14,7 +14,7 @@
   </p>
 </div>
 
-> **Application branch:** The complete application described below is available on [`final-2`](https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system/tree/final-2). The `main` branch currently contains an earlier project baseline. Use `final-2` when cloning or running the full system.
+> **Application branch:** Clone the default branch, `main`, to run the complete application.
 
 ## About TIRYAQ
 
@@ -108,7 +108,7 @@ Both committees use four distinct member positions. Permissions and record visib
 ### 1. Clone the application branch
 
 ```powershell
-git clone --branch final-2 https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system.git
+git clone https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system.git
 cd sourcing-tender-management-system
 ```
 
@@ -195,11 +195,11 @@ Checks/            Workflow, authorization, reporting and regression checks
 scripts/           Database setup and administrator creation
 ```
 
-Browse the [application source](https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system/tree/final-2) for the current implementation.
+Browse the [application source](https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system/tree/main) for the current implementation.
 
 ## Development checks
 
-Run these commands from the `final-2` application checkout:
+Run these commands from the application checkout:
 
 ```powershell
 dotnet build

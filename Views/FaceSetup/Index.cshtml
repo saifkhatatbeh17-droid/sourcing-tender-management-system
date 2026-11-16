@@ -1,0 +1,17 @@
+@model SourcingTenderManagement.Models.FaceEnrollment.FaceEnrollmentPage
+@{ ViewData["Title"] = "Set Up Face ID"; }
+@section Styles {
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/face-login-modal.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/face-setup.css" asp-append-version="true" />
+}
+<div class="login-page"><section class="login-panel"><h1>Welcome</h1><p>Your account is ready. Face ID setup is optional.</p>
+    <form asp-action="Decline" method="post"><button class="btn btn-outline-primary" type="submit">Use password only</button></form>
+    <noscript><p>Camera setup requires JavaScript. You can continue using your password.</p></noscript>
+</section></div>
+<partial name="_SetupModal" model="Model" />
+@section Scripts {
+    <script src="~/lib/face-api/face-api.js" asp-append-version="true" defer></script>
+    <script src="~/js/face-enrollment.js" asp-append-version="true" defer></script>
+    <script src="~/js/face-setup-modal.js" asp-append-version="true" defer></script>
+}

@@ -1,0 +1,46 @@
+@model CommitteeEvaluationPage
+@{
+    var result = Model.AiRecommendation;
+    var scenario = result?.Scenarios.FirstOrDefault();
+    var financial = Model.FinancialWeight;
+    var winner = Model.Offers.FirstOrDefault(b => b.BidId == scenario?.RecommendedBidId);
+}
+<section id="ai-offers" tabindex="-1" class="ev-ai-workspace" aria-labelledby="ai-heading">
+    <header class="ev-ai-workspace-heading"><div><span class="ev-ai-workspace-icon" aria-hidden="true">AI</span><div><h3 id="ai-heading">AI recommendation</h3><p>Compare the bids. You make the final choice.</p></div></div>
+        @if (Model.Members.Count == 0 && !Model.Locked)
+        { <form asp-action="Start" method="post" class="ev-start-action"><input type="hidden" name="id" value="@Model.Tender!.TenderId" /><button class="btn ev-button-primary">Start evaluation<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5h8M8 3v4M6 5H4v16h16V5h-2M8 13l3 3 5-6"/></svg></button></form> }
+    </header>
+    <div class="ev-ai-layout">
+
+    @if (TempData["AiError"] is string error) { <p class="ev-notice ev-notice-error" role="alert">@error</p> }
+    @if (Model.AiOutdated) { <p class="ev-ai-stale">The offers have changed. Run a new comparison to refresh the advice.</p> }
+    @if (scenario != null)
+    {
+        <div class="ev-ai-insight">
+            <div class="ev-ai-pick"><span class="ev-ai-pick-label">@(winner == null ? "Needs a closer look" : "Suggested offer")</span><h4>@(winner?.Invitation.SupplierProfile.CompanyName ?? "No clear recommendation")</h4>
+                @if (winner != null) { <p><strong>@CommitteeEvaluationPage.Total(winner).ToString("N2") <small>@winner.Currency</small></strong><span>Offer #@winner.BidId · @winner.DeliveryDays-day delivery</span></p> }
+                <span class="ev-ai-basis">@scenario.FinancialWeight.ToString("0.##")% financial / @((100 - scenario.FinancialWeight).ToString("0.##"))% technical</span>
+            </div>
+            <div class="ev-ai-explanation"><h5>Why this suggestion?</h5><partial name="_FormattedReport" model="scenario.Reason" /></div>
+            <p class="ev-field-help">AI advice is supporting information. The committee scores every offer; the highest average score determines which offer progresses.</p>
+        </div>
+    }
+    else
+    {
+        <div class="ev-ai-insight ev-ai-empty">
+            <span class="ev-ai-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4h14v16H5zM8 9h8M8 13h5M8 17h3"/><path d="m16 14 1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/></svg></span>
+            <h4>Your recommendation will appear here</h4>
+            <p>Confirm all four percentages and compare offers to see the suggested supplier and why it fits.</p>
+            <div class="ev-ai-empty-preview" aria-hidden="true"><span></span><span></span><span></span></div>
+        </div>
+    }
+        <form asp-action="RecommendBids" method="post" data-ai-comparison class="ev-ai-controls">
+            <input type="hidden" name="id" value="@Model.Tender!.TenderId" />
+            <div class="ev-ai-controls-label"><strong>Committee average</strong><span>The calculated percentages are locked and cannot be edited.</span></div>
+            <label>Financial <span class="ev-ai-percent"><input type="number" name="financialWeight" readonly aria-readonly="true" min="0" max="100" step="1" required value="@financial.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" aria-label="Financial percentage" /><span>%</span></span></label>
+            <label>Technical <span class="ev-ai-percent"><input type="number" name="requirementsWeight" readonly aria-readonly="true" min="0" max="100" step="1" required value="@((100 - financial).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))" aria-label="Technical percentage" /><span>%</span></span></label>
+            <button class="btn ev-button-primary" disabled="@(Model.Locked || !Model.ConsensusLocked || !Model.WeightsReady || !Model.Members.Any(m => m.UserId == Model.UserId))">@(result == null ? "Compare offers" : "Compare again") <span aria-hidden="true">↗</span></button><span role="status" class="ev-ai-loading" hidden>Comparing bids…</span>
+            @if (Model.Members.Count == 0) { <p class="ev-ai-start-note">Start evaluation to enable comparison.</p> }
+        </form>
+    </div>
+</section>

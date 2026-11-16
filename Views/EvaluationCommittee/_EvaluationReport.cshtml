@@ -1,0 +1,6 @@
+@model CommitteeEvaluationPage
+@if (TempData["AiError"] is string aiError)
+{ <p class="ev-notice ev-notice-error" role="alert">@aiError</p> }
+<div class="ev-section-heading"><div><h3>Committee result</h3><p>The winning offer and the report for the next review.</p></div><span class="ev-status">@CommitteeEvaluationPage.StatusLabel(Model.Tender!.Status)</span></div>
+<partial name="_OfferScoreResult" model="Model" />
+<partial name="_CommitteeReportSummary" model="Model" />

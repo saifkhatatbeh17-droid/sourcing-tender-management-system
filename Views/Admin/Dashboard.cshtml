@@ -1,3 +1,87 @@
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<!-- TEAM TODO: Implement Admin / Dashboard here. -->
+@model AdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+    var metrics = new[]
+    {
+        (Label: "Users", Count: Model.UsersCount),
+        (Label: "Suppliers", Count: Model.SuppliersCount),
+        (Label: "Departments", Count: Model.DepartmentsCount),
+        (Label: "Purchase requests", Count: Model.PurchaseRequestsCount),
+        (Label: "Tenders", Count: Model.TendersCount)
+    };
+}
+
+<div class="admin-dashboard unified-dashboard">
+    <div class="dashboard-heading">
+        <div>
+            <h1>Admin dashboard</h1>
+            <p>Manage users, departments, and supplier approvals.</p>
+        </div>
+        <a class="dashboard-cta" asp-action="SupplierApplications">Review supplier applications <span aria-hidden="true">→</span></a>
+    </div>
+
+    <section class="dashboard-metrics is-five" aria-label="System totals">
+        @foreach (var metric in metrics)
+        {
+            <partial name="_DashboardMetric" model='@(new DashboardMetric(metric.Label, metric.Count.ToString("N0"), "System total", metric.Label == "Users"))' />
+        }
+    </section>
+@{
+ var supplierStates = ViewBag.DashboardSupplierStates as Dictionary<string,int> ?? new();
+ int N(params string[] keys) => keys.Sum(k => supplierStates.GetValueOrDefault(k));
+ var overview = new DashboardOverview("Supplier approval status", "All registered supplier companies", "suppliers", "approved",
+ [new("Approved", N("Approved"), "positive"), new("Awaiting action", N("Pending", "ChangesRequested"), "active"), new("Inactive", N("Rejected", "Suspended"), "muted")], "Supplier review breakdown", "Current account status of each company",
+ [new("Awaiting admin review", N("Pending")), new("Changes requested", N("ChangesRequested")), new("Approved", N("Approved")), new("Rejected", N("Rejected")), new("Suspended", N("Suspended"))]);
+}
+<partial name="_DashboardOverview" model="overview" />
+
+
+    <div class="admin-dashboard-panels">
+        <section class="workspace-section" aria-labelledby="pending-applications-heading">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <h2 id="pending-applications-heading" class="mb-0">Pending supplier applications</h2>
+                <a class="btn btn-sm admin-applications-button" asp-action="SupplierApplications" aria-label="View all supplier applications">View all <span aria-hidden="true">↗</span></a>
+            </div>
+
+            @if (Model.PendingApplications.Count == 0)
+            {
+                <p class="mb-0">No pending supplier applications.</p>
+            }
+            else
+            {
+                <div class="table-responsive" role="region" aria-labelledby="pending-applications-heading" tabindex="0">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Company</th>
+                                <th scope="col">Submitted (UTC)</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var application in Model.PendingApplications)
+                            {
+                                <tr>
+                                    <th scope="row">@application.CompanyName</th>
+                                    <td><time datetime="@application.CreatedAt.ToString("yyyy-MM-dd")">@application.CreatedAt.ToString("dd MMM yyyy")</time></td>
+                                    <td>
+                                        <a class="btn btn-sm admin-review-button" asp-action="SupplierDetails" asp-route-id="@application.Id"
+                                       asp-route-reviewApplication="true" data-supplier-dialog data-company="@application.CompanyName"
+                                           aria-label="Review application for @application.CompanyName">Review <span aria-hidden="true">→</span></a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+
+    </div>
+</div>
+
+<partial name="_SupplierReviewDialog" />
+
+@section Styles { <link rel="stylesheet" href="~/css/dashboard-overview.css" asp-append-version="true" /> }

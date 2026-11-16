@@ -1,14 +1,23 @@
-@{ ViewData["Title"] = "History"; }
-<h1>History</h1>
-<div class="workspace-columns">
-    <section class="workspace-section">
-        <h2>Submitted Offers</h2>
-        <!-- TEAM TODO: Load only the signed-in supplier's submitted offers, their related tenders, submission dates, and current outcomes. Selecting an offer displays its personal summary alongside the list. -->
-    </section>
-    <section class="workspace-section">
-        <h2>Offer Summary</h2>
-        <!-- TEAM TODO: Display the selected supplier-owned offer's pricing, delivery terms, submitted specifications, documents, and status. Authorize ownership on both the detail and download endpoints. Never show competing offers or internal evaluation reports. -->
-        <button type="button" class="btn btn-outline-primary" disabled>Download My Summary</button>
-        <!-- TEAM TODO: Export the supplier's own offer summary. Suppliers do not send evaluation reports to other roles. -->
-    </section>
+@model List<SourcingTenderManagement.Models.Entities.Bid>
+@{ ViewData["Title"] = "Offer history"; }
+<div class="supplier-workspace supplier-workspace--history">
+<div class="workspace-page">
+<div class="supplier-page-heading"><div><h1>Offer history</h1><p class="text-secondary">Your submitted offers and their current outcomes.</p></div><a asp-action="Offers" class="btn btn-outline-primary">All offers</a></div>
+
+<div class="supplier-local-search"><label for="supplier-search">Search offer history</label><input id="supplier-search" type="search" class="form-control" placeholder="Search by title, reference or details" data-supplier-search=".supplier-history-record"/><p class="form-text" data-supplier-search-status role="status" aria-live="polite"></p></div>
+<section class="workspace-section">
+@if (Model.Count == 0) { <p class="text-secondary">No submitted offers yet.</p> }
+else
+{
+<div class="supplier-history-list">@foreach (var bid in Model) {
+var status = bid.Invitation.Tender.Status == "Cancelled" ? "Cancelled" : bid.Status;
+<article class="supplier-history-record"><div><span class="supplier-reference">Offer #@bid.BidId</span><h2><a asp-action="Offer" asp-route-id="@bid.BidId">@bid.Invitation.Tender.Title</a></h2><p>Submitted @bid.SubmittedAt?.ToString("dd MMM yyyy · HH:mm") UTC · @CommitteeEvaluationPage.Total(bid).ToString("N2") @(bid.Currency == "JOD" ? "JD" : bid.Currency)</p></div><span class="status-badge status-@status.ToLowerInvariant()">@CommitteeEvaluationPage.StatusLabel(status)</span><a class="btn btn-outline-primary" asp-action="DownloadSummary" asp-route-id="@bid.BidId">Download summary</a></article>
+}</div>
+}
+</section></div>
+
 </div>
+
+@section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
+
+@section Scripts { <script src="~/js/supplier-workspace.js" asp-append-version="true" defer></script> }

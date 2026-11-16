@@ -1,0 +1,45 @@
+@model ContactMessageInput
+@{
+    var isHomeLanding = ViewData["HomeLanding"] is true;
+}
+<section class="public-guide contact-panel" id="contact" aria-labelledby="contact-title">
+    @if (isHomeLanding)
+    {
+        <h2 id="contact-title">Contact Us</h2>
+    }
+    else
+    {
+        <h1 id="contact-title">Contact Us</h1>
+    }
+    @if (TempData["ContactSuccess"] is string success)
+    {
+        <p class="alert alert-success" role="status">@success</p>
+    }
+    <form asp-controller="Home" asp-action="Contact" method="post" class="contact-form" id="contact-form" aria-labelledby="contact-title">
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div asp-validation-summary="ModelOnly" class="contact-wide text-danger" role="alert"></div>
+        }
+        <div>
+            <label for="contact-name">Full name</label>
+            <input asp-for="FullName" id="contact-name" class="form-control" autocomplete="name" maxlength="120" required />
+            <span asp-validation-for="FullName" class="text-danger"></span>
+        </div>
+        <div>
+            <label for="contact-email">Email address</label>
+            <input asp-for="Email" id="contact-email" type="email" class="form-control" autocomplete="email" maxlength="254" required />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        <div class="contact-wide">
+            <label for="contact-subject">Subject</label>
+            <input asp-for="Subject" id="contact-subject" class="form-control" maxlength="150" required />
+            <span asp-validation-for="Subject" class="text-danger"></span>
+        </div>
+        <div class="contact-wide">
+            <label for="contact-message">Message</label>
+            <textarea asp-for="Message" id="contact-message" class="form-control" rows="4" maxlength="2000" required></textarea>
+            <span asp-validation-for="Message" class="text-danger"></span>
+        </div>
+        <button type="submit" class="btn contact-send">Send Message</button>
+    </form>
+</section>

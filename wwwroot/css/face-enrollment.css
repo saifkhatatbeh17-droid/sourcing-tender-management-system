@@ -1,0 +1,167 @@
+/* Match the shared dashboard palette on the biometric settings page. */
+body:has(.face-enrollment) {
+    background: #f5f7f9;
+}
+html[data-theme="dark"] body:has(.face-enrollment) {
+    background: #101817;
+}
+.face-enrollment {
+    --bio-accent: var(--teal, var(--pharma-primary));
+    --bio-action: #efb85c;
+    --bio-action-ink: #0c252d;
+    --bio-action-hover: #e5a23e;
+    --bio-action-active: #e85536;
+    --bio-ink: #152c32;
+    --bio-muted: #53666c;
+    --bio-link: #007477;
+    --bio-surface: #fff;
+    --bio-soft: #eef8f6;
+    --bio-line: #dfe7e8;
+    --bio-focus: #1d5560;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-block: .25rem 2rem;
+    color: var(--bio-ink);
+}
+html[data-theme="dark"] .face-enrollment {
+    --bio-ink: #edf5f2;
+    --bio-muted: #a6bbb5;
+    --bio-link: #efb85c;
+    --bio-surface: #192321;
+    --bio-soft: #173a34;
+    --bio-line: #34443f;
+    --bio-focus: #efb85c;
+}
+.biometric-back {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    min-height: 44px;
+    margin-bottom: .75rem;
+    color: var(--bio-link);
+    font-weight: 650;
+    text-decoration: none;
+}
+.biometric-back:hover { color: var(--bio-link); text-decoration: underline; }
+.biometric-hero {
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--bio-line);
+}
+.biometric-hero h1 {
+    margin: 0 0 .5rem;
+    color: inherit;
+    font-size: clamp(1.65rem, 3vw, 1.875rem);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -.035em;
+}
+.biometric-hero h1::after { content: "."; color: var(--bio-accent); }
+.biometric-hero p { max-width: 65ch; margin: 0; color: var(--bio-muted); line-height: 1.6; }
+.biometric-methods {
+    display: grid;
+    grid-template-columns: minmax(0, .86fr) minmax(0, 1.14fr);
+    align-items: start;
+    gap: clamp(.85rem, 2vw, 1.35rem);
+    margin-top: 1rem;
+}
+.biometric-card {
+    min-width: 0;
+    padding: clamp(1rem, 2.6vw, 1.6rem);
+    border: 1px solid var(--bio-line);
+    border-radius: 18px;
+    background: var(--bio-surface);
+}
+#passkey { scroll-margin-top: 5rem; }
+.biometric-card-heading { display: flex; align-items: center; gap: .8rem; }
+.biometric-card h2 { margin: 0; font-size: clamp(1.06rem, 2vw, 1.35rem); color: inherit; }
+.biometric-card h3 { margin: 1.4rem 0 .5rem; font-size: 1.08rem; color: inherit; }
+.biometric-icon {
+    display: grid;
+    flex: 0 0 44px;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    background: var(--bio-soft);
+    color: var(--bio-link);
+}
+.biometric-icon svg { width: 25px; height: 25px; }
+.biometric-description { margin: .85rem 0 1rem; color: var(--bio-muted); }
+.biometric-meta, #face-feedback { color: var(--bio-muted); font-size: .9rem; }
+.biometric-enrollment-state { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; margin-bottom: 1rem; }
+.biometric-status {
+    padding: .2rem .65rem;
+    border: 1px solid var(--bio-line);
+    border-radius: 999px;
+    background: var(--bio-soft);
+    color: var(--bio-muted);
+    font-size: .82rem;
+    font-weight: 650;
+}
+.biometric-status.is-enrolled { color: var(--bio-link); }
+.face-enrollment .form-label { margin-bottom: .4rem; font-weight: 650; }
+.face-enrollment .form-control {
+    min-height: 44px;
+    border: 1px solid var(--bio-line);
+    border-radius: 9px;
+    background: var(--bio-surface);
+    color: var(--bio-ink);
+}
+.biometric-help { margin: .45rem 0 .9rem; }
+.face-preview {
+    padding: .8rem;
+    border: 1px solid var(--bio-line);
+    border-radius: 13px;
+    background: var(--bio-soft);
+}
+.face-enrollment video {
+    display: block;
+    width: 100%;
+    max-height: 230px;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+    background: #152c32;
+    border-radius: 8px;
+    transform: scaleX(-1);
+}
+.face-enrollment #face-feedback { margin: .65rem 0; }
+.face-preview label { font-size: .86rem; font-weight: 650; }
+.face-enrollment progress { display: block; width: 100%; height: .65rem; margin-top: .35rem; accent-color: var(--bio-focus); }
+.biometric-consent {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: .6rem;
+    padding: .85rem;
+    border: 1px solid var(--bio-line);
+    border-radius: 10px;
+    background: var(--bio-soft);
+    font-size: .9rem;
+}
+.biometric-consent label { cursor: pointer; }
+.biometric-consent .form-check-input { margin-top: .2em; }
+.face-enrollment .face-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+.face-actions .btn { min-height: 44px; border-radius: 18px; font-weight: 650; }
+.face-actions .biometric-primary {
+    --bs-btn-color: var(--bio-action-ink);
+    --bs-btn-bg: var(--bio-action);
+    --bs-btn-border-color: var(--bio-action);
+    --bs-btn-hover-color: var(--bio-action-ink);
+    --bs-btn-hover-bg: var(--bio-action-hover);
+    --bs-btn-hover-border-color: var(--bio-action-hover);
+    --bs-btn-active-color: var(--bio-action-ink);
+    --bs-btn-active-bg: var(--bio-action-active);
+    --bs-btn-active-border-color: var(--bio-action-active);
+    --bs-btn-disabled-color: var(--bio-action-ink);
+    --bs-btn-disabled-bg: var(--bio-action);
+    --bs-btn-disabled-border-color: var(--bio-action);
+}
+.biometric-message { margin: .75rem 0 0; color: var(--bio-ink); overflow-wrap: anywhere; }
+.biometric-message:empty { margin: 0; }
+.face-enrollment :focus-visible { outline: 3px solid var(--bio-focus); outline-offset: 3px; }
+@media (max-width: 850px) {
+    .biometric-methods { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 440px) {
+    .face-actions .btn { flex: 1 1 100%; }
+}

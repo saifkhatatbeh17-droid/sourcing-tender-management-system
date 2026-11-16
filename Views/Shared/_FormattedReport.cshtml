@@ -1,0 +1,10 @@
+@model string
+<div class="formatted-report">
+@foreach (var block in SourcingTenderManagement.Services.Reports.ReportContent.Parse(Model))
+{
+    if (block.Kind == "heading") { <h4>@block.Lines[0]</h4> }
+    else if (block.Kind == "list")
+    { <ul>@foreach (var line in block.Lines) { <li><partial name="_ReportInline" model="line" /></li> }</ul> }
+    else { <p><partial name="_ReportInline" model="@(string.Join(" ", block.Lines))" /></p> }
+}
+</div>

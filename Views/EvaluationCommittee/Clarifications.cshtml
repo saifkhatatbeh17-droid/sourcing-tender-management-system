@@ -1,3 +1,6 @@
-@{ ViewData["Title"] = "Clarifications"; }
-<h1>Clarifications</h1>
-<partial name="_ClarificationWorkspace" />
+@{ ViewData["Title"] = "Committee clarifications"; }
+@section Styles { <partial name="_CommitteePageStyles" /> }
+<div class="evaluation-page committee-workspace">
+<header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Clarifications</h1><p>Keep questions and replies connected to the tender being evaluated.</p></div><a asp-controller="Clarification" asp-action="Index" class="cw-button cw-button-secondary">Open clarification inbox →</a></header>
+<section class="cw-panel ev-clarification-guide"><h2>Get the details you need before scoring</h2><p>Open a tender and choose Ask for clarification to send a question about its requirements or offers. Follow replies and resolved questions in your clarification inbox.</p><p>Open clarifications must be resolved before the committee can send its final report.</p><a class="cw-text-link" asp-action="Evaluations">Choose a tender →</a></section>
+</div>

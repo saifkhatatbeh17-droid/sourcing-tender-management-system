@@ -1,0 +1,28 @@
+@using SourcingTenderManagement.Models.Entities
+@model EvaluationReport
+@{
+ var members = ViewBag.ReviewMembers as List<CommitteeAssignment> ?? [];
+ var approvals = ViewBag.ReviewApprovals as List<TenderApproval> ?? [];
+ var canReview = Model.Status == "CommitteeApproved" && Model.Tender.Status == "AwaitingOfficerSummary" && members.Count == 4 && members.All(m => approvals.Any(a => a.CommitteeAssignmentId == m.CommitteeAssignmentId));
+ var bid = Model.Bid;
+}
+<div class="modal-header"><div><h2 class="modal-title" id="report-review-title">Review recommendation</h2><p class="rp-reference">Report #@Model.EvaluationReportId · Tender #@Model.TenderId</p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close report review"></button></div>
+<div class="modal-body">
+ <h3 class="rv-tender">@Model.Tender.Title</h3>
+ <section class="rv-recommendation" aria-label="Committee recommendation"><div><span class="rv-label">Recommended supplier</span><strong>@(bid?.Invitation.SupplierProfile.CompanyName ?? "Not recorded")</strong><span>Offer #@Model.RecommendedBidId</span></div>@if(bid != null){<div class="rv-price"><span>Total offer</span><strong>@SourcingTenderManagement.Models.CommitteeEvaluationPage.Total(bid).ToString("N2") <small>@(bid.Currency == "JOD" ? "JD" : bid.Currency)</small></strong><span>Includes tax and extra costs</span></div>}</section>
+ @if(bid != null){<dl class="rv-quote-facts"><div><dt>Delivery</dt><dd>@bid.DeliveryDays days</dd></div><div><dt>Payment terms</dt><dd>@(string.IsNullOrWhiteSpace(bid.PaymentTerms) ? "Not specified" : bid.PaymentTerms)</dd></div></dl>}
+ <div class="rv-document-heading"><div><h3>Full report</h3><p class="form-text mb-0">@(string.IsNullOrWhiteSpace(Model.CommitteeSummary) ? "No committee report has been submitted." : "Open the PDF to read the complete committee report.")</p></div><a class="btn btn-outline-primary" asp-action="ReportPdf" asp-route-id="@Model.EvaluationReportId"><partial name="_ReportDownloadIcon" />Download PDF</a></div>
+ <details class="rv-approvals"><summary><span>Committee approval record</span><span>@approvals.Select(a => a.CommitteeAssignmentId).Distinct().Count() / 4 approved</span></summary><ul>@foreach(var member in members){<li><span>@SourcingTenderManagement.Models.CommitteeEvaluationPage.MemberName(member.Position)</span><strong>@(approvals.Any(a => a.CommitteeAssignmentId == member.CommitteeAssignmentId)?"Approved":"Pending")</strong></li>}</ul></details>
+ <partial name="_TenderOfferRoundHistory" model="Model.Tender" />
+ @if(!string.IsNullOrWhiteSpace(Model.OfficerSummary)){<details class="rv-approvals"><summary>Previous officer review</summary><partial name="_FormattedReport" model="Model.OfficerSummary" /></details>}
+</div>
+<div class="modal-footer rv-footer">
+ @if(canReview){
+ <div class="rv-actions"><p>Your decision</p><div><button type="button" class="btn btn-outline-danger" data-report-decision="Reject">Reject</button><button type="button" class="btn btn-outline-secondary" data-report-decision="RequestEdits">Request edits</button><button type="button" class="btn btn-primary" data-report-decision="Approve">Approve &amp; forward</button></div></div>
+ <form asp-action="ReviewCommitteeReport" asp-route-id="" method="post" class="rv-confirm" hidden>
+  <input type="hidden" name="tenderId" value="@Model.TenderId" /><input type="hidden" name="version" value="@SourcingTenderManagement.Controllers.SourcingOfficerController.ReportReviewVersion(Model)" /><input type="hidden" name="fromReports" value="true" /><input type="hidden" name="decision" />
+  <h3 id="rv-confirm-title" tabindex="-1"></h3><p id="rv-confirm-help"></p><div class="rv-reason"><label for="rv-reason">Reason <span>(required)</span></label><textarea id="rv-reason" name="reason" rows="3" maxlength="4000" class="form-control" aria-describedby="rv-confirm-help"></textarea></div>
+  <div class="rv-confirm-buttons"><button type="button" class="btn btn-outline-secondary" data-report-back>Back</button><button type="submit" class="btn btn-primary" data-report-confirm></button></div>
+ </form>
+ }else{<p class="mb-0">This report is no longer available for review. Refresh the list to see its current status.</p><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>}
+</div>

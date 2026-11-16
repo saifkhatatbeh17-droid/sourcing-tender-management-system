@@ -1,3 +1,14 @@
+@model string
 @{ ViewData["Title"] = "Access Denied"; }
-<h1>Access Denied</h1><p>Your account does not have permission to open this page.</p>
-<a asp-controller="Account" asp-action="GoToDashboard">Return to your dashboard</a>
+<h1>Access Denied</h1>
+<p>Your account does not have permission to open this page.</p>
+<div class="d-flex flex-wrap align-items-center gap-3">
+    @if (User.Identity?.IsAuthenticated == true && Model is not null)
+    {
+        <form asp-controller="Account" asp-action="Logout" method="post">
+            <input type="hidden" name="returnUrl" value="@Model" />
+            <button type="submit" class="btn btn-primary">Switch account</button>
+        </form>
+    }
+    <a asp-controller="Account" asp-action="GoToDashboard">Return to your dashboard</a>
+</div>

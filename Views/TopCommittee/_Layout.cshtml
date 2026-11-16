@@ -1,0 +1,10 @@
+@{ Layout = "/Views/Shared/_Layout.cshtml"; }
+@section Styles {
+    <link rel="stylesheet" href="~/css/top-committee.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+}
+<div class="tc-workspace">@RenderBody()</div>
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+    <script src="~/js/top-committee-workspace.js" asp-append-version="true"></script>
+}

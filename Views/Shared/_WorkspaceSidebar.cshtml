@@ -1,0 +1,57 @@
+@using SourcingTenderManagement.Models
+@{
+    var currentAction = ViewData["ActivePage"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString();
+    var controller = ViewData["WorkspaceController"]?.ToString() ?? "Admin";
+    var activeAction = ViewData["WorkspaceActiveAction"]?.ToString() ?? currentAction;
+    var roles = SourcingTenderManagement.Data.RoleNames.Primary.Where(User.IsInRole).ToArray();
+}
+<aside class="admin-sidebar workspace-navigation" aria-label="@ViewData["WorkspaceLabel"] navigation">
+    <div class="admin-sidebar-top">
+        <div class="admin-sidebar-header">
+            <a class="pharma-brand workspace-brand" asp-controller="Home" asp-action="Index" aria-label="Tiryaq home">
+                <partial name="_PharmaBrand" />
+                <img class="workspace-brand-mark" src="~/images/tiryaq-mark.png" asp-append-version="true" width="640" height="804" alt="" />
+            </a>
+            <button type="button" class="admin-sidebar-toggle" aria-label="Collapse sidebar" aria-controls="admin-sidebar-menu workspace-sidebar-tools" aria-expanded="true" title="Collapse sidebar">
+                <partial name="_AdminSidebarIcon" model='@("Menu")' />
+            </button>
+        </div>
+        <div class="admin-sidebar-role"><span>Workspace</span><strong>@ViewData["WorkspaceLabel"]</strong></div>
+        <nav id="admin-sidebar-menu" class="admin-sidebar-nav" aria-label="Workspace pages">
+            @foreach (var role in roles)
+            {
+            <details class="workspace-role-branch @(roles.Length == 1 ? "is-single-role" : "") @(controller == role ? "is-current-role" : "")" open="@(controller == role || roles.Length == 1)">
+                <summary title="@SourcingTenderManagement.Data.RoleNames.DisplayName(role)">
+                    <svg class="workspace-branch-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 4 4 4-4 4" /></svg>
+                    <partial name="_AdminSidebarIcon" model='@(role == "SourcingOfficer" ? "Requests" : role == "TopCommittee" ? "Decisions" : "Dashboard")' />
+                    <span>@SourcingTenderManagement.Data.RoleNames.DisplayName(role)</span>
+                </summary>
+            <div class="workspace-branch-pages">
+            @foreach (var item in PageNavigation.Menus[role])
+            {
+                if (role == "Supplier" && item.Action == "History") { continue; }
+                var isActive = controller == role && activeAction == item.Action;
+                <a class="admin-sidebar-item @(isActive ? "is-active" : null)" asp-controller="@role" asp-action="@item.Action"
+                   aria-current="@(isActive ? "page" : null)" aria-label="@SourcingTenderManagement.Data.RoleNames.DisplayName(role) — @item.Title" title="@SourcingTenderManagement.Data.RoleNames.DisplayName(role) — @item.Title">
+                    <partial name="_AdminSidebarIcon" model="item.Action" />
+                    <span>@item.Title</span>
+                </a>
+            }
+            </div></details>
+            }
+        </nav>
+    </div>
+    <div id="workspace-sidebar-tools" class="admin-sidebar-bottom">
+        <a class="admin-sidebar-item" asp-controller="FaceEnrollment" asp-action="Index" aria-label="Biometric sign-in" title="Biometric sign-in"><partial name="_AdminSidebarIcon" model='@("FaceId")' /><span>Biometric sign-in</span></a>
+        <button type="button" class="admin-sidebar-item" data-theme-toggle aria-pressed="false" aria-label="Dark mode" title="Dark mode">
+            <partial name="_AdminSidebarIcon" model='@("Theme")' />
+            <span data-theme-label>Dark Mode</span>
+        </button>
+        <form asp-controller="Account" asp-action="Logout" method="post">
+            <button type="submit" class="admin-sidebar-item" aria-label="Logout" title="Logout">
+                <partial name="_AdminSidebarIcon" model='@("Logout")' />
+                <span>Logout</span>
+            </button>
+        </form>
+    </div>
+</aside>

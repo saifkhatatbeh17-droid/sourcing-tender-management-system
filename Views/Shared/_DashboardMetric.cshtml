@@ -1,0 +1,11 @@
+@model DashboardMetric
+<article class="dashboard-metric @(Model.Primary ? "is-primary" : "")">
+    <h2>@Model.Label</h2>
+    <strong>@Model.Value</strong>
+    <p>@Model.Note</p>
+    @if (Model.Action != null)
+    {
+        <a asp-action="@Model.Action">View details <span aria-hidden="true">↗</span><span class="visually-hidden"> — @Model.Label</span></a>
+    }
+    @if (Model.Primary) { <partial name="_DashboardMark" /> }
+</article>

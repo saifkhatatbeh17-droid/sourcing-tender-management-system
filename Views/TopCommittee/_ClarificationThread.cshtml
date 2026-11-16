@@ -1,0 +1,36 @@
+@model CommitteeClarificationThread
+<details class="workspace-section tc-conversation" aria-labelledby="question-@Model.ClarificationId">
+    <summary class="tc-conversation-heading">
+        <h3 class="fs-5 mb-0" id="question-@Model.ClarificationId">@Model.Subject</h3>
+        <span class="badge @(Model.Status == "Resolved" ? "text-bg-success" : Model.Status == "Answered" ? "text-bg-primary" : "text-bg-secondary")">@Model.Status</span>
+    </summary>
+    <div class="tc-cell-stack tc-conversation-meta"><a asp-action="TenderDetails" asp-route-id="@Model.TenderId">@Model.TenderTitle</a><span class="tc-cell-meta">Tender #@Model.TenderId</span><span class="tc-cell-meta">Sent to @Model.ManagerName · @CommitteeDisplay.Utc(Model.CreatedAt)</span></div>
+    <p class="committee-message">@Model.Description</p>
+    @if (Model.Responses.Count == 0)
+    { <p class="text-secondary">Waiting for the Sourcing Manager's response.</p> }
+    else
+    {
+        <h4 class="fs-6">Replies</h4>
+        @foreach (var response in Model.Responses)
+        {
+            <div class="tc-reply"><p class="small text-secondary mb-1"><strong>@response.RespondedByName</strong><span class="tc-cell-meta">@CommitteeDisplay.Utc(response.CreatedAt)</span></p>
+            <p class="committee-message">@(response.Message == "[Portal: resolution confirmed]" ? "Marked as resolved" : response.Message)</p></div>
+        }
+    }
+    @if (Model.Status == "Resolved")
+    { <p class="mb-0">Resolved @CommitteeDisplay.Utc(Model.ResolvedAt). This conversation is read-only.</p> }
+    else if (Model.CanResolve)
+    {
+        <form asp-action="FollowUpClarification" method="post" class="mb-3">
+            <input type="hidden" name="id" value="@Model.ClarificationId" />
+            <input type="hidden" name="tenderId" value="@Model.TenderId" />
+            <label class="form-label" for="follow-up-@Model.ClarificationId">Follow-up question</label>
+            <textarea id="follow-up-@Model.ClarificationId" name="message" class="form-control mb-2" maxlength="4000" required></textarea>
+            <button class="btn btn-primary" type="submit">Send follow-up</button>
+        </form>
+        <p>Both you and the Sourcing Manager must confirm resolution before voting can resume.</p>
+        <form asp-action="ResolveClarification" method="post"><input type="hidden" name="id" value="@Model.ClarificationId" /><button class="btn btn-outline-primary" type="submit">Confirm resolution</button></form>
+    }
+    else if (Model.Status == "Answered")
+    { <p class="text-secondary mb-0">Open this tender's clarifications to review whether your answered question can be resolved.</p> }
+</details>

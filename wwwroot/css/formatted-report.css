@@ -1,0 +1,12 @@
+/* A single reading column; the surrounding workspace supplies the report surface. */
+.formatted-report { width: 100%; max-width: 72ch; color: var(--color-text, #152c32); font-size: 1rem; line-height: 1.6; overflow-wrap: anywhere; white-space: normal; }
+.formatted-report > h4, .evaluation-page .formatted-report > h4 { color: var(--color-text, #152c32); background: none; border: 0; border-radius: 0; padding: 0; margin: 1.5rem 0 .5rem; font-size: 1.0625rem; line-height: 1.4; font-weight: 600; letter-spacing: -.01em; break-after: avoid; }
+.formatted-report > h4:first-child, .evaluation-page .formatted-report > h4:first-child { margin-top: 0; color: var(--color-link, #1d5560); }
+.formatted-report > p, .evaluation-page .formatted-report > p { margin: 0 0 .75rem; white-space: normal; }
+.formatted-report strong { color: inherit; font-weight: 600; }
+.formatted-report > ul { margin: .5rem 0 .75rem; padding-inline-start: 1.25rem; }
+.formatted-report li { margin-block: .375rem; }
+.formatted-report li::marker { color: var(--color-text-secondary, #607278); }
+.evaluation-page .ev-ai-explanation .formatted-report > p, .evaluation-page .formatted-report > p { color: var(--color-text); font-size: 1rem; line-height: 1.6; margin-bottom: .75rem; }
+body .evaluation-page .ev-ai-insight, body .evaluation-page .ev-report-body, body .cw-report-document { padding: 24px; }
+@media (max-width: 680px) { body .evaluation-page .ev-ai-insight, body .evaluation-page .ev-report-body, body .cw-report-document { padding: 16px; } .formatted-report { font-size: .9375rem; } .formatted-report > h4, .evaluation-page .formatted-report > h4 { font-size: 1rem; } .evaluation-page .ev-ai-explanation .formatted-report > p, .evaluation-page .formatted-report > p { font-size: .9375rem; } }

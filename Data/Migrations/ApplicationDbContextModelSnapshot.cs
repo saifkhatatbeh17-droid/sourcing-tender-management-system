@@ -121,6 +121,23 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.ToTable("AspNetUserLogins", (string)null);
                 });
 
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserPasskey<string>", b =>
+                {
+                    b.Property<byte[]>("CredentialId")
+                        .HasMaxLength(1024)
+                        .HasColumnType("varbinary(1024)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("CredentialId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserPasskeys", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
                     b.Property<string>("UserId")
@@ -281,7 +298,7 @@ namespace SourcingTenderManagement.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_AiAnalyses_1", "(isjson([ResultJson])=(1))");
 
-                            t.HasCheckConstraint("CK_AiAnalyses_2", "([FinancialWeight]=(60) AND [RequirementsWeight]=(40) OR [FinancialWeight]=(100) AND [RequirementsWeight]=(0) OR [FinancialWeight]=(0) AND [RequirementsWeight]=(100))");
+                            t.HasCheckConstraint("CK_AiAnalyses_2", "([FinancialWeight]>=0 AND [FinancialWeight]<=100 AND [RequirementsWeight]>=0 AND [RequirementsWeight]<=100 AND [FinancialWeight]+[RequirementsWeight]=100)");
                         });
                 });
 
@@ -328,6 +345,9 @@ namespace SourcingTenderManagement.Data.Migrations
 
                     b.Property<int>("InvitationId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("OfficerOpenedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("PaymentTerms")
                         .HasMaxLength(1000)
@@ -626,6 +646,113 @@ namespace SourcingTenderManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.CommitteeTieVote", b =>
+                {
+                    b.Property<int>("CommitteeTieVoteId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommitteeTieVoteId"));
+
+                    b.Property<int>("BidId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CommitteeAssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ConfirmedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TenderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CommitteeTieVoteId");
+
+                    b.HasIndex("TenderId", "BidId");
+
+                    b.HasIndex("TenderId", "CommitteeAssignmentId")
+                        .IsUnique();
+
+                    b.ToTable("CommitteeTieVotes");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.CommitteeWeightProposal", b =>
+                {
+                    b.Property<int>("CommitteeWeightProposalId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommitteeWeightProposalId"));
+
+                    b.Property<int>("CommitteeAssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ConfirmedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("FinancialWeight")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("TenderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CommitteeWeightProposalId");
+
+                    b.HasIndex("TenderId", "CommitteeAssignmentId")
+                        .IsUnique();
+
+                    b.ToTable("CommitteeWeightProposals", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CommitteeWeightProposals_Weight", "[FinancialWeight] > 0 AND [FinancialWeight] < 100");
+                        });
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.ContactMessage", b =>
+                {
+                    b.Property<int>("ContactMessageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ContactMessageId"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ContactMessageId");
+
+                    b.ToTable("ContactMessages", "dbo");
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.Department", b =>
                 {
                     b.Property<int>("DepartmentId")
@@ -669,6 +796,10 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Property<int>("CommitteeAssignmentId")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("FinancialMark")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
@@ -682,6 +813,10 @@ namespace SourcingTenderManagement.Data.Migrations
 
                     b.Property<DateTime?>("SubmittedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("TechnicalMark")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<int>("TenderId")
                         .HasColumnType("int");
@@ -701,6 +836,8 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.ToTable("Evaluations", null, t =>
                         {
                             t.HasCheckConstraint("CK_Evaluations_1", "([Status]='Approved' OR [Status]='Submitted' OR [Status]='Draft')");
+
+                            t.HasCheckConstraint("CK_Evaluations_DirectMarks", "([FinancialMark] IS NULL AND [TechnicalMark] IS NULL) OR ([FinancialMark] IS NOT NULL AND [TechnicalMark] IS NOT NULL AND [FinancialMark] >= 0 AND [TechnicalMark] >= 0 AND [FinancialMark] + [TechnicalMark] <= 100)");
                         });
                 });
 
@@ -1114,6 +1251,10 @@ namespace SourcingTenderManagement.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("CompanyName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1194,7 +1335,18 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Property<int?>("AwardedBidId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime>("ClosesAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("CommitteeFinancialWeight")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("CommitteeWeightsLockedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1212,10 +1364,24 @@ namespace SourcingTenderManagement.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<string>("OfferShortfallReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<DateTime>("OpensAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("PurchaseRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RejectionForwardedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RejectionForwardedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("ReplacesTenderId")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -1240,6 +1406,12 @@ namespace SourcingTenderManagement.Data.Migrations
 
                     b.HasIndex("PurchaseRequestId");
 
+                    b.HasIndex("RejectionForwardedByUserId");
+
+                    b.HasIndex("ReplacesTenderId")
+                        .IsUnique()
+                        .HasFilter("[ReplacesTenderId] IS NOT NULL");
+
                     b.HasIndex("TenderId", "AwardedBidId");
 
                     b.ToTable("Tenders", null, t =>
@@ -1248,7 +1420,13 @@ namespace SourcingTenderManagement.Data.Migrations
 
                             t.HasCheckConstraint("CK_Tenders_2", "([Status]='Awarded' AND [AwardedBidId] IS NOT NULL AND [AwardedAt] IS NOT NULL OR [Status]<>'Awarded' AND [AwardedBidId] IS NULL AND [AwardedAt] IS NULL)");
 
-                            t.HasCheckConstraint("CK_Tenders_3", "([Status]='Cancelled' OR [Status]='Awarded' OR [Status]='AwaitingCommitteeDecision' OR [Status]='AwaitingManagerReview' OR [Status]='AwaitingOfficerSummary' OR [Status]='UnderEvaluation' OR [Status]='Closed' OR [Status]='Open' OR [Status]='Published' OR [Status]='Draft')");
+                            t.HasCheckConstraint("CK_Tenders_3", "([Status]='Cancelled' OR [Status]='Awarded' OR [Status]='AwaitingCommitteeDecision' OR [Status]='AwaitingManagerReview' OR [Status]='AwaitingOfficerSummary' OR [Status]='UnderEvaluation' OR [Status]='Closed' OR [Status]='Open' OR [Status]='Published')");
+
+                            t.HasCheckConstraint("CK_Tenders_CommitteeWeightLock", "([CommitteeFinancialWeight] IS NULL AND [CommitteeWeightsLockedAt] IS NULL) OR ([CommitteeFinancialWeight] IS NOT NULL AND [CommitteeFinancialWeight] > 0 AND [CommitteeFinancialWeight] < 100 AND [CommitteeWeightsLockedAt] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_Tenders_RejectionForward", "([RejectionForwardedAt] IS NULL AND [RejectionForwardedByUserId] IS NULL) OR ([RejectionForwardedAt] IS NOT NULL AND [RejectionForwardedByUserId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_Tenders_Replacement", "[ReplacesTenderId] IS NULL OR [ReplacesTenderId] <> [TenderId]");
                         });
                 });
 
@@ -1308,7 +1486,7 @@ namespace SourcingTenderManagement.Data.Migrations
 
                             t.HasCheckConstraint("CK_TenderApprovals_2", "([Stage]='Manager' AND [CommitteeAssignmentId] IS NULL OR ([Stage]='Top' OR [Stage]='Evaluation') AND [CommitteeAssignmentId] IS NOT NULL)");
 
-                            t.HasCheckConstraint("CK_TenderApprovals_3", "([Stage]='Manager' OR [Decision]='Approved')");
+                            t.HasCheckConstraint("CK_TenderApprovals_3", "([Stage]='Manager' OR [Decision]='Approved' OR ([Stage]='Top' AND [Decision]='Rejected'))");
 
                             t.HasCheckConstraint("CK_TenderApprovals_4", "([Decision]='ReturnedForReview' OR [Decision]='Rejected' OR [Decision]='Approved')");
                         });
@@ -1361,6 +1539,90 @@ namespace SourcingTenderManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.TenderOfferExtension", b =>
+                {
+                    b.Property<int>("TenderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Deadline")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Outreach")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PreviousCompliantOffers")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PreviousDeadline")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("TenderId", "Round");
+
+                    b.ToTable("TenderOfferExtensions", (string)null);
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.UserFaceCredential", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("ConsentGrantedAt")
+                        .HasColumnType("datetime2(7)");
+
+                    b.Property<string>("ConsentVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("EnrolledAt")
+                        .HasColumnType("datetime2(7)");
+
+                    b.Property<DateTime>("EnrollmentPromptedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(7)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("ModelIdentifier")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<byte[]>("ProtectedTemplates")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<short>("SampleCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0);
+
+                    b.Property<short?>("TemplateFormatVersion")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(7)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserFaceCredentials", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_UserFaceCredentials_EnrollmentState", "(\r\n    [SampleCount] = 0\r\n    AND [ProtectedTemplates] IS NULL\r\n    AND [TemplateFormatVersion] IS NULL\r\n    AND [ModelIdentifier] IS NULL\r\n    AND [ConsentVersion] IS NULL\r\n    AND [ConsentGrantedAt] IS NULL\r\n    AND [EnrolledAt] IS NULL\r\n)\r\nOR\r\n(\r\n    [SampleCount] BETWEEN 3 AND 5\r\n    AND [ProtectedTemplates] IS NOT NULL\r\n    AND DATALENGTH([ProtectedTemplates]) > 0\r\n    AND [TemplateFormatVersion] IS NOT NULL\r\n    AND [TemplateFormatVersion] > 0\r\n    AND [ModelIdentifier] IS NOT NULL\r\n    AND LEN([ModelIdentifier]) > 0\r\n    AND [ConsentVersion] IS NOT NULL\r\n    AND LEN([ConsentVersion]) > 0\r\n    AND [ConsentGrantedAt] IS NOT NULL\r\n    AND [EnrolledAt] IS NOT NULL\r\n)");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -1385,6 +1647,57 @@ namespace SourcingTenderManagement.Data.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserPasskey<string>", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("Microsoft.AspNetCore.Identity.IdentityPasskeyData", "Data", b1 =>
+                        {
+                            b1.Property<byte[]>("IdentityUserPasskeyCredentialId");
+
+                            b1.Property<byte[]>("AttestationObject")
+                                .IsRequired();
+
+                            b1.Property<byte[]>("ClientDataJson")
+                                .IsRequired();
+
+                            b1.Property<DateTimeOffset>("CreatedAt");
+
+                            b1.Property<bool>("IsBackedUp");
+
+                            b1.Property<bool>("IsBackupEligible");
+
+                            b1.Property<bool>("IsUserVerified");
+
+                            b1.Property<string>("Name");
+
+                            b1.Property<byte[]>("PublicKey")
+                                .IsRequired();
+
+                            b1.Property<long>("SignCount");
+
+                            b1.PrimitiveCollection<string>("Transports");
+
+                            b1.HasKey("IdentityUserPasskeyCredentialId");
+
+                            b1.ToTable("AspNetUserPasskeys");
+
+                            b1
+                                .ToJson("Data")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("IdentityUserPasskeyCredentialId");
+                        });
+
+                    b.Navigation("Data")
                         .IsRequired();
                 });
 
@@ -1566,6 +1879,55 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("Tender");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.CommitteeTieVote", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Tender", "Tender")
+                        .WithMany("CommitteeTieVotes")
+                        .HasForeignKey("TenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Bid", "Bid")
+                        .WithMany()
+                        .HasForeignKey("TenderId", "BidId")
+                        .HasPrincipalKey("TenderId", "BidId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SourcingTenderManagement.Models.Entities.CommitteeAssignment", "CommitteeAssignment")
+                        .WithMany()
+                        .HasForeignKey("TenderId", "CommitteeAssignmentId")
+                        .HasPrincipalKey("TenderId", "CommitteeAssignmentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Bid");
+
+                    b.Navigation("CommitteeAssignment");
+
+                    b.Navigation("Tender");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.CommitteeWeightProposal", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Tender", "Tender")
+                        .WithMany("CommitteeWeightProposals")
+                        .HasForeignKey("TenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SourcingTenderManagement.Models.Entities.CommitteeAssignment", "CommitteeAssignment")
+                        .WithMany()
+                        .HasForeignKey("TenderId", "CommitteeAssignmentId")
+                        .HasPrincipalKey("TenderId", "CommitteeAssignmentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("CommitteeAssignment");
+
+                    b.Navigation("Tender");
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.Evaluation", b =>
@@ -1765,6 +2127,16 @@ namespace SourcingTenderManagement.Data.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("SourcingTenderManagement.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RejectionForwardedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Tender", "ReplacesTender")
+                        .WithMany()
+                        .HasForeignKey("ReplacesTenderId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("SourcingTenderManagement.Models.Entities.Bid", "Bid")
                         .WithMany("Tenders")
                         .HasForeignKey("TenderId", "AwardedBidId")
@@ -1776,6 +2148,8 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("PurchaseRequest");
+
+                    b.Navigation("ReplacesTender");
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.TenderApproval", b =>
@@ -1822,6 +2196,26 @@ namespace SourcingTenderManagement.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Tender");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.TenderOfferExtension", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Tender", null)
+                        .WithMany("OfferExtensions")
+                        .HasForeignKey("TenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.UserFaceCredential", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Data.ApplicationUser", "User")
+                        .WithOne()
+                        .HasForeignKey("SourcingTenderManagement.Models.Entities.UserFaceCredential", "UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Data.ApplicationUser", b =>
@@ -1937,11 +2331,17 @@ namespace SourcingTenderManagement.Data.Migrations
 
                     b.Navigation("CommitteeAssignments");
 
+                    b.Navigation("CommitteeTieVotes");
+
+                    b.Navigation("CommitteeWeightProposals");
+
                     b.Navigation("EvaluationCriteria");
 
                     b.Navigation("EvaluationReport");
 
                     b.Navigation("Invitations");
+
+                    b.Navigation("OfferExtensions");
 
                     b.Navigation("TenderApprovals");
 

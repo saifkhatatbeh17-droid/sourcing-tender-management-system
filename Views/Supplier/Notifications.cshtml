@@ -1,0 +1,13 @@
+@model IEnumerable<SourcingTenderManagement.Models.Entities.Notification>
+@{ ViewData["Title"] = "Notifications"; }
+<div class="supplier-workspace supplier-workspace--notifications">
+<div class="supplier-page-heading"><div><h1>Notifications</h1><p>Updates related to your supplier account and tender participation.</p></div></div>
+<div class="supplier-local-search"><label for="supplier-search">Search notifications</label><input id="supplier-search" type="search" class="form-control" placeholder="Search by title, reference or details" data-supplier-search=".notification-row"/><p class="form-text" data-supplier-search-status role="status" aria-live="polite"></p></div>
+
+<section class="supplier-card">@if (!Model.Any()) { <div class="empty-state"><h2>You're all caught up</h2><p>New account and offer updates will be shown here.</p></div> } else { <div class="supplier-notifications">@foreach (var notification in Model) { <article class="notification-row @(notification.IsRead ? "" : "unread")"><span class="notice-dot" aria-hidden="true"></span><div><strong>@notification.Title</strong>@if (!notification.IsRead) { <span class="status-badge">Unread</span> }<p>@notification.Message</p>@if (Url.IsLocalUrl(notification.RelativeUrl)) { <a href="@notification.RelativeUrl">Open related page</a> }</div><time>@notification.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</time></article> }</div> }</section>
+
+@section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
+
+</div>
+
+@section Scripts { <script src="~/js/supplier-workspace.js" asp-append-version="true" defer></script> }

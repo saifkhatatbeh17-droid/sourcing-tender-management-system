@@ -1,3 +1,71 @@
-@{ ViewData["Title"] = "Clarifications"; }
-<h1>Clarifications</h1>
-<partial name="_ClarificationWorkspace" />
+@model CommitteeClarificationsPage
+@section Styles { <partial name="_ReadStyles" /> }
+@{ ViewData["Title"] = "Committee Clarifications"; }
+<header class="workspace-heading tc-page-heading">
+    <div class="tc-heading-copy"><h1>Clarifications</h1><p>Choose an assigned tender to ask the Sourcing Manager a private question or follow an existing conversation.</p></div>
+</header>
+@if (TempData["ClarificationSuccess"] is string success) { <p class="border rounded p-3" role="status">@success</p> }
+@if (TempData["ClarificationError"] is string failure) { <p class="text-danger border rounded p-3" role="alert">@failure</p> }
+@if (Model.Error != null) { <p class="text-danger" role="alert">@Model.Error</p> }
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if (Model.Tenders.Count == 0)
+{
+    <section class="workspace-section tc-flow-empty"><h2>No tenders assigned yet</h2><p>When a tender is assigned to you, you can ask the Sourcing Manager a question from this page.</p><a class="btn" asp-action="Decisions">Check pending tenders</a></section>
+}
+else
+{
+    <section class="workspace-section tc-clarification-picker" id="choose-tender">
+        <div class="tc-section-heading"><h2>Assigned tenders</h2><a class="btn btn-outline-secondary" asp-action="Clarifications">All conversations</a></div>
+        <label for="clarification-tender-search" class="form-label">Find a tender</label>
+        <input id="clarification-tender-search" type="search" class="form-control" placeholder="Search by tender title or number" data-top-search=".tc-tender-choice" />
+        <p class="form-text" data-top-search-status role="status" hidden></p>
+        <nav class="tc-tender-choices" aria-label="Choose a tender for clarification">
+        @foreach (var tender in Model.Tenders)
+        {
+            <a class="tc-tender-choice" asp-action="Clarifications" asp-route-tenderId="@tender.TenderId" aria-current="@(Model.Create.TenderId == tender.TenderId ? "page" : null)"><span><small>Tender #@tender.TenderId</small><strong>@tender.Title</strong></span><span>@CommitteeDisplay.Status(tender.Status)</span></a>
+        }
+        </nav>
+    </section>
+    @if (Model.Create.TenderId > 0)
+    {
+        <div class="workspace-section tc-clarification-context">
+            <div>
+                <span class="badge @(Model.OpenCount > 0 ? "text-bg-warning" : "text-bg-secondary")">@(Model.OpenCount > 0 ? "Voting paused" : "No open questions")</span>
+                <p class="mb-0">@(Model.OpenCount > 0 ? $"{Model.OpenCount} unresolved {(Model.OpenCount == 1 ? "clarification" : "clarifications")} for this tender." : "There are no unresolved committee clarifications for this tender.")</p>
+            </div>
+            <div class="tc-flow-actions"><a class="btn" asp-action="TenderDetails" asp-route-id="@Model.Create.TenderId">View tender details</a><a class="btn" href="#your-conversations">View conversations</a></div>
+        </div>
+    }
+    <details class="workspace-section tc-compose-question" open="@(!ViewData.ModelState.IsValid)">
+        <summary id="create-heading">Ask a new question</summary>
+        @if (Model.CreateBlockedReason != null)
+        {
+            <p class="mb-0">@Model.CreateBlockedReason</p>
+        }
+        else
+        {
+            <p>Send to <strong>@Model.ManagerName</strong>. This pauses committee voting for the tender until all open clarifications are resolved.</p>
+            <form asp-action="CreateClarification" method="post">
+                <input asp-for="Create.TenderId" type="hidden" />
+                <div class="field"><label asp-for="Create.Subject">Subject</label><input asp-for="Create.Subject" class="form-control" maxlength="200" required /><span asp-validation-for="Create.Subject" class="text-danger"></span></div>
+                <div class="field"><label asp-for="Create.Description">Question</label><textarea asp-for="Create.Description" class="form-control" rows="5" maxlength="4000" required></textarea><span asp-validation-for="Create.Description" class="text-danger"></span></div>
+                <button class="btn btn-primary" type="submit">Send clarification</button>
+            </form>
+        }
+    </details>
+}
+<section id="your-conversations" aria-labelledby="tc-conversations-heading">
+<header class="tc-flow-section-heading"><h2 id="tc-conversations-heading">Your conversations</h2><span class="tc-flow-count">@Model.Threads.Count</span></header>
+@if (Model.Threads.Count == 0)
+{ <section class="workspace-section tc-empty"><h3>No conversations yet</h3><p class="mb-0">No private clarifications are recorded for @(Model.Create.TenderId > 0 ? "this tender" : "your assigned tenders").</p></section> }
+else
+{
+    @foreach (var thread in Model.Threads)
+    { <partial name="_ClarificationThread" model="thread" /> }
+}
+</section>
+<nav class="tc-flow-actions tc-clarification-footer" aria-label="Clarifications navigation">
+    <a class="btn btn-primary" asp-controller="Clarification" asp-action="Index">Questions from the Sourcing Manager</a>
+    <a class="btn" asp-action="Dashboard">Back to dashboard</a>
+</nav>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

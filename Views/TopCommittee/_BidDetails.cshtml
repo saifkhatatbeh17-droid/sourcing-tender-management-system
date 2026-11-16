@@ -1,0 +1,128 @@
+@model CommitteeBid
+
+<dl class="tc-dialog-overview">
+    <div><dt>Offer total</dt><dd>@CommitteeDisplay.Money(Model.Total) @Model.Currency</dd></div>
+    <div><dt>Delivery time</dt><dd>@Model.DeliveryDays days</dd></div>
+    <div><dt>Compliance</dt><dd>@CommitteeDisplay.Status(Model.ComplianceStatus)</dd></div>
+</dl>
+
+<div class="tc-detail-columns">
+    <section class="tc-detail-group">
+        <h3>Price breakdown</h3>
+        <dl class="tc-detail-facts">
+            <div><dt>Item subtotal</dt><dd>@CommitteeDisplay.Money(Model.Subtotal) @Model.Currency</dd></div>
+            <div><dt>Tax</dt><dd>@CommitteeDisplay.Money(Model.TaxAmount) @Model.Currency</dd></div>
+            <div><dt>Additional costs</dt><dd>@CommitteeDisplay.Money(Model.AdditionalCosts) @Model.Currency</dd></div>
+            @if (!string.IsNullOrWhiteSpace(Model.PaymentTerms)) { <div><dt>Payment terms</dt><dd>@Model.PaymentTerms</dd></div> }
+        </dl>
+    </section>
+    <section class="tc-detail-group">
+        <h3>Submission</h3>
+        <dl class="tc-detail-facts">
+            <div><dt>Bid status</dt><dd>@CommitteeDisplay.Status(Model.Status)</dd></div>
+            @if (Model.SubmittedAt.HasValue) { <div><dt>Submitted</dt><dd>@CommitteeDisplay.Utc(Model.SubmittedAt)</dd></div> }
+            @if (Model.ValidUntil.HasValue) { <div><dt>Valid until</dt><dd>@CommitteeDisplay.Date(Model.ValidUntil)</dd></div> }
+        </dl>
+    </section>
+</div>
+
+<section class="tc-detail-block">
+    <h3>Quoted items</h3>
+    @if (Model.Items.Count == 0) { <p class="tc-dialog-empty">No quoted items.</p> }
+    else
+    {
+        <div class="table-responsive tc-dialog-table-wrap" tabindex="0" role="region" aria-label="Quoted items">
+            <table class="table tc-dialog-table">
+                <thead>
+                    <tr><th scope="col">Item</th><th scope="col" class="tc-dialog-number">Quantity</th><th scope="col" class="tc-dialog-number">Unit price (@Model.Currency)</th><th scope="col">Offered specifications</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr><th scope="row">@item.ItemName</th><td class="tc-dialog-number">@CommitteeDisplay.Quantity(item.Quantity)</td><td class="tc-dialog-number">@CommitteeDisplay.Money(item.UnitPrice)</td><td>@item.OfferedSpecifications</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.TechnicalDetails) || !string.IsNullOrWhiteSpace(Model.ComplianceNotes))
+{
+    <section class="tc-detail-group">
+        <h3>Technical and compliance notes</h3>
+        <dl class="tc-detail-facts tc-detail-facts-stacked">
+            @if (!string.IsNullOrWhiteSpace(Model.TechnicalDetails)) { <div><dt>Technical details</dt><dd class="tc-report-copy">@Model.TechnicalDetails</dd></div> }
+            @if (!string.IsNullOrWhiteSpace(Model.ComplianceNotes)) { <div><dt>Compliance notes</dt><dd class="tc-report-copy">@Model.ComplianceNotes</dd></div> }
+        </dl>
+    </section>
+}
+
+<section class="tc-detail-block">
+    <h3>Committee evaluations</h3>
+    @if (Model.Evaluations.Count == 0) { <p class="tc-dialog-empty">No evaluations submitted.</p> }
+    else
+    {
+        <div class="tc-dialog-evaluations">
+            @foreach (var evaluation in Model.Evaluations)
+            {
+                <details>
+                    <summary>
+                        <span>@evaluation.Evaluator</span>
+                        <span class="badge">@CommitteeDisplay.Status(evaluation.Status)</span>
+                    </summary>
+                    <div class="tc-dialog-evaluation-body">
+                        @if (!string.IsNullOrWhiteSpace(evaluation.Notes))
+                        {
+                            <p class="tc-report-copy">@evaluation.Notes</p>
+                        }
+                        @if (evaluation.SubmittedAt.HasValue || evaluation.ApprovedAt.HasValue)
+                        {
+                            <p class="tc-dialog-dates">
+                                @if (evaluation.SubmittedAt.HasValue) { <span>Submitted @CommitteeDisplay.Utc(evaluation.SubmittedAt)</span> }
+                                @if (evaluation.ApprovedAt.HasValue) { <span>Approved @CommitteeDisplay.Utc(evaluation.ApprovedAt)</span> }
+                            </p>
+                        }
+                        @if (evaluation.Scores.Count > 0)
+                        {
+                            <div class="table-responsive tc-dialog-table-wrap" tabindex="0" role="region" aria-label="Criterion scores for @evaluation.Evaluator">
+                                <table class="table tc-dialog-table">
+                                    <thead><tr><th scope="col">Criterion</th><th scope="col" class="tc-dialog-number">Weight</th><th scope="col" class="tc-dialog-number">Score</th><th scope="col">Notes</th></tr></thead>
+                                    <tbody>
+                                        @foreach (var score in evaluation.Scores)
+                                        {
+                                            <tr>
+                                                <th scope="row">
+                                                    @score.Criterion
+                                                    <small>@(score.Category == "Requirements" ? "Technical" : score.Category)</small>
+                                                </th>
+                                                <td class="tc-dialog-number">@CommitteeDisplay.Quantity(score.Weight)%</td>
+                                                <td class="tc-dialog-number">@CommitteeDisplay.Quantity(score.Score) / @CommitteeDisplay.Quantity(score.Maximum)</td>
+                                                <td>@CommitteeDisplay.Text(score.Notes)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else { <p class="tc-dialog-empty">No criterion scores.</p> }
+                    </div>
+                </details>
+            }
+        </div>
+    }
+</section>
+
+<section class="tc-detail-block">
+    <h3>Bid documents</h3>
+    @if (Model.Documents.Count == 0) { <p class="tc-dialog-empty">No documents attached.</p> }
+    else
+    {
+        <ul class="tc-dialog-files">
+            @foreach (var document in Model.Documents)
+            {
+                <li><strong>@document.OriginalFileName</strong><small>@CommitteeDisplay.Text(document.DocumentType) · @document.SizeBytes.ToString("N0") bytes</small></li>
+            }
+        </ul>
+    }
+</section>

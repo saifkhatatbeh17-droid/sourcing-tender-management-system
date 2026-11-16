@@ -1,3 +1,56 @@
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<!-- TEAM TODO: Implement EvaluationCommittee / Dashboard here. -->
+@model CommitteeEvaluationPage
+@{
+    ViewData["Title"] = "Committee dashboard";
+    var active = Model.Tenders.Where(t => t.Status == "UnderEvaluation").ToList();
+    var pending = active.Where(t => t.CommitteeAssignments.Any(m => m.CommitteeType == "Evaluation" && m.UserId == Model.UserId)
+        && !t.TenderApprovals.Any(a => a.Stage == "Evaluation" && a.UserId == Model.UserId && a.Decision == "Approved")).ToList();
+    var next = pending.FirstOrDefault() ?? active.FirstOrDefault();
+}
+@section Styles { <link rel="stylesheet" href="~/css/dashboard-overview.css" asp-append-version="true" /> <partial name="_CommitteePageStyles" /> }
+<div class="evaluation-page committee-workspace unified-dashboard">
+    <header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Committee dashboard</h1><p>Your tenders, shared evaluations, and next actions.</p></div><a class="cw-button cw-button-secondary" asp-action="Evaluations">Open evaluations <span aria-hidden="true">↗</span></a></header>
+    <dl class="cw-metrics">
+        <div class="cw-metric-primary"><dt>Under evaluation</dt><dd>@active.Count</dd><dd class="cw-metric-description">Open for committee review</dd></div>
+        <div class="cw-metric-attention"><dt>Needs your review</dt><dd>@pending.Count</dd><dd class="cw-metric-description">Assigned evaluations to complete</dd></div>
+        <div><dt>Past evaluation</dt><dd>@(Model.Tenders.Count - active.Count)</dd><dd class="cw-metric-description">Follow the recorded outcome</dd></div>
+    </dl>
+@{
+ var assigned = Model.Tenders.Where(t => t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == Model.UserId)).ToList();
+ var needsReview = assigned.Count(t => t.Status == "UnderEvaluation" && !t.TenderApprovals.Any(a => a.Stage == "Evaluation" && a.UserId == Model.UserId && a.Decision == "Approved"));
+ var waiting = assigned.Count(t => t.Status == "UnderEvaluation") - needsReview;
+ var finished = assigned.Count - needsReview - waiting;
+ var overview = new DashboardOverview("Your review progress", "Only tenders assigned to you", "tenders", "need review",
+ [new("Needs your review", needsReview), new("Your review recorded", waiting, "positive"), new("Past evaluation", finished, "other")], "Your evaluation workload", "One current stage for each assigned tender",
+ [new("Needs your review", needsReview), new("Waiting for committee", waiting), new("Past evaluation", finished)]);
+}
+<partial name="_DashboardOverview" model="overview" />
+    <div class="cw-dashboard-grid">
+        <section class="cw-panel cw-tenders" aria-labelledby="tenders-heading">
+            <header class="cw-panel-header"><div><h2 id="tenders-heading">Your tenders</h2><p>Showing up to 5 tenders · Active evaluations first.</p></div><a class="cw-text-link" asp-action="Evaluations">View all @Model.Tenders.Count tenders →</a></header>
+            @if (Model.Tenders.Count == 0)
+            { <div class="cw-empty"><partial name="_AdminSidebarIcon" model='@("Evaluations")' /><h3>No tenders to review yet</h3><p>Tenders appear here when eligible offers reach the evaluation committee.</p></div> }
+            else
+            {
+                <div class="cw-tender-list">
+                @foreach (var tender in Model.Tenders.OrderByDescending(t => t.Status == "UnderEvaluation").ThenByDescending(t => t.CreatedAt).Take(5))
+                {
+                    var approvals = tender.TenderApprovals.Count(a => a.Stage == "Evaluation" && a.Decision == "Approved");
+                    <a class="cw-tender-row" asp-action="Evaluations" asp-route-id="@tender.TenderId">
+                        <span class="cw-document" aria-hidden="true"><partial name="_AdminSidebarIcon" model='@("Reports")' /></span>
+                        <span class="cw-tender-name"><small>Tender #@tender.TenderId</small><strong>@tender.Title</strong></span>
+                        <span class="cw-row-meta"><span class="cw-status @(tender.Status == "UnderEvaluation" ? "cw-status-active" : "")">@CommitteeEvaluationPage.StatusLabel(tender.Status)</span><small>@approvals / 4 approvals</small></span>
+                        <span class="cw-row-arrow" aria-hidden="true">↗</span>
+                    </a>
+                }
+                </div>
+            }
+        </section>
+        <aside class="cw-dashboard-aside">
+            <section class="cw-next-action"><span class="cw-aside-icon" aria-hidden="true"><partial name="_AdminSidebarIcon" model='@("Evaluations")' /></span><h2>@(next == null ? "You’re up to date" : "Continue your review")</h2>
+            @if(next != null) { <p class="cw-next-title">@next.Title</p><p>Confirm your weights, then score every eligible offer. All four members must finish their reviews.</p><a class="cw-text-link" asp-action="Evaluations" asp-route-id="@next.TenderId">Review tender <span aria-hidden="true">→</span></a> }
+            else { <p>No open evaluations need your review. You can still view past reports and approvals.</p><a class="cw-text-link" asp-action="Reports">Browse reports <span aria-hidden="true">→</span></a> }
+            </section>
+            <section class="cw-process-note"><h2>One shared evaluation</h2><ol><li>Agree on financial and technical weights.</li><li>Score every eligible offer; the highest average score leads.</li><li>Resolve any tied leaders unanimously.</li></ol><p>After all four approvals, generate the final report and send it to the sourcing officer.</p></section>
+        </aside>
+    </div>
+</div>

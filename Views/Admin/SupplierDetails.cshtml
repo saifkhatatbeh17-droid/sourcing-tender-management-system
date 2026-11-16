@@ -1,0 +1,22 @@
+@model SupplierDetailsViewModel
+@{
+    var supplier = Model.Supplier;
+
+    ViewData["Title"] = supplier.CompanyName;
+}
+
+<nav class="mb-3 d-flex flex-wrap gap-3" aria-label="Supplier navigation">
+    <a asp-action="SupplierApplications">Supplier Applications</a>
+    <a asp-action="Suppliers">All Suppliers</a>
+</nav>
+
+<div class="workspace-heading">
+    <h1 class="text-break">@supplier.CompanyName</h1>
+    <span class="badge @SupplierListViewModel.StatusStyle(supplier.Status)">@SupplierListViewModel.StatusLabel(supplier.Status)</span>
+</div>
+
+<partial name="_SupplierDetailsContent" model="Model" />
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

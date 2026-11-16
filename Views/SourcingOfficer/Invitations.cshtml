@@ -1,3 +1,72 @@
-@{ ViewData["Title"] = "Supplier Invitations"; }
-<h1>Supplier Invitations</h1>
-<!-- TEAM TODO: Implement SourcingOfficer / Invitations here. -->
+@using SourcingTenderManagement.Models.Entities
+@model List<Invitation>
+@{
+    ViewData["Title"] = "Supplier Invitations";
+    var eligibleTenders = ViewBag.EligibleTenders as List<Tender> ?? [];
+
+    var selectedTenderId = ViewBag.SelectedTenderId as int?;
+    var pendingInvitations = Model.Count(invitation => invitation.Status == "Pending");
+    var invitedTenderCount = Model.Select(invitation => invitation.TenderId).Distinct().Count();
+}
+
+@section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
+
+<div class="so-page so-page--invitations">
+<header class="so-page-header"><div>
+<h1>Supplier invitations</h1>
+<p class="so-page-description">Invite approved suppliers and follow their responses.</p></div><a class="btn btn-primary" href="#invitations-create">Invite suppliers <span aria-hidden="true">＋</span></a></header>
+
+@if (TempData["InvitationSuccess"] is string successMessage)
+{
+    <div data-flash-message class="alert alert-success" role="status">@successMessage</div>
+}
+@if (TempData["InvitationError"] is string errorMessage)
+{
+    <div data-flash-message class="alert alert-danger" role="alert">@errorMessage</div>
+}
+@if (selectedTenderId.HasValue && Model.Count > 0)
+{
+    <div class="so-next-step"><div><strong>Next: review supplier offers</strong><p>Invitations are sent. Submitted offers for this tender will appear in Offer review.</p></div><a class="btn btn-primary" asp-action="Offers" asp-route-tenderId="@selectedTenderId">Review offers →</a></div>
+}
+<section class="so-summary-grid" aria-label="Invitation summary">
+    <article class="so-summary-card"><span class="so-summary-label">Invitations</span><strong>@Model.Count</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Pending</span><strong>@pendingInvitations</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Tenders represented</span><strong>@invitedTenderCount</strong></article>
+    <article class="so-summary-card"><span class="so-summary-label">Eligible tenders</span><strong>@eligibleTenders.Count</strong></article>
+</section>
+<nav class="so-jump-nav" aria-label="Invitation sections"><a id="invitations-list-tab" href="#invitations-list">Existing invitations</a><a id="invitations-create-tab" href="#invitations-create">Invite suppliers</a></nav>
+
+<section id="invitations-list" class="workspace-section" aria-labelledby="invitations-list-tab">
+    <div class="so-section-heading"><div><h2>Existing Invitations</h2></div><span class="so-section-count">@Model.Count</span></div>
+    @if (Model.Count == 0)
+    {
+        <div class="so-empty-state"><span class="so-empty-mark" aria-hidden="true">I</span><div><strong>No invitations yet</strong><p>Invitations you send will appear here.</p></div></div>
+    }
+    else
+    {
+        <div class="table-responsive"><table class="table">
+            <thead><tr><th scope="col">Tender</th><th scope="col">Supplier</th><th scope="col">Invitation Date (UTC)</th><th scope="col">Deadline (UTC)</th><th scope="col">Status</th></tr></thead>
+            <tbody>@foreach (var invitation in Model)
+            {
+                <tr><td>@invitation.Tender.Title</td><td>@invitation.SupplierProfile.CompanyName</td><td>@invitation.SentAt.ToString("yyyy-MM-dd HH:mm")</td><td>@invitation.Tender.ClosesAt.ToString("yyyy-MM-dd HH:mm")</td><td><span class="so-status-badge" data-status="@invitation.Status">@invitation.Status</span></td></tr>
+            }</tbody>
+        </table></div>
+    }
+</section>
+<section id="invitations-create" class="so-action-panel so-action-panel--form" aria-labelledby="invitations-create-title">
+    <div class="so-section-heading"><div><h2 id="invitations-create-title">Invite Approved Suppliers</h2></div><span class="so-section-count">@eligibleTenders.Count tenders</span></div>
+    @if (eligibleTenders.Count == 0)
+    {
+        <div class="so-invitation-unavailable"><h3>No tenders are ready for invitations</h3><p>Create a tender with a future submission deadline to invite suppliers. Expired and closed tenders cannot receive invitations.</p><a asp-action="Tenders" class="btn btn-primary">View tenders ↗</a></div>
+    }
+    <form asp-action="CreateInvitation" method="post" class="so-invitation-form" data-filter-suppliers>
+        @Html.AntiForgeryToken()
+        <div class="mb-3"><label for="tenderId" class="form-label">Published or open tender</label><select id="tenderId" name="tenderId" class="form-select" data-tender-category-select required disabled="@(eligibleTenders.Count == 0)"><option value="">@(eligibleTenders.Count == 0 ? "No eligible tenders — publish a tender first" : "Select a tender")</option>@foreach (var tender in eligibleTenders) { <option value="@tender.TenderId" data-category="@(tender.Category ?? "")" selected="@(selectedTenderId == tender.TenderId)">@tender.Title · @(tender.Category ?? "Uncategorized") (closes @tender.ClosesAt.ToString("yyyy-MM-dd HH:mm") UTC)</option> }</select></div>
+        <partial name="_LaunchSuppliers" />
+        <div class="so-action-buttons"><a class="btn btn-outline-secondary" href="#invitations-list">Back to invitations</a><button type="submit" class="btn btn-primary" disabled="@(eligibleTenders.Count == 0)">Send Invitations</button></div>
+    </form>
+</section>
+</div>
+@section Scripts {
+    <script src="~/js/procurement-categories.js" asp-append-version="true" defer></script>
+}

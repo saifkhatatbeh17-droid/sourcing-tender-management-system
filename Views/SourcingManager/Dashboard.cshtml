@@ -1,3 +1,51 @@
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<!-- TEAM TODO: Implement SourcingManager / Dashboard here. -->
+@model ManagerDashboard
+@{
+    ViewData["Title"] = "Sourcing Manager Dashboard";
+    var metrics = new[]
+    {
+        (Label: "Needs your review", Count: Model.AwaitingReview, Description: "Read the committee’s findings and record a decision.", Link: "Review recommendations", Action: "Submissions", Decision: (string?)null, Fragment: "awaiting-review"),
+        (Label: "Ready to forward", Count: Model.Approved, Description: "Add the referral reason and send approved recommendations to the CEO & Chiefs.", Link: "Open approved submissions", Action: "Submissions", Decision: (string?)null, Fragment: "ready-to-forward"),
+        (Label: "With the CEO & Chiefs", Count: Model.AwaitingCommittee, Description: "Follow tender outcomes from your approved decisions.", Link: "View approved decisions", Action: "Reports", Decision: (string?)"Approved", Fragment: ""),
+        (Label: "Questions for you", Count: Model.PendingClarifications, Description: "Open your conversations and respond to pending questions.", Link: "Open clarifications", Action: "Clarifications", Decision: (string?)null, Fragment: "")
+    };
+}
+
+@section Styles { <link rel="stylesheet" href="~/css/dashboard-overview.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
+}
+
+<div class="manager-shell manager-refresh unified-dashboard">
+    <div class="manager-dashboard">
+        <header class="dashboard-heading mr-page-heading">
+            <div class="mr-heading-copy"><h1>Sourcing manager dashboard</h1><p>Review recommendations, forward approved submissions, and follow final decisions.</p></div>
+            <div class="mr-actions mr-heading-actions">
+                <a class="dashboard-cta" asp-action="Submissions">Open Officer Submissions <span aria-hidden="true">→</span></a>
+                <a class="btn btn-outline-primary" asp-action="ChosenOffers">View chosen offers</a>
+            </div>
+        </header>
+        <section class="dashboard-metrics is-four mr-dashboard-metrics" aria-label="Manager activity">
+            @foreach (var metric in metrics)
+            {
+                <article class="dashboard-metric @(metric.Fragment == "awaiting-review" && metric.Count > 0 ? "mr-priority-metric" : null)">
+                    <h2>@metric.Label</h2>
+                    <strong>@metric.Count.ToString("N0")</strong>
+                    <p>@metric.Description</p>
+                    <div class="mr-metric-action">
+                        <a class="btn btn-outline-primary" asp-action="@metric.Action" asp-route-decision="@metric.Decision"
+                           asp-fragment="@metric.Fragment">@metric.Link <span aria-hidden="true">→</span></a>
+                    </div>
+                </article>
+            }
+        </section>
+@{
+ var reportStates = ViewBag.DashboardReportStates as Dictionary<string,int> ?? new();
+ int N(params string[] keys) => keys.Sum(k => reportStates.GetValueOrDefault(k));
+ var reportStages = new List<DashboardSlice> { new("Needs your review", N("Needs your review")), new("Ready to forward", N("Ready to forward")), new("With CEO & Chiefs", N("With CEO & Chiefs")), new("Back with committee", N("Back with committee")), new("Awarded", N("Awarded")), new("Rejected or cancelled", N("Rejected", "Cancelled")) };
+ if(N("With sourcing team") > 0) reportStages.Add(new("With sourcing team", N("With sourcing team")));
+ var overview = new DashboardOverview("Recommendation status", "Reports that reached manager review", "recommendations", "in progress",
+ [new("In progress", N("Needs your review", "Ready to forward", "With CEO & Chiefs", "Back with committee", "With sourcing team")), new("Awarded", N("Awarded"), "positive"), new("Rejected or cancelled", N("Rejected", "Cancelled"), "muted")], "Where recommendations are", "Current review stage of each report", reportStages);
+}
+<partial name="_DashboardOverview" model="overview" />
+
+    </div>
+</div>

@@ -1,0 +1,62 @@
+/* Percentage confirmation card within the original committee page. */
+.cs-reference { display: block; font-size: .75rem; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; margin-bottom: .35rem; }
+.cs-pill { display: inline-flex; align-items: center; padding: .3rem .65rem; border-radius: 999px; font-size: .75rem; font-weight: 600; color: var(--color-text-secondary); background: var(--color-surface-alt); white-space: normal; line-height: 1.4; }
+.cs-pill.is-success, .cs-confirmed { color: var(--color-link); background: var(--color-selection); }
+.cs-panel { border: 1px solid var(--color-border); border-radius: 1rem; padding: 1.4rem; margin-bottom: 1.25rem; background: var(--color-surface); }
+.cs-section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.1rem; }
+.cs-section-heading p { font-size: .85rem; margin-top: .35rem; max-width: 65ch; }
+.cs-section-heading > .cs-pill, .cs-section-heading > .cs-button { flex-shrink: 0; }
+.cs-proposals { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .8rem; }
+.cs-proposal { background: var(--color-surface-alt); padding: 1rem; border-radius: .8rem; border: 1px solid transparent; }
+.cs-proposal.is-yours { border-color: var(--color-link); }
+.cs-proposal header { display: flex; justify-content: space-between; align-items: center; gap: .5rem; font-size: .8rem; }
+.cs-proposal > p { margin: .3rem 0 .8rem; font-size: .75rem; }
+.cs-you { color: var(--color-link); font-size: .7rem; font-weight: 600; }
+.cs-proposal-value { display: flex; gap: .65rem; align-items: baseline; flex-wrap: wrap; }
+.cs-proposal-value strong { font-size: 1.7rem; letter-spacing: -.04em; line-height: 1.2; }
+.cs-proposal-value span { color: var(--color-text-secondary); font-size: .75rem; }
+.cs-confirmed, .cs-pending { display: inline-block; font-size: .7rem; margin-top: .7rem; padding: .15rem .4rem; border-radius: .3rem; }
+.cs-pending { color: var(--color-text-secondary); }
+.cs-consensus :is(input,textarea,select) { display: block; width: 100%; box-sizing: border-box; border: 1px solid var(--color-input-border); border-radius: .65rem; background: var(--color-surface); color: var(--color-text); padding: .65rem .75rem; font: inherit; font-size: .9rem; min-height: 2.75rem; margin-top: .4rem; }
+.cs-consensus input[readonly] { background: var(--color-surface-alt); color: var(--color-text-secondary); cursor: default; }
+.cs-consensus label { display: block; font-size: .8rem; font-weight: 600; }
+.cs-slider-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.cs-consensus output { color: var(--color-link); font-weight: 650; font-variant-numeric: tabular-nums; }
+.cs-consensus input[type="range"] { appearance: none; -webkit-appearance: none; --slider-fill: 50%; padding: 0; border: 0; border-radius: .5rem; background: transparent; cursor: pointer; min-height: 2.75rem; height: 2.75rem; margin: .25rem 0; }
+.cs-consensus input[type="range"]::-webkit-slider-runnable-track { height: .5rem; border-radius: 999px; background: linear-gradient(to right, var(--color-link) 0%, var(--color-link) var(--slider-fill), var(--color-surface-alt) var(--slider-fill), var(--color-surface-alt) 100%); box-shadow: inset 0 0 0 1px var(--color-border); }
+.cs-consensus input[type="range"]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 1.5rem; height: 1.5rem; margin-top: -.5rem; border-radius: 50%; border: 3px solid var(--color-surface); background: var(--color-link); box-shadow: 0 1px 5px #0003; }
+.cs-consensus input[type="range"]::-moz-range-track { height: .5rem; border-radius: 999px; background: var(--color-surface-alt); box-shadow: inset 0 0 0 1px var(--color-border); }
+.cs-consensus input[type="range"]::-moz-range-progress { height: .5rem; border-radius: 999px; background: var(--color-link); }
+.cs-consensus input[type="range"]::-moz-range-thumb { width: 1.125rem; height: 1.125rem; border-radius: 50%; border: 3px solid var(--color-surface); background: var(--color-link); box-shadow: 0 1px 5px #0003; }
+.cs-proposal form > p { font-size: .75rem; margin-top: .5rem; }
+.cs-proposal form .cs-button { margin-top: .8rem; width: 100%; }
+.cs-button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.7rem; border: 1px solid var(--color-border); border-radius: .65rem; padding: .6rem .9rem; color: var(--color-text); background: var(--color-surface); text-decoration: none; font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; transition: background-color .15s, transform .1s; }
+.cs-button:hover { background: var(--color-surface-alt); color: var(--color-text); }
+.cs-button.is-primary { background: var(--color-link); border-color: var(--color-link); color: var(--color-surface); }
+.cs-button:active { transform: scale(.98); }
+.cs-button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.cs-consensus :is(a,button,input,textarea,select,summary):focus-visible { outline: 3px solid var(--color-link); outline-offset: 3px; }
+.cs-locked-split { display: flex; flex-wrap: wrap; align-items: center; gap: 2rem; margin-top: 1.2rem; padding-top: 1.2rem; border-top: 1px solid var(--color-border); }
+.cs-locked-split div > span { display: block; font-size: .75rem; color: var(--color-text-secondary); }
+.cs-locked-split strong { font-size: 1.8rem; letter-spacing: -.03em; }
+.cs-locked-split strong small { font-size: .8rem; font-weight: 400; color: var(--color-text-secondary); }
+.cs-locked-split > p { margin-left: auto; font-size: .75rem; }
+@media (max-width: 680px) { .cs-proposals { grid-template-columns: 1fr; } .cs-section-heading { flex-wrap: wrap; } }
+.cs-offers-heading { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; min-width: 0; }
+.cs-weights-disclosure { position: relative; }
+.cs-weights-disclosure > summary { display: inline-flex; align-items: center; justify-content: center; gap: .6rem; min-height: 2.75rem; padding: .65rem 1rem; border: 1px solid var(--color-primary); border-radius: var(--radius-small); background: var(--color-primary); color: var(--color-on-primary); font-size: .875rem; font-weight: 500; line-height: 1.3; list-style: none; cursor: pointer; font-variant-numeric: tabular-nums; transition: background-color .15s, border-color .15s, transform .1s; }
+.cs-weights-disclosure > summary::-webkit-details-marker { display: none; }
+.cs-weights-disclosure > summary:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); }
+.cs-weights-disclosure > summary:active { background: var(--color-primary-active); transform: scale(.98); }
+.cs-weights-disclosure > summary:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+.cs-weights-disclosure > summary svg { display: block; flex-shrink: 0; }
+.cs-weight-pair { display: inline-flex; gap: .3rem; white-space: nowrap; }
+.cs-weight-pair strong { font-weight: 650; }
+.cs-weight-divider { width: 1px; height: 1rem; background: currentColor; opacity: .25; }
+.cs-weights-chevron { transition: transform .15s ease; }
+.cs-weights-disclosure[open] .cs-weights-chevron { transform: rotate(180deg); }
+.cs-weights-popover { position: absolute; z-index: 10; top: calc(100% + .5rem); left: 0; width: min(32rem, 70vw); padding: 1.1rem; border: 1px solid var(--color-border); border-radius: 1rem; background: var(--color-surface); color: var(--color-text); box-shadow: 0 8px 28px #0002; }
+.cs-weights-popover > p { margin: .4rem 0 .9rem; font-size: .8rem; color: var(--color-text-secondary); }
+@media (max-width: 680px) { .cs-weights-disclosure { position: static; } .cs-offers-heading { position: relative; } .cs-weights-popover { width: min(32rem, calc(100vw - 5rem)); } }
+@media (max-width: 420px) { .cs-weights-disclosure > summary { padding-inline: .75rem; gap: .4rem; font-size: .8rem; } }
+@media (prefers-reduced-motion: reduce) { .cs-weights-chevron, .cs-weights-disclosure > summary { transition: none; } .cs-weights-disclosure > summary:active { transform: none; } }

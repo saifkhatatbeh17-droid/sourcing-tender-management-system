@@ -1,0 +1,67 @@
+/* Admin: clear hierarchy, comparable records and predictable forms. */
+.admin-shell .workspace-heading { align-items:center;margin-bottom:24px;gap:20px; }
+.admin-shell .workspace-heading h1 { font-size:30px;line-height:1.25;letter-spacing:-.025em; }
+.admin-shell .workspace-heading p { max-width:65ch;color:var(--color-text-secondary);font-size:14px;line-height:1.6; }
+.admin-shell .admin-records,.admin-shell .workspace-section { border-radius:14px; }
+.admin-shell .admin-record-filters { align-items:end; }
+.admin-shell .admin-record-filters .form-label { display:block;margin-bottom:7px;font-size:12px;font-weight:600; }
+.admin-shell .form-control,.admin-shell .form-select { min-height:44px;background-color:var(--color-surface);color:var(--color-text);border-color:var(--color-border);font-size:14px; }
+.admin-shell .btn { min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:13px; }
+.admin-shell .admin-record-table :is(th,td) { padding:18px 20px;vertical-align:middle; }
+.admin-shell .admin-record-table thead th { color:var(--color-text-secondary);background:var(--color-surface-alt);font-size:12px;font-weight:600;border-bottom:1px solid var(--color-border); }
+.admin-shell .admin-record-table tbody th { font-weight:600; }.admin-shell .admin-record-table { font-size:14px; }
+.admin-shell .badge { font-size:12px;font-weight:500;border-radius:6px!important;padding:7px 9px; }
+.admin-shell .au-list-heading { padding:20px 24px;border-bottom:1px solid var(--color-border); }.au-list-heading h2 { font-size:18px;margin:0 0 6px; }.au-list-heading p { font-size:13px;color:var(--color-text-secondary);margin:0; }
+.admin-shell .au-meta { display:block;font-size:12px;color:var(--color-text-secondary);font-weight:400;margin-top:5px; }
+.admin-shell .admin-record-empty { padding:32px 24px;font-size:14px;color:var(--color-text-secondary); }
+.admin-shell .modal-content { border:1px solid var(--color-border);border-radius:16px;background:var(--color-surface);color:var(--color-text); }
+.admin-shell .modal-header,.admin-shell .modal-body,.admin-shell .modal-footer { padding:20px 24px; }.admin-shell .modal-header,.admin-shell .modal-footer { border-color:var(--color-border); }
+.admin-shell .modal-title { font-size:20px!important;letter-spacing:-.02em; }.admin-shell .field { margin-bottom:18px; }.admin-shell .field>label { display:block;margin-bottom:7px;font-size:13px;font-weight:600; }.admin-shell .field .text-danger { display:block;margin-top:5px;font-size:12px; }
+.admin-shell .au-message-body { max-width:75ch;line-height:1.8;font-size:15px; }
+.admin-shell :is(button,a,input,select,textarea,summary):focus-visible { outline:2px solid var(--color-link);outline-offset:3px; }
+@media(max-width:650px){.admin-shell .workspace-heading { align-items:start; }.admin-shell .admin-record-table :is(th,td) { padding:14px 16px; }.admin-shell .admin-record-table { min-width:620px; }.admin-shell .modal-header,.admin-shell .modal-body,.admin-shell .modal-footer { padding:18px; }.admin-shell .voice-search-control .input-group { flex-wrap:wrap; }.admin-shell .voice-search-control .input-group>.form-control { flex-basis:100%;width:100%;border-radius:8px; }.admin-shell .voice-search-control .input-group>.form-select { flex:1;max-width:none; }.admin-shell .table-responsive { max-width:100%;overscroll-behavior-inline:contain; }}
+@media(prefers-reduced-motion:reduce){.admin-shell .modal.fade .modal-dialog { transition:none; }}
+
+html[data-theme="dark"] .admin-shell main a:not(.btn-primary):not(.btn-danger):not(.dashboard-cta):not(.admin-review-button):not(.admin-applications-button) { color:var(--color-link,#efb85c); }
+/* Supplier application review: three explicit stages, one decision at the end. */
+.admin-shell [data-review-flow] [hidden] { display:none!important; }
+.admin-shell .admin-review-overview { margin-bottom:20px; }.admin-shell .admin-review-overview p { margin:8px 0 0;font-size:14px;line-height:1.6; }
+.admin-shell .admin-review-eyebrow { font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--color-text-secondary); }
+.admin-shell .admin-review-stepper { display:flex;gap:12px;list-style:none;padding:0;margin:0 0 16px; }
+.admin-shell .admin-review-stepper li { display:flex;align-items:center;gap:9px;flex:1;border-bottom:2px solid var(--color-border);padding-bottom:14px;color:var(--color-text-secondary);font-size:13px; }
+.admin-shell .admin-review-stepper li>span { display:grid;place-items:center;flex-shrink:0;width:29px;height:29px;border:1px solid currentColor;border-radius:50%; }
+.admin-shell .admin-review-stepper li[aria-current="step"] {
+    color: var(--color-text);
+    border-color: var(--brand-highlight);
+}
+.admin-shell .admin-review-stepper li[aria-current="step"] > span {
+    color: var(--brand-highlight-ink);
+    background: var(--brand-highlight);
+    border-color: var(--brand-highlight);
+}
+.admin-shell .admin-review-stepper li.is-complete { border-color:var(--color-link); }
+.admin-shell .admin-review-progress { margin:0 0 18px;color:var(--color-text-secondary);font-size:13px; }
+.admin-shell [data-review-flow] .admin-review-controls { display:flex;gap:12px;justify-content:flex-end;padding-top:18px;margin-top:18px;border-top:1px solid var(--color-border); }
+.admin-shell :is([data-review-flow] .btn-primary, .btn-primary.admin-orange-action) { background:var(--action-petrol)!important;border-color:var(--action-petrol)!important;color:var(--action-petrol-text)!important;box-shadow:none; }
+.admin-shell :is([data-review-flow] .btn-primary, .btn-primary.admin-orange-action):hover { background:var(--action-petrol-hover)!important;border-color:var(--action-petrol-hover)!important; }
+.admin-shell #supplier-review-dialog .admin-review-controls .btn-primary {
+    background: var(--action-petrol) !important;
+    border-color: var(--action-petrol) !important;
+    color: var(--action-petrol-text) !important;
+}
+.admin-shell #supplier-review-dialog .admin-review-controls .btn-primary:is(:hover, :active) {
+    background: var(--action-petrol-hover) !important;
+    border-color: var(--action-petrol-hover) !important;
+}
+.admin-shell #supplier-review-dialog .admin-review-controls .btn-outline-primary {
+    border-color: var(--brand-highlight);
+    color: #98401f;
+}
+html[data-theme="dark"] .admin-shell #supplier-review-dialog .admin-review-controls .btn-outline-primary { color: var(--brand-highlight); }
+.admin-shell #supplier-review-dialog .admin-review-controls .btn-outline-primary:is(:hover, :active) {
+    background: var(--brand-highlight);
+    color: var(--brand-highlight-ink);
+}
+html[data-theme="dark"] .admin-shell #supplier-review-dialog .admin-review-controls .btn-outline-primary:is(:hover, :active) { color: var(--brand-highlight-ink); }
+.admin-shell [data-review-flow] h2 { font-size:20px; }.admin-shell [data-review-flow] h2:focus { outline:none; }
+@media(max-width:560px) { .admin-shell .admin-review-stepper { gap:8px; }.admin-shell .admin-review-stepper li { flex-direction:column;align-items:flex-start;font-size:12px; }.admin-shell [data-review-flow] .admin-review-controls .btn { flex:1; } }

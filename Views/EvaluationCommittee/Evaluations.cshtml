@@ -1,9 +1,130 @@
-@{ ViewData["Title"] = "Evaluations"; }
-<h1>Evaluations</h1>
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Evaluations">
-<button class="nav-link active" id="committee-0-tab" data-bs-toggle="tab" data-bs-target="#committee-0" type="button" role="tab" aria-controls="committee-0" aria-selected="true">Assigned Evaluations</button>
-<button class="nav-link " id="committee-1-tab" data-bs-toggle="tab" data-bs-target="#committee-1" type="button" role="tab" aria-controls="committee-1" aria-selected="false">Evaluation Forms</button>
-<button class="nav-link " id="committee-2-tab" data-bs-toggle="tab" data-bs-target="#committee-2" type="button" role="tab" aria-controls="committee-2" aria-selected="false">AI Analysis</button></div>
-<div class="tab-content workspace-content"><div class="tab-pane fade show active" id="committee-0" role="tabpanel" aria-labelledby="committee-0-tab" tabindex="0"><section class="workspace-section"><h2>Assigned Evaluations</h2><!-- TEAM TODO: Load only tenders assigned to the signed-in committee member. A selection opens the Evaluation Forms tab. --></section></div>
-<div class="tab-pane fade " id="committee-1" role="tabpanel" aria-labelledby="committee-1-tab" tabindex="0"><partial name="_MemberForms" /></div>
-<div class="tab-pane fade " id="committee-2" role="tabpanel" aria-labelledby="committee-2-tab" tabindex="0"><partial name="_AiAnalysis" /></div></div>
+@model CommitteeEvaluationPage
+@using System.Globalization
+@{
+    ViewData["Title"] = "Tender evaluations";
+    var tender = Model.Tender;
+    var offers = Model.Offers.OrderByDescending(offer => offer.SubmittedAt).ThenByDescending(offer => offer.BidId).ToList();
+    var currenciesMatch = offers.Select(o => o.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1;
+    string StatusLabel(string status) => status switch { "UnderEvaluation" => "Under evaluation", "AwaitingOfficerSummary" => "Sent to sourcing officer", _ => System.Text.RegularExpressions.Regex.Replace(status, "([a-z])([A-Z])", "$1 $2") };
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/committee-scoring.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/root.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/committee-evaluations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/committee-evaluations-webex.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/committee-report-summary.css" asp-append-version="true" /><link rel="stylesheet" href="~/css/committee-refinement.css" asp-append-version="true" />
+}
+<div class="evaluation-page">
+    @if (tender == null) { <header class="ev-page-heading"><div><h1>Tender evaluations</h1><p>Open a tender to review its offers and record your committee decision.</p></div></header> }
+    @if (TempData["CommitteeError"] is string error) { <div data-flash-message class="ev-notice ev-notice-error" role="alert">@error</div> }
+    @if (TempData["CommitteeSuccess"] is string success) { <div data-flash-message class="ev-notice ev-notice-success" role="status">@success</div> }
+    <div class="ev-tender-content">
+    <input type="hidden" id="tender" value="@tender?.TenderId" />
+    @if (tender != null)
+    {
+        <div class="ev-selected-tender">
+            <div class="ev-current-title"><h1>Tender evaluations</h1><p class="ev-current-tender"><span class="ev-tender-reference">#@tender.TenderId</span> @tender.Title</p></div>
+            <div class="ev-tender-header-actions">
+                <span class="ev-status">@StatusLabel(tender.Status)</span>
+                <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender" asp-route-recordId="@tender.TenderId" class="btn ev-button-secondary ev-ask-clarification">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 8h8M8 12h5"/></svg>Ask for clarification
+                </a>
+                <details class="ev-clarification-history ev-header-history">
+                    <summary><span>History</span><span class="ev-clarification-toggle" aria-hidden="true">⌄</span></summary>
+                    <div>@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = tender.TenderId })</div>
+                </details>
+            </div>
+        </div>
+    }
+    <partial name="_TenderBrowser" model="Model" />
+    @if (tender == null)
+    {
+        <div class="ev-empty"><h2>@(Model.Tenders.Count > 0 ? "Choose a tender to begin" : "Your next evaluation starts here")</h2><p>@(Model.Tenders.Count > 0 ? "Select a tender above to confirm committee percentages and review its offers." : "Tenders will appear when the sourcing officer sends eligible offers to the committee.")</p></div>
+    }
+    else
+    {
+        @if (Model.Locked)
+        {
+            <div class="ev-workflow-note" role="status"><p>Read-only evaluation</p><button type="button" class="btn ev-button-secondary" data-open-evaluation-tab="report-tab">View report</button></div>
+        }
+        <partial name="_TenderOfferRoundHistory" model="tender" />
+        <div class="ev-tender-workspace">
+
+        <div class="ev-detail-area"><section class="ev-workflow-guide" aria-label="Evaluation workflow"><div><strong>1. Agree weights</strong><span>@Model.WeightProposals.Count / 4 confirmed</span></div><div><strong>2. Review every offer</strong><span>Four independent reviews per offer</span></div><div><strong>3. Send the report</strong><span>Highest average leads; ties need unanimous agreement</span></div></section>
+        @if (!Model.PercentageReady)
+        { <partial name="_ConsensusWeights" model="Model" /> }
+        @if (!Model.PercentageReady)
+        {
+<section class="ev-empty cs-workspace-lock" aria-labelledby="workspace-lock-heading" role="status">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
+                <h2 id="workspace-lock-heading">Evaluation locked</h2>
+                <p>@Model.WeightProposals.Count of 4 members have confirmed their percentages.</p>
+                <p>Tender details, offers, AI comparison, approval forms and reports unlock after all four submissions. The average is then calculated and locked.</p>
+            </section>
+        }
+        else
+        {
+        <div class="nav ev-tabs" role="tablist" aria-label="Evaluation sections">
+            <button class="nav-link active" id="offers-tab" data-bs-toggle="tab" data-bs-target="#offers" type="button" role="tab" aria-controls="offers" aria-selected="true">Tender &amp; offers <span>@offers.Count</span></button>
+            <button class="nav-link" id="forms-tab" data-bs-toggle="tab" data-bs-target="#forms" type="button" role="tab" aria-controls="forms" aria-selected="false">Evaluation forms</button>
+            <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" type="button" role="tab" aria-controls="report" aria-selected="false">Comparison &amp; report</button>
+        </div>
+        <div class="tab-content ev-tab-content">
+            <div class="tab-pane fade show active" id="offers" role="tabpanel" aria-labelledby="offers-tab" tabindex="0">
+                <details class="ev-tender-brief ev-brief-disclosure" aria-labelledby="tender-brief-heading">
+                    <summary><span class="ev-brief-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 12h6M9 16h6"/></svg></span><div><span class="ev-brief-kicker">Tender brief</span><h3 id="tender-brief-heading">Purchase requirements &amp; specifications</h3></div><span class="ev-brief-count">@tender.PurchaseRequest.PurchaseRequestItems.Count items · View requirements <span aria-hidden="true">⌄</span></span></summary>
+                    <div class="ev-brief-body"><div class="ev-brief-overview"><h4>What we need</h4><p class="ev-brief-description">@tender.Description</p></div>
+                    <div class="ev-brief-items">
+                @foreach (var item in tender.PurchaseRequest.PurchaseRequestItems)
+                { <article><div><h4>@item.ItemName</h4><span>@item.Quantity.ToString("0.###") @item.Unit</span></div><p>@item.Specifications</p></article> }
+                    </div>
+                    </div><details class="ev-brief-terms"><summary>Tender terms &amp; dates <span aria-hidden="true">⌄</span></summary><dl><div><dt>Terms</dt><dd>@(string.IsNullOrWhiteSpace(tender.Terms) ? "No additional terms provided." : tender.Terms)</dd></div><div><dt>Opened (UTC)</dt><dd>@tender.OpensAt.ToString("dd MMM yyyy · HH:mm")</dd></div><div><dt>Submission deadline (UTC)</dt><dd>@tender.ClosesAt.ToString("dd MMM yyyy · HH:mm")</dd></div></dl></details>
+                </details>
+                <partial name="_AiBidRecommendation" model="Model" />
+                <div class="ev-section-heading"><div class="cs-offers-heading"><h3>Eligible offers <span class="ev-subtle">(@offers.Count)</span></h3>
+                @if (Model.ConsensusLocked)
+                {
+                    <details class="cs-weights-disclosure">
+                        <summary aria-label="View locked committee percentages and four confirmed proposals"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span class="cs-weight-pair">Financial <strong>@Model.FinancialWeight.ToString("0.##")%</strong></span><span class="cs-weight-divider" aria-hidden="true"></span><span class="cs-weight-pair">Technical <strong>@Model.TechnicalWeight.ToString("0.##")%</strong></span><svg class="cs-weights-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary>
+                        <div class="cs-weights-popover"><strong>Committee percentages are locked</strong><p>Average of four confirmed proposals. These weights apply to every offer and the AI comparison.</p><partial name="_PercentageProposals" model="Model" /></div>
+                    </details>
+                }
+                </div><div class="ev-offers-tools"><span class="ev-subtle">Totals include tax &amp; fees</span>
+                @if (Model.AiRecommendation?.Scenarios.Any() == true) { <button type="button" class="btn ev-button-secondary" data-bs-toggle="collapse" data-bs-target="#offer-comparison" aria-expanded="false" aria-controls="offer-comparison">Compare all @offers.Count offers <span aria-hidden="true">↔</span></button> }
+                </div></div>
+                <partial name="_AiOfferComparison" model="Model" />
+                @if (offers.Count == 0) { <div class="ev-empty"><h4>No eligible offers yet</h4><p>The sourcing officer needs to complete compliance review.</p></div> }
+                <div class="ev-offer-grid">
+                @foreach (var offer in offers)
+                {
+                    var lowest = currenciesMatch && CommitteeEvaluationPage.Total(offer) == offers.Min(CommitteeEvaluationPage.Total);
+                    var selected = Model.SelectionReady && tender.EvaluationReport?.RecommendedBidId == offer.BidId;
+                    <article class="ev-offer-card @(selected ? "ev-offer-selected" : "")" aria-label="@offer.Invitation.SupplierProfile.CompanyName">
+                        <div class="ev-offer-review-status" role="status"><span>@SourcingTenderManagement.Services.Evaluation.AllOfferScoring.Count(Model, offer) / 4 approved</span><span>@(SourcingTenderManagement.Services.Evaluation.AllOfferScoring.Count(Model, offer) == 4 ? "Reviews complete" : "Awaiting member reviews")</span></div>
+                        @if (Model.Members.Any(m => m.UserId == Model.UserId))
+                        { <p class="ev-personal-review @(Model.MyReviewApproved(offer) ? "is-approved" : "is-pending")"><span aria-hidden="true">@(Model.MyReviewApproved(offer) ? "✓" : "○")</span> @(Model.MyReviewApproved(offer) ? "Your review approved" : "Not reviewed yet")</p> }
+                        <div class="ev-offer-top"><span class="ev-subtle">Offer #@offer.BidId</span><span class="ev-offer-label">@(lowest ? "Lowest price" : "Compliant")</span></div>
+                        <h4>@offer.Invitation.SupplierProfile.CompanyName</h4>
+                        <p class="ev-price">@CommitteeEvaluationPage.Total(offer).ToString("N2") <span>@offer.Currency</span></p>
+                        <dl class="ev-offer-facts"><div><dt>Delivery</dt><dd>@offer.DeliveryDays days</dd></div><div><dt>Payment</dt><dd>@(offer.PaymentTerms ?? "Not specified")</dd></div></dl>
+                        <div class="ev-specification"><h5>Technical details</h5><p>@(offer.TechnicalDetails ?? "No technical details provided.")</p></div>
+                        <details class="ev-offer-details"><summary>View item breakdown <span aria-hidden="true">+</span></summary>
+                        @foreach (var item in offer.BidItems) { <div><strong>@item.Quantity.ToString("0.###") × @item.UnitPrice.ToString("N2") @offer.Currency</strong><p>@item.OfferedSpecifications</p></div> }
+                        <p>Tax: @offer.TaxAmount.ToString("N2") @offer.Currency<br />Additional costs: @offer.AdditionalCosts.ToString("N2") @offer.Currency</p></details>
+                        @if (!Model.Locked)
+                        { <a class="btn @(Model.MyReviewApproved(offer) ? "ev-button-secondary" : "ev-button-primary")" asp-action="Evaluations" asp-route-id="@tender.TenderId" asp-route-offerId="@offer.BidId" asp-route-tab="forms">@(Model.MyReviewApproved(offer) ? "View your review" : "Review this offer") <span aria-hidden="true">→</span></a> }
+                        @if (selected) { <p class="ev-selected-label">✓ Highest-scoring offer · ready for report</p> }
+                    </article>
+                }
+                </div>
+            </div>
+            <div class="tab-pane fade" id="forms" role="tabpanel" aria-labelledby="forms-tab" tabindex="0"><partial name="_MemberForms" model="Model" /></div>
+            <div class="tab-pane fade" id="report" role="tabpanel" aria-labelledby="report-tab" tabindex="0"><partial name="_EvaluationReport" model="Model" /></div>
+        </div>
+        }
+        </div>
+        </div>
+    }
+    </div>
+</div>
+@section Scripts { <script src="~/js/committee-evaluations.js" asp-append-version="true"></script> }

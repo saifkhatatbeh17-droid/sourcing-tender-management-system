@@ -1,0 +1,135 @@
+.site-theme-toggle {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    color: inherit;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 12px;
+}
+.site-theme-toggle:hover { background: var(--bs-tertiary-bg); }
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --ink: #f1f3f2;
+    --muted: #bcc5c2;
+    --line: #455c78;
+    --surface: #232728;
+    --accent: #efb85c;
+    --focus: #f2c77f;
+    --bs-body-bg: #171a1b;
+    --bs-body-color: var(--ink);
+    --bs-secondary-color: var(--muted);
+    --bs-secondary-color-rgb: 188, 197, 194;
+    --bs-tertiary-bg: #303536;
+    --bs-secondary-bg: #272c2d;
+    --bs-border-color: var(--line);
+    --bs-link-color: var(--accent);
+    --bs-link-color-rgb: 173, 207, 241;
+    --bs-link-hover-color: #cee7ff;
+}
+html[data-theme="dark"] body { background: var(--bs-body-bg); color: var(--ink); }
+html[data-theme="dark"] :is(.bg-white, .bg-light) { background-color: var(--surface) !important; }
+html[data-theme="dark"] :is(.text-dark, .text-muted, .text-secondary) { color: var(--muted) !important; }
+html[data-theme="dark"] :is(.workspace-section, .committee-section, .supplier-card, .verification-panel, .offer-progress-card,
+    .login-panel, .registration-form-card, .registration-section, .admin-record, .admin-metric, .admin-records, .skip-link) {
+    background: var(--surface) !important;
+    color: var(--ink);
+    border-color: var(--line);
+}
+html[data-theme="dark"] :is(.form-control, .form-select) {
+    background-color: #1b1e1f;
+    color: var(--ink);
+    border-color: var(--line);
+}
+html[data-theme="dark"] .form-control::placeholder { color: var(--muted); }
+html[data-theme="dark"] :is(.workspace-section h2, .admin-record h2 a, .admin-metric dt, .admin-record-action,
+    .admin-navbar nav > a, .admin-navbar .notification-bell) { color: var(--accent); }
+html[data-theme="dark"] :is(.admin-navbar nav > a:hover, .admin-navbar .notification-bell:hover) { background: #343c49; }
+html[data-theme="dark"] .admin-sidebar {
+    --sidebar-bg: #202425;
+    --sidebar-ink: #d8e8fb;
+    --sidebar-muted: #bcc5c2;
+    --sidebar-line: var(--line);
+    --sidebar-hover: #2d3540;
+    --sidebar-active: #303e50;
+    --sidebar-accent: #aed6ff;
+}
+html[data-theme="dark"] .admin-sidebar .logo__word { fill: #f1f3f2; }
+html[data-theme="dark"] .btn-outline-primary {
+    --bs-btn-color: #aed6ff;
+    --bs-btn-border-color: #6385b2;
+    --bs-btn-hover-bg: #304760;
+    --bs-btn-hover-border-color: #9cbeed;
+    --bs-btn-hover-color: #fff;
+}
+html[data-theme="dark"] .btn-link { color: var(--accent); }
+html[data-theme="dark"] :is(.admin-record-icon, .admin-record-avatar) { background: #303e50; color: #aed6ff; }
+html[data-theme="dark"] :is(.admin-reminder, .admin-record-action) { border-color: var(--line); }
+html[data-theme="dark"] :is(.table, .supplier-table, .offer-table, .tc-workspace .table) {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--ink);
+    --bs-table-border-color: var(--line);
+    --bs-table-striped-bg: #2a2f30;
+    --bs-table-striped-color: var(--ink);
+    --bs-table-hover-bg: #323a46;
+    --bs-table-hover-color: var(--ink);
+    color: var(--ink);
+}
+html[data-theme="dark"] :is(.supplier-table, .offer-table, .tc-workspace .table) :is(th, td) {
+    background-color: var(--surface);
+    color: var(--ink);
+    border-color: var(--line);
+}
+
+html[data-theme="dark"] {
+    --navy: #d9e9fb;
+    --teal: #efb85c;
+}
+html[data-theme="dark"] :is(.registration-page, .main-content:has(.registration-page)) {
+    background: var(--bs-body-bg);
+    color: var(--ink);
+}
+html[data-theme="dark"] :is(.document-dropzone, .upload-action) {
+    background: var(--bs-tertiary-bg);
+    color: var(--ink);
+    border-color: var(--line);
+}
+html[data-theme="dark"] :is(.registration-field > label, .upload-copy small, .document-file-list) { color: var(--muted); }
+html[data-theme="dark"] .tc-workspace { --tc-line: var(--line); }
+
+html[data-theme="dark"] body:has(.admin-shell) {
+    --admin-canvas: var(--bs-body-bg);
+    --admin-navbar-top: #262a2b;
+    --admin-ink: var(--ink);
+    --admin-panel-line: var(--line);
+    --admin-table-heading-bg: var(--surface);
+    --admin-button: #313637;
+    --admin-button-hover: #414849;
+    --admin-row-hover: #2b3031;
+    --admin-input: #1b1e1f;
+    --admin-pager-ink: #17243a;
+    --admin-pager-fill: #a4c5ec;
+    --admin-pager-hover: #c5dcf7;
+}
+html[data-theme="dark"] .admin-shell :is(.admin-record-avatar, .admin-record-icon) {
+    background: #303e50;
+    color: var(--accent);
+}
+html[data-theme="dark"] .admin-record-filters :is(.form-control, .form-select) { background-color: var(--admin-input); }
+html[data-theme="dark"] .admin-feedback { background: #203952; color: #e5f3ff; border-color: #6385b2; }
+
+html[data-theme="dark"] .notification-dropdown {
+    border-color: #829fca88;
+    background: #232a35;
+    box-shadow: 0 16px 42px #0008, inset 0 1px 0 #ffffff26;
+}
+html[data-theme="dark"] .notification-dropdown .notification-item { background: #d4e5ff12; }
+
+html[data-theme="dark"] #supplier-review-dialog {
+    --supplier-dialog-border: #536f99;
+}
+html[data-theme="dark"] #supplier-review-dialog :is(.modal-content, .modal-header, .workspace-section, .form-control, .form-select) {
+    border-color: var(--supplier-dialog-border);
+}

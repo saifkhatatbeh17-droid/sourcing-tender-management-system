@@ -1,47 +1,241 @@
+@using SourcingTenderManagement.Data
 @model UsersPageViewModel
 @{
     ViewData["Title"] = "Users";
     var editInput = ViewData["EditInput"] as EditUserViewModel;
     var openEditId = ViewData["OpenEditUser"] as string;
+    var hasFilters = !string.IsNullOrWhiteSpace(Model.Search) || Model.Role != null || Model.IsActive.HasValue;
 }
-<div class="workspace-heading"><h1>Users</h1><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#create-user-modal">Create User</button></div>
-<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Actions</th></tr></thead>
-<tbody>@foreach (var account in Model.Users)
+
+<div class="workspace-heading">
+    <div><h1>Users</h1><p>Manage account access and roles.</p></div>
+    <button type="button" class="btn btn-primary admin-orange-action" data-bs-toggle="modal" data-bs-target="#create-user-modal">Create user</button>
+</div>
+
+@if (TempData["UsersFeedback"] is string feedback)
 {
-    <tr><td>@account.FullName</td><td>@account.Email</td><td>@(account.IsActive ? "Active" : "Inactive")</td>
-    <td><button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#edit-user-@account.Id" aria-label="Edit @account.FullName">Edit</button></td></tr>
-}</tbody></table></div>
+    <div data-flash-message class="admin-feedback" data-admin-feedback role="status">@feedback</div>
+}
+
+<form asp-action="Users" method="get" class="admin-record-filters workspace-search-card row g-3" aria-label="Filter users" data-auto-filter>
+    <h2 class="workspace-search-title">Find a user</h2>
+    <div class="col-12 col-lg">
+        <label for="user-search" class="form-label">Name or email</label>
+        <div class="voice-search-control">
+            <div class="input-group">
+                <input id="user-search" name="search" type="search" placeholder="Search by name or email" value="@Model.Search" class="form-control" data-voice-search data-voice-search-mode="auto" aria-describedby="user-search-voice-status" />
+                <select class="form-select form-select-sm w-auto" data-voice-search-language aria-label="Voice search language">
+                    <option value="en-US">English</option><option value="ar-JO">العربية</option>
+                </select>
+                <button type="button" class="btn btn-outline-primary" data-voice-search-button aria-label="Start voice search" aria-pressed="false" aria-describedby="user-search-voice-status">
+                    <svg data-voice-icon="mic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg>
+                    <svg data-voice-icon="stop" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" hidden><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                </button>
+            </div>
+            <div id="user-search-voice-status" class="form-text small" data-voice-search-status role="status" aria-live="polite"></div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <label for="user-role" class="form-label">Role</label>
+        <select id="user-role" name="role" class="form-select">
+            <option value="">All roles</option>
+            @foreach (var role in RoleNames.Primary)
+            {
+                <option value="@role" selected="@(Model.Role == role)">@SourcingTenderManagement.Data.RoleNames.DisplayName(role)</option>
+            }
+        </select>
+    </div>
+    <div class="col-6 col-lg">
+        <label for="user-status" class="form-label">Status</label>
+        <select id="user-status" name="isActive" class="form-select">
+            <option value="">All statuses</option>
+            <option value="true" selected="@(Model.IsActive == true)">Active</option>
+            <option value="false" selected="@(Model.IsActive == false)">Inactive</option>
+        </select>
+    </div>
+    <div class="col-auto d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-outline-primary">Apply filters</button><a asp-action="Users" class="btn btn-link">Clear</a>
+    </div>
+</form>
+
+<section class="admin-records" aria-label="User records">
+
+<div id="user-results">
+@if (Model.Users.Count == 0)
+{
+    <p class="admin-record-empty">@(hasFilters ? "No users match these filters." : "No user accounts yet.")</p>
+}
+else
+{
+    <div class="table-responsive" tabindex="0" role="region" aria-label="User accounts">
+        <table class="table align-middle admin-record-table">
+
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Roles</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var account in Model.Users)
+                {
+                    <tr data-admin-row>
+                        <th scope="row"><div class="admin-record-identity">
+                            <span class="admin-record-avatar" aria-hidden="true">@account.FullName.Trim().FirstOrDefault()</span>
+                            <span class="admin-user-name">@account.FullName<small>@(account.Email ?? "—")</small></span>
+                        </div></th>
+                        <td><div class="admin-role-list">@if (account.Roles.Count == 0) { <span>Unassigned</span> } @foreach (var role in account.Roles) { <span>@SourcingTenderManagement.Data.RoleNames.DisplayName(role)</span> }</div></td>
+                        <td>
+                            <span class="badge rounded-pill @(account.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                                @(account.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                                    data-bs-target="#edit-user-@account.Id" aria-label="Edit @account.FullName">Edit</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<partial name="_AdminPager" />
+</div>
+</section>
 
 <div class="modal fade" id="create-user-modal" tabindex="-1" aria-labelledby="create-user-title" aria-hidden="true">
-<div class="modal-dialog modal-dialog-scrollable"><div class="modal-content">
-    <div class="modal-header"><h2 class="modal-title fs-5" id="create-user-title">Create User</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-    <partial name="_CreateUserForm" model="Model.CreateUser" />
-</div></div></div>
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="create-user-title">Create user</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <partial name="_CreateUserForm" model="Model.CreateUser" />
+        </div>
+    </div>
+</div>
 
+<div id="user-edit-dialogs">
 @foreach (var account in Model.Users)
 {
-    var input = editInput?.Id == account.Id ? editInput : new EditUserViewModel { Id = account.Id, FullName = account.FullName, IsActive = account.IsActive, DepartmentId = account.DepartmentId };
+    var input = editInput?.Id == account.Id ? editInput : new EditUserViewModel
+    {
+        Id = account.Id,
+        FullName = account.FullName,
+        PhoneNumber = account.PhoneNumber,
+        IsActive = account.IsActive,
+        DepartmentId = account.DepartmentId
+    };
+    var isCurrentUser = account.Id == Model.CurrentUserId;
+
     <div class="modal fade" id="edit-user-@account.Id" tabindex="-1" aria-labelledby="edit-user-title-@account.Id" aria-hidden="true">
-    <div class="modal-dialog"><div class="modal-content"><form asp-action="EditUser" method="post">
-        <div class="modal-header"><h2 class="modal-title fs-5" id="edit-user-title-@account.Id">Edit User</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-        <div class="modal-body">
-            @if (openEditId == account.Id) { <div asp-validation-summary="All" class="text-danger" role="alert"></div> }
-            <input type="hidden" name="Id" value="@account.Id" />
-            <p>@account.Email</p>
-            <div class="field"><label for="edit-name-@account.Id">Full Name</label><input id="edit-name-@account.Id" name="FullName" value="@input.FullName" class="form-control" required maxlength="150" /></div>
-            <div class="field"><label for="edit-department-@account.Id">Department</label><select id="edit-department-@account.Id" name="DepartmentId" class="form-select"><option value="">No department</option>
-            @foreach (SourcingTenderManagement.Models.Entities.Department department in ViewBag.Departments)
-            { <option value="@department.DepartmentId" selected="@(input.DepartmentId == department.DepartmentId)">@department.Name</option> }
-            </select></div>
-            <div class="form-check"><input id="edit-active-@account.Id" name="IsActive" type="checkbox" value="true" checked="@input.IsActive" class="form-check-input" /><label for="edit-active-@account.Id" class="form-check-label">Active account</label><input type="hidden" name="IsActive" value="false" /></div>
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <form asp-action="EditUser" method="post" class="modal-content" data-account-name="@account.FullName"
+                  data-confirm-disable="@(account.IsActive && !isCurrentUser ? "true" : "false")">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="edit-user-title-@account.Id">Edit @account.FullName</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (openEditId == account.Id)
+                    {
+                        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+                    }
+                    <input type="hidden" name="Id" value="@account.Id" />
+                    <p class="text-break">@account.Email</p>
+                    <div class="field">
+                        <label for="edit-name-@account.Id">Full name</label>
+                        <input id="edit-name-@account.Id" name="FullName" value="@input.FullName" class="form-control" required maxlength="150" />
+                    </div>
+                    <div class="field">
+                        <label for="edit-phone-@account.Id">Phone number (optional)</label>
+                        <input id="edit-phone-@account.Id" name="PhoneNumber" type="tel" value="@input.PhoneNumber"
+                               class="form-control" maxlength="32" autocomplete="tel" />
+                    </div>
+                    @if (account.Roles.Contains(RoleNames.Department))
+                    {
+                        <div class="field">
+                            <label for="edit-department-@account.Id">Department</label>
+                            <select id="edit-department-@account.Id" name="DepartmentId" class="form-select" required>
+                                <option value="">Choose a department</option>
+                                @foreach (var department in Model.Departments.Where(d => d.IsActive || d.DepartmentId == account.DepartmentId))
+                                {
+                                    <option value="@department.DepartmentId" selected="@(input.DepartmentId == department.DepartmentId)">
+                                        @department.Name@(department.IsActive ? "" : " (inactive)")
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    @if (isCurrentUser)
+                    {
+                        <input type="hidden" name="IsActive" value="true" />
+                        <p class="mb-0">Your administrator account stays active.</p>
+                    }
+                    else
+                    {
+                        <div class="form-check">
+                            <input id="edit-active-@account.Id" name="IsActive" type="checkbox" value="true"
+                                   checked="@input.IsActive" class="form-check-input" />
+                            <label for="edit-active-@account.Id" class="form-check-label">Active account</label>
+                            <input type="hidden" name="IsActive" value="false" />
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>
-    </form></div></div></div>
+    </div>
 }
+
+
+
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        const createForm = document.getElementById('create-user-form');
+        const roleSelect = createForm.querySelector('[name="Role"]');
+        const committeeSelect = createForm.querySelector('[name="CommitteeRole"]');
+        const departmentSelect = createForm.querySelector('[name="DepartmentId"]');
+
+        function updateCreateFields() {
+            const role = roleSelect.value;
+            const topCommittee = role === '@RoleNames.TopCommittee';
+            const evaluationCommittee = role === '@RoleNames.EvaluationCommittee';
+            const showCommittee = topCommittee || evaluationCommittee || role === '@RoleNames.SourcingManager';
+            committeeSelect.closest('.field').hidden = !showCommittee;
+            committeeSelect.disabled = !showCommittee;
+            committeeSelect.required = topCommittee || evaluationCommittee;
+            for (const option of committeeSelect.options) {
+                if (!option.value) continue;
+                option.disabled = !showCommittee || (option.dataset.committee === 'top') !== topCommittee;
+                option.hidden = option.disabled;
+            }
+            if (!showCommittee || committeeSelect.selectedOptions[0]?.disabled) committeeSelect.value = '';
+            const needsDepartment = role === '@RoleNames.Department';
+            departmentSelect.closest('.field').hidden = !needsDepartment;
+            departmentSelect.disabled = !needsDepartment;
+            departmentSelect.required = needsDepartment;
+        }
+
+        roleSelect.addEventListener('change', updateCreateFields);
+        updateCreateFields();
+    </script>
     @if (ViewData["OpenCreateUser"] is true)
-    { <script>bootstrap.Modal.getOrCreateInstance(document.getElementById('create-user-modal')).show();</script> }
+    {
+        <script>bootstrap.Modal.getOrCreateInstance(document.getElementById('create-user-modal')).show();</script>
+    }
     @if (openEditId != null)
-    { <script>bootstrap.Modal.getOrCreateInstance(document.getElementById(@Html.Raw(System.Text.Json.JsonSerializer.Serialize("edit-user-" + openEditId)))).show();</script> }
+    {
+        <script>bootstrap.Modal.getOrCreateInstance(document.getElementById(@Html.Raw(System.Text.Json.JsonSerializer.Serialize("edit-user-" + openEditId)))).show();</script>
+    }
 }

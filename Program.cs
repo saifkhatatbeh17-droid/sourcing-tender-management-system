@@ -1,20 +1,68 @@
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Services.TopCommittee;
+using SourcingTenderManagement.Services.FaceEnrollment;
+using SourcingTenderManagement.Services.FaceVerification;
+using SourcingTenderManagement.Services.FaceLogin;
+using SourcingTenderManagement.Services.PdfWatermark;
+using SourcingTenderManagement.Services.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddEnvironmentVariables();
 var connection = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DefaultConnection is missing.");
 builder.Services.AddControllersWithViews();
+builder.Services.AddHostedService<SourcingTenderManagement.Services.TenderClosureService>();
+builder.Services.AddPdfWatermarks();
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidRecommendationService>(client => client.Timeout = TimeSpan.FromMinutes(5));
+builder.Services.AddHttpClient<AiChatClient>(client => client.Timeout = TimeSpan.FromSeconds(60))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
+builder.Services.AddScoped<AiChatContext>();
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
+builder.Services.AddTopCommitteeFoundation();
+builder.Services.AddFaceEnrollment();
+builder.Services.AddFaceVerification(builder.Configuration);
+builder.Services.AddFaceLogin();
+builder.Services.AddRateLimiter(options =>
+{
+    options.OnRejected = (context, _) =>
+    {
+        if (context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName == "AiChat")
+            context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        return ValueTask.CompletedTask;
+    };
+    options.AddPolicy("AiChat", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("ChangePassword", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(5),
+            QueueLimit = 0
+        }));
+});
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
 {
+    o.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     o.User.RequireUniqueEmail = true;
     o.Password.RequiredLength = 8;
     o.Lockout.MaxFailedAccessAttempts = 5;
     o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 }).AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
+builder.Services.Configure<IdentityPasskeyOptions>(o => o.UserVerificationRequirement = "required");
 builder.Services.ConfigureApplicationCookie(o =>
 {
     o.Cookie.Name = "SourcingTenderManagement.CodeFirst";
@@ -44,6 +92,13 @@ builder.Services.AddAuthorization(o => o.AddPolicy("ApprovedSupplier", policy =>
     })));
 
 var app = builder.Build();
+// This dedicated check path runs before startup role seeding and performs no database writes.
+if (args.Contains("--top-committee-foundation-check"))
+{
+    using var checkScope = app.Services.CreateScope();
+    await SourcingTenderManagement.Checks.TopCommitteeFoundationChecks.RunAsync(checkScope.ServiceProvider);
+    return;
+}
 using (var scope = app.Services.CreateScope())
 {
     var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -72,6 +127,11 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("Administrator created. No default password is stored in this project.");
         return;
     }
+    if (args.Contains("--supplier-workflow-checks"))
+    {
+        await SourcingTenderManagement.Checks.SupplierWorkflowChecks.RunAsync(scope.ServiceProvider, app.Environment);
+        return;
+    }
     if (args.Contains("--self-test"))
     {
         await SourcingTenderManagement.Checks.DatabaseChecks.RunAsync(scope.ServiceProvider);
@@ -82,6 +142,7 @@ if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Home/Error");
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
 app.Run();

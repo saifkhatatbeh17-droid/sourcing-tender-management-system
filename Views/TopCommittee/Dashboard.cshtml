@@ -1,3 +1,60 @@
-@{ ViewData["Title"] = "Dashboard"; }
-<h1>Dashboard</h1>
-<!-- TEAM TODO: Implement TopCommittee / Dashboard here. -->
+@model CommitteeDashboard
+@section Styles { <link rel="stylesheet" href="~/css/dashboard-overview.css" asp-append-version="true" /> <partial name="_ReadStyles" /> }
+@{ ViewData["Title"] = "CEO & Chiefs Dashboard"; }
+<div class="unified-dashboard"><header class="dashboard-heading tc-page-heading">
+    <div class="tc-heading-copy">
+        <h1>CEO &amp; Chiefs Dashboard</h1>
+        <p>Review assigned tenders, track approvals, and see past decisions.</p>
+    </div>
+    <a class="dashboard-cta" asp-action="Decisions">Review pending tenders <span aria-hidden="true">→</span></a>
+</header>
+<section class="dashboard-metrics is-five" aria-label="Your committee totals">
+    <partial name="_DashboardMetric" model='@(new DashboardMetric("Awaiting decision", Model.AwaitingDecision.ToString("N0"), "Tenders ready for committee review", true))' />
+    <partial name="_DashboardMetric" model='@(new DashboardMetric("Assigned tenders", Model.AssignedTenders.ToString("N0"), "Your committee assignments"))' />
+    <partial name="_DashboardMetric" model='@(new DashboardMetric("Awarded", Model.AwardedTenders.ToString("N0"), "Recorded awards"))' />
+    <partial name="_DashboardMetric" model='@(new DashboardMetric("Rejected", Model.RejectedTenders.ToString("N0"), "Recorded rejections"))' />
+    <partial name="_DashboardMetric" model='@(new DashboardMetric("Open clarifications", Model.OpenClarifications.ToString("N0"), "Questions awaiting resolution"))' />
+</section>
+@if(Model.Overview != null){<partial name="_DashboardOverview" model="Model.Overview" />}
+
+@if (Model.AssignedTenders == 0)
+{
+    <section class="workspace-section tc-empty" aria-labelledby="no-assignments">
+        <h2 id="no-assignments">No tenders assigned yet</h2>
+        <p class="mb-0">Tenders will appear here when you are assigned to their CEO & Chiefs. Contact your sourcing team if you expected an assignment.</p>
+    </section>
+}
+else
+{
+    <section class="workspace-section" aria-labelledby="pending-heading">
+        <div class="tc-section-heading"><h2 id="pending-heading">Pending decisions</h2><a asp-action="Decisions">View all <span aria-hidden="true">→</span></a></div>
+        @if (Model.PendingTenders.Count == 0)
+        { <p class="mb-0">None of your assigned tenders is awaiting a committee decision.</p> }
+        else
+        {
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Pending committee decisions"><table class="committee-read-table table tc-dashboard-table mb-0">
+                <caption class="text-secondary">Up to 5 pending tenders, oldest first. Reload the page to see new decisions.</caption>
+                <thead><tr><th scope="col">Tender</th><th scope="col">Nominated supplier</th><th scope="col">Committee progress</th><th scope="col">Review</th></tr></thead>
+                <tbody>@foreach (var tender in Model.PendingTenders.Take(5))
+                {
+                    var members = Model.VotingProgress.Where(m => m.TenderId == tender.TenderId).ToList();
+                    <tr>
+                        <th scope="row"><a asp-action="TenderDetails" asp-route-id="@tender.TenderId">@tender.Title</a><span class="d-block small text-secondary">Tender #@tender.TenderId</span></th>
+                        <td>@(tender.NominatedSupplier ?? "No submitted nomination recorded")</td>
+                        <td>
+                            <div class="tc-approval-overview"><strong>@tender.RecordedApprovals <span>/ 4 approvals</span></strong><progress max="4" value="@tender.RecordedApprovals" aria-label="Committee approvals"></progress></div>
+                            @if (members.Count != 4) { <p class="text-secondary small mb-1">Four member assignments are required.</p> }
+                            <details class="tc-progress-details"><summary>Member decisions</summary><ul class="list-unstyled small tc-member-progress mb-0">@foreach (var member in members)
+                            { <li><span>@member.FullName</span><span>@(member.RecordedDecision == null ? "Not voted" : CommitteeDisplay.Status(member.RecordedDecision))@(!member.IsActive || !member.HasCommitteeRole ? " (not eligible)" : "")</span></li> }</ul></details>
+                        </td>
+                        <td>@if (tender.OpenClarifications > 0)
+                        { <span class="badge text-bg-secondary">Voting paused</span><span class="tc-cell-meta">@tender.OpenClarifications open @(tender.OpenClarifications == 1 ? "clarification" : "clarifications")</span> }
+        else { <span class="badge text-bg-primary">Awaiting review</span> }</td>
+                    </tr>
+                }</tbody>
+            </table></div>
+        }
+    </section>
+}
+
+</div>

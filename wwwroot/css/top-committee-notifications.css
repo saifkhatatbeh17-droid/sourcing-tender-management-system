@@ -1,0 +1,17 @@
+.tc-notification-bell .notification-dropdown {
+    width: min(25rem, calc(100vw - 1.5rem));
+    max-width: calc(100vw - 1.5rem);
+    max-height: min(36rem, calc(100dvh - 6rem));
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    background: var(--color-surface, #fff);
+    color: var(--color-text, #182b35);
+    border-color: var(--color-border, #dce5ec);
+}
+.tc-notification-bell .tc-notification-header { padding: .5rem; }
+.tc-notification-bell .notification-item { padding: .875rem .5rem; border-top: 1px solid var(--color-border, #dce5ec); }
+.tc-notification-bell .notification-item strong { display: block; margin-bottom: .25rem; }
+.tc-notification-bell .tc-notification-actions,
+.tc-notification-bell .tc-notification-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
+.tc-notification-bell .tc-notification-pagination { justify-content: space-between; padding: .75rem .5rem .25rem; border-top: 1px solid var(--color-border, #dce5ec); }
+.tc-notification-bell .tc-notification-actions a { color: var(--color-link, #1d5560); }

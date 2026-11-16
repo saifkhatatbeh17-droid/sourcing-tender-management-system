@@ -9,9 +9,11 @@ public class LoginViewModel
 
     [Required(ErrorMessage = "Enter your password."), DataType(DataType.Password)]
     public string Password { get; set; } = "";
+    public string? ReturnUrl { get; set; }
 }
 public class CreateUserViewModel
 {
+    [Phone, StringLength(32)] public string? PhoneNumber { get; set; }
     [Required, StringLength(150)] public string FullName { get; set; } = "";
     [Required, EmailAddress, StringLength(256)] public string Email { get; set; } = "";
     [Required, DataType(DataType.Password)] public string Password { get; set; } = "";
@@ -19,7 +21,7 @@ public class CreateUserViewModel
     public string? CommitteeRole { get; set; }
     public int? DepartmentId { get; set; }
 }
-public class SupplierCompanyViewModel
+public class SupplierCompanyViewModel : ProcurementCategoryInput
 {
     [Required, StringLength(200)] public string CompanyName { get; set; } = "";
     [Required, StringLength(100)] public string RegistrationNumber { get; set; } = "";
@@ -30,5 +32,7 @@ public class SupplierCompanyViewModel
 public class RegisterViewModel : SupplierCompanyViewModel
 {
     [Required, EmailAddress, StringLength(256)] public string Email { get; set; } = "";
-    [Required, DataType(DataType.Password)] public string Password { get; set; } = "";
+    [Required, Phone, StringLength(32)] public string PhoneNumber { get; set; } = "";
+    [Required, DataType(DataType.Password), MinLength(8)] public string Password { get; set; } = "";
+    [Required, DataType(DataType.Password), Compare(nameof(Password))] public string ConfirmPassword { get; set; } = "";
 }
