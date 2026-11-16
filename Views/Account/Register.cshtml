@@ -5,6 +5,26 @@
     var hasErrors = !ViewData.ModelState.IsValid;
 }
 
+@if (!hasErrors)
+{
+    <div class="cap-intro" aria-hidden="true" data-cap-intro>
+        <div class="cap-stage">
+            <span class="cap-glow"></span>
+            @for (var i = 0; i < 28; i++)
+            {
+                var a = i * 2.39996 + 0.4;
+                var d = 110 + (i * 37 % 140);
+                var size = 5 + (i * 7 % 9);
+                var color = (i % 3) switch { 0 => "#efb85c", 1 => "#f4eee2", _ => "#f6d49a" };
+                <span class="cap-g @(i % 4 == 0 ? "hex" : null)" style="--x:@((Math.Cos(a) * d).ToString("0"))px;--y:@((Math.Sin(a) * d * .8).ToString("0"))px;--s:@(size)px;--c:@color;--d:@((i % 6 * .03).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))s"></span>
+            }
+            <span class="cap-half cap-l"></span>
+            <span class="cap-half cap-r"></span>
+            <span class="cap-seam"></span>
+        </div>
+        <p class="cap-skip">Preparing your application · click to skip</p>
+    </div>
+}
 <section class="registration-page @(hasErrors ? "registration-has-errors" : "")" aria-labelledby="registration-title">
     <div class="registration-form-area">
         <a class="registration-back" asp-controller="Home" asp-action="Index"><span aria-hidden="true">←</span> Back to Tiryaq</a>
@@ -140,9 +160,16 @@
     <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/home-polish.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/register.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/capsule-intro.css" asp-append-version="true" />
 }
 @section Scripts {
     <script src="~/js/procurement-categories.js" asp-append-version="true" defer></script>
     <partial name="_ValidationScriptsPartial" />
     <script src="~/js/registration-steps.js" asp-append-version="true" defer></script>
+    <script>
+        (() => { const el = document.querySelector('[data-cap-intro]'); if (!el) return;
+            const done = () => el.remove();
+            el.addEventListener('click', () => { el.classList.add('is-skipped'); document.querySelectorAll('.registration-form-area, .registration-form-card > *').forEach(n => n.style.animation = 'none'); setTimeout(done, 300); });
+            el.addEventListener('animationend', e => { if (e.target === el && e.animationName === 'cap-leave') done(); }); })();
+    </script>
 }

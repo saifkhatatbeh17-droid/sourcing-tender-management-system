@@ -1,0 +1,29 @@
+@{
+    var c = ViewContext.RouteData.Values["controller"]?.ToString();
+    var a = ViewContext.RouteData.Values["action"]?.ToString();
+    string? Cur(string ctrl, string act) => c == ctrl && a == act ? "page" : null;
+    var overlay = ViewData["HomeLanding"] is true;
+}
+<header class="pn @(overlay ? "pn-overlay" : null)">
+  <nav class="pn-bar" aria-label="Main navigation">
+    <a class="pn-brand" asp-controller="Home" asp-action="Index" aria-label="Tiryaq Pharma home">
+      <partial name="_PharmaBrand" />
+    </a>
+    <div class="pn-links">
+      <a asp-controller="Home" asp-action="Index" aria-current="@Cur("Home", "Index")">Home</a>
+      <a asp-controller="Home" asp-action="About" aria-current="@Cur("Home", "About")">About</a>
+      <a asp-controller="Home" asp-action="Team" aria-current="@Cur("Home", "Team")">Team</a>
+      <a asp-controller="Home" asp-action="Contact" aria-current="@Cur("Home", "Contact")">Contact</a>
+    </div>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+      <a class="pn-login" asp-controller="Account" asp-action="GoToDashboard">Dashboard</a>
+      <form class="pn-out" asp-controller="Account" asp-action="Logout" method="post"><button type="submit">Sign out</button></form>
+    }
+    else
+    {
+      <a class="pn-ghost" asp-controller="Account" asp-action="Login" aria-current="@Cur("Account", "Login")">Login</a>
+      <a class="pn-login" asp-controller="Account" asp-action="Register" aria-current="@Cur("Account", "Register")">Supplier registration</a>
+    }
+  </nav>
+</header>

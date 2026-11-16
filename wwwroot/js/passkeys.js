@@ -58,9 +58,7 @@ document.querySelectorAll("[data-passkey-form]").forEach(form => {
             } else {
                 const { redirect } = await result.json();
                 showAccess("verified");
-                if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
-                    await new Promise(resolve => setTimeout(resolve, 280));
-                }
+                await (window.tiryaqBiometricWelcome?.("fingerprint", button) ?? Promise.resolve());
                 window.location.assign(redirect);
             }
         } catch (error) {

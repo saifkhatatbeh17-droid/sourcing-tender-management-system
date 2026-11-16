@@ -26,12 +26,6 @@
         if (image.complete && image.naturalWidth === 0) showFallback();
     }
 
-    function markDiscovered(capsule) {
-        capsule.dataset.discovered = '';
-        capsule.setAttribute('aria-description', 'Profile already discovered. Open again.');
-        try { sessionStorage.setItem(`tiryaq.team.discovered.${capsule.dataset.member}`, '1'); } catch { /* The current page still remembers it. */ }
-    }
-
     function animate(element, frames, options) {
         return element.animate(frames, options).finished.catch(() => {});
     }
@@ -122,7 +116,7 @@
         selected = capsule;
         capsule.setAttribute('aria-expanded', 'true');
         const source = capsule.querySelector('.team-capsule-portrait');
-        if (!reducedMotion.matches && !capsule.hasAttribute('data-discovered')) {
+        if (!reducedMotion.matches) {
             capsule.classList.add('is-pressed');
             try {
                 await animate(source, [
@@ -141,7 +135,6 @@
         const destination = content.querySelector('.team-profile-portrait');
         watchPortrait(destination.querySelector('img'));
         dialog.showModal();
-        markDiscovered(capsule);
         if (reducedMotion.matches) {
             dialog.classList.add('is-visible');
         } else {
@@ -173,9 +166,6 @@
 
     capsules.forEach(capsule => {
         watchPortrait(capsule.querySelector('img'));
-        try {
-            if (sessionStorage.getItem(`tiryaq.team.discovered.${capsule.dataset.member}`) === '1') markDiscovered(capsule);
-        } catch { /* Storage may be unavailable. */ }
         capsule.addEventListener('click', () => void openMember(capsule));
     });
     closeButton.addEventListener('click', () => void closeMember());

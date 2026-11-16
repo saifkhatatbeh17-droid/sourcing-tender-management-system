@@ -1,0 +1,35 @@
+/* Biometric sign-in success overlay (see biometric-welcome.js). */
+.bw{position:fixed;inset:0;z-index:5000;display:grid;place-content:center;justify-items:center;text-align:center;gap:6px;
+  background:radial-gradient(circle at 50% 42%,#1d5560 0,#0c252d 70%);color:#f4eee2;font-family:Geist,system-ui,sans-serif;
+  clip-path:circle(0 at var(--x) var(--y));transition:clip-path .7s cubic-bezier(.7,0,.2,1)}
+.bw.is-on{clip-path:circle(150vmax at var(--x) var(--y))}
+.bw-mark{width:min(240px,60vw);height:auto;overflow:visible;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.bw-ring{stroke:rgba(239,184,92,.35);stroke-width:1.5;transform-origin:center;opacity:0;transform:scale(.6) rotate(-30deg)}
+.bw-ring2{stroke:rgba(244,238,226,.14);stroke-dasharray:4 8}
+.is-on .bw-ring{animation:bw-ring .9s .45s cubic-bezier(.2,.8,.2,1) forwards}
+.is-on .bw-ring2{animation:bw-ring .9s .55s cubic-bezier(.2,.8,.2,1) forwards,bw-spin 12s 1.4s linear infinite}
+.bw-icon path{stroke:#efb85c;stroke-width:.5;stroke-dasharray:1;stroke-dashoffset:1}
+.is-on .bw-icon path{animation:bw-draw .8s .5s ease-out forwards,bw-out .3s 1.35s ease-in forwards}
+.bw-icon{transform-box:fill-box}
+.bw-scan{fill:#efb85c;opacity:0;filter:drop-shadow(0 0 10px #efb85c)}
+.is-on .bw-scan{animation:bw-scan .6s .85s ease-in-out forwards}
+.bw-check{stroke:#efb85c;stroke-width:9;stroke-dasharray:1;stroke-dashoffset:1}
+.is-on .bw-check{animation:bw-draw .4s 1.5s cubic-bezier(.3,1.4,.5,1) forwards}
+.bw-shard{fill:#efb85c;opacity:0}
+.is-on .bw-shard{animation:bw-burst .9s calc(1.45s + var(--d)) cubic-bezier(.1,.7,.3,1) forwards}
+.bw-kicker{margin:18px 0 0;font:500 .72rem/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.22em;text-transform:uppercase;color:#efb85c}
+.bw-title{margin:0;font:400 clamp(2.2rem,6vw,3.4rem)/1.05 "Instrument Serif",Georgia,serif;color:#f4eee2}
+.bw-sub{margin:0;font-size:.9rem;opacity:.7}
+.bw-sub::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:bw-dots 1s steps(4) infinite}
+.bw-kicker,.bw-title,.bw-sub{opacity:0;transform:translateY(12px)}
+.is-on .bw-kicker{animation:bw-rise .5s 1.55s ease-out forwards}
+.is-on .bw-title{animation:bw-rise .6s 1.65s ease-out forwards}
+.is-on .bw-sub{animation:bw-rise .6s 1.8s ease-out forwards}
+@keyframes bw-draw{to{stroke-dashoffset:0}}
+@keyframes bw-out{to{opacity:0;transform:scale(.85)}}
+@keyframes bw-ring{to{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes bw-spin{to{transform:rotate(360deg)}}
+@keyframes bw-scan{0%{opacity:0;transform:translateY(-62px)}15%,85%{opacity:.9}100%{opacity:0;transform:translateY(62px)}}
+@keyframes bw-burst{0%{opacity:1;transform:translate(0,0) scale(.4)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1) rotate(90deg)}}
+@keyframes bw-rise{to{opacity:1;transform:none}}
+@keyframes bw-dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}

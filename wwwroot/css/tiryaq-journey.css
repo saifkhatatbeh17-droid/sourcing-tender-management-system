@@ -25,9 +25,15 @@ button{font:inherit;color:inherit}
 .links button,.links a{background:none;border:0;border-radius:99px;padding:8px 14px;font-size:.84rem;cursor:pointer;text-decoration:none;opacity:.82;transition:background .3s,opacity .3s,color .3s}
 .links button:hover,.links a:hover{opacity:1;background:rgba(244,238,226,.08)}
 .links button.on{opacity:1;color:var(--honey)}
-.links .cta{background:var(--ivory);color:var(--ink);opacity:1}
-.links .cta:hover{background:var(--honey)}
-@media(max-width:860px){.links button{display:none}}
+.links button,.links a{white-space:nowrap;color:inherit}
+.links a:first-of-type{margin-left:6px;position:relative}
+.links a:first-of-type::before{content:"";position:absolute;left:-5px;top:9px;bottom:9px;width:1px;background:rgba(244,238,226,.18)}
+.links .keep{margin-left:6px;border:1px solid rgba(244,238,226,.32);opacity:1;padding:7px 16px}
+.links .keep:hover{border-color:var(--honey);color:var(--honey);background:none}
+.links .cta{background:var(--honey);color:var(--ink);opacity:1;font-weight:600;padding:8px 18px}
+.links .cta:hover{background:#e5a23e}
+.links :is(a,button):focus-visible{outline:2px solid var(--honey);outline-offset:2px}
+@media(max-width:1180px){.links button{display:none}.links a:first-of-type{margin-left:0}.links a:first-of-type::before{display:none}}
 
 /* ============ STAGE ============ */
 #track{position:relative;height:1150vh}
@@ -225,3 +231,4 @@ footer{max-width:1320px;margin:70px auto 0;padding-top:22px;border-top:1px solid
 .tj-foot-links a{text-decoration:none}.tj-foot-links a:hover{text-decoration:underline}
 @media(max-width:860px){.links>a:not(.cta):not(.keep){display:none}}
 #c-hero .tj-btn:not(.solid){background:rgba(12,37,45,.6);backdrop-filter:blur(6px)}
+@media(max-width:520px){.tj-nav{padding:12px 14px;gap:8px}.brand small{display:none}.brand{font-size:1.3rem}.links{gap:2px;padding:4px}.links .keep,.links .cta{padding:7px 12px;font-size:.8rem;margin-left:0}}

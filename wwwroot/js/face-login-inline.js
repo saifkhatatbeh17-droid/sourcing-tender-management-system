@@ -13,6 +13,34 @@
     const snapshot = document.getElementById('face-signin-snapshot');
     const modal = bootstrap.Modal.getOrCreateInstance(element);
     let stream = null, busy = false, submitting = false, generation = 0, scriptPromise = null;
+    const mesh = document.getElementById('face-signin-mesh');
+    const readout = preview.querySelector('[data-fs-readout]');
+    const LINES = [[0, 16], [17, 21], [22, 26], [27, 30], [31, 35], [36, 41, true], [42, 47, true], [48, 59, true], [60, 67, true]];
+    let target = null, drawn = null, raf = 0;
+    function drawMesh() {
+        raf = 0;
+        const ctx = mesh.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, mesh.width, mesh.height);
+        if (!target) { drawn = null; return; }
+        drawn = drawn ? drawn.map((p, i) => ({ x: p.x + (target[i].x - p.x) * .28, y: p.y + (target[i].y - p.y) * .28 })) : target.map(p => ({ ...p }));
+        const unit = mesh.width / 320;
+        ctx.lineWidth = 1.2 * unit; ctx.strokeStyle = 'rgba(239,184,92,.55)';
+        for (const [a, b, closed] of LINES) {
+            ctx.beginPath();
+            for (let i = a; i <= b; i++) i === a ? ctx.moveTo(drawn[i].x, drawn[i].y) : ctx.lineTo(drawn[i].x, drawn[i].y);
+            if (closed) ctx.closePath();
+            ctx.stroke();
+        }
+        ctx.fillStyle = '#f6d49a';
+        drawn.forEach((p, i) => { ctx.beginPath(); ctx.arc(p.x, p.y, (i % 7 === 0 ? 2.4 : 1.4) * unit, 0, Math.PI * 2); ctx.fill(); });
+        if (drawn.some((p, i) => Math.abs(p.x - target[i].x) > .5)) raf = requestAnimationFrame(drawMesh);
+    }
+    function setMesh(points) {
+        target = points;
+        if (!raf) raf = requestAnimationFrame(drawMesh);
+    }
+    function readoutText(text) { if (readout) readout.textContent = text; }
     const signal = state => document.dispatchEvent(new CustomEvent('login-access', { detail: state }));
     function status(text, state = 'pending') {
         feedback.textContent = text;
@@ -21,6 +49,7 @@
     function clearSnapshot() {
         snapshot.hidden = true; snapshot.width = 0; snapshot.height = 0;
         video.hidden = false;
+        setMesh(null); delete preview.dataset.live; readoutText('Standby');
     }
     function freezePreview() {
         if (!video.videoWidth || !video.videoHeight) return;
@@ -85,12 +114,17 @@
             const camera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
             if (current !== generation) { camera.getTracks().forEach(track => track.stop()); return; }
             stream = camera; video.srcObject = stream; await video.play();
+            mesh.width = video.videoWidth; mesh.height = video.videoHeight;
+            preview.dataset.live = 'searching'; readoutText('Searching');
             const deadline = Date.now() + 45000;
             let descriptor;
             while (current === generation) {
                 if (Date.now() > deadline) throw new Error('Capture timed out. Close this window, improve the lighting and try again.');
                 const faces = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.6 })).withFaceLandmarks().withFaceDescriptors();
                 if (current !== generation) return;
+                setMesh(faces.length === 1 ? faces[0].landmarks.positions.map(p => ({ x: p.x, y: p.y })) : null);
+                preview.dataset.live = faces.length === 1 ? 'locked' : 'searching';
+                readoutText(faces.length === 1 ? 'Face locked' : faces.length > 1 ? 'Multiple faces' : 'Searching');
                 if (faces.length === 1 && faces[0].detection.box.width >= video.videoWidth * 0.22 && faces[0].detection.box.height >= video.videoHeight * 0.22) {
                     descriptor = Array.from(faces[0].descriptor);
                     break;
@@ -105,7 +139,7 @@
             descriptor.forEach((value, index) => payload.append(`Descriptor[${index}]`, String(value)));
             payload.append('ModelIdentifier', host.dataset.modelIdentifier);
             submitting = true;
-            status('Verifying…');
+            status('Verifying…'); preview.dataset.live = 'verifying'; readoutText('Matching');
             const response = await fetch(localUrl(button.formAction), { method: 'POST', credentials: 'same-origin', redirect: 'error', headers: { Accept: 'application/json' }, body: payload });
             const result = await response.json().catch(() => ({}));
             if (!response.ok) {
@@ -113,15 +147,16 @@
                 throw failure;
             }
             if (!result.redirectUrl) throw new Error('Sign-in could not finish. Reload the page.');
-            status('Face verified', 'matched');
+            status('Face verified', 'matched'); readoutText('Identity confirmed');
             signal('verified');
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 450));
+            await (window.tiryaqBiometricWelcome?.('face', button) ?? Promise.resolve());
             if (current === generation) location.assign(localUrl(result.redirectUrl));
         } catch (failure) {
             if (current !== generation) return;
             if (snapshot.hidden) freezePreview();
             const message = failure.name === 'NotAllowedError' ? 'Camera access denied' : failure.name === 'NotFoundError' ? 'Camera not found' : failure.message || 'Unable to verify';
-            status(message, 'failed');
+            status(message, 'failed'); readoutText('Not verified');
             signal('failed');
         } finally {
             if (current === generation) {

@@ -442,3 +442,36 @@ html:has(.team-dialog[open]) { overflow: hidden; }
     .team-page *, .team-capsule::after, .team-dialog::backdrop { transition-duration: 0s; }
     .team-capsule:hover, .team-capsule:hover::after { transform: none; }
 }
+
+/* Profile card: arch-framed portrait with a slow honey ring, homepage type, icon links. */
+.team-profile { background: linear-gradient(140deg, #ffffff, #f1f6f5) !important; border-color: rgba(255,255,255,.7) !important; color: #0c252d; }
+.team-profile-frame { position: relative; padding: 10px; isolation: isolate; }
+.team-profile-frame::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 999px 999px 1.6rem 1.6rem;
+  background: conic-gradient(from var(--tp-a, 0deg), #efb85c, #1d5560 30%, #f6d49a 55%, #1d5560 80%, #efb85c);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  padding: 2px; animation: tp-spin 9s linear infinite; }
+.team-profile-frame::after { content: ""; position: absolute; inset: -9px 9px 9px -9px; z-index: -2; border-radius: 999px 999px 1.6rem 1.6rem; border: 1px solid rgba(29,85,96,.28); }
+.team-profile-portrait { border: 0 !important; border-radius: 999px 999px 1.2rem 1.2rem !important; aspect-ratio: 4 / 5 !important; background: #e3eeec; box-shadow: inset 0 0 0 1px rgba(12,37,45,.06); }
+.team-profile-portrait img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.06); transition: transform .9s cubic-bezier(.2,.8,.2,1); }
+.team-dialog.is-visible .team-profile-portrait img { transform: scale(1); }
+.team-profile-frame:hover .team-profile-portrait img { transform: scale(1.03); }
+@property --tp-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@keyframes tp-spin { to { --tp-a: 360deg; } }
+
+.team-profile-index { font-family: "JetBrains Mono", ui-monospace, monospace; color: #b06f1c !important; font-weight: 500 !important; }
+.team-profile-copy h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; letter-spacing: -.01em !important; color: #0c252d; }
+.team-profile-role { display: inline-flex; align-items: center; gap: .55rem; font: 500 .74rem/1 "JetBrains Mono", ui-monospace, monospace !important;
+  letter-spacing: .2em; text-transform: uppercase; color: #b06f1c; margin-bottom: .9rem !important; }
+.team-profile-role::before { content: ""; width: 22px; height: 1px; background: currentColor; }
+.team-profile-department { background: rgba(29,85,96,.1) !important; color: #1d5560 !important; }
+.team-profile-bio { color: #3f5a60 !important; }
+.team-profile-links a { gap: .55rem !important; padding: .55rem .95rem .55rem .75rem !important; border-radius: 99px !important; border: 1px solid rgba(29,85,96,.25) !important;
+  background: #fffdf8 !important; color: #0c252d !important; font-weight: 600 !important; transition: background .25s, color .25s, border-color .25s, transform .25s; }
+.team-link-icon { width: 18px; height: 18px; flex: 0 0 auto; color: #1d5560; transition: color .25s; }
+.team-link-arrow { font-size: .8em; opacity: .55; transition: transform .25s, opacity .25s; }
+.team-profile-links a:hover { background: #1d5560 !important; border-color: #1d5560 !important; color: #f4eee2 !important; transform: translateY(-1px); }
+.team-profile-links a:hover .team-link-icon { color: #efb85c; }
+.team-profile-links a:hover .team-link-arrow { opacity: 1; transform: translate(2px, -2px); }
+.team-profile-close { background: #fffdf8 !important; color: #0c252d !important; border-color: rgba(29,85,96,.25) !important; }
+@media (max-width: 720px) { .team-profile-frame { width: min(100%, 15rem); margin-inline: auto; } .team-profile-portrait { width: 100% !important; aspect-ratio: 4 / 5 !important; } }
+@media (prefers-reduced-motion: reduce) { .team-profile-frame::before { animation: none; } .team-profile-portrait img { transition: none; transform: none; } }

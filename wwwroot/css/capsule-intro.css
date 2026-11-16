@@ -1,0 +1,33 @@
+/* Registration intro: a capsule cracks open, its granules burst, then the page drops into place. Pure CSS; ends hidden. */
+.cap-intro{position:fixed;inset:0;z-index:4000;display:grid;place-items:center;overflow:hidden;cursor:pointer;
+  background:radial-gradient(circle at 50% 46%,#1d5560 0,#0c252d 72%);
+  animation:cap-leave .55s 1.75s cubic-bezier(.6,0,.3,1) forwards}
+.cap-stage{position:relative;width:240px;height:96px;animation:cap-in .6s cubic-bezier(.2,1.3,.4,1) both,cap-wobble .35s .6s ease-in-out}
+.cap-half{position:absolute;top:0;width:50%;height:100%;box-shadow:inset 0 -10px 18px rgba(0,0,0,.18),inset 0 8px 14px rgba(255,255,255,.35)}
+.cap-half::after{content:"";position:absolute;top:16%;height:16%;border-radius:99px;background:rgba(255,255,255,.55);filter:blur(1px)}
+.cap-l{left:0;border-radius:48px 6px 6px 48px;background:linear-gradient(#f6d49a,#efb85c 55%,#d98a2b);animation:cap-open-l .7s 1s cubic-bezier(.2,.8,.2,1) forwards}
+.cap-l::after{left:16%;width:52%}
+.cap-r{right:0;border-radius:6px 48px 48px 6px;background:linear-gradient(#f4eee2,#e3eeec 55%,#b9cfcb);animation:cap-open-r .7s 1s cubic-bezier(.2,.8,.2,1) forwards}
+.cap-r::after{left:24%;width:50%}
+.cap-r::before{content:"Tiryaq";position:absolute;inset:0;display:grid;place-items:center;font:400 1.25rem/1 "Instrument Serif",Georgia,serif;color:#1d5560;letter-spacing:.02em}
+.cap-seam{position:absolute;left:50%;top:8%;bottom:8%;width:2px;margin-left:-1px;background:rgba(12,37,45,.25);animation:cap-seam .3s .75s ease-out forwards}
+.cap-glow{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px;border-radius:50%;background:#f6d49a;opacity:0;
+  box-shadow:0 0 40px 18px rgba(239,184,92,.6);animation:cap-glow .7s .95s ease-out forwards}
+.cap-g{position:absolute;left:50%;top:50%;width:var(--s);height:var(--s);margin:calc(var(--s)/-2);border-radius:50%;opacity:0;
+  background:var(--c,#efb85c);animation:cap-burst 1s calc(1s + var(--d)) cubic-bezier(.1,.75,.3,1) forwards}
+.cap-g.hex{border-radius:0;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.cap-skip{position:absolute;bottom:28px;left:0;right:0;text-align:center;font:500 .66rem/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,238,226,.45)}
+.cap-intro~* .registration-form-area,.cap-intro~.registration-form-area{animation:cap-drop .9s 1.85s cubic-bezier(.2,.9,.25,1.08) both}
+.cap-intro~* .registration-form-card>*,.cap-intro~.registration-form-area .registration-form-card>*{animation:cap-rise .6s calc(2.05s + var(--k,0) * 70ms) ease-out both}
+@keyframes cap-in{from{opacity:0;transform:translateY(-70px) rotate(-28deg) scale(.6)}to{opacity:1;transform:rotate(-12deg)}}
+@keyframes cap-wobble{0%,100%{transform:rotate(-12deg)}30%{transform:rotate(-17deg) scale(1.03)}65%{transform:rotate(-7deg) scale(1.03)}}
+@keyframes cap-seam{to{background:#fff8e6;box-shadow:0 0 14px 3px rgba(246,212,154,.9)}}
+@keyframes cap-open-l{to{transform:translate(-120px,-34px) rotate(-38deg);opacity:0}}
+@keyframes cap-open-r{to{transform:translate(120px,34px) rotate(32deg);opacity:0}}
+@keyframes cap-glow{40%{opacity:1;transform:scale(5)}to{opacity:0;transform:scale(14)}}
+@keyframes cap-burst{0%{opacity:1;transform:translate(0,0) scale(.3)}75%{opacity:.9}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(1) rotate(160deg)}}
+@keyframes cap-leave{to{opacity:0;visibility:hidden;transform:scale(1.04)}}
+@keyframes cap-drop{from{opacity:0;transform:translateY(-90px)}to{opacity:1;transform:none}}
+@keyframes cap-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.cap-intro.is-skipped{animation:cap-leave .3s forwards}
+@media (prefers-reduced-motion:reduce){.cap-intro{display:none}.cap-intro~* .registration-form-area,.cap-intro~.registration-form-area,.cap-intro~* .registration-form-card>*{animation:none}}
