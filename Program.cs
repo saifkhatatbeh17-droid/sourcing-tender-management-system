@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Services.TopCommittee;
@@ -8,6 +9,7 @@ using SourcingTenderManagement.Services.FaceEnrollment;
 using SourcingTenderManagement.Services.FaceVerification;
 using SourcingTenderManagement.Services.FaceLogin;
 using SourcingTenderManagement.Services.PdfWatermark;
+using SourcingTenderManagement.Services.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddEnvironmentVariables();
@@ -17,12 +19,30 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHostedService<SourcingTenderManagement.Services.TenderClosureService>();
 builder.Services.AddPdfWatermarks();
 builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidRecommendationService>(client => client.Timeout = TimeSpan.FromMinutes(5));
+builder.Services.AddHttpClient<AiChatClient>(client => client.Timeout = TimeSpan.FromSeconds(60))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
+builder.Services.AddScoped<AiChatContext>();
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
 builder.Services.AddTopCommitteeFoundation();
 builder.Services.AddFaceEnrollment();
 builder.Services.AddFaceVerification(builder.Configuration);
 builder.Services.AddFaceLogin();
 builder.Services.AddRateLimiter(options =>
+{
+    options.OnRejected = (context, _) =>
+    {
+        if (context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName == "AiChat")
+            context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        return ValueTask.CompletedTask;
+    };
+    options.AddPolicy("AiChat", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
     options.AddPolicy("ChangePassword", context => RateLimitPartition.GetFixedWindowLimiter(
         context.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? context.Connection.RemoteIpAddress?.ToString()
@@ -32,7 +52,8 @@ builder.Services.AddRateLimiter(options =>
             PermitLimit = 5,
             Window = TimeSpan.FromMinutes(5),
             QueueLimit = 0
-        })));
+        }));
+});
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
 {
     o.Stores.SchemaVersion = IdentitySchemaVersions.Version3;

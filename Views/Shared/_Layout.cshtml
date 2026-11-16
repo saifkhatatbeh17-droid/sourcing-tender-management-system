@@ -66,6 +66,10 @@
     @if (showWorkspace) { <link rel="stylesheet" href="~/css/workspace-shell.css" asp-append-version="true" /> }
     @if (showWorkspace && currentAction == "Dashboard") { <link rel="stylesheet" href="~/css/workspace-dashboard.css" asp-append-version="true" /> }
     <link rel="stylesheet" href="~/css/workflow-ux.css" asp-append-version="true" />
+    @if (showWorkspace)
+    {
+        <link rel="stylesheet" href="~/css/ai-chat.css" asp-append-version="true" />
+    }
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -124,6 +128,11 @@ else if (!standaloneLogin)
 </div>
 @if (!standaloneLogin) { @await RenderSectionAsync("Footer", required: false) }
 <partial name="_ActionConfirmation" />
+@if (showWorkspace)
+{
+    <partial name="_AiChat" />
+    <script src="~/js/ai-chat.js" asp-append-version="true" defer></script>
+}
 <script src="~/js/action-confirmation.js" asp-append-version="true"></script>
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

@@ -17,17 +17,8 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
     private record StructuredScenario(decimal FinancialWeight, int? RecommendedBidId, ReasonSections Reason);
     private record StructuredRecommendation(StructuredScenario[] Scenarios, string[] MissingInformation, BidComparison[] Comparisons, string? Report);
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    public string Model => configuration["Ollama:Model"] ?? "qwen2.5:7b";
-    private Uri Endpoint
-    {
-        get
-        {
-            var url = configuration["Ollama:BaseUrl"] ?? "http://localhost:11434";
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !uri.IsLoopback || uri.Scheme != "http")
-                throw new InvalidOperationException("Ollama must use a local HTTP address.");
-            return new Uri(uri.GetLeftPart(UriPartial.Authority) + "/api/generate");
-        }
-    }
+    public string Model => OllamaSettings.Model(configuration);
+    private Uri Endpoint => OllamaSettings.GenerateEndpoint(configuration);
 
     public async Task<string> DraftReferral(object evidence, CancellationToken cancellationToken)
     {

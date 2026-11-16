@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using SourcingTenderManagement.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -189,8 +190,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     }
 
     private IQueryable<PurchaseRequest> ReviewableRequests(string userId) =>
-        db.PurchaseRequests.Where(r => r.Status != "Draft" &&
-            (r.ReviewedByUserId == userId || (r.ReviewedByUserId == null && r.Status == "Submitted")));
+        db.PurchaseRequests.ReviewableBy(userId);
     public IActionResult Tenders(int? id) => RedirectToAction(nameof(Offers), new { tenderId = id });
 
     private async Task<IActionResult> LoadTenderForms()
@@ -553,6 +553,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             .Include(b => b.BidItems).ThenInclude(i => i.PurchaseRequestItem)
             .Include(b => b.BidDocuments).OrderBy(b => b.BidId).ToListAsync();
         var selectedTender = tenders.SingleOrDefault(t => t.TenderId == tenderId);
+        ViewData["AiChatRecordId"] = selectedTender?.TenderId;
         if (selectedTender != null)
             selectedTender.PurchaseRequest = await db.PurchaseRequests.AsNoTracking()
                 .Include(r => r.PurchaseRequestItems).SingleAsync(r => r.PurchaseRequestId == selectedTender.PurchaseRequestId);

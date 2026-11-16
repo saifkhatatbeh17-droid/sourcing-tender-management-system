@@ -1,6 +1,7 @@
 using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using SourcingTenderManagement.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
@@ -74,10 +75,7 @@ public partial class SourcingManagerController : Controller
         ViewBag.OpenRejections = showRejections || rejectedTenderId.HasValue;
         var evaluationReports = _context.EvaluationReports
             .Include(report => report.Tender).ThenInclude(t => t.OfferExtensions)
-            .Where(report => !report.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") && report.Tender.Status == AwaitingManagerReview &&
-                (report.Status == "OfficerSubmitted" ||
-                 report.Status == "CommitteeApproved" ||
-                 report.Status == ManagerApproved))
+            .InManagerReview()
             .OrderByDescending(report => report.SubmittedAt)
             .ThenByDescending(report => report.EvaluationReportId)
             .ToList();
@@ -104,6 +102,7 @@ public partial class SourcingManagerController : Controller
         }
 
         var tenderId = selectedReport.TenderId;
+        ViewData["AiChatRecordId"] = selectedReport.EvaluationReportId;
         var submittedBids = _context.Bids.AsNoTracking()
             .Where(bid => bid.TenderId == tenderId && bid.Status != "Draft" && bid.Status != "Withdrawn");
 

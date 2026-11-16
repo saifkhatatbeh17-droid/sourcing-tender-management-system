@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SourcingTenderManagement.Services.Evaluation;
+using SourcingTenderManagement.Services;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -36,7 +37,7 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
         var page = new CommitteeEvaluationPage { UserId = UserId };
         page.Tenders = await db.Tenders.AsNoTracking()
             .AsSplitQuery().Include(t => t.EvaluationReport).Include(t => t.CommitteeAssignments).Include(t => t.TenderApprovals)
-            .Where(t => t.Status == "UnderEvaluation" || t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == UserId))
+            .InEvaluationWorkspace(UserId)
             .OrderByDescending(t => t.CreatedAt).ToListAsync();
         var selected = id ?? (selectFirst ? page.Tenders.FirstOrDefault()?.TenderId : null);
         if (selected != null && page.Tenders.Any(t => t.TenderId == selected))

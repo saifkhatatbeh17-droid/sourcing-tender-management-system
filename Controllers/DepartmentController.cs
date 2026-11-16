@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SourcingTenderManagement.Services;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
@@ -164,7 +165,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
 
     private IQueryable<PurchaseRequest> DepartmentRequests(ApplicationUser user) =>
         db.PurchaseRequests.AsNoTracking().AsSplitQuery().Include(r => r.Department).Include(r => r.Tenders)
-            .Where(r => r.DepartmentId == user.DepartmentId);
+            .InDepartment(user.DepartmentId);
 
     private void SetEditViewData(PurchaseRequest request)
     {
