@@ -78,6 +78,8 @@
                     : describe(choice === 'Rejected' ? 'Reject this recommendation?' : 'Return for review?', choice === 'Rejected' ? 'This rejects the recommendation and records your comments.' : 'Your comments will be returned for review of the recommendation.', choice === 'Rejected' ? 'Reject recommendation' : 'Return for review', choice === 'Rejected');
             }
         }
+        // The rejection reason dialog already explains and confirms this final decision.
+        if (controller === 'topcommittee' && action === 'submitvote' && value(form, 'Vote.Decision', button) === 'Rejected' && form.closest('.modal')) return null;
         if (controller === 'topcommittee' && action === 'submitvote') return approve('Record your final approval?', 'Your vote and notes will be saved and your voting form will be locked. The final required approval may award the tender to the nominated supplier.', 'Record approval');
         if ((controller === 'clarification' && action === 'update' && value(form, 'resolve', button) === 'true') || (controller === 'topcommittee' && action === 'resolveclarification')) return describe('Confirm this question is resolved?', 'Your confirmation will be recorded. The conversation closes once both participants confirm resolution.', 'Confirm resolution');
         if ((controller === 'clarification' && action === 'create') || action === 'createclarification') return describe('Send this clarification?', 'Your question will be sent to the selected participant and linked to this record. An open question may pause related approvals until resolved.', 'Send question');

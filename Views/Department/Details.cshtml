@@ -16,10 +16,7 @@
 @section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
 
 <div class="department-workspace department-document">
-    <div class="nav nav-tabs workspace-tabs dr-tabs" aria-label="Purchase Requests">
-        <a class="nav-link" asp-action="Requests">← My Requests</a>
-        <a class="nav-link active" asp-action="Details" asp-route-id="@Model.PurchaseRequestId" aria-current="page">Request #@Model.PurchaseRequestId</a>
-    </div>
+    <a class="dr-back-link" asp-action="Requests">← Requests history</a>
 
     <header class="dr-details-header">
         <div class="dr-details-title-block">
@@ -44,7 +41,7 @@
             @if (ViewData["CanEdit"] is true)
             {
                 <a asp-action="Edit" asp-route-id="@Model.PurchaseRequestId" class="btn dr-primary">
-                    Edit and Resubmit <span aria-hidden="true">→</span>
+                    Edit and resubmit <span aria-hidden="true">→</span>
                 </a>
             }
         </div>
@@ -68,7 +65,7 @@
         </li>
         <li class="@(step >= 4 ? "is-done is-current" : "")">
             <span class="dr-step-dot">4</span>
-            <div><strong>Converted to Tender</strong><small>@(Model.Status == "ConvertedToTender" ? readableStatus : "After request approval")</small></div>
+            <div><strong>Tender created</strong><small>@(Model.Status == "ConvertedToTender" ? readableStatus : "After request approval")</small></div>
         </li>
     </ol>
 

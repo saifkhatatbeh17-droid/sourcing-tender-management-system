@@ -49,7 +49,7 @@ public static class TopCommitteePhase7Checks
         var malicious = await TopCommitteePhase2Checks.RenderAsync(services, Actor(id), "History", page with { Rows = [pending with { Title = "<script>alert(1)</script>" }] });
         Check(!malicious.Contains("<script>alert(1)</script>") && malicious.Contains("&lt;script&gt;"), "Encoded titles");
         var empty = await TopCommitteePhase2Checks.RenderAsync(services, Actor(id), "History", page with { Rows = [], Total = 0 });
-        Check(empty.Contains("No recorded decisions") && !empty.Contains("Pending test tender"), "Empty history");
+        Check(empty.Contains("No votes recorded yet") && !empty.Contains("Pending test tender"), "Empty history");
         Check(!html.Contains("Private delivery clarification"), "No private conversations");
         var output = Environment.GetEnvironmentVariable("TOP_COMMITTEE_PREVIEW_DIR");
         if (!string.IsNullOrWhiteSpace(output))

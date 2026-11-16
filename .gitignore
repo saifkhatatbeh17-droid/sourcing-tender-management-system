@@ -12,3 +12,8 @@ App_Data/private-files/
 
 # Local browser QA artifacts
 output/playwright/
+
+# Local QA evidence and Python caches
+output/qa/
+__pycache__/
+*.pyc

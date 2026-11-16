@@ -36,8 +36,8 @@ public partial class SourcingManagerController
             tender.RejectionForwardedByUserId = ManagerId;
             tender.Status = "Closed";
             db.Notifications.Add(new Notification { UserId = tender.CreatedByUserId, Title = "Rejected tender forwarded to you",
-                Message = $"Review tender #{id} and prepare a replacement draft. The original rejection is preserved.",
-                RelativeUrl = "/SourcingOfficer/Tenders", CreatedAt = DateTime.UtcNow });
+                Message = $"Review tender #{id} and prepare a replacement tender. The original rejection is preserved.",
+                RelativeUrl = $"/SourcingOfficer/Offers?tenderId={id}", CreatedAt = DateTime.UtcNow });
             await db.SaveChangesAsync(token);
             return 200;
         }, ct);

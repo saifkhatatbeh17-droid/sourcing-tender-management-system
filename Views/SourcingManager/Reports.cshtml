@@ -8,7 +8,7 @@
 }
 
 <div class="manager-shell manager-refresh">
-    <header class="mr-heading"><div><h1>Reports &amp; decisions<span>.</span></h1><p>Review your recorded decisions, comments and tender outcomes.</p></div><span class="mr-count">@Model.Decisions.Count records</span></header>
+    <header class="mr-heading"><div><h1>Reports &amp; decisions</h1><p>Review your recorded decisions, comments and tender outcomes.</p></div><span class="mr-count">@Model.Decisions.Count records</span></header>
     <section class="workspace-section" aria-label="Reports">
         <form class="mr-filters" method="get" asp-action="Reports">
             <div class="col-sm-5">
@@ -88,3 +88,5 @@
         }
     </section>
 </div>
+
+@section Scripts { <script src="~/js/sourcing-manager-workspace.js" asp-append-version="true"></script> }

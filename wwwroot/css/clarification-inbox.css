@@ -8,10 +8,10 @@ html[data-theme="dark"] body:has(.clarification-inbox) { --color-background:#101
 .ci-heading h1::after { content:'.'; color:var(--accent); font-size:1.3em; }
 .ci-heading p { margin:10px 0 0; color:var(--color-text-secondary); font-size:14px; line-height:1.6; }
 .ci-button { display:inline-flex; align-items:center; justify-content:center; gap:12px; min-height:44px; padding:11px 18px; border:1px solid transparent; border-radius:18px; font:600 14px/1.5 "Segoe UI",sans-serif; text-decoration:none; white-space:nowrap; transition:background-color 160ms ease; }
-.ci-primary { background:var(--accent); color:#002e30; }
-.ci-primary:hover { background:color-mix(in oklab,var(--pharma-primary),black 8%); color:#002e30; }
-.ci-heading > .ci-primary { background:#ff6b4a; }
-.ci-heading > .ci-primary:hover { background:#f05c3c; }
+.ci-primary { background:var(--accent); color:#fff; }
+.ci-primary:hover { background:color-mix(in oklab,var(--pharma-primary),black 8%); color:#fff; }
+.ci-heading > .ci-primary { background:#ff6b4a;color:#111; }
+.ci-heading > .ci-primary:hover { background:#f05c3c;color:#111; }
 .ci-secondary { background:var(--color-surface); border-color:var(--color-border); color:var(--color-link); }
 .ci-secondary:hover { background:var(--color-selection); color:var(--color-link); }
 .clarification-inbox a:not(.ci-button):not(.ci-conversation):not(.ci-record-option) { color:var(--color-link); text-decoration:none; }

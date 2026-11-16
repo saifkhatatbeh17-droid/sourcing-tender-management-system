@@ -994,7 +994,7 @@ body:has(.workspace-shell):has(.department-workspace) {
     align-items: center;
     gap: 12px;
     min-width: 0;
-    opacity: 0.55;
+    opacity: 1;
 }
 
 .dr-stepper li.is-done {
@@ -1324,3 +1324,11 @@ html body .department-requests > .dr-heading > .dr-primary:focus-visible {
     outline: 2px solid var(--color-focus, #1170cf);
     outline-offset: 3px;
 }
+/* Request detail navigation is a clear return path, rather than a second tab bar. */
+.department-workspace .dr-back-link { display:inline-flex;align-items:center;min-height:44px;margin-bottom:16px;color:var(--color-link);font-size:13px;text-decoration:none; }.department-workspace .dr-back-link:hover { text-decoration:underline; }
+
+/* Primary actions use the shared orange with legible ink in both themes. */
+html body .department-workspace .dr-primary { background:var(--brand-highlight,#ff6b4a);border-color:var(--brand-highlight,#ff6b4a);color:#111;box-shadow:none; }
+html body .department-workspace .dr-primary:hover { background:#f05c3c;border-color:#f05c3c;color:#111; }
+html body .department-workspace .dr-stepper li.is-current .dr-step-dot { background:var(--brand-highlight,#ff6b4a);border-color:var(--brand-highlight,#ff6b4a);color:#111; }
+.department-workspace .text-secondary { color:var(--color-text-secondary)!important; }

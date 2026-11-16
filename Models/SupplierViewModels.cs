@@ -27,6 +27,8 @@ public class OfferFormViewModel
     public DateTime ClosesAt { get; set; }
     [Required, StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = "JOD";
     [Range(0, 3650)] public int DeliveryDays { get; set; }
+    [Range(typeof(decimal), "0", "9999999999999999.99")] public decimal TaxAmount { get; set; }
+    [Range(typeof(decimal), "0", "9999999999999999.99")] public decimal AdditionalCosts { get; set; }
     [StringLength(1000)] public string? PaymentTerms { get; set; }
     public DateOnly? ValidUntil { get; set; }
     [StringLength(4000)] public string? TechnicalDetails { get; set; }

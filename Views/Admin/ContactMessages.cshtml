@@ -1,11 +1,11 @@
 @model ContactMessagesPage
 @{
-    ViewData["Title"] = "Contact Messages";
+    ViewData["Title"] = "Contact messages";
     var hasFilters = !string.IsNullOrEmpty(Model.Search) || Model.Status != null;
 }
 
 <header class="workspace-heading">
-    <div><h1>Contact Messages</h1><p>Read messages sent through the Contact Us form.</p></div>
+    <div><h1>Contact messages</h1><p>Read messages sent through the Contact Us form.</p></div>
 </header>
 
 <section class="admin-records" aria-label="Contact messages">
@@ -36,17 +36,16 @@
     {
         <div class="table-responsive" tabindex="0" role="region" aria-label="Received messages">
             <table class="table align-middle admin-record-table">
-                <thead><tr><th scope="col">Sender</th><th scope="col">Email</th><th scope="col">Subject</th><th scope="col">Received (UTC)</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+                <thead><tr><th scope="col">Message</th><th scope="col">Sender</th><th scope="col">Received (UTC)</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
                 <tbody>
                     @foreach (var message in Model.Messages)
                     {
                         <tr>
-                            <th scope="row" class="text-break">@message.FullName</th>
-                            <td class="text-break">@message.Email</td>
-                            <td class="text-break">@message.Subject</td>
+                            <th scope="row" class="text-break"><a asp-action="ContactMessageDetails" asp-route-id="@message.ContactMessageId">@message.Subject</a><span class="au-meta">Message #@message.ContactMessageId</span></th>
+                            <td class="text-break">@message.FullName<span class="au-meta">@message.Email</span></td>
                             <td class="text-nowrap">@message.SubmittedAt.ToString("dd MMM yyyy · HH:mm")</td>
                             <td><span class="badge @(message.IsUnread ? "text-bg-warning" : "text-bg-secondary")">@(message.IsUnread ? "Unread" : "Read")</span></td>
-                            <td><a class="btn btn-outline-primary text-nowrap" asp-action="ContactMessageDetails" asp-route-id="@message.ContactMessageId">View Details</a></td>
+                            <td><a class="btn btn-outline-primary text-nowrap" asp-action="ContactMessageDetails" asp-route-id="@message.ContactMessageId">Read message</a></td>
                         </tr>
                     }
                 </tbody>

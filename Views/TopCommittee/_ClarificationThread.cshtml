@@ -1,9 +1,9 @@
 @model CommitteeClarificationThread
-<section class="workspace-section tc-conversation" aria-labelledby="question-@Model.ClarificationId">
-    <div class="workspace-heading mb-2">
+<details class="workspace-section tc-conversation" aria-labelledby="question-@Model.ClarificationId">
+    <summary class="tc-conversation-heading">
         <h3 class="fs-5 mb-0" id="question-@Model.ClarificationId">@Model.Subject</h3>
         <span class="badge @(Model.Status == "Resolved" ? "text-bg-success" : Model.Status == "Answered" ? "text-bg-primary" : "text-bg-secondary")">@Model.Status</span>
-    </div>
+    </summary>
     <div class="tc-cell-stack tc-conversation-meta"><a asp-action="TenderDetails" asp-route-id="@Model.TenderId">@Model.TenderTitle</a><span class="tc-cell-meta">Tender #@Model.TenderId</span><span class="tc-cell-meta">Sent to @Model.ManagerName · @CommitteeDisplay.Utc(Model.CreatedAt)</span></div>
     <p class="committee-message">@Model.Description</p>
     @if (Model.Responses.Count == 0)
@@ -29,8 +29,8 @@
             <button class="btn btn-primary" type="submit">Send follow-up</button>
         </form>
         <p>Both you and the Sourcing Manager must confirm resolution before voting can resume.</p>
-        <form asp-action="ResolveClarification" method="post"><input type="hidden" name="id" value="@Model.ClarificationId" /><button class="btn btn-outline-primary" type="submit">Mark as resolved</button></form>
+        <form asp-action="ResolveClarification" method="post"><input type="hidden" name="id" value="@Model.ClarificationId" /><button class="btn btn-outline-primary" type="submit">Confirm resolution</button></form>
     }
     else if (Model.Status == "Answered")
     { <p class="text-secondary mb-0">Open this tender's clarifications to review whether your answered question can be resolved.</p> }
-</section>
+</details>

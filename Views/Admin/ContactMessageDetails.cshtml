@@ -1,6 +1,6 @@
 @model SourcingTenderManagement.Models.Entities.ContactMessage
 @{
-    ViewData["Title"] = "Contact Message";
+    ViewData["Title"] = "Contact message";
     string? replyUrl = null;
     if (ContactMessageInput.IsValidAddress(Model.Email))
     {
@@ -12,10 +12,10 @@
 }
 
 <header class="workspace-heading">
-    <div><h1>Contact Message</h1><p>Read the sender’s message and reply from your email app.</p></div>
+    <div><h1>Contact message</h1><p>Read the sender’s message and reply from your email app.</p></div>
 </header>
 
-<div class="admin-pager mb-3"><a class="btn btn-outline-primary" asp-action="ContactMessages">Back to Contact Messages</a></div>
+<div class="admin-pager mb-3"><a class="btn btn-outline-primary" asp-action="ContactMessages">← Back to inbox</a></div>
 
 @if (TempData["ContactMessageFeedback"] is string feedback)
 {
@@ -28,24 +28,24 @@
         <span class="badge @(Model.IsUnread ? "text-bg-warning" : "text-bg-secondary")">@(Model.IsUnread ? "Unread" : "Read")</span>
     </header>
     <dl class="row g-3">
-        <div class="col-12 col-md-4"><dt>Full Name</dt><dd class="text-break">@Model.FullName</dd></div>
-        <div class="col-12 col-md-4"><dt>Email Address</dt><dd class="text-break">@Model.Email</dd></div>
-        <div class="col-12 col-md-4"><dt>Received Date</dt><dd>@Model.SubmittedAt.ToString("dd MMM yyyy · HH:mm") UTC</dd></div>
+        <div class="col-12 col-md-4"><dt>Sender</dt><dd class="text-break">@Model.FullName</dd></div>
+        <div class="col-12 col-md-4"><dt>Email</dt><dd class="text-break">@Model.Email</dd></div>
+        <div class="col-12 col-md-4"><dt>Received · UTC</dt><dd>@Model.SubmittedAt.ToString("dd MMM yyyy · HH:mm") UTC</dd></div>
     </dl>
     <section class="border-top pt-3 mt-3" aria-labelledby="contact-message-body">
         <h3 class="h6" id="contact-message-body">Message</h3>
-        <p class="text-break mb-0" style="white-space: pre-wrap">@Model.Message</p>
+        <p class="au-message-body text-break mb-0" style="white-space: pre-wrap">@Model.Message</p>
     </section>
     <div class="d-flex flex-wrap gap-2 border-top pt-3 mt-4">
         @if (replyUrl != null)
         {
-            <a href="@replyUrl" class="btn btn-primary" aria-describedby="reply-by-email-help">Reply by Email</a>
+            <a href="@replyUrl" class="btn btn-primary" aria-describedby="reply-by-email-help">Reply by email</a>
         }
         @if (Model.IsUnread)
         {
             <form asp-action="MarkContactMessageRead" method="post">
                 <input type="hidden" name="id" value="@Model.ContactMessageId" />
-                <button type="submit" class="btn btn-outline-primary">Mark as Read</button>
+                <button type="submit" class="btn btn-outline-primary">Mark as read</button>
             </form>
         }
     </div>

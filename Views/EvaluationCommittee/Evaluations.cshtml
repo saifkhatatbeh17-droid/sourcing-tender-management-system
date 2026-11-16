@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="~/css/root.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/committee-evaluations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/committee-evaluations-webex.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/committee-report-summary.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/committee-report-summary.css" asp-append-version="true" /><link rel="stylesheet" href="~/css/committee-refinement.css" asp-append-version="true" />
 }
 <div class="evaluation-page">
     @if (tender == null) { <header class="ev-page-heading"><div><h1>Tender evaluations</h1><p class="text-secondary">Open a tender to review its offers and record your committee decision.</p></div></header> }
@@ -23,7 +23,7 @@
     @if (tender != null)
     {
         <div class="ev-selected-tender">
-            <div class="ev-current-title"><h1>Tender evaluations<span class="ev-title-period" aria-hidden="true">.</span></h1><p class="ev-current-tender"><span class="ev-tender-reference">#@tender.TenderId</span> @tender.Title</p></div>
+            <div class="ev-current-title"><h1>Tender evaluations</h1><p class="ev-current-tender"><span class="ev-tender-reference">#@tender.TenderId</span> @tender.Title</p></div>
             <div class="ev-tender-header-actions">
                 <span class="ev-status">@StatusLabel(tender.Status)</span>
                 <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender" asp-route-recordId="@tender.TenderId" class="btn ev-button-secondary ev-ask-clarification">
@@ -36,6 +36,7 @@
             </div>
         </div>
     }
+    <partial name="_TenderBrowser" model="Model" />
     @if (tender == null)
     {
         <div class="ev-empty"><h2>Your next evaluation starts here</h2><p>Tenders will appear when the sourcing officer sends eligible offers to the committee.</p></div>
@@ -48,13 +49,12 @@
         }
         <partial name="_TenderOfferRoundHistory" model="tender" />
         <div class="ev-tender-workspace">
-        <partial name="_TenderBrowser" model="Model" />
-        <div class="ev-detail-area">
+
+        <div class="ev-detail-area"><section class="ev-workflow-guide" aria-label="Evaluation workflow"><div><strong>1. Agree weights</strong><span>@Model.WeightProposals.Count / 4 confirmed</span></div><div><strong>2. Review every offer</strong><span>Four independent reviews per offer</span></div><div><strong>3. Send the report</strong><span>Highest average leads; ties need unanimous agreement</span></div></section>
         @if (!Model.PercentageReady)
         { <partial name="_ConsensusWeights" model="Model" /> }
         @if (!Model.PercentageReady)
         {
-                    <partial name="_TenderOfferRoundHistory" model="tender" />
 <section class="ev-empty cs-workspace-lock" aria-labelledby="workspace-lock-heading" role="status">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
                 <h2 id="workspace-lock-heading">Evaluation locked</h2>

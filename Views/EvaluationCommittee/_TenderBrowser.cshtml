@@ -1,6 +1,6 @@
 @model CommitteeEvaluationPage
 @{ var tender = Model.Tender; string StatusLabel(string status) => status switch { "UnderEvaluation" => "Under evaluation", "AwaitingOfficerSummary" => "Sent to sourcing officer", _ => System.Text.RegularExpressions.Regex.Replace(status, "([a-z])([A-Z])", "$1 $2") }; }
-<aside class="ev-tender-browser" aria-label="Choose tender">
+<details class="ev-tender-switcher" open="@(tender == null)"><summary><span><strong>Find a tender</strong><small>@(tender == null ? "Choose an evaluation to get started" : $"Currently viewing #{tender.TenderId} · {tender.Title}")</small></span><span>@Model.Tenders.Count tenders · Change <span aria-hidden="true">⌄</span></span></summary><div class="ev-tender-browser" aria-label="Choose tender">
         <div class="ev-tender-browser-heading"><span>Tenders <small>@Model.Tenders.Count</small></span><div class="ev-tender-search-field voice-search-control ev-voice-search">
             <div class="ev-search-input-row">
                 <svg class="ev-tender-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>
@@ -27,4 +27,4 @@
         </nav>
         <p id="tender-search-empty" hidden role="status">No matching tenders. Try another search or filter.</p>
         <div class="ev-tender-list-footer"><span id="tender-result-count" aria-live="polite">@Model.Tenders.Count tenders</span><span>Newest first</span></div>
-    </aside>
+    </div></details>

@@ -32,7 +32,7 @@
                 <label for="request-status">Current status</label>
                 <select id="request-status" name="status" class="form-select">
                     <option value="">All statuses</option>
-                    @foreach (var state in DepartmentRequestProgress.Statuses)
+                    @foreach (var state in DepartmentRequestProgress.Statuses.Where(state => state is not "Draft" and not "ConvertedToTender"))
                     {
                         <option value="@state" selected="@(ViewBag.Status as string == state)">
                             @DepartmentRequestProgress.Label(state)

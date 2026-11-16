@@ -51,10 +51,10 @@
 .manager-shell .btn-primary {
     --bs-btn-bg: var(--color-primary);
     --bs-btn-border-color: var(--color-primary);
-    --bs-btn-color: #002e30;
+    --bs-btn-color: #fff;
     --bs-btn-hover-bg: #009497;
     --bs-btn-hover-border-color: #009497;
-    --bs-btn-hover-color: #002e30;
+    --bs-btn-hover-color: #fff;
 }
 
 .manager-shell :is(.btn, .form-control, .form-select) {
@@ -276,3 +276,37 @@ html[data-theme="dark"] body:has(.manager-refresh) { background:#101817; --color
 .mr-heading-copy p { margin: 8px 0 0; color: var(--color-text-secondary); }
 .manager-shell .mr-heading-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .manager-shell .mr-heading-actions :is(.btn, .dashboard-cta) { white-space: normal; overflow-wrap: anywhere; }
+/* Full-width review queues keep the current task and its status together. */
+.manager-refresh .mr-review-layout,.manager-refresh .mr-inbox { grid-template-columns:minmax(0,1fr); }
+.manager-refresh .mr-queue { padding:20px; }
+.mr-list-search { display:grid; gap:8px; margin-bottom:20px; max-width:640px; }
+.mr-list-search label { font-weight:600; }
+.mr-list-search .form-text { margin:0; }
+.mr-queue-group ul { gap:0; }
+.mr-queue-link { border:0; border-radius:0; border-bottom:1px solid var(--color-border); min-height:64px; padding:12px 14px; }
+.mr-queue-link > span:first-child { display:grid; grid-template-columns:100px minmax(0,1fr); align-items:center; gap:14px; flex:1; }
+.mr-queue-link strong { font-size:15px; }
+.mr-conversations nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-height:280px; }
+.manager-refresh .mr-conversation-content { min-height:0; }
+.manager-refresh .mr-award { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; padding-block:20px; }
+.manager-refresh .mr-award > details { grid-column:1/-1; }
+.manager-refresh .btn { min-height:44px; white-space:normal; }
+.manager-refresh .mr-disclosure > summary { min-height:44px; display:list-item; align-content:center; }
+.manager-refresh .mr-action-panel { border-top:3px solid var(--pharma-primary); }
+.manager-refresh [hidden] { display:none !important; }
+.manager-refresh .mr-status { max-width:100%; white-space:normal; }
+.manager-refresh .mr-heading h1 { line-height:1.2; }
+@media(max-width:650px) {
+    .mr-queue-link > span:first-child { grid-template-columns:minmax(0,1fr); gap:2px; }
+    .mr-conversations nav { grid-template-columns:minmax(0,1fr); }
+    .manager-refresh .mr-award { grid-template-columns:minmax(0,1fr); }
+    .manager-refresh .mr-filters .input-group { flex-wrap:wrap; }
+    .manager-refresh .mr-filters .input-group > input { flex-basis:100%; border-radius:10px; margin-bottom:8px; }
+    .manager-refresh .mr-filters [data-voice-search-language] { max-width:none; flex:1; }
+}
+@media(prefers-reduced-motion:reduce) { .manager-shell *, .mr-rejections-modal * { scroll-behavior:auto !important; transition:none !important; } }
+/* Destructive choices remain legible on both light and dark review surfaces. */
+.manager-refresh .btn-outline-danger { color:#a13630;border-color:#c48580;background:transparent; }
+.manager-refresh .btn-outline-danger:hover { color:#842b26;border-color:#a13630;background:#fff0ee; }
+html[data-theme="dark"] .manager-refresh .btn-outline-danger { color:#ffb4ac;border-color:#b47771;background:transparent; }
+html[data-theme="dark"] .manager-refresh .btn-outline-danger:hover { color:#ffd5d0;background:#492d2b;border-color:#ffb4ac; }

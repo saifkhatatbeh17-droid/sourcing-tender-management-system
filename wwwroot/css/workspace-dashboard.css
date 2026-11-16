@@ -27,13 +27,13 @@ html[data-theme] body:has(.unified-dashboard) { background:var(--color-backgroun
 .unified-dashboard .dashboard-metric { position:relative; overflow:hidden; padding:22px 24px; border:1px solid var(--color-border); border-radius:18px; background:var(--color-surface); min-width:0; display:flex; flex-direction:column; align-items:start; }
 .unified-dashboard .dashboard-metric h2 { font-size:14px; line-height:1.5; font-weight:500; color:var(--color-text-secondary); margin:0; }
 .tc-workspace .unified-dashboard .dashboard-metric h2 { color:var(--color-text-secondary); font-weight:500; }
-.tc-workspace .unified-dashboard .dashboard-metric.is-primary h2 { color:#003f42; }
+.tc-workspace .unified-dashboard .dashboard-metric.is-primary h2 { color:#002e30; }
 .unified-dashboard .dashboard-metric > strong { font-size:38px; font-weight:600; letter-spacing:-.045em; line-height:1.1; font-variant-numeric:tabular-nums; margin:14px 0 10px; }
 .unified-dashboard .dashboard-metric p { color:var(--color-text-secondary); font-size:12px; line-height:1.6; margin:0; }
 .unified-dashboard .dashboard-metric a { color:var(--color-link); font-size:12px; font-weight:600; text-decoration:none; margin-top:auto; padding-top:16px; position:relative; z-index:1; }
 .dashboard-metric a span[aria-hidden] { margin-left:12px; }
 .unified-dashboard .dashboard-metric.is-primary { background:#00a3a6; border-color:#00a3a6; color:#002e30; }
-.unified-dashboard .dashboard-metric.is-primary :is(h2,p,a) { color:#003f42; }
+.unified-dashboard .dashboard-metric.is-primary :is(h2,p,a) { color:#002e30; }
 .dashboard-metric > :not(svg) { position:relative; z-index:1; }
 .dashboard-mark { position:absolute; width:96px; height:110px; right:14px; bottom:-12px; opacity:.16; filter:brightness(0); pointer-events:none; }
 .unified-dashboard :is(.workspace-section,.supplier-card,.verification-panel) { border:1px solid var(--color-border); border-radius:18px; background:var(--color-surface); padding:24px; margin:0 0 24px; box-shadow:none; color:var(--color-text); }

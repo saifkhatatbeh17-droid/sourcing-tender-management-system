@@ -4,7 +4,7 @@
     var now = DateTime.UtcNow;
     var closed = Model.Tender.ClosesAt <= now || Model.Tender.Status is not ("Open" or "Published");
     var canSubmit = Model.Tender.IsAcceptingOffers(now);
-    var status = Model.Tender.Status == "Cancelled" ? "Cancelled" : Model.Status;
+    var status = Model.Tender.Status == "Cancelled" ? "Cancelled" : Model.Status == "Pending" && closed ? "Expired" : Model.Status;
     var bid = Model.Bids.FirstOrDefault();
 }
 <div class="supplier-workspace supplier-workspace--invitation">
@@ -62,15 +62,20 @@
         <p class="alert alert-info" role="status">Submission period has ended.</p>
     }
 
+    <section class="supplier-participation" aria-labelledby="participation-title">
+        <div><h2 id="participation-title">@(Model.Status == "Pending" && !closed ? "Your response is needed" : canSubmit && Model.Status == "Accepted" ? "Ready for your offer" : closed ? "Submissions closed" : "Your participation")</h2>
+        <p>@(Model.Status == "Pending" && !closed ? "Review the requested items and documents below, then accept to prepare an offer." : canSubmit && Model.Status == "Accepted" ? "Prepare or review your offer before the deadline. Accepting an invitation does not submit an offer." : Model.Status == "Declined" ? "You declined this invitation." : "Check your offer for its latest status and any requested clarification.")</p></div>
+        <div class="supplier-deadline"><span>Deadline (UTC)</span><strong>@Model.Tender.ClosesAt.ToString("dd MMM yyyy, HH:mm")</strong><small>Offer round @(Model.Tender.OfferExtensions.Count + 1)</small></div>
+    </section>
     @if (canSubmit && Model.Tender.OfferExtensions.Count == 0)
     {
         <p>The officer may close submissions early once offers from three different suppliers are on file.</p>
     }
     @await Component.InvokeAsync("DetailsQr", new { controller = "Supplier", action = "Invitation", id = Model.InvitationId, label = "Tender" })
-    <div class="supplier-detail-grid"><section class="supplier-card"><h2>Tender overview</h2><dl class="detail-list"><dt>Tender category</dt><dd>@(Model.Tender.Category ?? "Uncategorized")</dd><dt>Tender deadline (UTC)</dt><dd>@Model.Tender.ClosesAt.ToString("dddd, dd MMM yyyy · HH:mm")</dd><dt>Invitation received</dt><dd>@Model.SentAt.ToLocalTime().ToString("dd MMM yyyy · HH:mm")</dd><dt>Participation response</dt><dd>@(Model.RespondedAt?.ToLocalTime().ToString("dd MMM yyyy · HH:mm") ?? "No response recorded")</dd><dt>Terms and conditions</dt><dd>@(string.IsNullOrWhiteSpace(Model.Tender.Terms) ? "See tender documents" : Model.Tender.Terms)</dd></dl></section>
+    <div class="supplier-detail-grid"><section class="supplier-card"><h2>Terms and dates</h2><dl class="detail-list"><dt>Tender category</dt><dd>@(Model.Tender.Category ?? "Uncategorized")</dd><dt>Tender deadline (UTC)</dt><dd>@Model.Tender.ClosesAt.ToString("dddd, dd MMM yyyy · HH:mm")</dd><dt>Invitation received</dt><dd>@Model.SentAt.ToLocalTime().ToString("dd MMM yyyy · HH:mm")</dd><dt>Participation response</dt><dd>@(Model.RespondedAt?.ToLocalTime().ToString("dd MMM yyyy · HH:mm") ?? "No response recorded")</dd><dt>Terms and conditions</dt><dd>@(string.IsNullOrWhiteSpace(Model.Tender.Terms) ? "See tender documents" : Model.Tender.Terms)</dd></dl></section>
     <section class="supplier-card"><h2>Requested items</h2>@foreach (var item in Model.Tender.PurchaseRequest.PurchaseRequestItems) { <div class="requested-item"><div><strong>@item.ItemName</strong><small>@item.Quantity.ToString("N3") @item.Unit requested</small></div><p>@item.Specifications</p></div> }</section></div>
-    <section class="supplier-card mt-3"><h2>Required documents</h2>@if (!Model.Tender.TenderDocuments.Any()) { <p class="text-muted mb-0">No tender documents are attached.</p> } else { <ul class="document-list">@foreach (var doc in Model.Tender.TenderDocuments) { <li><a asp-action="DownloadTenderDocument" asp-route-id="@doc.TenderDocumentId">@doc.OriginalFileName</a><small>@(doc.IsMandatory ? "Required" : "Optional")</small></li> }</ul> }</section>
-    @if (Model.Tender.EvaluationCriteria.Any()) { <section class="supplier-card mt-3"><h2>Published evaluation criteria</h2><div class="criteria-grid">@foreach (var criterion in Model.Tender.EvaluationCriteria) { <div><strong>@criterion.Name</strong><small>@criterion.Category · @criterion.Weight.ToString("N0")%</small><p>@criterion.Description</p></div> }</div></section> }
+    <section class="supplier-card mt-3"><h2>Tender documents</h2><p class="text-secondary">Download the requirements and attach your responses when preparing an offer. Documents marked Required need a supporting upload.</p>@if (!Model.Tender.TenderDocuments.Any()) { <p class="text-muted mb-0">No tender documents are attached.</p> } else { <ul class="document-list">@foreach (var doc in Model.Tender.TenderDocuments) { <li><a asp-action="DownloadTenderDocument" asp-route-id="@doc.TenderDocumentId">@doc.OriginalFileName</a><small>@(doc.IsMandatory ? "Required" : "Optional")</small></li> }</ul> }</section>
+    @if (Model.Tender.EvaluationCriteria.Any()) { <section class="supplier-card mt-3"><h2>How offers will be evaluated</h2><div class="criteria-grid">@foreach (var criterion in Model.Tender.EvaluationCriteria) { <div><strong>@criterion.Name</strong><small>@criterion.Category · @criterion.Weight.ToString("N0")%</small><p>@criterion.Description</p></div> }</div></section> }
 
     <section class="supplier-card supplier-offer-clarifications mt-3" aria-labelledby="invitation-clarification-title">
         <header class="supplier-card-heading">

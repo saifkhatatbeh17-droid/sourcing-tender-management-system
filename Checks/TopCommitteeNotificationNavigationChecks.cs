@@ -22,9 +22,9 @@ public static class TopCommitteeNotificationNavigationChecks
             "Top Committee sidebar has no standalone Notifications link.");
         var existingMenus = new Dictionary<string, string>
         {
-            [RoleNames.Admin] = "Dashboard,Users,Departments,SupplierApplications,Suppliers",
+            [RoleNames.Admin] = "Dashboard,Users,Departments,SupplierApplications,Suppliers,ContactMessages",
             [RoleNames.Department] = "Dashboard,Create,Requests,Clarifications",
-            [RoleNames.SourcingOfficer] = "Dashboard,Requests,Tenders,Invitations,Offers,Compliance,Comparison,Evaluations,Clarifications,Reports",
+            [RoleNames.SourcingOfficer] = "Dashboard,Requests,Offers,Clarifications,Reports",
             [RoleNames.EvaluationCommittee] = "Dashboard,Evaluations,Reports,Clarifications",
             [RoleNames.SourcingManager] = "Dashboard,Submissions,ChosenOffers,Reports,Clarifications",
             [RoleNames.Supplier] = "Dashboard,Invitations,Offers,Clarifications,History"

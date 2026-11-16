@@ -3,19 +3,21 @@
 <div class="supplier-workspace supplier-workspace--history">
 <div class="workspace-page">
 <div class="supplier-page-heading"><div><h1>Offer history</h1><p class="text-secondary">Your submitted offers and their current outcomes.</p></div><a asp-action="Offers" class="btn btn-outline-primary">All offers</a></div>
+
+<div class="supplier-local-search"><label for="supplier-search">Search offer history</label><input id="supplier-search" type="search" class="form-control" placeholder="Search by title, reference or details" data-supplier-search=".supplier-history-record"/><p class="form-text" data-supplier-search-status role="status" aria-live="polite"></p></div>
 <section class="workspace-section">
 @if (Model.Count == 0) { <p class="text-secondary">No submitted offers yet.</p> }
 else
 {
-    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Offer</th><th>Tender</th><th>Submitted (UTC)</th><th>Total</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr></thead><tbody>
-    @foreach (var bid in Model)
-    {
-        <tr><td>#@bid.BidId</td><td>@bid.Invitation.Tender.Title</td><td>@bid.SubmittedAt?.ToString("dd MMM yyyy · HH:mm")</td><td>@CommitteeEvaluationPage.Total(bid).ToString("N2") @bid.Currency</td><td><span class="status-badge status-@(bid.Invitation.Tender.Status == "Cancelled" ? "cancelled" : bid.Status.ToLowerInvariant())">@(bid.Invitation.Tender.Status == "Cancelled" ? "Cancelled" : bid.Status)</span></td><td><a asp-action="Offer" asp-route-id="@bid.BidId">View offer</a> <span aria-hidden="true">·</span> <a asp-action="DownloadSummary" asp-route-id="@bid.BidId">My summary</a></td></tr>
-    }
-    </tbody></table></div>
+<div class="supplier-history-list">@foreach (var bid in Model) {
+var status = bid.Invitation.Tender.Status == "Cancelled" ? "Cancelled" : bid.Status;
+<article class="supplier-history-record"><div><span class="supplier-reference">Offer #@bid.BidId</span><h2><a asp-action="Offer" asp-route-id="@bid.BidId">@bid.Invitation.Tender.Title</a></h2><p>Submitted @bid.SubmittedAt?.ToString("dd MMM yyyy · HH:mm") UTC · @CommitteeEvaluationPage.Total(bid).ToString("N2") @bid.Currency</p></div><span class="status-badge status-@status.ToLowerInvariant()">@CommitteeEvaluationPage.StatusLabel(status)</span><a class="btn btn-outline-primary" asp-action="DownloadSummary" asp-route-id="@bid.BidId">Download summary</a></article>
+}</div>
 }
 </section></div>
 
 </div>
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
+
+@section Scripts { <script src="~/js/supplier-workspace.js" asp-append-version="true" defer></script> }

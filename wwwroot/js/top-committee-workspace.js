@@ -1,3 +1,26 @@
+/* Search assigned tenders without hiding the primary control or changing server routes. */
+(() => {
+    document.querySelectorAll('[data-top-search]').forEach(input => {
+        const scope = input.closest('.workspace-section');
+        const rows = [...scope.querySelectorAll(input.dataset.topSearch)];
+        const feedback = scope.querySelector('[data-top-search-status]');
+        input.addEventListener('input', () => {
+            const query = input.value.trim().toLocaleLowerCase();
+            rows.forEach(row => { row.hidden = !row.textContent.toLocaleLowerCase().includes(query); });
+            const count = rows.filter(row => !row.hidden).length;
+            feedback.hidden = !query;
+            feedback.textContent = count ? `${count} matching tenders` : 'No tenders match. Clear the search to see all assignments.';
+        });
+    });
+    function revealConversation() {
+        if (!location.hash) return;
+        const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+        const details = target?.closest('details.tc-conversation');
+        if (details) { details.open = true; target.scrollIntoView({block: 'start'}); }
+    }
+    revealConversation();
+    window.addEventListener('hashchange', revealConversation);
+})();
 /* Progressive presentation only: existing sections, IDs, forms and server bindings remain intact. */
 (() => {
     const root = document.querySelector('.tc-tender');
@@ -7,11 +30,11 @@
     const votingSection = root.querySelector('#voting');
     if (votingSection) root.insertBefore(oldNavigation, votingSection);
     const groups = [
-        ['overview', 'Overview', ['request', 'recommendation']],
-        ['comparison', 'Bid Comparison', ['bid-comparison', 'selected-bid']],
-        ['evaluation', 'Evaluation', ['evaluation-report']],
-        ['records', 'Committee Records', ['committee']],
-        ['vote', 'Voting', ['voting']]
+        ['overview', 'Recommendation', ['recommendation', 'evaluation-report']],
+        ['comparison', 'Compare offers', ['bid-comparison', 'selected-bid']],
+        ['request', 'Purchase request', ['request']],
+        ['records', 'Committee record', ['committee']],
+        ['vote', 'Your decision', ['voting']]
     ];
     const nav = document.createElement('div');
     nav.className = 'tc-tab-nav nav'; nav.setAttribute('role', 'tablist'); nav.setAttribute('aria-label', 'Tender sections');

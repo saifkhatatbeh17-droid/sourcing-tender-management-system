@@ -3,27 +3,27 @@
 <section class="ev-shared-evaluation"><div class="ev-weights-summary"><div><h3>Evaluate every offer</h3><p>Each member submits both marks for every eligible offer. Submitted marks are locked.</p></div><div class="ev-weight-value"><span>Financial</span><strong>@Model.FinancialWeight.ToString("0")%</strong></div><div class="ev-weight-value"><span>Technical</span><strong>@Model.TechnicalWeight.ToString("0")%</strong></div></div></section>
 @if (AllOfferScoring.Complete(Model))
 { <p class="ev-notice ev-notice-success">All offers have four completed reviews. <button type="button" class="ev-reference-link" data-open-evaluation-tab="report-tab">View scores &amp; report →</button></p> }
-<form asp-action="Evaluations" method="get" class="ev-review-offer-picker">
-    <input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="tab" value="forms" />
-    <label for="review-offer">Offer to evaluate</label><select id="review-offer" name="offerId" class="form-select">
+<details class="ev-offer-switcher" open="@(Model.ReviewOffer == null)"><summary>Choose an offer to score <span>@Model.Offers.Count eligible offers · Change ⌄</span></summary>
+    <label for="review-offer-search" class="ev-search-label">Find a supplier or offer</label><input id="review-offer-search" type="search" class="form-control" placeholder="Supplier name or offer number" data-committee-search="review-options" />
+    <nav id="review-options" class="ev-review-options" aria-label="Offers to evaluate">
     @foreach (var choice in Model.Offers)
-    { <option value="@choice.BidId" selected="@(Model.ReviewOffer?.BidId == choice.BidId)">@choice.Invitation.SupplierProfile.CompanyName · #@choice.BidId · @(Model.MyReviewApproved(choice) ? "✓ Your review approved" : "○ Not reviewed yet") · @AllOfferScoring.Count(Model, choice)/4 approved</option> }
-    </select><button class="btn ev-button-secondary">Open evaluation</button>
-</form>
+    { <a asp-action="Evaluations" asp-route-id="@Model.Tender!.TenderId" asp-route-tab="forms" asp-route-offerId="@choice.BidId" aria-current="@(Model.ReviewOffer?.BidId == choice.BidId ? "page" : null)" data-search-row><span><strong>@choice.Invitation.SupplierProfile.CompanyName</strong><small>Offer #@choice.BidId · @AllOfferScoring.Count(Model, choice) / 4 reviews</small></span><span>@(Model.MyReviewApproved(choice) ? "Your review submitted" : "Needs your review") →</span></a> }
+    </nav><p data-search-empty="review-options" hidden role="status">No offers match. Try another supplier name or offer number.</p>
+</details>
 @if (Model.ReviewOffer is { } offer)
 {
     var accepted = AllOfferScoring.Count(Model, offer);
     <section class="ev-offer-review-section" id="offer-review-@offer.BidId" aria-labelledby="offer-review-title-@offer.BidId" tabindex="-1">
         <header class="ev-review-heading"><div><span class="ev-subtle">Offer #@offer.BidId · @CommitteeEvaluationPage.Total(offer).ToString("N2") @offer.Currency</span><h3 id="offer-review-title-@offer.BidId">@offer.Invitation.SupplierProfile.CompanyName</h3></div><span class="ev-status">@accepted / 4 approved</span></header>
         <div class="ev-forms-grid">
-        @foreach (var member in Model.Members)
+        @foreach (var member in Model.Members.OrderByDescending(m => m.UserId == Model.UserId).ThenBy(m => m.Position))
         {
             var review = Model.Evaluation(member, offer);
             var approved = AllOfferScoring.Accepted(Model, review);
             var mine = member.UserId == Model.UserId;
             var editable = mine && !approved && !Model.Locked && Model.WeightsReady;
             var key = $"{offer.BidId}-{member.Position}";
-            <section class="ev-member-form ev-approval-card @(mine ? "is-yours" : "")">
+            <details class="ev-member-form ev-approval-card @(mine ? "is-yours" : "")" open="@mine"><summary class="ev-member-disclosure"><strong>@(mine ? "Your scoring form" : CommitteeEvaluationPage.MemberName(member.Position))</strong><span>@(approved ? "Review submitted" : mine ? "Enter your marks" : "Awaiting review") ⌄</span></summary>
                 <header><div class="ev-member-heading"><span class="ev-form-badge @(approved ? "is-approved" : "")">@(approved ? "✓ Approved" : "Pending")</span><span class="ev-access-label">@(mine ? "Your review" : "Read-only")</span></div><h4>@CommitteeEvaluationPage.MemberName(member.Position)</h4><p>@member.User.FullName</p></header>
                 <form asp-action="ScoreOffer" method="post" class="ev-member-review" data-offer-score-form>
                     <input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="bidId" value="@offer.BidId" /><input type="hidden" name="version" value="@Model.SharedVersion" />
@@ -35,7 +35,7 @@
                     @if (editable) { <p class="ev-field-help">Check both marks. Submitting locks this offer’s review.</p><button class="btn ev-button-primary pharma-action-approve">Approve review</button> }
                     else { <p class="ev-field-help">@(approved ? "Review submitted · locked" : mine ? "Review unavailable" : "Awaiting this member")</p> }
                 </form>
-            </section>
+            </details>
         }
         </div>
     </section>

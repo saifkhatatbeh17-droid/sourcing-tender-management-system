@@ -33,7 +33,8 @@
     <div class="mr-review-layout">
         @if (Model.Reports.Count > 0)
         {
-        <aside class="workspace-section mr-queue" aria-label="Recommendation queue">
+        <section class="workspace-section mr-queue" aria-label="Recommendation queue">
+            <div class="mr-list-search"><label for="manager-queue-search">Find a submission</label><input id="manager-queue-search" type="search" class="form-control" placeholder="Search tender title or number" data-manager-search=".mr-queue li" /><p class="form-text" data-manager-search-status role="status" hidden></p></div>
             @foreach (var queue in queues.Where(queue => queue.Items.Count > 0))
             {
                 <section id="@queue.Id" class="mr-queue-group">
@@ -59,7 +60,7 @@
                     }
                 </section>
             }
-        </aside>
+        </section>
         }
         @if (report is null)
         {
@@ -93,6 +94,10 @@
                 <dl class="mr-facts">
                     <div><dt>Recommended supplier</dt><dd>@(recommendedOffer?.Invitation.SupplierProfile.CompanyName ?? "Unavailable")</dd></div>
                     <div><dt>Submitted offers</dt><dd>@Model.Offers.Count</dd></div>
+                    @if (recommendedOffer != null)
+                    {
+                        <div><dt>Recommended offer total</dt><dd>@((recommendedOffer.BidItems.Sum(item => item.Quantity * item.UnitPrice) + recommendedOffer.TaxAmount + recommendedOffer.AdditionalCosts).ToString("N2")) @recommendedOffer.Currency</dd></div>
+                    }
                     @if (report.SubmittedAt.HasValue)
                     {
                         <div><dt>Report submitted (UTC)</dt><dd>@report.SubmittedAt.Value.ToString("dd MMM yyyy · HH:mm")</dd></div>
@@ -102,7 +107,7 @@
                     <h3>Report summaries</h3>
                     <partial name="_TenderOfferRoundHistory" model="report.Tender" />
                     <h4>Evaluation Committee</h4>
-                    <details class="manager-shortlist-report"><summary>Committee report and review record</summary>
+                    <details class="manager-shortlist-report" open><summary>Committee report and review record</summary>
                     <partial name="_FormattedReport" model='@(report.CommitteeSummary ?? "No summary was provided.")' /></details>
                     @if (!string.IsNullOrWhiteSpace(report.OfficerSummary))
                     {
@@ -114,8 +119,8 @@
                     <summary>Clarification history</summary>
                     @await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = report.TenderId })
                 </details>
-                <section class="mr-detail-section">
-                <h3 id="mr-comparison-title">Supplier comparison</h3>
+                <details class="mr-detail-section mr-disclosure">
+                <summary id="mr-comparison-title">Compare suppliers and member evaluations</summary>
                 @if (Model.Offers.Count == 0)
                 {
                     <p>No submitted offers are available.</p>
@@ -219,7 +224,7 @@
                         </details>
                     }
                 }
-                </section>
+                </details>
 
                 <section class="mr-action-panel" id="manager-action" tabindex="-1" aria-labelledby="manager-action-title">
                 @if (readyToForward)
@@ -234,7 +239,7 @@
                         <input type="hidden" name="ReportId" value="@report.EvaluationReportId" />
                         <label class="form-label" for="forward-reason">Referral reason (required)</label>
                         <textarea class="form-control" id="forward-reason" name="Reason" rows="4" maxlength="4000" aria-describedby="referral-help" required></textarea>
-                        <p class="form-text" id="referral-help" data-referral-feedback role="status">The draft includes the purchase purpose, requested items and winning offer. Recorded purchase requirements are also attached automatically when you forward. Review the draft and add the actual referral policy reason.</p>
+                        <p class="form-text" id="referral-help" data-referral-feedback role="status">Enter the policy reason for referral, or generate a draft and review it before forwarding. The recorded purchase requirements are attached automatically.</p>
                         <div class="mr-actions">
                             <button type="submit" class="btn btn-primary">Forward to CEO & Chiefs</button>
                             <button type="button" class="btn btn-outline-primary" data-draft-referral data-url="@Url.Action("DraftReferral")">Draft reason with AI</button>
@@ -268,6 +273,7 @@
 @section Scripts {
     @if (ViewBag.OpenRejections == true)
     { <script>document.addEventListener('DOMContentLoaded', () => bootstrap.Modal.getOrCreateInstance(document.getElementById('manager-rejections')).show());</script> }
+    <script src="~/js/sourcing-manager-workspace.js" asp-append-version="true"></script>
     <script src="~/js/manager-referral.js" asp-append-version="true"></script>
     <script>
         document.getElementById('manager-decision-form')?.addEventListener('click', event => {

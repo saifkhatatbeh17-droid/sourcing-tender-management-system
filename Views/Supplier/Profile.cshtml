@@ -1,4 +1,3 @@
-@using System.Globalization
 @model SourcingTenderManagement.Models.Entities.SupplierProfile
 @{
     ViewData["Title"] = "Company profile";
@@ -8,9 +7,7 @@
         categoryInput = new ProcurementCategoryInput();
         categoryInput.LoadCategory(Model.Category);
     }
-    var initials = string.IsNullOrWhiteSpace(Model.CompanyName) ? "?" : string.Concat(Model.CompanyName
-        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-        .Take(2).Select(word => StringInfo.GetNextTextElement(word))).ToUpperInvariant();
+
 }
 
 @section Styles {
@@ -19,7 +16,7 @@
 }
 
 <div class="supplier-workspace supplier-workspace--profile account-profile">
-    <header class="ap-heading"><h1>Company profile</h1></header>
+    <header class="supplier-page-heading"><div><h1>Company profile</h1><p>Review your registration, update your supply category, and manage account security.</p></div><a asp-controller="Account" asp-action="EditProfile" class="btn btn-outline-primary">Edit contact details</a></header>
 
     @if (TempData["ProfileFeedback"] is string feedback)
     {
@@ -32,9 +29,9 @@
 
     <div class="ap-columns">
         <section class="ap-card ap-identity" aria-labelledby="company-name">
-            <span class="ap-avatar" aria-hidden="true">@initials</span>
+
             <h2 id="company-name">@Model.CompanyName</h2>
-            <span class="status-badge status-@Model.Status.ToLowerInvariant()">@Model.Status</span>
+            <span class="status-badge status-@Model.Status.ToLowerInvariant()">@(Model.Status == "ChangesRequested" ? "Changes requested" : Model.Status)</span><p class="text-secondary">@(Model.Status == "Approved" ? "Your company is approved to participate in tenders." : Model.Status == "ChangesRequested" ? "Update the information requested in the review note." : "Your registration status is shown above. Contact the administrator about registration changes.")</p>
             <p class="ap-identity-email"><span class="ap-icon ap-icon-mail" aria-hidden="true"></span>@Model.User.Email</p>
             <dl class="ap-identity-details">
                 <dt><span class="ap-icon ap-icon-building" aria-hidden="true"></span>Registration number</dt>
@@ -88,7 +85,7 @@
             {
                 <section class="ap-card" aria-labelledby="supply-category-heading">
                     <h2 id="supply-category-heading">Supply category</h2>
-                    <form asp-action="UpdateCategory" method="post">
+                    <p class="text-secondary">Choose the category that best matches the items your company supplies.</p><form asp-action="UpdateCategory" method="post"><div asp-validation-summary="All" class="alert alert-danger" role="alert" tabindex="-1" data-supplier-errors></div>
                         <partial name="_ProcurementCategoryFields" model='(categoryInput, "Supplier", "Supply category")' />
                         <button type="submit" class="btn btn-primary">Save category</button>
                     </form>
@@ -130,3 +127,5 @@
         </div>
     </div>
 </div>
+
+@section Scripts { <script src="~/js/supplier-workspace.js" asp-append-version="true" defer></script> }

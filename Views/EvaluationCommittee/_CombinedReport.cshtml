@@ -5,7 +5,6 @@
     var recommended = Model.Offers.FirstOrDefault(b => b.BidId == report?.RecommendedBidId);
     var approved = Model.Approvals.Count(a => a.Decision == "Approved");
 }
-    <partial name="_TenderOfferRoundHistory" model="tender" />
 <section class="cw-panel cw-report-document" aria-labelledby="report-title">
     <header class="cw-report-title"><div><p class="cw-eyebrow">Tender #@tender.TenderId · Read-only report</p><h2 id="report-title">@tender.Title</h2></div><span class="cw-status">@CommitteeEvaluationPage.StatusLabel(tender.Status)</span></header>
     <partial name="_TenderOfferRoundHistory" model="tender" />

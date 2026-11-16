@@ -146,7 +146,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         ViewData["IsOfferRevision"] = bid is { Status: not "Draft" };
         return View(new OfferFormViewModel { InvitationId = inv.InvitationId, TenderId = inv.TenderId, BidId = bid?.BidId,
             TenderTitle = inv.Tender.Title, ClosesAt = inv.Tender.ClosesAt, Currency = bid?.Currency ?? "JOD",
-            DeliveryDays = bid?.DeliveryDays ?? 0, PaymentTerms = bid?.PaymentTerms, TechnicalDetails = bid?.TechnicalDetails,
+            DeliveryDays = bid?.DeliveryDays ?? 0, TaxAmount = bid?.TaxAmount ?? 0, AdditionalCosts = bid?.AdditionalCosts ?? 0, PaymentTerms = bid?.PaymentTerms, TechnicalDetails = bid?.TechnicalDetails,
             Items = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(i => new OfferLineViewModel { PurchaseRequestItemId = i.PurchaseRequestItemId,
                 ItemName = i.ItemName, Unit = i.Unit, RequestedQuantity = i.Quantity, RequestedSpecifications = i.Specifications,
                 Quantity = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.Quantity ?? i.Quantity,
@@ -214,6 +214,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         var bid = model.BidId.HasValue ? await editableBid.Include(b => b.BidItems).SingleAsync() : new Bid { InvitationId = inv.InvitationId, TenderId = inv.TenderId, CreatedAt = DateTime.UtcNow, Status = "Draft" };
         bid.Currency = (model.Currency ?? "JOD").ToUpperInvariant(); bid.DeliveryDays = model.DeliveryDays; bid.PaymentTerms = model.PaymentTerms?.Trim();
         bid.TechnicalDetails = model.TechnicalDetails?.Trim();
+        bid.TaxAmount = model.TaxAmount; bid.AdditionalCosts = model.AdditionalCosts;
         if (model.BidId.HasValue) db.BidItems.RemoveRange(bid.BidItems);
         else db.Bids.Add(bid);
         foreach (var line in model.Items) db.BidItems.Add(new BidItem { Bid = bid, PurchaseRequestItemId = line.PurchaseRequestItemId, Quantity = line.Quantity, UnitPrice = line.UnitPrice, OfferedSpecifications = line.Specifications ?? "" });

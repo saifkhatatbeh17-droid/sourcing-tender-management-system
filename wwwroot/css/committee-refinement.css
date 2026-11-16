@@ -1,0 +1,60 @@
+/* Role-scoped committee refinement: the active task keeps the full content width. */
+.evaluation-page h1::after { content:none; }
+.evaluation-page :is(h1,h2,h3,h4) { color:var(--color-link); }
+.ev-tender-workspace,.cw-report-layout { display:block; }
+.ev-tender-switcher,.ev-offer-switcher { border:1px solid var(--color-border); border-radius:14px; background:var(--color-surface); margin:20px 0; }
+.ev-tender-switcher > summary,.ev-offer-switcher > summary,.ev-report-switcher > summary { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; cursor:pointer; color:var(--color-link); min-height:56px; list-style:none; }
+.ev-tender-switcher > summary::-webkit-details-marker,.ev-offer-switcher > summary::-webkit-details-marker,.ev-report-switcher > summary::-webkit-details-marker { display:none; }
+.ev-tender-switcher summary small { display:block; color:var(--color-text-secondary); margin-top:4px; font-size:13px; overflow-wrap:anywhere; }
+.ev-tender-switcher summary > span:last-child,.ev-offer-switcher summary > span,.ev-report-switcher summary > span { font-size:13px; flex-shrink:0; }
+.ev-tender-switcher .ev-tender-browser { height:auto; padding:16px 20px; border:0; border-top:1px solid var(--color-border); border-radius:0 0 14px 14px; }
+.ev-tender-switcher .ev-tender-browser-heading { display:block; padding:0; }
+.ev-tender-switcher .ev-tender-browser-heading > span { display:none; }
+.ev-tender-switcher .ev-tender-rail { display:block; max-height:280px; overflow:auto; padding:0; }
+.ev-tender-switcher .ev-tender-card { display:grid; grid-template-columns:110px minmax(0,1fr) 170px; gap:12px; align-items:center; margin:0; padding:14px 10px; border:0; border-top:1px solid var(--color-border); border-radius:0; min-height:60px; }
+.ev-tender-switcher .ev-tender-card strong { margin:0; font-size:14px; }
+.ev-tender-switcher .ev-tender-card-top { display:block; }
+.ev-tender-switcher .ev-tender-selected { display:none; }
+.ev-workflow-guide { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; padding:18px 20px; background:var(--color-surface); border:1px solid var(--color-border); border-radius:14px; margin-bottom:24px; }
+.ev-workflow-guide strong,.ev-workflow-guide span { display:block; }
+.ev-workflow-guide strong { color:var(--color-link); font-size:14px; }
+.ev-workflow-guide span { font-size:13px; color:var(--color-text-secondary); margin-top:5px; }
+.ev-offer-switcher { padding:0 20px 16px; }
+.ev-offer-switcher > summary { padding:18px 0; }
+.ev-search-label,.ev-report-search label { display:block; font-size:14px; margin-bottom:6px; }
+.ev-review-options { max-height:280px; overflow:auto; margin-top:12px; }
+.ev-review-options a { display:flex; align-items:center; justify-content:space-between; gap:16px; border-top:1px solid var(--color-border); padding:14px 10px; color:var(--color-link); text-decoration:none; }
+.ev-review-options a[aria-current="page"] { background:var(--color-selection); }
+.ev-review-options small { display:block; color:var(--color-text-secondary); margin-top:4px; }
+.ev-review-options a > span:last-child { font-size:13px; }
+.ev-report-switcher { margin-bottom:24px; width:100%; }
+.ev-report-switcher .cw-panel-header { display:none; }
+.ev-report-search { padding:0 20px 16px; }
+.ev-report-switcher nav { max-height:280px; overflow:auto; padding:0 20px; }
+.ev-report-switcher .cw-report-link { display:grid; grid-template-columns:120px minmax(0,1fr) 180px; align-items:center; gap:16px; border-radius:0; padding:14px 8px; margin:0; border-top:1px solid var(--color-border); }
+.ev-report-switcher .cw-report-link > * { margin:0; }
+.ev-report-switcher [data-search-empty] { padding:16px 20px; }
+.cw-report-detail { min-width:0; }
+.ev-clarification-guide { padding:24px; max-width:800px; }
+.ev-clarification-guide p { color:var(--color-text-secondary); line-height:1.6; }
+.cw-metrics .cw-metric-primary { background:var(--color-surface); color:var(--color-text); }
+.cw-metrics .cw-metric-primary :is(dt,span) { color:var(--color-text-secondary); }
+.cw-metrics .cw-metric-primary dd { color:var(--color-link); }
+.evaluation-page :is(summary,a,button,input,textarea,select):focus-visible { outline:3px solid var(--color-link); outline-offset:3px; }
+@media (max-width:760px) {
+.ev-workflow-guide { grid-template-columns:1fr; gap:12px; }
+.ev-tender-switcher > summary,.ev-offer-switcher > summary,.ev-report-switcher > summary { align-items:flex-start; flex-direction:column; gap:6px; }
+.ev-tender-switcher .ev-tender-card,.ev-report-switcher .cw-report-link { grid-template-columns:1fr; gap:6px; }
+.ev-review-options a { align-items:flex-start; flex-direction:column; gap:6px; }
+.ev-tender-switcher .ev-tender-rail { max-height:340px; }
+}
+.ev-member-disclosure { cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px; color:var(--color-link); list-style:none; min-height:64px; }
+.ev-member-disclosure::-webkit-details-marker { display:none; }
+.ev-member-disclosure span { color:var(--color-text-secondary); font-size:13px; }
+.ev-offer-review-section .ev-forms-grid { grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; }
+.ev-offer-review-section .ev-forms-grid > .is-yours { grid-column:1 / -1; }
+.ev-offer-review-section .is-yours .ev-member-review { max-width:760px; }
+.ev-report-switcher nav { display:block; }
+@media(max-width:760px) { .ev-offer-review-section .ev-forms-grid { grid-template-columns:1fr; } }
+
+.committee-workspace .cw-metrics .cw-metric-description { margin:0;font-size:12px;font-weight:400;letter-spacing:0;line-height:1.5;color:var(--color-text-secondary); }.committee-workspace .cw-metric-primary .cw-metric-description { color:var(--pharma-on-primary); }

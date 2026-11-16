@@ -36,3 +36,6 @@ html body main .rp-review-modal .btn-outline-danger { color:#a13630;border-color
 html body main .rp-review-modal .btn-outline-danger:hover { color:#842b26;border-color:#a13630;background:#fff0ee; }
 html body main .rp-review-modal .btn-danger { color:#fff;border-color:#a13630;background:#a13630; }
 html body main .rp-review-modal .btn-danger:hover { color:#fff;border-color:#842b26;background:#842b26; }
+
+html[data-theme="dark"] body main .rp-review-modal .btn-outline-danger { color:#ffb4ac;border-color:#b47771;background:transparent; }
+html[data-theme="dark"] body main .rp-review-modal .btn-outline-danger:hover { color:#ffd5d0;background:#492d2b;border-color:#ffb4ac; }

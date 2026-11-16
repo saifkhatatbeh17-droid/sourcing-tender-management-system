@@ -6,7 +6,6 @@
     ViewData["Title"] = $"Tender #{tender.TenderId}";
 }
 <div class="tc-tender">
-@if (!string.IsNullOrWhiteSpace(tender.OfferRoundSummary)) { <section class="workspace-section"><partial name="_FormattedReport" model="tender.OfferRoundSummary" /></section> }
 <nav class="mb-3" aria-label="Breadcrumb"><a asp-action="Dashboard">CEO & Chiefs dashboard</a><span class="text-secondary"> / Tender #@tender.TenderId</span></nav>
 <div class="workspace-heading">
     <div><h1 class="text-break">@tender.Title</h1><p>Review the recommendation, compare offers, and record your decision.</p></div>
@@ -17,7 +16,7 @@
 <div class="tc-summary" aria-label="Committee decision summary">
     <div class="tc-summary-item"><span class="tc-cell-meta">Committee approvals</span><strong>@tender.Votes.Count(v => v.Decision == "Approved") / 4 recorded</strong></div>
     <div class="tc-summary-item tc-summary-nomination"><span class="tc-cell-meta">Nominated bid</span><strong>@(nominated == null ? "Not available" : $"#{nominated.BidId} · {nominated.SupplierName}")</strong></div>
-    <a href="#voting" class="btn btn-primary">Go to voting</a>
+    <a href="#voting" class="btn btn-primary">Review your decision</a>
 </div>
 @if (TempData["VotingSuccess"] is string votingSuccess) { <p class="border rounded p-3" role="status">@votingSuccess</p> }
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
@@ -60,9 +59,9 @@ else if (tender.OpenClarifications > 0)
 { <p class="border rounded p-3">Committee review is paused while @tender.OpenClarifications clarification(s) remain unresolved. Recorded votes are preserved.</p> }
 else if (!tender.Readiness.IsVotingOpen)
 { <p class="border rounded p-3">@tender.Readiness.BlockingReason</p> }
-<section class="workspace-section tc-importance" aria-labelledby="importance-heading">
+<details class="workspace-section tc-importance"><summary>Assess report importance with AI</summary><div aria-labelledby="importance-heading">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <div><h2 id="importance-heading">AI importance assessment</h2><p class="text-secondary mb-0">Assess the report’s operational impact, urgency, and risks.</p></div>
+        <div><h2 id="importance-heading">Optional report assessment</h2><p class="text-secondary mb-0">Assess the report’s operational impact, urgency, and risks.</p></div>
         <form asp-action="AssessImportance" method="post" data-importance-form>
             <input type="hidden" name="id" value="@tender.TenderId" />
             <button class="btn btn-outline-primary" disabled="@(string.IsNullOrWhiteSpace(tender.Report?.CommitteeSummary))">Analyze report</button>
@@ -74,7 +73,7 @@ else if (!tender.Readiness.IsVotingOpen)
         <p data-importance-reason></p>
         <div data-importance-missing hidden><h3 class="fs-6">Information to verify</h3><ul class="mb-0"></ul></div>
     </div>
-</section>
+</div></details>
 <partial name="_Voting" model="Model" />
 
 <section id="request" class="workspace-section" aria-labelledby="request-heading">

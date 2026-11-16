@@ -9,7 +9,7 @@
 
 <div class="workspace-heading">
     <div><h1>Users</h1><p>Manage account access, roles, and department assignments.</p></div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#create-user-modal">Create User</button>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#create-user-modal">Create user</button>
 </div>
 
 @if (TempData["UsersFeedback"] is string feedback)
@@ -20,7 +20,7 @@
 <section class="admin-records" aria-label="User records">
 <form asp-action="Users" method="get" class="admin-record-filters row g-3" aria-label="Filter users" data-auto-filter>
     <div class="col-12 col-lg">
-        <label for="user-search" class="visually-hidden">Name or email</label>
+        <label for="user-search" class="form-label">Name or email</label>
         <div class="voice-search-control">
             <div class="input-group">
                 <input id="user-search" name="search" type="search" placeholder="Search by name or email" value="@Model.Search" class="form-control" data-voice-search data-voice-search-mode="auto" aria-describedby="user-search-voice-status" />
@@ -32,11 +32,11 @@
                     <svg data-voice-icon="stop" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" hidden><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
                 </button>
             </div>
-            <div id="user-search-voice-status" class="form-text small" data-voice-search-status role="status" aria-live="polite">Voice search is ready.</div>
+            <div id="user-search-voice-status" class="form-text small" data-voice-search-status role="status" aria-live="polite"></div>
         </div>
     </div>
     <div class="col-6 col-lg">
-        <label for="user-role" class="visually-hidden">Role</label>
+        <label for="user-role" class="form-label">Role</label>
         <select id="user-role" name="role" class="form-select">
             <option value="">All roles</option>
             @foreach (var role in RoleNames.Primary)
@@ -46,16 +46,15 @@
         </select>
     </div>
     <div class="col-6 col-lg">
-        <label for="user-status" class="visually-hidden">Status</label>
+        <label for="user-status" class="form-label">Status</label>
         <select id="user-status" name="isActive" class="form-select">
             <option value="">All statuses</option>
             <option value="true" selected="@(Model.IsActive == true)">Active</option>
             <option value="false" selected="@(Model.IsActive == false)">Inactive</option>
         </select>
     </div>
-    <div class="col-auto d-flex align-items-center gap-2">
-
-        <a asp-action="Users" class="btn btn-link">Clear</a>
+    <div class="col-auto d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-outline-primary">Apply filters</button><a asp-action="Users" class="btn btn-link">Clear</a>
     </div>
 </form>
 
@@ -112,7 +111,7 @@ else
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="create-user-title">Create User</h2>
+                <h2 class="modal-title fs-5" id="create-user-title">Create user</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <partial name="_CreateUserForm" model="Model.CreateUser" />
@@ -186,7 +185,7 @@ else
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
                 </div>
             </form>
         </div>

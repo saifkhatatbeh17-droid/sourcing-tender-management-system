@@ -76,7 +76,7 @@
             <h1 id="offer-title">@tender.Title</h1>
         </header>
 
-        <div class="supplier-offer-current">
+        <div class="supplier-offer-current"><span class="status-badge status-@status.ToLowerInvariant()">@CommitteeEvaluationPage.StatusLabel(status)</span>
             <div>
                 <h2 id="offer-progress-title">@progress.Heading</h2>
                 <p>@progress.Current</p>
@@ -106,16 +106,16 @@
         {
             <div class="table-responsive" tabindex="0" role="region" aria-label="Itemized pricing">
                 <table class="table supplier-table">
-                    <thead><tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Unit price</th><th scope="col">Line total</th><th scope="col">Technical response</th></tr></thead>
+                    <thead><tr><th scope="col">Item</th><th scope="col">Your quantity</th><th scope="col">Unit price</th><th scope="col">Line total</th><th scope="col">Technical response</th></tr></thead>
                     <tbody>
                     @foreach (var item in Model.BidItems)
                     {
                         <tr>
-                            <th scope="row">@item.PurchaseRequestItem.ItemName</th>
-                            <td>@item.Quantity.ToString("N3") @item.PurchaseRequestItem.Unit</td>
-                            <td>@item.UnitPrice.ToString("N2") @Model.Currency</td>
-                            <td>@((item.Quantity * item.UnitPrice).ToString("N2")) @Model.Currency</td>
-                            <td>@item.OfferedSpecifications</td>
+                            <th scope="row">@item.PurchaseRequestItem.ItemName<small class="d-block text-secondary">Requested: @item.PurchaseRequestItem.Quantity.ToString("N3") @item.PurchaseRequestItem.Unit</small><small class="d-block text-secondary">@item.PurchaseRequestItem.Specifications</small></th>
+                            <td data-label="Your quantity">@item.Quantity.ToString("N3") @item.PurchaseRequestItem.Unit</td>
+                            <td data-label="Unit price">@item.UnitPrice.ToString("N2") @Model.Currency</td>
+                            <td data-label="Line total">@((item.Quantity * item.UnitPrice).ToString("N2")) @Model.Currency</td>
+                            <td data-label="Technical response">@item.OfferedSpecifications</td>
                         </tr>
                     }
                     </tbody>
@@ -131,7 +131,7 @@
             <p class="text-secondary mb-0">No items have been added to this offer.</p>
         }
 
-        <details class="supplier-offer-disclosure supplier-offer-commercial">
+        <details class="supplier-offer-disclosure supplier-offer-commercial" open>
             <summary><span>Delivery, payment and notes</span><small>@Model.DeliveryDays days for delivery</small></summary>
             <dl class="supplier-offer-terms">
                 <div><dt>Supplier</dt><dd>@Model.Invitation.SupplierProfile.CompanyName</dd></div>

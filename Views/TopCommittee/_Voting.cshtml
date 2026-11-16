@@ -17,7 +17,7 @@
     else if (tender.Readiness.CanCurrentMemberVote && !Model.VotingDatabaseReady)
     { <p class="alert alert-info">Voting is temporarily unavailable. Contact the system administrator, then reload this page.</p> }
     <div class="tc-member-forms">
-    @foreach (var member in tender.Members.OrderBy(m => m.Position))
+    @foreach (var member in tender.Members.OrderByDescending(m => m.UserId == userId).ThenBy(m => m.Position))
     {
         var mine = member.UserId == userId;
         var vote = tender.Votes.SingleOrDefault(v => v.UserId == member.UserId && v.AssignmentId == member.AssignmentId);
@@ -27,7 +27,7 @@
                 <span class="tc-member-access">@(mine ? "Your form" : "Read-only")</span>
                 <h3 id="top-member-@member.Position">CEO & Chiefs Member @member.Position</h3>
                 <p>@member.FullName</p>
-                <strong class="tc-member-state">@(vote == null ? "Not approved" : CommitteeDisplay.Status(vote.Decision))</strong>
+                <strong class="tc-member-state">@(vote == null ? "Awaiting decision" : CommitteeDisplay.Status(vote.Decision))</strong>
             </header>
             <p class="tc-nominated-offer">Nominated offer <strong>#@tender.Report?.RecommendedBidId</strong></p>
             @if (editable)
@@ -65,9 +65,9 @@
             }
             else
             {
-                <label for="top-notes-@member.Position">Member notes</label>
+                <details class="tc-member-record"><summary>View member notes</summary><label for="top-notes-@member.Position">Member notes</label>
                 <textarea id="top-notes-@member.Position" class="form-control" rows="4" readonly>@vote?.Justification</textarea>
-                <p class="tc-member-help">@(vote != null ? "This member's decision is recorded and cannot be changed." : mine ? "Approval is currently unavailable. See the message above." : "Only this member can complete their form.")</p>
+                </details><p class="tc-member-help">@(vote != null ? "This member's decision is recorded and cannot be changed." : mine ? "Approval is currently unavailable. See the message above." : "Only this member can complete their form.")</p>
             }
         </section>
     }

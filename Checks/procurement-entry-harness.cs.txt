@@ -1,0 +1,213 @@
+// Isolated MVC checks. Creates and drops only its own random temporary SQL database.
+// Never runs the production Program, seeds the user's database or calls a real AI service.
+using System.Net;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using SourcingTenderManagement.Controllers;
+using SourcingTenderManagement.Checks;
+using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Models;
+using SourcingTenderManagement.Models.Entities;
+using SourcingTenderManagement.Services.Evaluation;
+using SourcingTenderManagement.Services.PdfWatermark;
+using SourcingTenderManagement.Services.TopCommittee;
+
+var repo=args[0];var serve=args.Contains("--serve");var fixtureRoot=Path.Combine(Path.GetTempPath(),"TiryaqEntryFiles_"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(fixtureRoot);
+var config=new ConfigurationBuilder().SetBasePath(repo).AddJsonFile("appsettings.json").AddJsonFile("appsettings.Development.json",true).AddJsonFile("appsettings.Local.json",true).AddEnvironmentVariables().Build();
+var connection=new SqlConnectionStringBuilder(config.GetConnectionString("DefaultConnection"));
+var database="TiryaqEntryChecks_"+Guid.NewGuid().ToString("N");connection.InitialCatalog=database;
+var token=Guid.NewGuid().ToString("N");var actors=new Dictionary<string,ApplicationUser>();
+var builder=WebApplication.CreateBuilder(new WebApplicationOptions{Args=[],ContentRootPath=fixtureRoot,WebRootPath=Path.Combine(repo,"wwwroot"),ApplicationName=typeof(EvaluationCommitteeController).Assembly.FullName,EnvironmentName="Development"});
+builder.Logging.SetMinimumLevel(LogLevel.Warning);builder.WebHost.UseUrls("http://127.0.0.1:5096");
+builder.Services.AddDbContext<ApplicationDbContext>(o=>o.UseSqlServer(connection.ConnectionString));
+builder.Services.AddControllersWithViews().AddApplicationPart(typeof(EvaluationCommitteeController).Assembly);
+builder.Services.AddIdentity<ApplicationUser,IdentityRole>(o=>o.Stores.SchemaVersion=IdentitySchemaVersions.Version3).AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
+builder.Services.AddAuthentication(o=>{o.DefaultAuthenticateScheme="ScoringFixture";o.DefaultChallengeScheme="ScoringFixture";o.DefaultForbidScheme="ScoringFixture";}).AddScheme<AuthenticationSchemeOptions,FixtureAuthentication>("ScoringFixture",_=>{});
+builder.Services.AddSingleton(new FixtureActors(actors,token));builder.Services.AddAuthorization(o=>o.AddPolicy("ApprovedSupplier",p=>p.RequireRole(RoleNames.Supplier).RequireAssertion(async context=>context.Resource is HttpContext http && await http.RequestServices.GetRequiredService<ApplicationDbContext>().SupplierProfiles.AnyAsync(p=>p.UserId==context.User.FindFirstValue(ClaimTypes.NameIdentifier)&&p.Status=="Approved"))));builder.Services.AddPdfWatermarks();builder.Services.AddTopCommitteeFoundation();
+builder.Services.AddHttpClient<BidRecommendationService>();
+await using var app=builder.Build();
+app.UseStaticFiles();app.UseRouting();app.UseAuthentication();app.UseAuthorization();
+app.MapGet("/qa/login/{key}/{secret}",(string key,string secret,HttpContext ctx)=>{if(secret!=token||!actors.ContainsKey(key))return Results.NotFound();ctx.Response.Cookies.Append("CommitteeScoringFixture",token+"."+key,new CookieOptions{HttpOnly=true,SameSite=SameSiteMode.Strict});return Results.Redirect(key=="manager"?"/SourcingManager/Submissions":key=="officer"?"/SourcingOfficer/Offers":key=="topmember"?"/TopCommittee/Decisions":key.StartsWith("supplier-",StringComparison.Ordinal)?"/Supplier/Offers":"/EvaluationCommittee/Evaluations");});
+app.MapGet("/qa/stop/{secret}",(string secret,IHostApplicationLifetime lifetime)=>{if(secret!=token)return Results.NotFound();lifetime.StopApplication();return Results.Ok("Stopping isolated test host");});
+app.MapControllerRoute("default","{controller=Home}/{action=Index}/{id?}");
+int passed=0;void Check(bool ok,string label){if(!ok)throw new Exception(label);passed++;Console.WriteLine("PASS MVC: "+label);}
+async Task WithDb(Func<ApplicationDbContext,Task> action){await using var scope=app.Services.CreateAsyncScope();await action(scope.ServiceProvider.GetRequiredService<ApplicationDbContext>());}
+
+var clients=new Dictionary<string,HttpClient>();
+try {
+ await WithDb(async db=>{
+  if(db.Database.GetDbConnection().Database!=database||!database.StartsWith("TiryaqEntryChecks_"))throw new Exception("Unsafe database");
+  await db.Database.EnsureCreatedAsync();
+  var departments=new[]{new Department{Name="Entry QA",IsActive=true},new Department{Name="Other QA",IsActive=true}};db.AddRange(departments);await db.SaveChangesAsync();
+  async Task AddActor(string key,string role,int? department=null) {
+   var r=await db.Roles.SingleOrDefaultAsync(r=>r.Name==role);if(r==null){r=new IdentityRole(role){NormalizedName=role.ToUpperInvariant()};db.Roles.Add(r);}
+   var user=new ApplicationUser{Id=key,FullName=key,UserName=key+"@example.invalid",NormalizedUserName=(key+"@example.invalid").ToUpperInvariant(),IsActive=true,DepartmentId=department};actors[key]=user;db.Users.Add(user);db.UserRoles.Add(new(){UserId=key,RoleId=r.Id});await db.SaveChangesAsync();
+  }
+  await AddActor("department",RoleNames.Department,departments[0].DepartmentId);await AddActor("department-peer",RoleNames.Department,departments[0].DepartmentId);await AddActor("department-other",RoleNames.Department,departments[1].DepartmentId);
+  await AddActor("admin",RoleNames.Admin);await AddActor("officer",RoleNames.SourcingOfficer);await AddActor("officer-other",RoleNames.SourcingOfficer);
+  for(int i=1;i<=4;i++){await AddActor("member"+i,RoleNames.EvaluationCommittee);var r=new IdentityRole(RoleNames.EvaluationPositions[i-1]){NormalizedName=RoleNames.EvaluationPositions[i-1].ToUpperInvariant()};db.Roles.Add(r);db.UserRoles.Add(new(){UserId="member"+i,RoleId=r.Id});}
+  for(int i=1;i<=4;i++){await AddActor("supplier-"+i,RoleNames.Supplier);db.SupplierProfiles.Add(new(){UserId="supplier-"+i,CompanyName="Entry Supplier "+i,RegistrationNumber="ENTRY-"+i,ContactName="Test",Category="Pharmaceuticals",Status=i==4?"Pending":"Approved",CreatedAt=DateTime.UtcNow});}await db.SaveChangesAsync();
+ });
+ await app.StartAsync();
+ HttpClient Client(string actor){if(clients.TryGetValue(actor,out var c))return c;c=new HttpClient(new HttpClientHandler{AllowAutoRedirect=false}){BaseAddress=new Uri("http://127.0.0.1:5096")};c.DefaultRequestHeaders.Add("X-Scoring-Test",token);c.DefaultRequestHeaders.Add("X-Member",actor);clients[actor]=c;return c;}
+ async Task<string> Html(string actor,string route){var r=await Client(actor).GetAsync(route);if(r.StatusCode!=HttpStatusCode.OK)throw new Exception($"GET {route}: {r.StatusCode} {await r.Content.ReadAsStringAsync()}");return await r.Content.ReadAsStringAsync();}
+ string Value(string html,string name)=>WebUtility.HtmlDecode(Regex.Match(html,"name=\""+name+"\"[^>]*value=\"([^\"]*)\"").Groups[1].Value);
+ async Task<HttpResponseMessage> Post(string actor,string route,string source,IEnumerable<KeyValuePair<string,string>> values){var html=await Html(actor,source);var body=values.ToList();body.Add(new("__RequestVerificationToken",Value(html,"__RequestVerificationToken")));var r=await Client(actor).PostAsync(route,new FormUrlEncodedContent(body));if((int)r.StatusCode>=500)throw new Exception($"POST {route}: {r.StatusCode} {await r.Content.ReadAsStringAsync()}");return r;}
+ Dictionary<string,string> P(params (string,string)[] values)=>values.ToDictionary(x=>x.Item1,x=>x.Item2);
+ Dictionary<string,string> Request(string title)=>P(("Title",title),("Reason","Stock for the next purchasing cycle"),("Priority","Normal"),("TargetDate",DateTime.UtcNow.AddDays(10).ToString("yyyy-MM-dd")),("Items[0].ItemName","Sterile gauze"),("Items[0].Quantity","20"),("Items[0].Unit","pack"),("Items[0].Specifications","Sealed packs with batch details"));
+ async Task<int> CreateRequest(string title){await Post("department","/Department/Create","/Department/Create",Request(title));var id=0;await WithDb(async db=>id=await db.PurchaseRequests.Where(r=>r.Title==title).Select(r=>r.PurchaseRequestId).SingleAsync());return id;}
+ async Task AssertRequest(int id,string status,string label){await WithDb(async db=>Check((await db.PurchaseRequests.FindAsync(id))!.Status==status,label));}
+ var invalid=Request("");await Post("department","/Department/Create","/Department/Create",invalid);await WithDb(async db=>Check(!await db.PurchaseRequests.AnyAsync(),"request title required; no row written"));
+ invalid=Request("Invalid quantity");invalid["Items[0].Quantity"]="0";await Post("department","/Department/Create","/Department/Create",invalid);await WithDb(async db=>Check(!await db.PurchaseRequests.AnyAsync(),"zero request quantity rejected"));
+ invalid=Request("Past target");invalid["TargetDate"]="2000-01-01";await Post("department","/Department/Create","/Department/Create",invalid);await WithDb(async db=>Check(!await db.PurchaseRequests.AnyAsync(),"past requested date rejected"));
+ var request=await CreateRequest("Entry cycle request");await AssertRequest(request,"Submitted","request created directly as submitted");
+ await WithDb(async db=>Check(await db.Notifications.AnyAsync(n=>n.UserId=="officer"&&n.Title=="New purchase request"),"new request notifies officer"));
+ Check((await Client("department-other").GetAsync($"/Department/Details/{request}")).StatusCode==HttpStatusCode.NotFound,"other department cannot read request");
+ Check((await Client("department").GetAsync($"/Department/Edit/{request}")).StatusCode==HttpStatusCode.Conflict,"submitted request cannot be edited");
+ await Post("officer","/SourcingOfficer/StartReview","/SourcingOfficer/Requests",P(("id",request.ToString())));await AssertRequest(request,"UnderReview","officer claims submitted request");
+ Check((await Post("officer-other","/SourcingOfficer/StartReview","/SourcingOfficer/Requests",P(("id",request.ToString())))).StatusCode==HttpStatusCode.NotFound,"second officer cannot claim assigned request");
+ await Post("officer","/SourcingOfficer/ReturnRequest","/SourcingOfficer/Requests",P(("id",request.ToString())));await AssertRequest(request,"UnderReview","return requires written reason");
+ await Post("officer","/SourcingOfficer/ReturnRequest","/SourcingOfficer/Requests",P(("id",request.ToString()),("reason","Specify packaging")));await AssertRequest(request,"Returned","officer returns with reason");
+ Check((await Client("department-peer").GetAsync($"/Department/Edit/{request}")).StatusCode==HttpStatusCode.NotFound,"department colleague cannot edit creator's return");
+ var edit=Request("Resubmitted entry request");edit["id"]=request.ToString();await Post("department","/Department/Edit",$"/Department/Edit/{request}",edit);await AssertRequest(request,"Submitted","request creator resubmits returned request");
+ await WithDb(async db=>Check(await db.PurchaseRequestItems.CountAsync(i=>i.PurchaseRequestId==request)==1&&await db.Notifications.AnyAsync(n=>n.Title=="Purchase request resubmitted"&&n.UserId=="officer"),"resubmission replaces items and notifies assigned officer"));
+ var rejected=await CreateRequest("Rejected request");await Post("officer","/SourcingOfficer/RejectRequest","/SourcingOfficer/Requests",P(("id",rejected.ToString()),("reason","No purchasing need")));await AssertRequest(rejected,"Rejected","officer can reject with reason");
+ Check((await Client("department").GetAsync($"/Department/Edit/{rejected}")).StatusCode==HttpStatusCode.Conflict,"rejected request cannot resubmit");
+ int[] suppliers=[];await WithDb(async db=>suppliers=await db.SupplierProfiles.Where(s=>s.Status=="Approved").OrderBy(s=>s.SupplierProfileId).Select(s=>s.SupplierProfileId).ToArrayAsync());
+ var tenderFields=P(("PurchaseRequestId",request.ToString()),("Title","Entry cycle tender"),("Description","Sealed packaging and traceable batch details"),("Category","Pharmaceuticals"),("OpensAt",DateTime.UtcNow.AddMinutes(-10).ToString("s")),("ClosesAt",DateTime.UtcNow.AddDays(3).ToString("s")),("launch","true"));
+ var createFields=tenderFields.ToList();createFields.AddRange(suppliers.Select(id=>new KeyValuePair<string,string>("supplierProfileIds",id.ToString())));
+ await Post("officer","/SourcingOfficer/Create","/SourcingOfficer/Offers",createFields);int tender=0;int item=0;await WithDb(async db=>{tender=await db.Tenders.Select(t=>t.TenderId).SingleAsync();item=await db.PurchaseRequestItems.Where(i=>i.PurchaseRequestId==request).Select(i=>i.PurchaseRequestItemId).SingleAsync();Check(await db.Invitations.CountAsync(i=>i.TenderId==tender)==3,"publish invites three selected approved suppliers");Check((await db.Tenders.FindAsync(tender))!.Status=="Published","tender publishes directly without draft");});await AssertRequest(request,"ConvertedToTender","publishing converts request");
+ await Post("officer","/SourcingOfficer/Create","/SourcingOfficer/Offers",createFields);await WithDb(async db=>Check(await db.Tenders.CountAsync(t=>t.PurchaseRequestId==request)==1,"duplicate tender creation blocked"));
+ Check((await Client("officer-other").GetAsync($"/SourcingOfficer/Offers?tenderId={tender}")).StatusCode==HttpStatusCode.NotFound,"foreign officer cannot open tender workspace");
+ var invitations=new int[3];await WithDb(async db=>{for(int i=0;i<3;i++)invitations[i]=await db.Invitations.Where(x=>x.TenderId==tender&&x.SupplierProfileId==suppliers[i]).Select(x=>x.InvitationId).SingleAsync();});
+ Check((await Client("supplier-2").GetAsync($"/Supplier/Invitation/{invitations[0]}")).StatusCode==HttpStatusCode.NotFound,"supplier cannot read foreign invitation");
+ for(int i=0;i<3;i++)await Post("supplier-"+(i+1),"/Supplier/Respond",$"/Supplier/Invitation/{invitations[i]}",P(("id",invitations[i].ToString()),("response","Accepted")));
+ await WithDb(async db=>Check(await db.Invitations.CountAsync(i=>i.TenderId==tender&&i.Status=="Accepted")==3,"suppliers accept their invitations"));
+ Dictionary<string,string> Offer(int i,int? bid=null){var p=P(("InvitationId",invitations[i].ToString()),("TenderId",tender.ToString()),("Currency","JOD"),("DeliveryDays","3"),("TechnicalDetails","Meets sealed packaging requirement"),("Items[0].PurchaseRequestItemId",item.ToString()),("Items[0].Quantity","20"),("Items[0].UnitPrice","2.5"),("Items[0].Specifications","Sealed packs"),("submissionCommand","Submit"));if(bid.HasValue)p["BidId"]=bid.ToString()!;return p;}
+ var offer=Offer(0);offer["submissionCommand"]="Draft";offer["TaxAmount"]="2";offer["AdditionalCosts"]="3";
+ var html=await Html("supplier-1",$"/Supplier/CreateOffer?invitationId={invitations[0]}");using(var multipart=new MultipartFormDataContent()){foreach(var pair in offer)multipart.Add(new StringContent(pair.Value),pair.Key);multipart.Add(new StringContent(Value(html,"__RequestVerificationToken")),"__RequestVerificationToken");var file=new ByteArrayContent(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII="));file.Headers.ContentType=new("image/png");multipart.Add(file,"documents","qa-entry.png");Check((await Client("supplier-1").PostAsync("/Supplier/SaveOffer",multipart)).StatusCode==HttpStatusCode.Redirect,"draft offer accepts allowed attachment");}
+ int firstBid=0,documentId=0;await WithDb(async db=>{firstBid=await db.Bids.Select(b=>b.BidId).SingleAsync();documentId=await db.BidDocuments.Select(d=>d.BidDocumentId).SingleAsync();Check((await db.Bids.FindAsync(firstBid))!.SubmittedAt==null,"draft remains unsubmitted");});
+ Check((await Client("supplier-1").GetAsync($"/Supplier/DownloadDocument/{documentId}")).StatusCode==HttpStatusCode.OK,"owner downloads draft upload");Check((await Client("supplier-2").GetAsync($"/Supplier/DownloadDocument/{documentId}")).StatusCode==HttpStatusCode.NotFound,"foreign supplier cannot download attachment");
+ Check((await Client("supplier-2").GetAsync($"/Supplier/Offer/{firstBid}")).StatusCode==HttpStatusCode.NotFound,"foreign supplier cannot view draft");
+ Check((await Post("supplier-2","/Supplier/SaveOffer","/Supplier/Offers",Offer(0,firstBid))).StatusCode==HttpStatusCode.NotFound,"foreign supplier cannot overwrite draft by POST");
+ var foreignItem=Offer(0,firstBid);foreignItem["Items[0].PurchaseRequestItemId"]="999999";await Post("supplier-1","/Supplier/SaveOffer","/Supplier/Offers",foreignItem);await WithDb(async db=>Check((await db.Bids.FindAsync(firstBid))!.SubmittedAt==null,"foreign request item rejected without submission"));
+ Check((await Client("department").PostAsync("/Department/Create",new FormUrlEncodedContent(Request("No csrf")))).StatusCode==HttpStatusCode.BadRequest,"request creation requires antiforgery token");
+ await WithDb(async db=>{var b=await db.Bids.Include(b=>b.BidItems).SingleAsync(b=>b.BidId==firstBid);Check(b.TaxAmount==2m&&b.AdditionalCosts==3m&&CommitteeEvaluationPage.Total(b)==55m,"draft persists tax2 and extras3 with inclusive total55");});
+ var editCharges=await Html("supplier-1",$"/Supplier/CreateOffer?invitationId={invitations[0]}&bidId={firstBid}");Check(decimal.TryParse(Value(editCharges,"TaxAmount"),System.Globalization.NumberStyles.Number,System.Globalization.CultureInfo.InvariantCulture,out var shownTax)&&shownTax==2m&&decimal.TryParse(Value(editCharges,"AdditionalCosts"),System.Globalization.NumberStyles.Number,System.Globalization.CultureInfo.InvariantCulture,out var shownExtras)&&shownExtras==3m,"draft editor prefills saved tax and additional costs");
+ foreach(var field in new[]{"TaxAmount","AdditionalCosts"}){var negative=Offer(0,firstBid);negative["submissionCommand"]="Draft";negative[field]="-1";await Post("supplier-1","/Supplier/SaveOffer","/Supplier/Offers",negative);await WithDb(async db=>{var b=await db.Bids.FindAsync(firstBid);Check(b!.TaxAmount==2m&&b.AdditionalCosts==3m&&b.SubmittedAt==null,$"negative {field} rejected without changing saved charges");});}
+ var zero=Offer(0,firstBid);zero["Items[0].UnitPrice"]="0";await Post("supplier-1","/Supplier/SaveOffer",$"/Supplier/CreateOffer?invitationId={invitations[0]}&bidId={firstBid}",zero);await WithDb(async db=>Check((await db.Bids.FindAsync(firstBid))!.SubmittedAt==null,"zero-priced offer cannot submit"));
+ await Post("supplier-1","/Supplier/SaveOffer",$"/Supplier/CreateOffer?invitationId={invitations[0]}&bidId={firstBid}",Offer(0,firstBid));
+ for(int i=1;i<3;i++)await Post("supplier-"+(i+1),"/Supplier/SaveOffer",$"/Supplier/CreateOffer?invitationId={invitations[i]}",Offer(i));
+ int[] bids=[];await WithDb(async db=>{bids=await db.Bids.OrderBy(b=>b.BidId).Select(b=>b.BidId).ToArrayAsync();Check(await db.Bids.CountAsync(b=>b.Status=="Submitted"&&b.SubmittedAt!=null)==3,"three offers submit with requested item prices");});
+ await Post("supplier-2","/Supplier/SaveOffer","/Supplier/Offers",Offer(1));await WithDb(async db=>Check(await db.Bids.CountAsync()==3,"duplicate supplier offer rejected"));
+ await Post("officer","/SourcingOfficer/ReviewAndSend","/SourcingOfficer/Offers",P(("tenderId",tender.ToString())));await WithDb(async db=>Check((await db.Tenders.FindAsync(tender))!.Status=="Published","handoff before deadline blocked"));
+ await WithDb(async db=>{var t=await db.Tenders.FindAsync(tender);t!.ClosesAt=DateTime.UtcNow.AddMinutes(-1);await db.SaveChangesAsync();});
+ Check((await Client("supplier-1").GetAsync($"/Supplier/CreateOffer?invitationId={invitations[0]}")).StatusCode==HttpStatusCode.Forbidden,"deadline blocks offer editor");
+ Check((await Post("supplier-1","/Supplier/SaveOffer","/Supplier/Offers",Offer(0,firstBid))).StatusCode==HttpStatusCode.Forbidden,"deadline blocks direct offer POST");
+ async Task Decide(int id,string decision)=>await Post("officer","/SourcingOfficer/ReviewCompliance","/SourcingOfficer/Offers",P(("id",id.ToString()),("decision",decision),("notes","Fixture compliance decision")));
+ await Decide(bids[0],"Compliant");await Decide(bids[0],"NonCompliant");await WithDb(async db=>Check((await db.Bids.FindAsync(bids[0]))!.ComplianceStatus=="Compliant","confirmed compliance decision immutable"));
+ for(int i=1;i<3;i++)await Decide(bids[i],"NonCompliant");
+ await Post("officer","/SourcingOfficer/ReviewAndSend","/SourcingOfficer/Offers",P(("tenderId",tender.ToString()),("shortfallReason","Premature exception")));await WithDb(async db=>Check((await db.Tenders.FindAsync(tender))!.Status!="UnderEvaluation","shortage cannot bypass first-round minimum with reason"));
+ async Task Extend(int round,DateTime date)=>await Post("officer","/SourcingOfficer/ExtendOfferRound","/SourcingOfficer/Offers",P(("tenderId",tender.ToString()),("currentRound",round.ToString()),("newDeadline",date.ToString("s"))));
+ await Extend(1,DateTime.UtcNow.AddMinutes(30));await WithDb(async db=>Check(!await db.Set<TenderOfferExtension>().AnyAsync(),"extension enforces minimum supplier response time"));
+ for(int round=1;round<=3;round++){
+ await Extend(round,DateTime.UtcNow.AddDays(3));
+ if(round==1){
+  await Extend(1,DateTime.UtcNow.AddDays(4));await WithDb(async db=>Check(await db.Set<TenderOfferExtension>().CountAsync()==1,"stale extension request cannot duplicate round"));
+  Check((await Client("supplier-2").GetAsync($"/Supplier/CreateOffer?invitationId={invitations[1]}&bidId={bids[1]}")).StatusCode==HttpStatusCode.OK,"noncompliant offer can revise in reopened round");
+  await Post("supplier-2","/Supplier/SaveOffer","/Supplier/Offers",Offer(1,bids[1]));
+  await WithDb(async db=>{var b=await db.Bids.FindAsync(bids[1]);Check(b!.Status=="Submitted"&&b.ComplianceStatus==null&&b.OfficerOpenedAt==null,"revised offer clears old compliance and unread state");});
+ }
+ await WithDb(async db=>{Check(await db.Set<TenderOfferExtension>().CountAsync()==round,$"round {round+1} opens once and records outreach");var t=await db.Tenders.FindAsync(tender);t!.ClosesAt=DateTime.UtcNow.AddMinutes(-1);await db.SaveChangesAsync();});
+ if(round==1){await Extend(2,DateTime.UtcNow.AddDays(3));await WithDb(async db=>Check(await db.Set<TenderOfferExtension>().CountAsync()==1,"unreviewed revised offer blocks next extension"));await Decide(bids[1],"NonCompliant");}
+}
+ await Extend(4,DateTime.UtcNow.AddDays(3));await WithDb(async db=>Check(await db.Set<TenderOfferExtension>().CountAsync()==3,"fifth offer round prohibited"));
+ await Post("officer","/SourcingOfficer/ReviewAndSend","/SourcingOfficer/Offers",P(("tenderId",tender.ToString())));await WithDb(async db=>Check((await db.Tenders.FindAsync(tender))!.Status!="UnderEvaluation","final-round shortage requires written reason"));
+ await WithDb(async db=>{await db.Bids.Where(b=>b.BidId==bids[0]).ExecuteUpdateAsync(s=>s.SetProperty(b=>b.ComplianceStatus,"NonCompliant").SetProperty(b=>b.Status,"NonCompliant"));});
+ await Post("officer","/SourcingOfficer/ReviewAndSend","/SourcingOfficer/Offers",P(("tenderId",tender.ToString()),("shortfallReason","Final round shortage")));await WithDb(async db=>Check((await db.Tenders.FindAsync(tender))!.Status!="UnderEvaluation","zero compliant offers always blocked after final round"));
+ await WithDb(async db=>{await db.Bids.Where(b=>b.BidId==bids[0]).ExecuteUpdateAsync(s=>s.SetProperty(b=>b.ComplianceStatus,"Compliant").SetProperty(b=>b.Status,"Compliant"));});
+ await Post("officer","/SourcingOfficer/ReviewAndSend","/SourcingOfficer/Offers",P(("tenderId",tender.ToString()),("shortfallReason","Only one compliant supplier after four rounds")));await WithDb(async db=>{var t=await db.Tenders.FindAsync(tender);Check(t!.Status=="UnderEvaluation"&&t.OfferShortfallReason=="Only one compliant supplier after four rounds","final-round documented shortfall reaches committee");Check(await db.CommitteeAssignments.CountAsync()==4,"handoff assigns four distinct committee members");});
+// Public contact and administrator inbox: same isolated fixture, no user database.
+Dictionary<string,string> Contact(string subject="Entry contact QA")=>P(("FullName","Entry visitor"),("Email","visitor@example.invalid"),("Subject",subject),("Message","<script>alert('entry')</script> Procurement question & details"));
+var contactPage=await Html("anonymous","/Home/Contact");Check(!string.IsNullOrEmpty(Value(contactPage,"__RequestVerificationToken")),"anonymous contact form renders with antiforgery token");
+Check((await Client("anonymous").PostAsync("/Home/Contact",new FormUrlEncodedContent(Contact()))).StatusCode==HttpStatusCode.BadRequest,"anonymous contact POST requires antiforgery token");
+var invalidContact=Contact();invalidContact["Email"]="invalid address";await Post("anonymous","/Home/Contact","/Home/Contact",invalidContact);await WithDb(async db=>Check(!await db.ContactMessages.AnyAsync(),"invalid contact email rejected without persistence"));
+invalidContact=Contact("Header\r\nInjected");await Post("anonymous","/Home/Contact","/Home/Contact",invalidContact);await WithDb(async db=>Check(!await db.ContactMessages.AnyAsync(),"contact subject control characters rejected"));
+invalidContact=Contact();invalidContact["Message"]=new string('x',2001);await Post("anonymous","/Home/Contact","/Home/Contact",invalidContact);await WithDb(async db=>Check(!await db.ContactMessages.AnyAsync(),"contact message longer than 2000 rejected"));
+Check((await Post("anonymous","/Home/Contact","/Home/Contact",Contact())).StatusCode==HttpStatusCode.Redirect,"valid anonymous contact redirects after save");
+int contactId=0;await WithDb(async db=>{var message=await db.ContactMessages.SingleAsync();contactId=message.ContactMessageId;Check(message.UserId==null&&message.Status==ContactMessage.Unread&&message.Email=="visitor@example.invalid","anonymous contact saved unread without fabricated user");Check(await db.Notifications.CountAsync(n=>n.UserId=="admin"&&n.Title=="New contact message")==1,"one admin notification created for contact submission");});
+await Post("anonymous","/Home/Contact","/Home/Contact",Contact());await WithDb(async db=>Check(await db.ContactMessages.CountAsync()==1&&await db.Notifications.CountAsync(n=>n.Title=="New contact message")==1,"immediate duplicate contact deduplicates row and notification"));
+var inbox=await Html("admin","/Admin/ContactMessages");Check(inbox.Contains("Entry contact QA")&&inbox.Contains("visitor@example.invalid"),"admin inbox lists contact subject and sender");
+var messageHtml=await Html("admin",$"/Admin/ContactMessageDetails/{contactId}");Check(messageHtml.Contains("&lt;script&gt;")&&!messageHtml.Contains("<script>alert('entry')</script>"),"admin detail HTML encodes untrusted contact body");
+Check((await Client("department").GetAsync("/Admin/ContactMessages")).StatusCode==HttpStatusCode.Forbidden,"non-admin cannot read contact inbox");
+Check((await Client("department").GetAsync($"/Admin/ContactMessageDetails/{contactId}")).StatusCode==HttpStatusCode.Forbidden,"non-admin cannot read contact detail");
+Check((await Client("admin").GetAsync("/Admin/ContactMessageDetails/999999")).StatusCode==HttpStatusCode.NotFound,"unknown contact details return404");
+Check((await Post("department","/Admin/MarkContactMessageRead","/Department/Create",P(("id",contactId.ToString())))).StatusCode==HttpStatusCode.Forbidden,"non-admin cannot mark contact read via direct POST");
+await Post("admin","/Admin/MarkContactMessageRead",$"/Admin/ContactMessageDetails/{contactId}",P(("id",contactId.ToString())));await WithDb(async db=>Check((await db.ContactMessages.FindAsync(contactId))!.Status==ContactMessage.Read&&await db.Notifications.Where(n=>n.Title=="New contact message").AllAsync(n=>n.IsRead),"mark contact read updates message and current admin notification"));
+Check((await Post("admin","/Admin/MarkContactMessageRead","/Admin/ContactMessages",P(("id","999999")))).StatusCode==HttpStatusCode.NotFound,"unknown contact mark-read returns404");
+await Post("admin","/Admin/MarkContactMessageRead",$"/Admin/ContactMessageDetails/{contactId}",P(("id",contactId.ToString())));await WithDb(async db=>Check(await db.ContactMessages.CountAsync()==1&&await db.Notifications.CountAsync(n=>n.Title=="New contact message")==1,"repeated mark-read is idempotent"));
+
+// Administrative account/directory and supplier review checks in disposable data.
+var departmentCount=0;await WithDb(async db=>departmentCount=await db.Departments.CountAsync());
+Check((await Post("admin","/Admin/CreateDepartment","/Admin/Departments",P(("name","  Entry new department  ")))).StatusCode==HttpStatusCode.Redirect,"admin creates a valid department");
+int newDepartment=0;await WithDb(async db=>{newDepartment=await db.Departments.Where(d=>d.Name=="Entry new department").Select(d=>d.DepartmentId).SingleAsync();Check(await db.Departments.CountAsync()==departmentCount+1&&(await db.Departments.FindAsync(newDepartment))!.IsActive,"department name trimmed and created active");});
+await Post("admin","/Admin/CreateDepartment","/Admin/Departments",P(("name","Entry new department")));await WithDb(async db=>Check(await db.Departments.CountAsync()==departmentCount+1,"duplicate department blocked without extra row"));
+await Post("admin","/Admin/CreateDepartment","/Admin/Departments",P(("name","  ")));await WithDb(async db=>Check(await db.Departments.CountAsync()==departmentCount+1,"blank department blocked"));
+Check((await Post("department","/Admin/CreateDepartment","/Department/Create",P(("name","Unauthorized department")))).StatusCode==HttpStatusCode.Forbidden,"non-admin cannot create department");
+await Post("admin","/Admin/EditDepartment","/Admin/Departments",P(("DepartmentId",newDepartment.ToString()),("Name","Entry renamed department"),("IsActive","true")));await WithDb(async db=>Check((await db.Departments.FindAsync(newDepartment))!.Name=="Entry renamed department","admin can rename department"));
+var employeeEmail="entry-created-"+Guid.NewGuid().ToString("N")+"@example.invalid";
+Dictionary<string,string> Employee(string role)=>P(("FullName","Entry created employee"),("Email",employeeEmail),("Password","Ephemeral!A9"+Guid.NewGuid().ToString("N")),("Role",role),("DepartmentId",newDepartment.ToString()));
+Check((await Post("admin","/Admin/CreateUser","/Admin/Users",Employee(RoleNames.Department))).StatusCode==HttpStatusCode.Redirect,"admin creates valid department employee");
+string employeeId="";int userCount=0;await WithDb(async db=>{var employee=await db.Users.SingleAsync(u=>u.Email==employeeEmail);employeeId=employee.Id;userCount=await db.Users.CountAsync();Check(employee.DepartmentId==newDepartment&&employee.PasswordHash!=null&&await db.UserRoles.AnyAsync(ur=>ur.UserId==employee.Id&&db.Roles.Any(r=>r.Id==ur.RoleId&&r.Name==RoleNames.Department)),"created employee persists department password hash and role");});
+var invalidEmployee=Employee("UnexpectedRole");invalidEmployee["Email"]="entry-invalid@example.invalid";await Post("admin","/Admin/CreateUser","/Admin/Users",invalidEmployee);await WithDb(async db=>Check(await db.Users.CountAsync()==userCount,"invalid employee role rejected without user row"));
+Check((await Post("department","/Admin/CreateUser","/Department/Create",Employee(RoleNames.Department))).StatusCode==HttpStatusCode.Forbidden,"non-admin cannot create user");
+await Post("admin","/Admin/EditUser","/Admin/Users",P(("Id","admin"),("FullName","admin"),("IsActive","false")));await WithDb(async db=>Check((await db.Users.FindAsync("admin"))!.IsActive,"administrator cannot deactivate own account"));
+await Post("admin","/Admin/EditUser","/Admin/Users",P(("Id",employeeId),("FullName","Entry updated employee"),("DepartmentId",newDepartment.ToString()),("IsActive","false")));await WithDb(async db=>Check(!(await db.Users.FindAsync(employeeId))!.IsActive,"admin can deactivate another employee"));
+var pendingSupplier=0;await WithDb(async db=>pendingSupplier=await db.SupplierProfiles.Where(s=>s.UserId=="supplier-4").Select(s=>s.SupplierProfileId).SingleAsync());
+Dictionary<string,string> Review(string status,string notes,string previous="Pending",long? ticks=null){var p=P(("Review.Id",pendingSupplier.ToString()),("Review.PreviousStatus",previous),("Review.Status",status),("Review.Notes",notes));if(ticks.HasValue)p["Review.ReviewedAtTicks"]=ticks.Value.ToString();return p;}
+await Post("admin","/Admin/ReviewSupplier",$"/Admin/SupplierDetails/{pendingSupplier}",Review("Approved",""));await WithDb(async db=>Check((await db.SupplierProfiles.FindAsync(pendingSupplier))!.Status=="Pending","supplier approval requires written reason"));
+Check((await Post("department","/Admin/ReviewSupplier","/Department/Create",Review("Approved","Unauthorized review"))).StatusCode==HttpStatusCode.Forbidden,"non-admin supplier review denied");
+Check((await Post("admin","/Admin/ReviewSupplier",$"/Admin/SupplierDetails/{pendingSupplier}",Review("Approved","Registration verified"))).StatusCode==HttpStatusCode.Redirect,"admin approves pending supplier with reason");
+long supplierTicks=0;await WithDb(async db=>{var profile=await db.SupplierProfiles.FindAsync(pendingSupplier);supplierTicks=profile!.ReviewedAt!.Value.Ticks;Check(profile.Status=="Approved"&&profile.ReviewNotes=="Registration verified"&&profile.ReviewedByUserId=="admin","supplier approval records actor reason and timestamp");});
+await Post("admin","/Admin/ReviewSupplier",$"/Admin/SupplierDetails/{pendingSupplier}",Review("Rejected","Stale request"));await WithDb(async db=>Check((await db.SupplierProfiles.FindAsync(pendingSupplier))!.Status=="Approved","stale supplier decision cannot overwrite newer review"));
+await Post("admin","/Admin/ReviewSupplier",$"/Admin/SupplierDetails/{pendingSupplier}",Review("ChangesRequested","Update registration certificate","Approved",supplierTicks));await WithDb(async db=>Check((await db.SupplierProfiles.FindAsync(pendingSupplier))!.Status=="ChangesRequested"&&(await db.SupplierProfiles.FindAsync(pendingSupplier))!.ReviewNotes=="Update registration certificate","fresh supplier review requests changes with reason"));
+Check((await Client("supplier-4").GetAsync("/Supplier/Offers")).StatusCode==HttpStatusCode.Forbidden,"changes-requested supplier remains outside approved workspace");
+
+ Console.WriteLine($"PASS: {passed} procurement entry MVC checks in isolated database {database}.");
+ if(serve){
+  int previewTender=0,previewInvitation=0,previewDraftInvitation=0,previewDraft=0;
+  await WithDb(async db=>{
+   var department=await db.Users.Where(u=>u.Id=="department").Select(u=>u.DepartmentId).SingleAsync();
+   var req=new PurchaseRequest{DepartmentId=department!.Value,RequestedByUserId="department",Title="Isolated browser offer fixture",Reason="Disposable procurement form QA only",Priority="Normal",TargetDate=DateOnly.FromDateTime(DateTime.UtcNow.AddDays(15)),Status="ConvertedToTender",SubmittedAt=DateTime.UtcNow,CreatedAt=DateTime.UtcNow};
+   req.PurchaseRequestItems.Add(new(){ItemName="Sterile gauze packs",Quantity=20,Unit="pack",Specifications="Sealed packs"});req.PurchaseRequestItems.Add(new(){ItemName="Exam gloves",Quantity=10,Unit="box",Specifications="Powder-free"});
+   var t=new Tender{PurchaseRequest=req,CreatedByUserId="officer",Title="Isolated open offer form QA",Description="Temporary browser interaction fixture",Category="Pharmaceuticals",Status="Published",OpensAt=DateTime.UtcNow.AddHours(-1),ClosesAt=DateTime.UtcNow.AddDays(3),CreatedAt=DateTime.UtcNow};db.Tenders.Add(t);await db.SaveChangesAsync();
+   var inv=new Invitation{TenderId=t.TenderId,SupplierProfileId=suppliers[0],InvitedByUserId="officer",Status="Accepted",SentAt=DateTime.UtcNow,RespondedAt=DateTime.UtcNow};
+   var draftInv=new Invitation{TenderId=t.TenderId,SupplierProfileId=suppliers[1],InvitedByUserId="officer",Status="Accepted",SentAt=DateTime.UtcNow,RespondedAt=DateTime.UtcNow};db.Invitations.AddRange(inv,draftInv);await db.SaveChangesAsync();
+   var draft=new Bid{TenderId=t.TenderId,InvitationId=draftInv.InvitationId,Status="Draft",Currency="JOD",CreatedAt=DateTime.UtcNow,DeliveryDays=3,TechnicalDetails="Disposable browser draft"};foreach(var line in req.PurchaseRequestItems)draft.BidItems.Add(new(){PurchaseRequestItemId=line.PurchaseRequestItemId,Quantity=line.Quantity,UnitPrice=2.5m,OfferedSpecifications=line.Specifications});db.Bids.Add(draft);await db.SaveChangesAsync();
+   previewTender=t.TenderId;previewInvitation=inv.InvitationId;previewDraftInvitation=draftInv.InvitationId;previewDraft=draft.BidId;
+  });
+  Console.WriteLine($"PREVIEW_TOKEN {token}");
+  Console.WriteLine($"PREVIEW_DATABASE {database}");
+  Console.WriteLine($"PREVIEW_CREATE http://127.0.0.1:5096/Supplier/CreateOffer?invitationId={previewInvitation} ACTOR supplier-1 TENDER {previewTender}");
+  Console.WriteLine($"PREVIEW_DRAFT http://127.0.0.1:5096/Supplier/CreateOffer?invitationId={previewDraftInvitation}&bidId={previewDraft} ACTOR supplier-2");
+  Console.WriteLine($"PREVIEW_STOP http://127.0.0.1:5096/qa/stop/{token}");
+  await app.WaitForShutdownAsync();
+ }
+
+} finally {
+ foreach(var c in clients.Values)c.Dispose();await app.StopAsync();
+ await WithDb(async db=>{if(db.Database.GetDbConnection().Database==database&&database.StartsWith("TiryaqEntryChecks_",StringComparison.Ordinal))await db.Database.EnsureDeletedAsync();else throw new Exception("Unsafe cleanup target");});
+ var resolved=Path.GetFullPath(fixtureRoot);if(resolved.StartsWith(Path.GetFullPath(Path.GetTempPath()),StringComparison.OrdinalIgnoreCase)&&Path.GetFileName(resolved).StartsWith("TiryaqEntryFiles_",StringComparison.Ordinal))Directory.Delete(resolved,true);else throw new Exception("Unsafe attachment cleanup");
+ Console.WriteLine("Removed isolated random database and temporary uploads; live database/files untouched.");
+}
+
+record FixtureActors(Dictionary<string,ApplicationUser> Users,string Token);
+class FixtureAuthentication(IOptionsMonitor<AuthenticationSchemeOptions> options,ILoggerFactory logger,UrlEncoder encoder,FixtureActors actors):AuthenticationHandler<AuthenticationSchemeOptions>(options,logger,encoder){
+ protected override Task<AuthenticateResult> HandleAuthenticateAsync(){var token=Request.Headers["X-Scoring-Test"].ToString();var key=Request.Headers["X-Member"].ToString();if(Request.Cookies.TryGetValue("CommitteeScoringFixture",out var cookie)&&cookie.StartsWith(actors.Token+".",StringComparison.Ordinal)){token=actors.Token;key=cookie[(actors.Token.Length+1)..];}if(token!=actors.Token||!actors.Users.TryGetValue(key,out var user))return Task.FromResult(AuthenticateResult.NoResult());var role=key=="admin"?RoleNames.Admin:key.StartsWith("department",StringComparison.Ordinal)?RoleNames.Department:key.StartsWith("officer",StringComparison.Ordinal)?RoleNames.SourcingOfficer:key=="manager"?RoleNames.SourcingManager:key=="topmember"?RoleNames.TopCommittee:key.StartsWith("supplier-",StringComparison.Ordinal)?RoleNames.Supplier:RoleNames.EvaluationCommittee;var claims=new[]{new Claim(ClaimTypes.NameIdentifier,user.Id),new Claim(ClaimTypes.Name,user.UserName!),new Claim(ClaimTypes.Role,role)};return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity(claims,"ScoringFixture")),"ScoringFixture")));}
+}
