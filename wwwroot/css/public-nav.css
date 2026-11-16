@@ -20,19 +20,21 @@
 .pn-bar a.pn-ghost+a.pn-login{margin-left:4px}
 .pn-out{margin:0}
 .pn-bar :is(a,button):focus-visible{outline:2px solid #efb85c;outline-offset:2px}
+@media(max-width:900px){
+  .pn-bar{flex-wrap:wrap;justify-content:space-between;border-radius:24px;row-gap:4px;width:100%}
+  .pn-brand{margin-right:auto}
+  .pn-links{order:3;flex-basis:100%;justify-content:center;border-left:0;padding:4px 0 0;border-top:1px solid rgba(244,238,226,.14);overflow-x:auto;scrollbar-width:none}
+}
 @media(max-width:560px){
-  .pn-links a[href$="/Home/Index"],.pn-links a[href="/"]{display:none}
   .pn{padding:10px 10px}
   .pn-bar{gap:2px;padding:4px 4px 4px 10px}
-  .pn-brand{margin-right:2px}.pn-brand .tiryaq-logo{width:74px}
-  .pn-links{padding-left:4px}
+  .pn-brand{margin-right:auto}.pn-brand .tiryaq-logo{width:84px}
+  .pn-bar{padding:6px 6px 4px 12px}
   .pn-bar a,.pn-out button{padding:8px 7px;font-size:.76rem}
   .pn-bar a.pn-login,.pn-bar a.pn-ghost{margin-left:2px}
 }
 @media(max-width:400px){
   .pn-bar a,.pn-out button{padding:8px 5px;font-size:.72rem}
-  .pn-brand .tiryaq-logo{width:30px;overflow:hidden}
-  .pn-brand .tiryaq-logo img{width:74px;max-width:none}
 }
 
 /* Light public pages (About, How it works, Contact, Register) share the homepage palette:
@@ -52,3 +54,4 @@ body.tq-light main :is(.form-control,.form-select){background:#ffffff!important;
 body.tq-light main .registration-stepper li[aria-current="step"]>span{background:#1d5560!important;border-color:#1d5560!important;color:#f4eee2!important}
 body.tq-light main .registration-stepper li[aria-current="step"]{border-color:#efb85c!important}
 body.tq-light .registration-back{color:#1d5560!important;font-weight:600}
+body.tq-light :is(.campus-page,.campus-loading){background:#f8faf9!important}

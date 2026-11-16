@@ -1,0 +1,31 @@
+@{
+    var steps = new[]
+    {
+        (Title: "Request needs", Owner: "Department", Text: "Describe the items, quantities, specifications, and required date in a purchase request.", Outcome: "A clear request for the sourcing team"),
+        (Title: "Publish tender", Owner: "Sourcing officer", Text: "Review the request, define the requirements and deadline, and invite approved suppliers in the relevant category.", Outcome: "A published tender and supplier invitations"),
+        (Title: "Submit offers", Owner: "Invited suppliers", Text: "Review the tender and submit item prices, delivery terms, tax, and supporting documents before the closing date.", Outcome: "Supplier offers ready for compliance review"),
+        (Title: "Evaluate offers", Owner: "Officer & evaluation committee", Text: "Check compliance, then have four committee members assess eligible offers against agreed technical and financial weights. The officer prepares the recommendation.", Outcome: "An evaluation report and recommendation"),
+        (Title: "Approve selection", Owner: "Sourcing manager, CEO & Chiefs", Text: "The manager reviews the recommendation and adds a separate summary. CEO & Chiefs review the referral; four member approvals confirm the selection.", Outcome: "An approved selection for final processing"),
+        (Title: "Finalize award", Owner: "Manager & sourcing officer", Text: "The manager approves the shared report. The officer finalizes the award and closes the tender, keeping the request, offers, and decisions connected.", Outcome: "A recorded outcome for the relevant parties")
+    };
+}
+<section class="campus-details" id="process-details" aria-labelledby="process-details-title">
+    <header class="campus-details-heading">
+        <div><p>Process reference</p><h2 id="process-details-title">From request to award</h2></div>
+        <p>Who handles each stage, what happens, and what moves to the next team.</p>
+    </header>
+    <div class="campus-detail-columns" aria-hidden="true"><span>Stage &amp; responsible team</span><span>What happens</span><span>Outcome</span></div>
+    <ol class="campus-detail-list">
+        @for (var index = 0; index < steps.Length; index++)
+        {
+            var step = steps[index];
+            <li>
+                <span class="campus-detail-number">@((index + 1).ToString("00"))</span>
+                <div><h3>@step.Title</h3><p class="campus-detail-owner">@step.Owner</p></div>
+                <p>@step.Text</p>
+                <div class="campus-detail-outcome"><span>Outcome</span><p>@step.Outcome</p></div>
+            </li>
+        }
+    </ol>
+    <p class="campus-process-note">This illustrates the successful award journey. Clarifications, corrections, and rejected recommendations may send a tender back for further review.</p>
+</section>
