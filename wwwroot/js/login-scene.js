@@ -93,28 +93,18 @@ async function start() {
     const ctx=labelCanvas.getContext('2d');
     ctx.fillStyle='#f2f1e7'; ctx.fillRect(0,0,2048,1024);
     ctx.fillStyle='#1d5560'; ctx.fillRect(0,0,2048,14); ctx.fillRect(0,900,2048,124);
-    ctx.textAlign='center'; ctx.fillStyle='#234b49';
-    ctx.font='600 114px Segoe UI, sans-serif'; ctx.fillText('TIRYAQ',1024,402);
+    ctx.textAlign='center'; ctx.fillStyle='#12343d';
+    ctx.font='700 165px "Segoe UI", sans-serif'; ctx.fillText('Tiryaq',1024,402,485);
     ctx.fillStyle='#efb85c'; ctx.fillRect(986,450,76,8);
-    ctx.fillStyle='#234b49'; ctx.font='500 32px Segoe UI, sans-serif';
-    ctx.letterSpacing='3px'; ctx.fillText('SOURCING & TENDER',1024,535); ctx.fillText('MANAGEMENT',1024,585);
-    ctx.fillStyle='#91a69b'; ctx.fillRect(880,675,288,2);
-    ctx.font='400 24px Segoe UI, sans-serif'; ctx.fillStyle='#506f68'; ctx.fillText('ترياق',1024,760);
-    ctx.fillStyle='#edf3e9';ctx.font='400 21px Segoe UI, sans-serif';ctx.fillText('T I R Y A Q',1024,973);
+    ctx.fillStyle='#12343d'; ctx.font='700 56px "Segoe UI", sans-serif';
+    ctx.fillText('SOURCING & TENDER',1024,558,515); ctx.fillText('MANAGEMENT',1024,635,470);
     ctx.fillStyle='#efb85c';ctx.fillRect(0,886,2048,8);
-    ctx.fillStyle='#c5d1c7';[[360,800],[300,826],[330,852]].forEach(([w,y])=>ctx.fillRect(1024-w/2,y,w,6));
     ctx.fillStyle='#1d5560';ctx.fillRect(994,108,60,24);ctx.fillRect(1012,90,24,60);ctx.fillStyle='#efb85c';ctx.beginPath();ctx.arc(1024,120,7,0,7);ctx.fill();
     const texture=new T.CanvasTexture(labelCanvas); texture.colorSpace=T.SRGBColorSpace; texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
     const labelMaterial=new T.MeshPhysicalMaterial({map:texture,roughness:.58,clearcoat:.1,bumpMap:grain,bumpScale:.002});
     const label=new T.Mesh(new T.CylinderGeometry(.886,.886,1.65,128,1,true),labelMaterial);
     label.position.y=-.3; label.rotation.y=Math.PI; product.add(label);
     [.525,-1.125].forEach(y=>{const e=new T.Mesh(new T.TorusGeometry(.887,.006,6,128),new T.MeshStandardMaterial({color:'#d9dccd',roughness:.6}));e.rotation.x=Math.PI/2;e.position.y=y;product.add(e);});
-    const brand=document.querySelector('.login-brand img');
-    await brand.decode().catch(()=>{});
-    if(brand.naturalWidth) { // Finish the real label before the first visible frame.
-        ctx.fillStyle='#f2f1e7'; ctx.fillRect(745,215,558,214);
-        ctx.drawImage(brand,774,247,500,167); texture.needsUpdate=true;
-    }
 
     const scanMaterial=new T.MeshBasicMaterial({color:'#b8e4d6',transparent:true,opacity:0,depthWrite:false});
     const scan=new T.Mesh(new T.CylinderGeometry(.895,.895,.035,128,1,true),scanMaterial); product.add(scan);

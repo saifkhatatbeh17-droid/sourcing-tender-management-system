@@ -19,7 +19,7 @@ const path = (b, pts) => {                                      // eased piecewi
   return pts[pts.length - 1][1];
 };
 const BMAX = 10;
-const track = $('#track'), cv = $('#scene'), g = cv.getContext && cv.getContext('2d');
+const track = $('#track'), cv = $('#scene'), navbar = $('.pn-overlay'), g = cv.getContext && cv.getContext('2d');
 if (!g) { document.documentElement.classList.add('nocanvas'); return; }
 
 /* ---------------- palette ---------------- */
@@ -28,11 +28,12 @@ const P = { night: '#0c252d', deep: '#11333d', teal: '#1d5560', teal2: '#2a6b74'
   s1: '#e7ecec', s2: '#c4cfd0', s3: '#8e9fa2', s4: '#5b6e72', s5: '#33464b' };
 
 /* ---------------- viewport ---------------- */
-let W = 0, H = 0, DPR = 1, BZ = 1, portrait = false;
+let W = 0, H = 0, DPR = 1, BZ = 1, navClearance = 0, portrait = false;
 function resize() {
   DPR = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; portrait = W / H < .9;
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   BZ = portrait ? Math.min(W / 620, H / 900) : Math.min(W / 1180, H / 820);
+  navClearance = (navbar?.offsetHeight ?? 0) + 8;
 }
 addEventListener('resize', resize); resize();
 
@@ -48,9 +49,9 @@ const CAM = [
   [2.2, 430, -770, 1.12, .17, 0], [2.6, 430, -760, 1.22, .17, 0],
   [2.95, 720, -540, 1.35, 0, 0], [3.25, 900, -200, 1.9, -.16, 0], [3.85, 900, -150, 2.6, -.16, .02],
   [4.15, 1200, -150, 1.4, 0, 0], [4.45, 1500, -230, 1.75, .16, 0], [4.95, 1500, -158, 3.3, .16, .02],
-  [5.25, 1800, -150, 1.4, 0, 0], [5.55, 2100, -230, 1.75, -.16, 0], [5.92, 2100, -52, 3.6, -.16, 0], [6.1, 2100, -60, 3.4, -.16, 0],
+  [5.25, 1800, -150, 1.4, 0, 0], [5.55, 2100, -110, 1.75, -.16, 0], [5.92, 2100, -99, 2.75, -.16, 0], [6.1, 2100, -99, 2.75, -.16, 0],
   [6.3, 2450, -180, 1.35, 0, 0], [6.55, 2730, -130, 2.4, .17, 0], [7.25, 2730, -110, 2.7, .17, 0],
-  [7.5, 3000, -200, 1.35, 0, 0], [7.75, 3300, -250, 1.55, -.16, 0], [8.42, 3300, -190, 2.0, -.16, 0],
+  [7.5, 3000, -200, 1.35, 0, 0], [7.75, 3300, -170, 1.55, -.16, 0], [8.42, 3300, -135, 2.0, -.16, 0],
   [8.9, 2050, -560, .26, 0, -.17], [9.2, 2250, -560, .275, 0, -.17],
   [9.45, 4205, -200, 1.1, 0, 0], [9.75, 4205, -150, 7, 0, 0], [10, 4205, -150, 7, 0, 0]
 ];
@@ -58,7 +59,30 @@ function camAt(b) {
   let i = 0; while (i < CAM.length - 2 && b > CAM[i + 1][0]) i++;
   const a = CAM[i], c = CAM[i + 1], k = sm(b, a[0], c[0]);
   const homeIn = sm(b, 9.4, 9.6);   // on phones the cards sit at the bottom, so the subject moves up and stays centred
-  return { x: lerp(a[1], c[1], k), y: lerp(a[2], c[2], k), z: Math.exp(lerp(Math.log(a[3]), Math.log(c[3]), k)), ox: portrait ? 0 : lerp(a[4], c[4], k), oy: portrait ? -.2 * (1 - homeIn) : lerp(a[5], c[5], k) };
+  const camera = { x: lerp(a[1], c[1], k), y: lerp(a[2], c[2], k), z: Math.exp(lerp(Math.log(a[3]), Math.log(c[3]), k)), ox: portrait ? 0 : lerp(a[4], c[4], k), oy: portrait ? -.2 * (1 - homeIn) : lerp(a[5], c[5], k) };
+  const labelView = sm(b, 5.25, 5.5) * (1 - sm(b, 6.15, 6.3));
+  if (labelView) {
+    const bottom = H - 72;
+    const fittedZoom = Math.min(camera.z, Math.max(1, bottom - navClearance) / (174 * BZ));
+    const scale = fittedZoom * BZ;
+    const beltY = H * (.5 + camera.oy) - camera.y * scale;
+    const fittedBelt = clamp(beltY, navClearance + 170 * scale, bottom);
+    camera.z = lerp(camera.z, fittedZoom, labelView);
+    camera.oy += (fittedBelt - beltY) * labelView / H;
+  }
+  const overview = sm(b, .72, 1.05) * (1 - sm(b, 1.75, 2.15));
+  if (!overview) return camera;
+
+  // Fit the belt and dispatch dock above the overview caption, including the belt supports.
+  const rightEdge = X.dock + 300;
+  const scale = Math.min(W * .94 / (rightEdge - BELT0), H * .4 / 1300);
+  return {
+    x: lerp(camera.x, (BELT0 + rightEdge) / 2, overview),
+    y: lerp(camera.y, 160, overview),
+    z: lerp(camera.z, scale / BZ, overview),
+    ox: lerp(camera.ox, 0, overview),
+    oy: lerp(camera.oy, .1, overview)
+  };
 }
 
 /* ---------------- drawing helpers ---------------- */
@@ -477,17 +501,18 @@ function qcFront(b, rejectP) {
   box(x + 112, -360, 14, 70, P.s4, 3);
   led(x + 119, -350, 4.5, rejectP > 0 && rejectP < 1, P.coral); led(x + 119, -333, 4.5, b > 6.5 && b < 7.1, P.honey); led(x + 119, -316, 4.5, pass > .5 && b < 7.6, P.signal);
   // pusher
-  const ext = Math.sin(clamp(rejectP) * Math.PI) * 40;
-  box(x + 200, -110, 60, 26, P.s3, 4); g.fillStyle = P.s1; g.fillRect(x + 186 - ext * 0, -100, 14, 6);
+  const ext = Math.sin(rejectP * Math.PI) * 20;
+  box(x + 200, -110, 60, 26, P.s3, 4); g.fillStyle = P.s1; g.fillRect(x + 186 - ext, -100, 14 + ext, 6);
   text('QC-1', x - 128, -292, 12, P.mint, 'JetBrains Mono', 500);
 }
 function rrPath(x, y, w, h, r) { g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
-function scanOverlay(b, hx) {
+function scanOverlay(b) {
   const v = sm(b, 6.5, 6.62) * (1 - sm(b, 7.2, 7.32)); if (v <= 0) return;
-  g.save(); g.globalAlpha = v; g.translate(hx, 0);
+  g.save(); g.globalAlpha = v; g.translate(X.qc, -24);
   // sensor view: the camera's rendering of the bottle
-  g.fillStyle = 'rgba(6,22,27,.82)'; rr(-80, -205, 160, 202, 10); g.fill();
+  g.fillStyle = 'rgba(6,22,27,.92)'; rr(-88, -205, 176, 202, 10); g.fill();
   g.strokeStyle = 'rgba(111,224,168,.4)'; g.lineWidth = px(1); g.stroke();
+  g.clip();
   for (let yy = -200; yy < -6; yy += 4) line(-78, yy, 78, yy, 'rgba(111,224,168,.04)', px(1));
   bottlePath(); g.strokeStyle = P.signal; g.lineWidth = px(1.4); g.stroke();
   g.save(); bottlePath(3); g.clip(); g.fillStyle = 'rgba(217,138,43,.35)'; g.fillRect(-40, FILL_TOP, 80, -FILL_TOP); g.restore();
@@ -500,17 +525,17 @@ function scanOverlay(b, hx) {
     g.globalAlpha = v * a; const c = ok ? P.signal : P.honey;
     line(36, y0, 44, y0, c, px(1.2)); line(36, y1, 44, y1, c, px(1.2)); line(44, y0, 44, y1, c, px(1.2));
     line(44, (y0 + y1) / 2, 60, (y0 + y1) / 2, c, px(1));
-    text(label, 63, (y0 + y1) / 2 + 2, 5.4, c, 'JetBrains Mono', 500);
-    text(ok ? 'PASS' : '···', 63, (y0 + y1) / 2 + 9, 4.6, ok ? P.signal : P.honey, 'JetBrains Mono', 500);
+    text(label, 49, (y0 + y1) / 2 - 2, 4.8, c, 'JetBrains Mono', 500);
+    text(ok ? 'PASS' : '···', 49, (y0 + y1) / 2 + 8, 4.6, ok ? P.signal : P.honey, 'JetBrains Mono', 500);
   };
   // 1 fill level: measured line against the target band
   if (b > QC[0]) { g.globalAlpha = v * sm(b, QC[0], QC[0] + .06); g.fillStyle = 'rgba(111,224,168,.18)'; g.fillRect(-30, FILL_TOP - 2.5, 60, 5); line(-34, FILL_TOP, 34, FILL_TOP, P.signal, px(1.2)); }
   ann(0, FILL_TOP - 4, FILL_TOP + 4, 'FILL LEVEL');
-  ann(1, -160, -128, 'CAP · TAMPER RING');
+  ann(1, -160, -128, 'CAP SEAL');
   if (b > QC[2]) { g.globalAlpha = v * sm(b, QC[2], QC[2] + .06); g.setLineDash([2, 2]); g.strokeStyle = P.signal; g.lineWidth = px(1); g.strokeRect(-34, -82, 68, 64); g.setLineDash([]); }
-  ann(2, -82, -18, 'LABEL · 0.0° SKEW');
+  ann(2, -82, -18, 'LABEL');
   if (b > QC[3]) { g.globalAlpha = v * sm(b, QC[3], QC[3] + .06); g.strokeStyle = P.honey; g.lineWidth = px(1); g.strokeRect(-29, -36, 32, 13); }
-  ann(3, -36, -23, 'LOT TQ-0417 READ');
+  ann(3, -36, -23, 'LOT CODE');
   if (b > QC[4]) { g.globalAlpha = v * sm(b, QC[4], QC[4] + .06); for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) { g.beginPath(); g.arc(-22 + i * 11, -86 + j * 16 + 6, .9, 0, 7); g.fillStyle = P.signal; g.fill(); } }
   ann(4, -88, -40, 'CLARITY');
   g.globalAlpha = v; text('CAMERA 2 · SIDE VIEW', -76, -195, 5, 'rgba(111,224,168,.7)', 'JetBrains Mono', 500);
@@ -537,6 +562,14 @@ function carton(cx, e, flaps, print) {
   const w = 92 * (.16 + .84 * e), d = 30 * e, h = 172, x0 = cx - w / 2, top = -h;
   // inner back (visible through the open top)
   g.fillStyle = '#0d2c33'; g.beginPath(); g.moveTo(x0, top); g.lineTo(x0 + d, top - d * .55); g.lineTo(x0 + w + d, top - d * .55); g.lineTo(x0 + w, top); g.closePath(); g.fill();
+  const f1 = sm(flaps, 0, .45), f2 = sm(flaps, .45, 1);
+  // Draw the rear flap behind the bottle and gripper as they pass into the carton.
+  if (f2 < 1 && e > .5) {
+    const backTop = top - d * .55, height = 46 * Math.cos(f2 * Math.PI / 2);
+    g.fillStyle = '#1e5a63'; g.strokeStyle = P.ink; g.lineWidth = px(1.1);
+    g.fillRect(x0 + d, backTop - height, w, height);
+    g.strokeRect(x0 + d, backTop - height, w, height);
+  }
   return { w, d, h, x0, top, front() {
     // side face
     g.fillStyle = lg(x0 + w, 0, x0 + w + d, 0, [[0, '#123f47'], [1, '#0c2f36']]);
@@ -554,10 +587,8 @@ function carton(cx, e, flaps, print) {
       g.restore();
     }
     // top flaps: two dust flaps stand up and fold in, then the tuck flap closes over them
-    const f1 = sm(flaps, 0, .45), f2 = sm(flaps, .45, 1);
     const flap = (hgt, col) => { g.fillStyle = col; g.fillRect(x0, top - hgt, w, hgt); g.strokeRect(x0, top - hgt, w, hgt); };
     if (f1 < 1) flap(34 * Math.cos(f1 * Math.PI / 2), '#2a6b74');
-    if (f2 < 1 && e > .5) { g.save(); g.fillStyle = '#1e5a63'; g.beginPath(); const hh = 46 * Math.cos(f2 * Math.PI / 2); g.moveTo(x0 + d, top - d * .55); g.lineTo(x0 + w + d, top - d * .55); g.lineTo(x0 + w + d, top - d * .55 - hh); g.lineTo(x0 + d, top - d * .55 - hh); g.closePath(); g.fill(); g.stroke(); g.restore(); }
     if (f2 > 0) { g.fillStyle = '#2a6b74'; g.beginPath(); g.moveTo(x0, top); g.lineTo(x0 + d * f2, top - d * .55 * f2); g.lineTo(x0 + w + d * f2, top - d * .55 * f2); g.lineTo(x0 + w, top); g.closePath(); g.fill(); g.stroke(); }
   } };
 }
@@ -587,7 +618,9 @@ function home(b, a) {
   g.setTransform(DPR, 0, 0, DPR, 0, 0); g.globalAlpha = a;
   // warm wall
   g.fillStyle = lg(0, 0, 0, H, [[0, '#f3e6d0'], [1, '#ead6b8']]); g.fillRect(0, 0, W, H);
-  const s = portrait ? Math.min(W / 820, H / 1100) : Math.min(W / 1500, H / 760), cx = portrait ? W / 2 : W * .66, sill = H * (portrait ? .86 : .8);
+  const stacked = W <= 960;
+  const s = stacked ? Math.min(W / 1020, H / 1420) : Math.min(W * .52 / 940, H / 860);
+  const cx = stacked ? W / 2 : W * .70, sill = H * (stacked ? .88 : .8);
   // window
   const ww = 760 * s, wh = 470 * s, wx = cx - ww / 2, wy = sill - wh - 26 * s;
   g.fillStyle = lg(0, wy, 0, wy + wh, [[0, '#f8d9b5'], [.55, '#f7e7cf'], [1, '#e9eee6']]); g.fillRect(wx, wy, ww, wh);
@@ -605,7 +638,7 @@ function home(b, a) {
   g.fillStyle = 'rgba(80,50,30,.18)'; g.fillRect(wx - 70 * s, sill + 26 * s, ww + 140 * s, 12 * s);
   // objects: open carton, our bottle, a dosing cup, a glass of water. Long morning shadows.
   const shadow = (x0, w0) => { g.fillStyle = 'rgba(90,60,30,.18)'; g.beginPath(); g.moveTo(x0, sill); g.lineTo(x0 + w0, sill); g.lineTo(x0 + w0 - 140 * s, sill + 2 * s); g.lineTo(x0 - 140 * s, sill + 2 * s); g.fill(); g.beginPath(); g.ellipse(x0 + w0 / 2 - 60 * s, sill + 1, w0 * .9, 3 * s, 0, 0, 7); g.fill(); };
-  const bs = 1.35 * s, bxx = cx + 30 * s;
+  const bs = 1.2 * s, bxx = cx - 22 * s;
   shadow(cx - 230 * s, 90 * s); shadow(bxx - 46 * bs, 92 * bs); shadow(cx + 170 * s, 70 * s);
   g.save(); g.translate(cx - 185 * s, sill); g.scale(s * .92, s * .92); g.lineWidth = 1; const ct = carton(0, 1, 0, 1); ct.front(); g.restore();
   g.save(); Z = bs; drawBottle(bxx, sill, { fill: 1, cap: { base: -128, rot: 0 }, label: 1, detail: true, lot: true }, bs); g.restore();
@@ -649,11 +682,17 @@ function render() {
     let x = hx + k * 140, y = 0, dim = false;
     const under = k === 2;                                           // the one bottle that will fail inspection
     if (x < BELT0 + 30) continue;
-    if (under) { rejectP = clamp((x - (X.qc + 150)) / 70); if (rejectP > 0) { x = Math.min(x, X.qc + 220); y = -rejectP * 34; dim = true; } }
+    if (under) {
+      rejectP = clamp((x - (X.qc + 150)) / 70);
+      if (rejectP === 1) continue;
+      if (rejectP > 0) { y = -rejectP * 34; dim = true; }
+    }
     if (!under && x > X.pack - 70) continue;
-    if (under && x > X.qc + 230 && rejectP <= 0) continue;
     const st = { fill: x > X.fill + 30 ? (under ? .62 : 1) : 0, cap: x > X.cap + 30 ? { base: -128, rot: 0 } : null, label: x > X.label + 30 ? 1 : 0, detail: false, dim };
+    g.save();
+    if (under) g.globalAlpha = 1 - sm(rejectP, .35, 1);
     drawBottle(x, y, st, y ? .94 : 1);
+    g.restore();
   }
   // our bottle
   const hb = { fill: sm(B, 3.3, 3.8), stream: B > 3.3 && B < 3.8, cap: heroCap(B), label: labelCover(B), detail: true, lot: true, wobble: B > 3.8 && B < 4.2 ? Math.sin((B - 3.8) * 60) * 1.2 * (1 - seg(B, 3.8, 4.2)) : 0 };
@@ -664,14 +703,14 @@ function render() {
     if (B > 4.6 && B < 4.96) hb.cap = null;   // the chuck holds it
     drawBottle(B > 7.62 ? X.pack : hx, lift, hb);
   }
+  if (B > 7.55 && B < 8.35) gripper(X.pack, gripY(B), B > 7.73 && B < 8.17);
   if (ct) ct.front();
   // further cartons waiting at dispatch
   const cpx = B > 8.45 ? path(B, cartonPath) : X.pack;
   for (let j = 1; j < 6; j++) { const x = Math.max(cpx, X.pack + 140) + j * 128; if (x < X.dock - 60) carton(x, 1, 1, 1).front(); }
   fillerFront(B); capperFront(B); labellerFront(B); qcFront(B, rejectP);
-  if (B > 7.55 && B < 8.35) gripper(X.pack, gripY(B), B > 7.73 && B < 8.17);
   conveyorFront(belt);
-  scanOverlay(B, hx);
+  scanOverlay(B);
   // match cut: the doorway's daylight becomes the morning at home
   const homeA = sm(B, 9.58, 9.78);
   if (B > 9.4) { g.setTransform(DPR, 0, 0, DPR, 0, 0); g.fillStyle = `rgba(250,236,214,${sm(B, 9.45, 9.65) * (1 - homeA * .0)})`; g.fillRect(0, 0, W, H); }
@@ -681,8 +720,8 @@ function render() {
   g.fillStyle = rg(W / 2, H / 2, Math.min(W, H) * .35, Math.max(W, H) * .8, [[0, 'rgba(0,0,0,0)'], [1, `rgba(4,14,18,${.45 * (1 - homeA)})`]]); g.fillRect(0, 0, W, H);
 }
 
-/* ---------------- DOM sync: cards, ticket stamps, readouts, rail ---------------- */
-const cards = $$('.tj-card[data-in]'), stamps = $$('#stamps li'), formSteps = $$('#form-steps li'), packSteps = $$('#pack-steps li'), qcItems = $$('#qc li');
+/* ---------------- DOM sync: cards, readouts, rail ---------------- */
+const cards = $$('.tj-card[data-in]'), formSteps = $$('#form-steps li'), packSteps = $$('#pack-steps li'), qcItems = $$('#qc li');
 const tube = $('#tube'), arc = $('#dial-arc'), needle = $('#needle'), rail = $('#rail'), hint = $('#hint');
 const STATIONS = [['Start', 0], ['Formulation', 2.3], ['Filling', 3.55], ['Capping', 4.85], ['Labelling', 5.8], ['Inspection', 6.95], ['Packaging', 8.1], ['Products', 9.0], ['Home', 9.9]];
 STATIONS.forEach(([n, at]) => { const bt = document.createElement('button'); bt.type = 'button'; bt.style.left = (at / BMAX * 100) + '%'; bt.dataset.go = at; bt.setAttribute('aria-label', 'Go to ' + n); bt.innerHTML = `<span>${n}</span><i></i>`; rail.appendChild(bt); });
@@ -691,7 +730,6 @@ let lastUi = -1;
 function ui() {
   if (Math.abs(B - lastUi) < .002) return; lastUi = B;
   cards.forEach(c => c.classList.toggle('on', B >= +c.dataset.in && B < +c.dataset.out));
-  stamps.forEach((li, i) => { li.classList.toggle('on', B >= +li.dataset.at); li.classList.toggle('now', B < +li.dataset.at && (i === 0 || B >= +stamps[i - 1].dataset.at)); });
   formSteps.forEach(li => li.classList.toggle('on', B >= +li.dataset.at));
   packSteps.forEach(li => li.classList.toggle('on', B >= +li.dataset.at));
   qcItems.forEach(li => { const t = +li.dataset.at; li.classList.toggle('run', B >= t && B < t + .1); li.classList.toggle('ok', B >= t + .1); });

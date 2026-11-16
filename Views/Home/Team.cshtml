@@ -6,9 +6,8 @@
 }
 
 <section class="team-page" aria-labelledby="team-title" data-team>
-    <div class="team-brand-watermark" aria-hidden="true"><partial name="_DashboardMark" /></div>
     <header class="team-heading">
-        <h1 id="team-title">Meet the Tiryaq team</h1>
+        <h1 id="team-title">Meet the <em>Tiryaq team.</em></h1>
         <p>Select a capsule to meet a team member.</p>
     </header>
     <div class="team-product-scene">
@@ -23,7 +22,7 @@
                     @foreach (var member in Model)
                     {
                         <button type="button" class="team-capsule" data-member="@member.Id"
-                                aria-label="Meet @member.Name, @member.Role" aria-haspopup="dialog" aria-controls="team-profile">
+                                aria-label="Meet @member.Name, @member.Role" aria-haspopup="dialog" aria-controls="team-profile" title="@member.Name · @member.Role">
                             <span class="team-capsule-portrait" aria-hidden="true">
                                 <img src="@Url.Content(member.Portrait)" alt="" width="104" height="104" />
                             </span>
@@ -43,7 +42,7 @@
         </div>
     </div>
 
-    <dialog class="team-dialog" id="team-profile" aria-labelledby="team-member-name">
+    <dialog class="team-dialog" id="team-profile" aria-label="Team member profile">
         <div class="team-profile">
             <button type="button" class="team-profile-close" aria-label="Close profile" data-team-close autofocus>×</button>
             <div class="team-profile-content" data-team-profile></div>
