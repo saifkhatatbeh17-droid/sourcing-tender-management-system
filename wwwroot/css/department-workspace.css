@@ -1332,3 +1332,17 @@ html body .department-workspace .dr-primary { background:var(--brand-highlight,#
 html body .department-workspace .dr-primary:hover { background:#f05c3c;border-color:#f05c3c;color:#111; }
 html body .department-workspace .dr-stepper li.is-current .dr-step-dot { background:var(--brand-highlight,#ff6b4a);border-color:var(--brand-highlight,#ff6b4a);color:#111; }
 .department-workspace .text-secondary { color:var(--color-text-secondary)!important; }
+/* Compact progress overview; stage detail is available on demand. */
+.department-workspace .dr-progress-summary { margin-bottom:24px;padding:18px 22px;background:var(--color-surface);border-radius:14px;color:var(--color-text); }
+.dr-progress-overview { display:flex;align-items:center;justify-content:space-between;gap:24px; }
+.department-workspace .dr-progress-overview h2 { margin:0;font-size:16px;font-weight:600; }
+.dr-progress-counts { display:flex;flex-wrap:wrap;gap:12px 28px;margin:0; }
+.dr-progress-counts>div { display:flex;align-items:baseline;gap:8px; }
+.dr-progress-counts dt,.dr-stage-breakdown dt { font-size:14px;font-weight:400;color:var(--color-text-secondary); }
+.dr-progress-counts dd,.dr-stage-breakdown dd { margin:0;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums; }
+.dr-stage-breakdown { margin-top:8px; }
+.dr-stage-breakdown summary { display:list-item;width:fit-content;min-height:44px;align-content:center;cursor:pointer;font-size:14px;color:var(--color-link); }
+.dr-stage-breakdown summary:focus-visible { outline:2px solid var(--color-link);outline-offset:3px; }
+.dr-stage-breakdown>dl { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 36px;margin:12px 0 0; }
+.dr-stage-breakdown>dl>div { display:flex;align-items:baseline;justify-content:space-between;gap:16px; }
+@media(max-width:760px) { .dr-progress-overview { align-items:flex-start;flex-direction:column;gap:14px; }.dr-progress-counts { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;width:100%; }.dr-progress-counts>div { justify-content:space-between; }.dr-stage-breakdown>dl { grid-template-columns:1fr; }.department-workspace .dr-progress-summary { padding:18px; } }

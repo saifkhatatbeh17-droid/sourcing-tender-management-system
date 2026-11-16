@@ -260,3 +260,12 @@ html body main .oc-confirm .btn.oc-negative { background:#a4483e;border-color:#a
 .ow-committee-handoff form { margin:0;flex-shrink:0; }
 .ow-committee-handoff .btn { min-height:44px;padding:10px 20px; }
 @media(max-width:800px) { .offer-redesign .ow-committee-handoff { align-items:stretch;flex-direction:column;padding:20px;gap:16px; }.ow-committee-handoff .btn { width:100%;white-space:normal; }.ow-review-footer,.ow-detail-decision { width:100%; }.ow-detail-decision .btn { flex:1; } }
+
+/* Use the shared surface and disabled-action tokens for committee handoff. */
+.offer-redesign .ow-committee-handoff { padding:20px 24px;gap:20px;border-radius:14px; }
+.offer-redesign .ow-committee-handoff h2 { font-size:17px;line-height:1.4;margin-bottom:5px;color:var(--color-text); }
+.offer-redesign .ow-committee-handoff p { font-size:14px;line-height:1.5;max-width:60ch;color:var(--color-text-secondary); }
+.offer-redesign .ow-committee-handoff form { flex:0 1 auto;max-width:100%; }
+.offer-redesign .ow-committee-handoff .btn { min-height:44px;border-radius:8px;padding:12px 20px;font-size:14px;line-height:1.4;white-space:normal; }
+html body main .offer-redesign :is(.ow-committee-handoff,.offer-handoff) .btn:disabled { background:var(--color-disabled-bg);border-color:var(--color-disabled-bg);color:var(--color-disabled-text);opacity:1;box-shadow:none;cursor:not-allowed; }
+@media(max-width:800px) { .offer-redesign .ow-committee-handoff { padding:18px;gap:16px; }.offer-redesign .ow-committee-handoff form { width:100%; } }

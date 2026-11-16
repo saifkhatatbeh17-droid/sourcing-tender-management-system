@@ -4,14 +4,18 @@
 {
  @if(tender.ClosesAt>DateTime.UtcNow)
  {
-  @if(round==1 && bids.Where(b=>b.Status!="Withdrawn").Select(b=>b.Invitation.SupplierProfileId).Distinct().Count()>=3 && tender.IsAcceptingOffers(DateTime.UtcNow))
-  {
    var openQuestions = ViewBag.OpenQuestions is List<int> questions && questions.Count > 0;
+   var canSend = round == 1 && tender.IsAcceptingOffers(DateTime.UtcNow) && !pending && compliant >= 3 && !openQuestions;
+   var handoffHelp = round > 1 ? "This round must reach its deadline before committee handoff."
+       : !tender.IsAcceptingOffers(DateTime.UtcNow) ? "Submissions have not opened yet."
+       : compliant < 3 ? $"{compliant} of 3 compliant suppliers. Review submitted offers in View details."
+       : pending ? "Review the remaining offers in View details."
+       : openQuestions ? "Resolve open questions before continuing."
+       : "All offers reviewed. Ready for committee evaluation.";
    <section class="ow-committee-handoff" aria-labelledby="committee-handoff-title">
-    <div><h2 id="committee-handoff-title">Send offers to the committee</h2><p>@(pending ? "Review each offer in View details before continuing." : compliant < 3 ? "At least three compliant suppliers are required." : openQuestions ? "Resolve open questions before continuing." : "Close submissions and begin committee evaluation.")</p></div>
-    <form asp-action="CloseSubmissionsEarly" method="post"><input type="hidden" name="tenderId" value="@tender.TenderId"/><input type="hidden" name="sendToCommittee" value="true"/><button class="btn btn-primary" disabled="@(pending || compliant < 3 || openQuestions)">Close submissions and send to committee</button></form>
+    <div><h2 id="committee-handoff-title">Send offers to the committee</h2><p id="committee-handoff-help">@handoffHelp</p></div>
+    <form asp-action="CloseSubmissionsEarly" method="post"><input type="hidden" name="tenderId" value="@tender.TenderId"/><input type="hidden" name="sendToCommittee" value="true"/><button class="btn btn-primary" disabled="@(!canSend)" aria-describedby="committee-handoff-help">Close submissions and send to committee</button></form>
    </section>
-  }
  }
  else if(!pending && compliant<3 && round<4)
  {

@@ -14,29 +14,17 @@
     const activeTender = rail?.querySelector('[aria-current="page"]');
     if (activeTender) rail.scrollTop += activeTender.getBoundingClientRect().top - rail.getBoundingClientRect().top - 8;
     const tenderSearch = document.querySelector('#tender-search');
-    let tenderFilter = 'all';
     function filterTenders() {
         const query = tenderSearch.value.trim().toLowerCase();
         let count = 0;
         rail.querySelectorAll('[data-tender-search]').forEach(card => {
-            card.hidden = !card.dataset.tenderSearch.toLowerCase().includes(query)
-                || (tenderFilter !== 'all' && card.dataset.tenderStatus !== tenderFilter);
+            card.hidden = !card.dataset.tenderSearch.toLowerCase().includes(query);
             if (!card.hidden) count++;
         });
         document.querySelector('#tender-search-empty').hidden = count !== 0;
         document.querySelector('#tender-result-count').textContent = `${count} tender${count === 1 ? '' : 's'}`;
     }
     tenderSearch?.addEventListener('input', filterTenders);
-    document.querySelectorAll('[data-tender-filter]').forEach(button => {
-        button.addEventListener('click', () => {
-            tenderFilter = button.dataset.tenderFilter;
-            document.querySelectorAll('[data-tender-filter]').forEach(option => {
-                option.classList.toggle('is-active', option === button);
-                option.setAttribute('aria-pressed', String(option === button));
-            });
-            filterTenders();
-        });
-    });
     const key = `evaluation-tab-${page.querySelector('#tender')?.value}`;
     page.querySelectorAll('[data-bs-toggle="tab"]').forEach(button => {
         button.addEventListener('shown.bs.tab', () => {
@@ -56,7 +44,10 @@
         const target = document.getElementById(`${requestedTab}-tab`);
         if (target) {
             bootstrap.Tab.getOrCreateInstance(target).show();
-            target.focus({ preventScroll: true });
+            const review = requestedTab === 'forms' ? document.querySelector('.ev-offer-review-section') : null;
+            if (review) {
+                requestAnimationFrame(() => { review.scrollIntoView({ block: 'start' }); review.focus({ preventScroll: true }); });
+            } else target.focus({ preventScroll: true });
             navigation.searchParams.delete('tab');
             history.replaceState(null, '', navigation);
         }

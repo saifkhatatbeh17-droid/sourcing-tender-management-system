@@ -9,12 +9,12 @@
 .cr-report-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin:0 0 24px; }
 .cr-report-facts dt { font-size:12px; font-weight:400; color:var(--color-text-secondary); margin:0 0 8px; }
 .cr-report-facts dd { font-size:14px; line-height:1.5; font-weight:500; margin:0; overflow-wrap:anywhere; }
-.evaluation-page .cr-action { display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:44px; padding:12px 18px; border:1px solid transparent; border-radius:12px; font:inherit; font-size:14px; font-weight:600; text-decoration:none; cursor:pointer; line-height:1.4; }
-.evaluation-page .cr-action-primary { background:var(--color-primary); color:var(--color-text); }
-.evaluation-page .cr-action-primary:hover { filter:brightness(.96); }
+.evaluation-page .cr-action { display:inline-flex; align-items:center; justify-content:center; gap:12px; min-height:48px; padding:12px 22px; border:1px solid transparent; border-radius:8px; font:inherit; font-size:14px; font-weight:600; text-decoration:none; cursor:pointer; line-height:1.5; }
+.evaluation-page .cr-action-primary { background:var(--color-primary); border-color:var(--color-primary); color:var(--color-on-primary,#fff); }
+.evaluation-page .cr-action-primary:hover:not(:disabled) { background:var(--color-primary-hover); border-color:var(--color-primary-hover); color:var(--color-on-primary,#fff); }
 .evaluation-page .cr-action:focus-visible,.cr-approval-details > summary:focus-visible { outline:2px solid var(--color-link); outline-offset:4px; }
 .evaluation-page .cr-action:active { transform:translateY(1px); }
-.evaluation-page .cr-action:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+.evaluation-page .cr-action:disabled { background:var(--color-disabled-bg); border-color:var(--color-disabled-bg); color:var(--color-disabled-text); opacity:1; cursor:not-allowed; transform:none; }
 .cr-file-type { font-size:11px; font-weight:500; border-left:1px solid currentColor; padding-left:10px; }
 .cr-next-action { margin-bottom:24px; }
 .evaluation-page .cr-next-action p { margin:12px 0 0; font-size:13px; line-height:1.6; color:var(--color-text-secondary); max-width:72ch; }

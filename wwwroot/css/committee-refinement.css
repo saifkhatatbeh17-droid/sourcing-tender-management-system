@@ -37,9 +37,9 @@
 .cw-report-detail { min-width:0; }
 .ev-clarification-guide { padding:24px; max-width:800px; }
 .ev-clarification-guide p { color:var(--color-text-secondary); line-height:1.6; }
-.cw-metrics .cw-metric-primary { background:var(--color-selection); border-color:var(--color-selection); color:var(--color-text); }
+.cw-metrics .cw-metric-primary { background:var(--color-surface); border-color:var(--color-border); color:var(--color-text); }
 .cw-metrics .cw-metric-primary :is(dt,span) { color:var(--color-text-secondary); }
-.cw-metrics .cw-metric-primary dd { color:var(--color-link); }
+.cw-metrics .cw-metric-primary dd { color:var(--color-text); }
 .evaluation-page :is(summary,a,button,input,textarea,select):focus-visible { outline:3px solid var(--color-link); outline-offset:3px; }
 @media (max-width:760px) {
 .ev-workflow-guide { grid-template-columns:1fr; gap:12px; }
@@ -65,3 +65,40 @@
 @media(max-width:900px) { .ev-offer-review-section .ev-forms-grid { grid-template-columns:1fr; }.ev-offer-review-section .ev-approval-card:not(.is-yours) { width:min(100%,760px);justify-self:center; } }
 
 .committee-workspace .cw-metrics .cw-metric-description { margin:0;font-size:12px;font-weight:400;letter-spacing:0;line-height:1.5;color:var(--color-text-secondary); }
+
+/* Tender picker: one search, consistent rows, and space around the scroll track. */
+.ev-tender-switcher .ev-tender-browser { padding:20px; }
+.ev-tender-switcher .ev-tender-rail { max-height:360px;margin-top:18px;padding:0 12px 0 0;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:var(--color-border) transparent; }
+.ev-tender-switcher .ev-tender-card { grid-template-columns:70px minmax(0,1fr) 180px;gap:16px;padding:16px 12px;min-height:68px; }
+.ev-tender-switcher .ev-tender-card[hidden] { display:none; }
+.ev-tender-switcher .ev-tender-card strong { font-size:15px;line-height:1.5;overflow-wrap:anywhere; }
+.ev-tender-switcher .ev-tender-number { font-size:13px;color:var(--color-text-secondary); }
+.ev-tender-switcher .ev-tender-card-status { justify-self:end;font-size:13px;line-height:1.5;color:var(--color-text-secondary); }
+.ev-tender-switcher .ev-tender-card:hover { background:var(--color-surface-alt); }
+.ev-tender-switcher .ev-tender-card.is-current { background:var(--color-selection); }
+.ev-tender-switcher .ev-tender-list-footer { padding:14px 12px 0;margin:0;font-size:12px;color:var(--color-text-secondary); }
+.ev-tender-switcher .ev-voice-options { justify-content:flex-end;gap:10px; }
+.ev-tender-switcher [data-voice-search-status]:empty { display:none; }
+@media(max-width:760px) { .ev-tender-switcher .ev-tender-browser { padding:16px; }.ev-tender-switcher .ev-tender-card { grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:14px 8px; }.ev-tender-switcher .ev-tender-card-top { grid-column:1; }.ev-tender-switcher .ev-tender-card>strong { grid-column:1/-1;grid-row:2; }.ev-tender-switcher .ev-tender-card-status { grid-column:2;grid-row:1; }.ev-tender-switcher .ev-tender-rail { max-height:360px;padding-right:8px; } }
+
+/* Keep offer selection concise; review status stays with the selected offer below. */
+.evaluation-page .ev-review-offer-picker { display:flex;align-items:flex-end;flex-wrap:nowrap;gap:12px;max-width:880px;margin:24px auto; }
+.ev-offer-picker-field { flex:1;min-width:0; }
+.evaluation-page .ev-offer-picker-field label { display:block;margin:0 0 8px;font-size:14px;font-weight:600;color:var(--color-text); }
+.evaluation-page .ev-review-offer-picker select { width:100%;min-width:0;min-height:48px;margin:0;border-radius:8px;font-size:15px;padding:10px 40px 10px 14px;color:var(--color-text);background-color:var(--color-surface); }
+.evaluation-page .ev-review-offer-picker>.btn { flex:0 0 auto;min-height:48px;padding:10px 20px;border-radius:8px;font-size:14px;white-space:nowrap; }
+@media(max-width:600px) { .evaluation-page .ev-review-offer-picker { align-items:stretch;flex-direction:column;gap:12px; }.evaluation-page .ev-review-offer-picker>.btn { width:100%; } }
+
+/* Direct offer links keep the chosen supplier and visible evaluation in sync. */
+.ev-offer-navigation { margin:24px 0; }
+.ev-offer-navigation>p { margin:0 0 10px;font-size:14px;font-weight:600;color:var(--color-text); }
+.ev-offer-navigation-list { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px; }
+.ev-offer-navigation-list>a { display:flex;flex-direction:column;gap:6px;min-width:0;padding:14px 16px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface);color:var(--color-text);text-decoration:none; }
+.ev-offer-navigation-list strong { font-size:14px;font-weight:600;line-height:1.5;overflow-wrap:anywhere; }
+.ev-offer-navigation-list span { font-size:12px;color:var(--color-text-secondary); }
+.ev-offer-navigation-list .ev-offer-review-label { font-size:12px;color:var(--color-text-secondary); }
+.ev-offer-navigation-list .ev-offer-review-label.is-approved { color:var(--pharma-positive-text);font-weight:600; }
+.ev-offer-navigation-list>a:hover { background:var(--color-surface-alt);border-color:var(--color-link); }
+.ev-offer-navigation-list>a[aria-current="page"] { background:var(--color-selection);border-color:var(--color-link); }
+.ev-offer-navigation-list>a:focus-visible { outline:2px solid var(--color-link);outline-offset:3px; }
+@media(max-width:600px) { .ev-offer-navigation-list { grid-template-columns:1fr; } }

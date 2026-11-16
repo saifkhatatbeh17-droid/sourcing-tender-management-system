@@ -55,10 +55,6 @@ if (reviewDialog) {
     });
 }
 
-document.querySelectorAll('[data-admin-feedback]').forEach(message => {
-    window.setTimeout(() => message.remove(), 4500);
-});
-
 document.querySelectorAll('[data-auto-filter]').forEach(form => {
     const results = document.getElementById(form.dataset.results || 'user-results');
     const dialogs = form.dataset.results ? document.getElementById(form.dataset.dialogs) : document.getElementById('user-edit-dialogs');

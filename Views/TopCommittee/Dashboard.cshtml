@@ -52,19 +52,6 @@ else
             </table></div>
         }
     </section>
-    <section class="workspace-section" aria-labelledby="recent-heading">
-        <div class="tc-section-heading"><h2 id="recent-heading">Recent decisions</h2><a asp-action="History">View history <span aria-hidden="true">→</span></a></div>
-        @if (Model.RecentDecisions.Count == 0) { <p class="mb-0">No completed decisions have been recorded for your assigned tenders.</p> }
-        else
-        {
-            <div class="table-responsive" tabindex="0" role="region" aria-label="Recent committee decisions"><table class="committee-read-table table align-middle mb-0">
-                <caption>Up to 3 recent decisions for your assignments.</caption>
-                <thead><tr><th scope="col">Tender</th><th scope="col">Outcome</th><th scope="col">Nominated supplier</th></tr></thead>
-                <tbody>@foreach (var tender in Model.RecentDecisions.Take(3))
-                { <tr><th scope="row"><a asp-action="TenderDetails" asp-route-id="@tender.TenderId">@tender.Title</a></th><td>@(tender.HasRejection ? "Committee rejected" : CommitteeDisplay.Status(tender.Status))</td><td>@CommitteeDisplay.Text(tender.NominatedSupplier)</td></tr> }</tbody>
-            </table></div>
-        }
-    </section>
 }
 
 </div>

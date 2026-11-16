@@ -164,3 +164,19 @@ html body .rq-page .rq-footer .rq-submit:focus-visible {
     outline: 2px solid var(--color-focus, #1170cf);
     outline-offset: 3px;
 }
+
+/* A connected stepper keeps progress separate from form actions. */
+.rq-page .rq-stage-nav { max-width:700px;margin:0 0 28px; }
+.rq-page .rq-stage-nav ol { gap:0;align-items:flex-start; }
+.rq-page .rq-stage-nav li { position:relative; }
+.rq-page .rq-stage-nav li:first-child::after { content:"";position:absolute;top:23px;left:calc(100% - 54px);width:46px;height:2px;background:var(--color-border); }
+.rq-page .rq-stage-nav button { width:auto;min-height:64px;padding:4px 16px 4px 0;gap:12px;border:0;border-radius:6px;background:transparent;color:var(--color-text-secondary); }
+.rq-page .rq-stage-nav button .rq-step-number { width:36px;height:36px;flex:0 0 36px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text-secondary);font-size:14px; }
+.rq-page .rq-stage-nav button .rq-step-copy { display:block;width:auto;height:auto;border-radius:0;background:transparent;font-weight:400; }
+.rq-step-copy strong { display:block;font-size:15px;font-weight:600;line-height:1.4; }
+.rq-step-copy small { display:block;margin-top:3px;font-size:12px;color:var(--color-text-secondary);line-height:1.4; }
+.rq-page .rq-stage-nav button[aria-current="step"] { background:transparent;color:var(--color-text); }
+.rq-page .rq-stage-nav button[aria-current="step"] .rq-step-number { border-color:var(--color-link);background:var(--color-link);color:var(--color-surface); }
+.rq-page .rq-stage-nav button.is-complete .rq-step-number { border-color:var(--color-link);background:var(--color-selection);color:var(--color-link); }
+.rq-page .rq-stage-nav button:focus-visible { outline:2px solid var(--color-link);outline-offset:4px; }
+@media(max-width:600px) { .rq-page .rq-stage-nav { margin-bottom:20px; }.rq-page .rq-stage-nav button { gap:8px;padding-right:8px; }.rq-step-copy strong { font-size:13px; }.rq-page .rq-stage-nav li:first-child::after { display:none; }.rq-page .rq-stage-nav button .rq-step-number { width:30px;height:30px;flex-basis:30px; } }

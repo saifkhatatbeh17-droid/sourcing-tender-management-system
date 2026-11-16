@@ -38,7 +38,26 @@
  var overview = new DashboardOverview("Request progress", "All requests from your department", "requests", "in progress",
  [new("In progress", progressing), new("Awarded", N("Awarded"), "positive"), new("Needs changes", N("Returned"), "attention"), new("Closed", N("Rejected", "Cancelled"), "muted")], "Where your requests are", "Current stage, including the latest linked tender", requestStages);
 }
-<partial name="_DashboardOverview" model="overview" />
+<section class="dr-progress-summary" aria-labelledby="request-progress-heading">
+    <div class="dr-progress-overview">
+        <h2 id="request-progress-heading">Request progress</h2>
+        <dl class="dr-progress-counts">
+            @foreach (var segment in overview.Segments)
+            {
+                <div><dt>@segment.Label</dt><dd>@segment.Count.ToString("N0")</dd></div>
+            }
+        </dl>
+    </div>
+    <details class="dr-stage-breakdown">
+        <summary>View stages</summary>
+        <dl>
+            @foreach (var stage in requestStages)
+            {
+                <div><dt>@stage.Label</dt><dd>@stage.Count.ToString("N0")</dd></div>
+            }
+        </dl>
+    </details>
+</section>
 
 
     @if (returnedRequests.Count > 0)

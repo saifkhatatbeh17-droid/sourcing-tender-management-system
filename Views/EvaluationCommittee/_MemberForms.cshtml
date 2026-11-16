@@ -3,13 +3,19 @@
 <section class="ev-shared-evaluation"><div class="ev-weights-summary"><div><h3>Evaluate every offer</h3><p>Each member submits both marks for every eligible offer. Submitted marks are locked.</p></div><div class="ev-weight-value"><span>Financial</span><strong>@Model.FinancialWeight.ToString("0")%</strong></div><div class="ev-weight-value"><span>Technical</span><strong>@Model.TechnicalWeight.ToString("0")%</strong></div></div></section>
 @if (AllOfferScoring.Complete(Model))
 { <p class="ev-notice ev-notice-success">All offers have four completed reviews. <button type="button" class="ev-reference-link" data-open-evaluation-tab="report-tab">View scores &amp; report →</button></p> }
-<form asp-action="Evaluations" method="get" class="ev-review-offer-picker">
-    <input type="hidden" name="id" value="@Model.Tender!.TenderId" /><input type="hidden" name="tab" value="forms" />
-    <label for="review-offer">Offer to evaluate</label><select id="review-offer" name="offerId" class="form-select">
+<nav class="ev-offer-navigation" aria-label="Choose an offer to evaluate">
+    <p>Choose an offer</p><div class="ev-offer-navigation-list">
     @foreach (var choice in Model.Offers)
-    { <option value="@choice.BidId" selected="@(Model.ReviewOffer?.BidId == choice.BidId)">@choice.Invitation.SupplierProfile.CompanyName · #@choice.BidId · @(Model.MyReviewApproved(choice) ? "✓ Your review approved" : "○ Not reviewed yet") · @AllOfferScoring.Count(Model, choice)/4 approved</option> }
-    </select><button class="btn ev-button-secondary">Open evaluation</button>
-</form>
+    {
+        var currentOffer = Model.ReviewOffer?.BidId == choice.BidId;
+        <a asp-controller="EvaluationCommittee" asp-action="Evaluations" asp-route-id="@Model.Tender!.TenderId" asp-route-offerId="@choice.BidId" asp-route-tab="forms" asp-fragment="offer-review-@choice.BidId" aria-current="@(currentOffer ? "page" : null)">
+            <strong>@choice.Invitation.SupplierProfile.CompanyName</strong>
+            <span>Offer #@choice.BidId@(currentOffer ? " · Viewing" : "")</span>
+            <small class="ev-offer-review-label @(Model.MyReviewApproved(choice) ? "is-approved" : "")">@(Model.MyReviewApproved(choice) ? "Approved by you" : "Needs your review")</small>
+        </a>
+    }
+    </div>
+</nav>
 @if (Model.ReviewOffer is { } offer)
 {
     var accepted = AllOfferScoring.Count(Model, offer);

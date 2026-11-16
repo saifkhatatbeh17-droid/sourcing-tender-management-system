@@ -12,3 +12,8 @@
 
 .rr-server-filter select[data-voice-search-language] { flex:0 0 100px;max-width:100px; }
 @media(max-width:700px){.rr-server-filter .input-group { flex-wrap:wrap;gap:6px; }.rr-server-filter .input-group>.form-control { flex:1 0 100%;width:100%;border-radius:8px; }.rr-server-filter .input-group>.btn,.rr-server-filter .input-group>select { border-radius:8px!important; }}
+
+.persistent-feedback { position:relative;padding-right:60px!important; }
+.feedback-dismiss { position:absolute;top:6px;right:6px;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:0;border-radius:6px;background:transparent;color:inherit;font-size:25px;line-height:1;cursor:pointer; }
+.feedback-dismiss:hover { background:color-mix(in srgb,currentColor 8%,transparent); }
+.feedback-dismiss:focus-visible { outline:2px solid currentColor;outline-offset:-4px; }

@@ -9,7 +9,7 @@
     else
     {
         <div class="cw-report-layout">
-            <details class="cw-panel cw-report-browser ev-report-switcher" open="@(Model.Tender == null)"><summary><strong>Find a report</strong><span>@Model.Tenders.Count tenders · Change ⌄</span></summary><div class="ev-report-search"><label for="report-search">Search tender reports</label><input type="search" id="report-search" class="form-control" placeholder="Tender title, number or status" data-committee-search="report-options" /></div>
+            <details class="cw-panel cw-report-browser ev-report-switcher"><summary><strong>Find a report</strong><span>@Model.Tenders.Count tenders · Change ⌄</span></summary><div class="ev-report-search"><label for="report-search">Search tender reports</label><input type="search" id="report-search" class="form-control" placeholder="Tender title, number or status" data-committee-search="report-options" /></div>
                 <header class="cw-panel-header"><h2>Tender reports</h2><span class="cw-count">@Model.Tenders.Count</span></header>
                 <nav id="report-options" aria-label="Tender reports">
                 @foreach(var tender in Model.Tenders)
