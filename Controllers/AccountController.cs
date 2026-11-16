@@ -113,6 +113,50 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) });
     }
 
+    [HttpPost, ValidateAntiForgeryToken,
+     Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
+    public async Task<IActionResult> DemoFaceSignIn(
+        SourcingTenderManagement.Models.FaceLogin.FaceDemoSignInInput model,
+        [FromServices] IWebHostEnvironment environment,
+        [FromServices] SourcingTenderManagement.Services.FaceVerification.FaceVerificationService verification,
+        CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-store";
+        if (!environment.IsDevelopment()) return NotFound();
+        if (User.Identity?.IsAuthenticated == true) return Conflict(new { message = "Already signed in." });
+        if (!ModelState.IsValid || !SourcingTenderManagement.Services.FaceVerification.FaceVerificationService.ValidDescriptor(model.Descriptor)
+            || model.ModelIdentifier != SourcingTenderManagement.Services.FaceEnrollment.FaceEnrollmentService.ModelIdentifier)
+            return BadRequest(new { message = "Invalid camera sample." });
+
+        var requestedUser = await users.FindByEmailAsync(model.Email.Trim());
+        var enrolledIds = requestedUser == null ? new List<string>() : await db.UserFaceCredentials.AsNoTracking()
+            .Where(x => x.UserId == requestedUser.Id && x.ProtectedTemplates != null).Select(x => x.UserId).ToListAsync(ct);
+        ApplicationUser? matched = null;
+        foreach (var id in enrolledIds)
+        {
+            var candidate = await users.FindByIdAsync(id);
+            if (candidate == null || !candidate.IsActive || !await signIn.CanSignInAsync(candidate)
+                || (users.SupportsUserLockout && await users.IsLockedOutAsync(candidate))
+                || await users.GetTwoFactorEnabledAsync(candidate)) continue;
+            try
+            {
+                var result = await verification.VerifyAsync(id, new() { Descriptor = model.Descriptor, ModelIdentifier = model.ModelIdentifier }, ct);
+                if (result.Status != "Matched") continue;
+                // Never choose an arbitrary account when more than one enrollment matches.
+                if (matched != null) return BadRequest(new { message = "Multiple accounts matched. Use password sign-in.", code = "face_ambiguous" });
+                matched = candidate;
+            }
+            catch (UnauthorizedAccessException) { }
+        }
+        if (matched == null) return BadRequest(new { message = "No available enrolled account matched your face.", code = "face_not_matched" });
+        matched = await users.FindByIdAsync(matched.Id);
+        if (matched == null || !matched.IsActive || !await signIn.CanSignInAsync(matched)
+            || (users.SupportsUserLockout && await users.IsLockedOutAsync(matched))
+            || await users.GetTwoFactorEnabledAsync(matched)) return BadRequest(new { message = "Account unavailable." });
+        await signIn.SignInAsync(matched, isPersistent: false, authenticationMethod: "LocalDemoFace");
+        return Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) });
+    }
+
     [Authorize]
     public async Task<IActionResult> GoToDashboard(string? returnUrl = null)
     {

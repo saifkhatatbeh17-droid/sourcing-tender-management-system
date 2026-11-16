@@ -16,6 +16,8 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddE
 var connection = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DefaultConnection is missing.");
 builder.Services.AddControllersWithViews();
+if (builder.Environment.IsDevelopment())
+    builder.Services.AddHttpsRedirection(options => options.HttpsPort = 7130);
 builder.Services.AddHostedService<SourcingTenderManagement.Services.TenderClosureService>();
 builder.Services.AddPdfWatermarks();
 builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidRecommendationService>(client => client.Timeout = TimeSpan.FromMinutes(5));
@@ -139,6 +141,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Home/Error");
+if (app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();

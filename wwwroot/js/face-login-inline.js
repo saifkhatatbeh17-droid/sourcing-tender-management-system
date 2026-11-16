@@ -5,6 +5,11 @@
     const element = document.getElementById('face-signin-modal');
     if (!button || !host || !element || !window.bootstrap?.Modal) return;
     const form = button.form;
+    const demo = button.dataset.faceDemo === 'true';
+    const email = form.querySelector('input[name="Email"]');
+    function validFaceInput() {
+        return demo ? email.reportValidity() : form.reportValidity();
+    }
     const password = form.querySelector('input[name="Password"]');
     const error = document.getElementById('face-login-error');
     const video = document.getElementById('face-signin-video');
@@ -88,7 +93,7 @@
     form.addEventListener('submit', event => {
         if (event.submitter !== button) return;
         event.preventDefault();
-        if (busy || !form.reportValidity()) return;
+        if (busy || !validFaceInput()) return;
         error.hidden = true; error.textContent = '';
         clearSnapshot(); status('Starting camera…');
         modal.show();
@@ -101,7 +106,7 @@
     document.addEventListener('visibilitychange', () => { if (document.hidden && !submitting && busy) { cancel(); modal.hide(); } });
     element.addEventListener('shown.bs.modal', async () => {
         if (busy) return;
-        if (!form.reportValidity()) { modal.hide(); return; }
+        if (!validFaceInput()) { modal.hide(); return; }
         busy = true; button.disabled = true;
         const current = ++generation;
         signal('pending');
@@ -136,6 +141,7 @@
             if (!descriptor || descriptor.length !== 128 || descriptor.some(x => !Number.isFinite(x) || Math.abs(x) > 3)) throw new Error('Invalid camera sample. Close this window and try again.');
             freezePreview(); stopCamera();
             const payload = new FormData(form);
+            if (demo) { payload.delete('Password'); }
             descriptor.forEach((value, index) => payload.append(`Descriptor[${index}]`, String(value)));
             payload.append('ModelIdentifier', host.dataset.modelIdentifier);
             submitting = true;
@@ -143,7 +149,7 @@
             const response = await fetch(localUrl(button.formAction), { method: 'POST', credentials: 'same-origin', redirect: 'error', headers: { Accept: 'application/json' }, body: payload });
             const result = await response.json().catch(() => ({}));
             if (!response.ok) {
-                const failure = new Error(response.status === 429 ? 'Too many attempts. Try later.' : result.code === 'face_not_matched' ? 'Face not matched' : result.code === 'face_unavailable' ? 'Face enrollment unavailable' : 'Sign-in not verified');
+                const failure = new Error(response.status === 429 ? 'Too many attempts. Try later.' : demo && result.message ? result.message : result.code === 'face_not_matched' ? 'Face not matched' : result.code === 'face_unavailable' ? 'Face enrollment unavailable' : 'Sign-in not verified');
                 throw failure;
             }
             if (!result.redirectUrl) throw new Error('Sign-in could not finish. Reload the page.');

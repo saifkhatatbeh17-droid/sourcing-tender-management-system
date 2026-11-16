@@ -90,7 +90,10 @@
         <div class="login-divider">or</div>
         <div class="login-methods">
             <button id="face-login-button" class="btn login-method" type="submit" form="password-login"
-                    asp-controller="Account" asp-action="LoginWithFaceId" aria-label="Sign in with Face ID (password + camera)"
+                    asp-controller="Account" asp-action="@(Context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment() ? "DemoFaceSignIn" : "LoginWithFaceId")"
+                    formnovalidate="@(Context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())"
+                    data-face-demo="@(Context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment() ? "true" : "false")"
+                    aria-label="Sign in with Face ID"
                     data-biometric-hover="face">
                 <span class="login-method-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -114,7 +117,7 @@
             </form>
         </div>
         <p id="face-login-error" class="text-danger mt-2" role="alert" hidden></p>
-        <p class="small text-muted mt-2">Face ID requires your password and a matching enrolled face. Set up your face from Biometric sign-in after signing in normally.</p>
+        <p class="small text-muted mt-2">@(Context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment() ? "Enter your email, then select Face ID. No password needed for the local demo." : "Face ID requires your password and a matching enrolled face.") Set up your face from Biometric sign-in after signing in normally.</p>
 
         <p class="login-registration">
             New supplier? <a asp-controller="Account" asp-action="Register">Register your company</a>

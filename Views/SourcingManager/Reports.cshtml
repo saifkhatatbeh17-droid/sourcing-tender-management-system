@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
 }
 
-<div class="manager-shell manager-refresh">
+<div class="manager-shell manager-refresh mr-reports-page">
     <header class="mr-heading"><div><h1>Reports &amp; decisions</h1><p>Review your recorded decisions, comments and tender outcomes.</p></div><span class="mr-count">@Model.Decisions.Count records</span></header>
     <form class="mr-filters workspace-search-card" method="get" asp-action="Reports">
         <h2 class="workspace-search-title">Find a report</h2>
@@ -68,7 +68,7 @@
         else
         {
             <div class="table-responsive" tabindex="0" role="region" aria-labelledby="manager-report-results">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 mr-history-table">
                     <thead>
                         <tr><th scope="col">Tender</th><th scope="col">Manager</th><th scope="col">Decision</th><th scope="col">Recorded (UTC)</th><th scope="col">Tender status</th><th scope="col">Comments</th></tr>
                     </thead>
@@ -79,7 +79,7 @@
                                 <td><strong class="mr-record-title">@item.Tender.Title</strong><small class="mr-reference">Tender #@item.TenderId</small></td>
                                 <td>@item.User.FullName</td>
                                 <td><span class="mr-status" data-state="@item.Decision">@(item.Decision == "ReturnedForReview" ? "Returned for review" : item.Decision)</span></td>
-                                <td>@item.DecidedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td><time class="mr-history-date" datetime="@item.DecidedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")"><span>@item.DecidedAt.ToString("dd MMM yyyy")</span><small>@item.DecidedAt.ToString("HH:mm") UTC</small></time></td>
                                 <td>@System.Text.RegularExpressions.Regex.Replace(item.Tender.Status, "([a-z])([A-Z])", "$1 $2")</td>
                                 <td>@if (string.IsNullOrWhiteSpace(item.Notes)) { <span class="text-secondary">No comments</span> } else { <details class="mr-notes"><summary>Read comments</summary><p class="manager-text">@item.Notes</p></details> }</td>
                             </tr>
