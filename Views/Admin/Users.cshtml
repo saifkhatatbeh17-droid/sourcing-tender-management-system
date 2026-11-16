@@ -8,8 +8,8 @@
 }
 
 <div class="workspace-heading">
-    <div><h1>Users</h1><p>Manage account access, roles, and department assignments.</p></div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#create-user-modal">Create user</button>
+    <div><h1>Users</h1><p>Manage account access and roles.</p></div>
+    <button type="button" class="btn btn-primary admin-orange-action" data-bs-toggle="modal" data-bs-target="#create-user-modal">Create user</button>
 </div>
 
 @if (TempData["UsersFeedback"] is string feedback)
@@ -17,8 +17,8 @@
     <div data-flash-message class="admin-feedback" data-admin-feedback role="status">@feedback</div>
 }
 
-<section class="admin-records" aria-label="User records">
-<form asp-action="Users" method="get" class="admin-record-filters row g-3" aria-label="Filter users" data-auto-filter>
+<form asp-action="Users" method="get" class="admin-record-filters workspace-search-card row g-3" aria-label="Filter users" data-auto-filter>
+    <h2 class="workspace-search-title">Find a user</h2>
     <div class="col-12 col-lg">
         <label for="user-search" class="form-label">Name or email</label>
         <div class="voice-search-control">
@@ -58,6 +58,8 @@
     </div>
 </form>
 
+<section class="admin-records" aria-label="User records">
+
 <div id="user-results">
 @if (Model.Users.Count == 0)
 {
@@ -72,7 +74,6 @@ else
                 <tr>
                     <th scope="col">Name</th>
                     <th scope="col">Roles</th>
-                    <th scope="col">Department</th>
                     <th scope="col">Status</th>
                     <th scope="col">Actions</th>
                 </tr>
@@ -86,7 +87,6 @@ else
                             <span class="admin-user-name">@account.FullName<small>@(account.Email ?? "—")</small></span>
                         </div></th>
                         <td><div class="admin-role-list">@if (account.Roles.Count == 0) { <span>Unassigned</span> } @foreach (var role in account.Roles) { <span>@SourcingTenderManagement.Data.RoleNames.DisplayName(role)</span> }</div></td>
-                        <td>@(account.DepartmentName ?? "—")</td>
                         <td>
                             <span class="badge rounded-pill @(account.IsActive ? "text-bg-success" : "text-bg-secondary")">
                                 @(account.IsActive ? "Active" : "Inactive")
@@ -156,18 +156,21 @@ else
                         <input id="edit-phone-@account.Id" name="PhoneNumber" type="tel" value="@input.PhoneNumber"
                                class="form-control" maxlength="32" autocomplete="tel" />
                     </div>
-                    <div class="field">
-                        <label for="edit-department-@account.Id">Department</label>
-                        <select id="edit-department-@account.Id" name="DepartmentId" class="form-select">
-                            <option value="">No department</option>
-                            @foreach (var department in Model.Departments.Where(d => d.IsActive || d.DepartmentId == account.DepartmentId))
-                            {
-                                <option value="@department.DepartmentId" selected="@(input.DepartmentId == department.DepartmentId)">
-                                    @department.Name@(department.IsActive ? "" : " (inactive)")
-                                </option>
-                            }
-                        </select>
-                    </div>
+                    @if (account.Roles.Contains(RoleNames.Department))
+                    {
+                        <div class="field">
+                            <label for="edit-department-@account.Id">Department</label>
+                            <select id="edit-department-@account.Id" name="DepartmentId" class="form-select" required>
+                                <option value="">Choose a department</option>
+                                @foreach (var department in Model.Departments.Where(d => d.IsActive || d.DepartmentId == account.DepartmentId))
+                                {
+                                    <option value="@department.DepartmentId" selected="@(input.DepartmentId == department.DepartmentId)">
+                                        @department.Name@(department.IsActive ? "" : " (inactive)")
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    }
                     @if (isCurrentUser)
                     {
                         <input type="hidden" name="IsActive" value="true" />
@@ -218,7 +221,10 @@ else
                 option.hidden = option.disabled;
             }
             if (!showCommittee || committeeSelect.selectedOptions[0]?.disabled) committeeSelect.value = '';
-            departmentSelect.required = role === '@RoleNames.Department';
+            const needsDepartment = role === '@RoleNames.Department';
+            departmentSelect.closest('.field').hidden = !needsDepartment;
+            departmentSelect.disabled = !needsDepartment;
+            departmentSelect.required = needsDepartment;
         }
 
         roleSelect.addEventListener('change', updateCreateFields);

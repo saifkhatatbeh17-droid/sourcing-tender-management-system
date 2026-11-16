@@ -2,7 +2,10 @@
 @section Styles { <link rel="stylesheet" href="~/css/dashboard-overview.css" asp-append-version="true" /> <partial name="_ReadStyles" /> }
 @{ ViewData["Title"] = "CEO & Chiefs Dashboard"; }
 <div class="unified-dashboard"><header class="dashboard-heading tc-page-heading">
-    <div class="tc-heading-copy"><h1>CEO & Chiefs dashboard</h1><p class="text-secondary mt-2 mb-0">Review assigned tenders, follow member approvals and read recorded decisions.</p></div>
+    <div class="tc-heading-copy">
+        <h1>CEO &amp; Chiefs Dashboard</h1>
+        <p>Review assigned tenders, track approvals, and see past decisions.</p>
+    </div>
     <a class="dashboard-cta" asp-action="Decisions">Review pending tenders <span aria-hidden="true">→</span></a>
 </header>
 <section class="dashboard-metrics is-five" aria-label="Your committee totals">

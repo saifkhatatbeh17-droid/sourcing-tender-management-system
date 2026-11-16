@@ -30,11 +30,38 @@ html[data-theme="dark"] .admin-shell main a:not(.btn-primary):not(.btn-danger):n
 .admin-shell .admin-review-stepper { display:flex;gap:12px;list-style:none;padding:0;margin:0 0 16px; }
 .admin-shell .admin-review-stepper li { display:flex;align-items:center;gap:9px;flex:1;border-bottom:2px solid var(--color-border);padding-bottom:14px;color:var(--color-text-secondary);font-size:13px; }
 .admin-shell .admin-review-stepper li>span { display:grid;place-items:center;flex-shrink:0;width:29px;height:29px;border:1px solid currentColor;border-radius:50%; }
-.admin-shell .admin-review-stepper li[aria-current] { color:var(--color-text);border-color:#aa4824; }.admin-shell .admin-review-stepper li[aria-current]>span { color:#fff;background:#98401f;border-color:#98401f; }
+.admin-shell .admin-review-stepper li[aria-current="step"] {
+    color: var(--color-text);
+    border-color: var(--brand-highlight);
+}
+.admin-shell .admin-review-stepper li[aria-current="step"] > span {
+    color: var(--brand-highlight-ink);
+    background: var(--brand-highlight);
+    border-color: var(--brand-highlight);
+}
 .admin-shell .admin-review-stepper li.is-complete { border-color:var(--color-link); }
 .admin-shell .admin-review-progress { margin:0 0 18px;color:var(--color-text-secondary);font-size:13px; }
 .admin-shell [data-review-flow] .admin-review-controls { display:flex;gap:12px;justify-content:flex-end;padding-top:18px;margin-top:18px;border-top:1px solid var(--color-border); }
-.admin-shell [data-review-flow] .btn-primary { background:#a34421!important;border-color:#a34421!important;color:#fff!important;box-shadow:none; }
-.admin-shell [data-review-flow] .btn-primary:hover { background:#803519!important;border-color:#803519!important; }
+.admin-shell :is([data-review-flow] .btn-primary, .btn-primary.admin-orange-action) { background:var(--action-petrol)!important;border-color:var(--action-petrol)!important;color:var(--action-petrol-text)!important;box-shadow:none; }
+.admin-shell :is([data-review-flow] .btn-primary, .btn-primary.admin-orange-action):hover { background:var(--action-petrol-hover)!important;border-color:var(--action-petrol-hover)!important; }
+.admin-shell #supplier-review-dialog .admin-review-controls .btn-primary {
+    background: var(--action-petrol) !important;
+    border-color: var(--action-petrol) !important;
+    color: var(--action-petrol-text) !important;
+}
+.admin-shell #supplier-review-dialog .admin-review-controls .btn-primary:is(:hover, :active) {
+    background: var(--action-petrol-hover) !important;
+    border-color: var(--action-petrol-hover) !important;
+}
+.admin-shell #supplier-review-dialog .admin-review-controls .btn-outline-primary {
+    border-color: var(--brand-highlight);
+    color: #98401f;
+}
+html[data-theme="dark"] .admin-shell #supplier-review-dialog .admin-review-controls .btn-outline-primary { color: var(--brand-highlight); }
+.admin-shell #supplier-review-dialog .admin-review-controls .btn-outline-primary:is(:hover, :active) {
+    background: var(--brand-highlight);
+    color: var(--brand-highlight-ink);
+}
+html[data-theme="dark"] .admin-shell #supplier-review-dialog .admin-review-controls .btn-outline-primary:is(:hover, :active) { color: var(--brand-highlight-ink); }
 .admin-shell [data-review-flow] h2 { font-size:20px; }.admin-shell [data-review-flow] h2:focus { outline:none; }
 @media(max-width:560px) { .admin-shell .admin-review-stepper { gap:8px; }.admin-shell .admin-review-stepper li { flex-direction:column;align-items:flex-start;font-size:12px; }.admin-shell [data-review-flow] .admin-review-controls .btn { flex:1; } }

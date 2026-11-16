@@ -1,0 +1,7 @@
+@model int
+<div class="notice-center-brand">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+    </svg>
+    <div><h2>Notifications</h2><span class="notice-center-count @(Model > 0 ? "has-unread" : null)">@(Model > 0 ? $"{Model} unread" : "No unread")</span></div>
+</div>

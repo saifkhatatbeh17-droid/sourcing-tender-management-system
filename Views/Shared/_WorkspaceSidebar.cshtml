@@ -8,7 +8,10 @@
 <aside class="admin-sidebar workspace-navigation" aria-label="@ViewData["WorkspaceLabel"] navigation">
     <div class="admin-sidebar-top">
         <div class="admin-sidebar-header">
-            <a class="pharma-brand workspace-brand" asp-controller="Home" asp-action="Index" aria-label="Tiryaq home"><partial name="_PharmaBrand" /></a>
+            <a class="pharma-brand workspace-brand" asp-controller="Home" asp-action="Index" aria-label="Tiryaq home">
+                <partial name="_PharmaBrand" />
+                <img class="workspace-brand-mark" src="~/images/tiryaq-mark.png" asp-append-version="true" width="640" height="804" alt="" />
+            </a>
             <button type="button" class="admin-sidebar-toggle" aria-label="Collapse sidebar" aria-controls="admin-sidebar-menu workspace-sidebar-tools" aria-expanded="true" title="Collapse sidebar">
                 <partial name="_AdminSidebarIcon" model='@("Menu")' />
             </button>

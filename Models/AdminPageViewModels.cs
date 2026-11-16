@@ -28,7 +28,7 @@ public class UsersPageViewModel
 
 public sealed record AdminUserRowViewModel(
     string Id, string FullName, string? Email, string? PhoneNumber, bool IsActive, int? DepartmentId,
-    string? DepartmentName, IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles);
 
 public class EditUserViewModel
 {

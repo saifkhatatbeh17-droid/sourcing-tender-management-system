@@ -15,8 +15,8 @@
 .so-page .so-status-badge[data-status="Approved"],.so-page .so-status-badge[data-status="Returned"] { background:#fff5e5;color:#81591b;border-color:#f0e0c4; }
 .so-page .so-status-badge[data-status="Rejected"],.so-page .so-status-badge[data-status="Cancelled"] { background:#fbeeee;color:#963b3b;border-color:#f1dcdc; }
 .rr-no-results { padding:32px;text-align:center;color:var(--so-muted); }
-html body .so-page .btn.officer-prepare { background:var(--brand-highlight,#ff6b4a);border-color:var(--brand-highlight,#ff6b4a);color:var(--brand-highlight-ink,#123032);box-shadow:none; }
-html body .so-page .btn.officer-prepare:hover { background:var(--brand-highlight-hover,#f05c3c);border-color:var(--brand-highlight-hover,#f05c3c); }
+html body .so-page .btn.officer-prepare { background:var(--action-petrol);border-color:var(--action-petrol);color:var(--action-petrol-text);box-shadow:none; }
+html body .so-page .btn.officer-prepare:hover { background:var(--action-petrol-hover);border-color:var(--action-petrol-hover); }
 .tender-browser { margin-bottom:22px;border:1px solid var(--so-line);border-radius:14px;background:var(--so-surface);overflow:hidden; }
 .tender-browser>summary { display:flex;align-items:center;justify-content:space-between;gap:24px;list-style:none;cursor:pointer;padding:18px 22px;min-height:78px; }
 .tender-browser>summary::-webkit-details-marker { display:none; }
@@ -54,7 +54,7 @@ html body .so-page .btn.officer-prepare:hover { background:var(--brand-highlight
 @media(prefers-reduced-motion:reduce) { .so-page .btn,.tender-browser * { transition:none!important; } }
 
 /* Keep the shared orange action legible under global button rules. */
-html body main .so-page .btn.officer-prepare { color:var(--brand-highlight-ink,#123032)!important; }
+html body main .so-page .btn.officer-prepare { color:var(--action-petrol-text)!important; }
 .so-page .tw-polished-facts { display:grid;grid-template-columns:2fr repeat(3,1fr);gap:20px;margin:22px 0 0;padding-top:20px;border-top:1px solid var(--so-line); }
 .so-page .tw-polished-facts dt { font-size:12px;font-weight:400;color:var(--so-muted);margin-bottom:5px; }
 .so-page .tw-polished-facts dd { font-size:17px;font-weight:600;margin:0;font-variant-numeric:tabular-nums; }

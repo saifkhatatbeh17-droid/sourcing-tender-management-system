@@ -21,10 +21,10 @@
             <option value="@position" data-committee="top">@System.Text.RegularExpressions.Regex.Replace(position, "([a-z])([A-Z0-9])", "$1 $2")</option>
         }
     </select><span asp-validation-for="CommitteeRole" class="text-danger"></span></div>
-    <div class="field"><label asp-for="DepartmentId">Department</label><select asp-for="DepartmentId" class="form-select"><option value="">No department</option>
+    <div class="field" hidden="@(Model.Role != SourcingTenderManagement.Data.RoleNames.Department)"><label asp-for="DepartmentId">Department</label><select asp-for="DepartmentId" class="form-select"><option value="">Choose a department</option>
         @foreach (SourcingTenderManagement.Models.Entities.Department department in ViewBag.Departments)
         { if (department.IsActive) { <option value="@department.DepartmentId">@department.Name</option> } }
     </select><span asp-validation-for="DepartmentId" class="text-danger"></span></div>
 </div>
-<div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" type="submit">Create Account</button></div>
+<div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary admin-orange-action" type="submit">Create Account</button></div>
 </form>

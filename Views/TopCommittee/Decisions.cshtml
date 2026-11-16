@@ -8,8 +8,13 @@
 }
 <div class="tc-decisions-page">
 <header class="workspace-heading tc-page-heading">
-    <div class="tc-heading-copy"><h1>Pending tenders</h1><p>Review nominated offers and record your committee decision.</p></div>
+    <div class="tc-heading-copy"><h1>Pending tenders</h1><p>Choose an assigned tender to start your review.</p></div>
 </header>
+<ol class="tc-decision-guide" aria-label="Decision workflow">
+    <li aria-current="step"><span aria-hidden="true">1</span><div><strong>Choose a tender</strong><small>Open a tender from your queue.</small></div></li>
+    <li><span aria-hidden="true">2</span><div><strong>Review offers</strong><small>Read the recommendation and compare bids.</small></div></li>
+    <li><span aria-hidden="true">3</span><div><strong>Record your decision</strong><small>Vote when voting is open.</small></div></li>
+</ol>
 <div class="tc-search-panel">
 <form asp-action="Decisions" method="get" class="workspace-section tc-query tc-query-queue" aria-labelledby="tc-query-title">
     <h2 id="tc-query-title">Find a tender</h2>
@@ -21,6 +26,12 @@
     </div>
 </form>
 </div>
+<details class="tc-decision-picker" open>
+<summary>
+    <span><strong>Choose a tender</strong><small>Search your assigned tenders or select one below.</small></span>
+    <span class="tc-decision-picker-count">@tenderPage.TotalCount @(tenderPage.TotalCount == 1 ? "tender" : "tenders") <span class="tc-picker-chevron" aria-hidden="true"></span></span>
+</summary>
+<div class="tc-decision-picker-body">
 @if (!ViewData.ModelState.IsValid)
 { <p>Check your search and try again.</p> }
 else if (tenderPage.TotalCount == 0)
@@ -42,7 +53,7 @@ else if (tenderPage.TotalCount == 0)
 else
 {
     <section aria-labelledby="pending-results">
-        <header class="tc-flow-section-heading"><h2 id="pending-results">Review queue</h2><span class="tc-flow-count">@tenderPage.TotalCount tenders</span></header>
+        <header class="tc-flow-section-heading"><h2 id="pending-results">Review queue</h2></header>
         <div class="tc-review-queue">
         @foreach (var tender in tenderPage.Items)
         {
@@ -57,13 +68,18 @@ else
                 </dl>
                 <div class="tc-review-action">
                     @if (tender.OpenClarifications > 0) { <p>@tender.OpenClarifications open @(tender.OpenClarifications == 1 ? "clarification" : "clarifications")</p> }
-                    <a class="btn btn-primary" asp-action="TenderDetails" asp-route-id="@tender.TenderId" aria-label="Review tender @tender.TenderId">Review tender <span aria-hidden="true">→</span></a>
+                    <div class="tc-review-buttons">
+                        @await Component.InvokeAsync("DetailsQr", new { controller = "TopCommittee", action = "TenderDetails", id = tender.TenderId, label = $"Tender #{tender.TenderId}", compact = true })
+                        <a class="btn btn-primary" asp-action="TenderDetails" asp-route-id="@tender.TenderId" aria-label="Review tender @tender.TenderId">Review tender <span aria-hidden="true">→</span></a>
+                    </div>
                 </div>
             </article>
         }
         </div>
     </section>
     @if (tenderPage.Items.Count == 0) { <p>This page has no results. Use Previous or return to the first page.</p> }
+    @if (totalPages > 1 || tenderPage.Page > 1)
+    {
     <nav class="workspace-toolbar" aria-label="Tender list pages">
         @if (tenderPage.Page > 1)
         {
@@ -74,6 +90,8 @@ else
         @if (tenderPage.Page < totalPages)
         { <a class="btn btn-outline-secondary" asp-action="Decisions" asp-route-Page="@(tenderPage.Page + 1)" asp-route-Search="@Model.Filter.Search">Next</a> }
     </nav>
+    }
 }
-
+</div>
+</details>
 </div>

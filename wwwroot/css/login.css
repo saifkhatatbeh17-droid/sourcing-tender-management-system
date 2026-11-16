@@ -1617,7 +1617,7 @@ html body .login-main .login-page .login-panel { max-width: 440px; padding: clam
 .login-identity > .identity-art { display: grid; place-items: center; }
 .login-identity { justify-content: stretch; grid-template-columns: minmax(0, 1fr); }
 /* Keep the primary authentication action readable in every theme and state. */
-.login-main .login-submit { min-height:54px;background:var(--brand-highlight,#ff6b4a)!important;color:#111!important;border:1px solid var(--brand-highlight,#ff6b4a);box-shadow:none; }
-.login-main .login-submit:hover,.login-main .login-submit:focus-visible { background:#f05c3c!important;color:#111!important;box-shadow:none; }
+.login-main .login-submit { min-height:54px;background:var(--action-petrol)!important;color:var(--action-petrol-text)!important;border:1px solid var(--action-petrol);box-shadow:none; }
+.login-main .login-submit:hover,.login-main .login-submit:focus-visible { background:var(--action-petrol-hover)!important;color:var(--action-petrol-text)!important;box-shadow:none; }
 .login-main .login-submit:active { transform:scale(.99); }
-.login-main .login-submit .submit-arrow { color:#111;background:rgba(0,0,0,.06); }
+.login-main .login-submit .submit-arrow { color:inherit;background:rgb(255 255 255 / 12%); }

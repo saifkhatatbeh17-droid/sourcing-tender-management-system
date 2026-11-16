@@ -3,19 +3,47 @@
 @{
     var tender = Model.Tender;
     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    var approvals = tender.Votes.Count(v => v.Decision == "Approved" && tender.Members.Any(m => m.UserId == v.UserId && m.AssignmentId == v.AssignmentId && m.IsEligible));
+    var isAwarded = tender.Status == "Awarded";
+    var hasOutcome = isAwarded || tender.Readiness.HasRejection;
+    var heading = hasOutcome ? "Committee outcome"
+        : tender.Readiness.HasCurrentMemberVoted ? "View your decision"
+        : tender.Readiness.CanCurrentMemberVote && Model.VotingDatabaseReady ? "Record your decision" : "Check voting status";
 }
 <section id="voting" class="workspace-section" aria-labelledby="voting-heading">
-    <h2 id="voting-heading">Committee approvals</h2>
-    <p><strong>@approvals of 4 approvals recorded.</strong> Each member approves their own form. All four approvals are required to award nominated offer #@tender.Report?.RecommendedBidId.</p>
-    @if (tender.Status == "Awarded" || tender.AwardedBidId.HasValue)
-    { <p class="alert alert-success">The final award has been recorded. The member forms are now read-only.</p> }
-    else if (tender.OpenClarifications > 0)
-    { <p class="alert alert-info">Approvals are paused until the open clarifications are resolved. Existing approvals are preserved.</p> }
-    else if (!tender.Readiness.CanCurrentMemberVote && !tender.Readiness.HasCurrentMemberVoted)
-    { <p class="alert alert-info">@tender.Readiness.BlockingReason</p> }
-    else if (tender.Readiness.CanCurrentMemberVote && !Model.VotingDatabaseReady)
-    { <p class="alert alert-info">Voting is temporarily unavailable. Contact the system administrator, then reload this page.</p> }
+    <h2 id="voting-heading">2. @heading</h2>
+    @if (tender.Readiness.HasRejection)
+    {
+        <div class="tc-decision-outcome tc-decision-rejected">
+            <h3>Tender rejected</h3>
+            <p class="mb-0">Voting has ended on this tender. Review the recorded decisions below.</p>
+        </div>
+    }
+    else if (isAwarded)
+    {
+        var winner = tender.Bids.FirstOrDefault(b => b.BidId == tender.AwardedBidId);
+        <div class="tc-decision-outcome">
+            <h3>Tender awarded</h3>
+            <dl class="tc-detail-facts">
+                <div><dt>Winning bid</dt><dd>#@tender.AwardedBidId @(winner == null ? "" : $"· {winner.SupplierName}")</dd></div>
+                <div><dt>Awarded at</dt><dd>@CommitteeDisplay.Utc(tender.AwardedAt)</dd></div>
+                @if (!string.IsNullOrWhiteSpace(tender.AwardNotes))
+                {
+                    <div><dt>Decision notes</dt><dd class="tc-report-copy">@tender.AwardNotes</dd></div>
+                }
+            </dl>
+        </div>
+    }
+    else if (tender.OpenClarifications == 0)
+    {
+        if (tender.Readiness.CanCurrentMemberVote && !Model.VotingDatabaseReady)
+        { <p class="alert alert-info">Voting is temporarily unavailable. Contact the system administrator, then reload this page.</p> }
+        else if (tender.Readiness.HasCurrentMemberVoted)
+        { <p>Your decision is recorded. The committee needs four approvals to award the tender.</p> }
+        else if (!tender.Readiness.CanCurrentMemberVote)
+        { <p class="alert alert-info">@tender.Readiness.BlockingReason</p> }
+        else
+        { <p>All four members must approve the nominated bid to award the tender.</p> }
+    }
     <div class="tc-member-forms">
     @foreach (var member in tender.Members.OrderByDescending(m => m.UserId == userId).ThenBy(m => m.Position))
     {
@@ -29,9 +57,9 @@
                 <p>@member.FullName</p>
                 <strong class="tc-member-state">@(vote == null ? "Awaiting decision" : CommitteeDisplay.Status(vote.Decision))</strong>
             </header>
-            <p class="tc-nominated-offer">Nominated offer <strong>#@tender.Report?.RecommendedBidId</strong></p>
             @if (editable)
             {
+                <p class="tc-nominated-offer">Nominated offer <strong>#@tender.Report?.RecommendedBidId</strong></p>
                 <form asp-action="SubmitVote" method="post" class="tc-member-approval-form">
                     <input type="hidden" name="Vote.TenderId" value="@tender.TenderId" />
                     <input type="hidden" name="Vote.ExpectedNominatedBidId" value="@tender.Report?.RecommendedBidId" />
@@ -42,7 +70,7 @@
                     <span asp-validation-for="Vote!.Notes" class="text-danger"></span>
                     <span asp-validation-for="Vote!.Decision" class="text-danger"></span>
                     <span asp-validation-for="Vote!.Confirmed" class="text-danger"></span>
-                    <p class="tc-member-help">Approve saves your notes and locks your form. You do not need to wait for the other members.</p>
+                    <p class="tc-member-help">After you submit your decision, you can’t change it.</p>
                     <div class="tc-member-actions"><button type="submit" class="btn btn-primary pharma-action-approve">Approve</button><button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reject-top-@member.Position">Reject</button></div>
                 </form>
                 <div class="modal fade" id="reject-top-@member.Position" tabindex="-1" aria-labelledby="reject-title-@member.Position" aria-hidden="true">

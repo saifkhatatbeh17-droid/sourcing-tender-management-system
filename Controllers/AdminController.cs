@@ -237,7 +237,6 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
                 user.PhoneNumber,
                 user.IsActive,
                 user.DepartmentId,
-                DepartmentName = user.Department == null ? null : user.Department.Name,
                 Roles = roleAssignments.Where(assignment => assignment.UserId == user.Id)
                     .OrderBy(assignment => assignment.Name).Select(assignment => assignment.Name).ToList()
             })
@@ -247,7 +246,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         return new UsersPageViewModel
         {
             Users = rows.Select(row => new AdminUserRowViewModel(
-                row.Id, row.FullName, row.Email, row.PhoneNumber, row.IsActive, row.DepartmentId, row.DepartmentName, row.Roles)).ToList(),
+                row.Id, row.FullName, row.Email, row.PhoneNumber, row.IsActive, row.DepartmentId, row.Roles)).ToList(),
             Departments = departments,
             CreateUser = createUser ?? new CreateUserViewModel(),
             Search = search,
@@ -286,15 +285,19 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         if (!await SaveDepartment())
             return View(nameof(Departments), await LoadDepartmentsPage(createName: name, openCreate: true));
 
-        TempData["DepartmentsFeedback"] = "Department created.";
+        TempData["DepartmentsFeedbackTitle"] = "Department created successfully";
+        TempData["DepartmentsFeedback"] = $"“{name}” is now active in the department directory.";
         return RedirectToAction(nameof(Departments));
     }
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateUser(CreateUserViewModel model)
     {
         if (!RoleNames.Primary.Where(r => r != RoleNames.Supplier).Contains(model.Role)) ModelState.AddModelError(nameof(model.Role), "Choose an employee role.");
-        if (model.DepartmentId.HasValue && !await db.Departments.AnyAsync(d => d.DepartmentId == model.DepartmentId && d.IsActive)) ModelState.AddModelError(nameof(model.DepartmentId), "Choose an active department.");
-        if (model.Role == RoleNames.Department && model.DepartmentId == null) ModelState.AddModelError(nameof(model.DepartmentId), "A department account needs a department.");
+        if (model.Role == RoleNames.Department)
+        {
+            if (!model.DepartmentId.HasValue || !await db.Departments.AnyAsync(d => d.DepartmentId == model.DepartmentId && d.IsActive))
+                ModelState.AddModelError(nameof(model.DepartmentId), "Choose an active department.");
+        }
         var positions = model.Role == RoleNames.TopCommittee ? RoleNames.TopPositions : RoleNames.EvaluationPositions;
         if (model.CommitteeRole != null && !positions.Contains(model.CommitteeRole)) ModelState.AddModelError(nameof(model.CommitteeRole), "Choose a matching committee position.");
         if (model.Role == RoleNames.TopCommittee || model.Role == RoleNames.EvaluationCommittee)
@@ -310,7 +313,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
             ModelState.AddModelError(nameof(model.CommitteeRole), $"{model.CommitteeRole} already has an active account ({holder}). Deactivate it before assigning this position.");
             return await InvalidCreateUser(model);
         }
-        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, PhoneNumber = model.PhoneNumber?.Trim(), DepartmentId = model.DepartmentId, EmailConfirmed = true };
+        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, PhoneNumber = model.PhoneNumber?.Trim(), DepartmentId = model.Role == RoleNames.Department ? model.DepartmentId : null, EmailConfirmed = true };
         var result = await users.CreateAsync(user, model.Password);
         if (result.Succeeded)
         {
@@ -372,9 +375,10 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         var user = await users.FindByIdAsync(model.Id);
         if (user == null) return NotFound();
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-        if (await users.IsInRoleAsync(user, RoleNames.Department) && model.DepartmentId == null)
+        var isDepartmentAccount = await users.IsInRoleAsync(user, RoleNames.Department);
+        if (isDepartmentAccount && model.DepartmentId == null)
             ModelState.AddModelError(nameof(model.DepartmentId), "A department account needs a department.");
-        if (model.DepartmentId.HasValue && model.DepartmentId != user.DepartmentId &&
+        if (isDepartmentAccount && model.DepartmentId.HasValue && model.DepartmentId != user.DepartmentId &&
             !await db.Departments.AnyAsync(d => d.DepartmentId == model.DepartmentId && d.IsActive))
             ModelState.AddModelError(nameof(model.DepartmentId), "Choose an active department.");
         if (model.Id == users.GetUserId(User) && !model.IsActive)
@@ -390,7 +394,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         if (ModelState.IsValid)
         {
             user.FullName = model.FullName;
-            user.DepartmentId = model.DepartmentId;
+            if (isDepartmentAccount) user.DepartmentId = model.DepartmentId;
             user.IsActive = model.IsActive;
 
             var phoneNumber = model.PhoneNumber?.Trim();
@@ -434,7 +438,8 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         if (!await SaveDepartment())
             return View(nameof(Departments), await LoadDepartmentsPage(editInput: model));
 
-        TempData["DepartmentsFeedback"] = "Department updated.";
+        TempData["DepartmentsFeedbackTitle"] = "Department updated successfully";
+        TempData["DepartmentsFeedback"] = $"Changes to “{name}” were saved.";
         return RedirectToAction(nameof(Departments));
     }
 

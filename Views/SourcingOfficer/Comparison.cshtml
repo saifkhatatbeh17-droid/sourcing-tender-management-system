@@ -63,7 +63,7 @@
                 <div class="table-responsive"><table class="table">
                     <thead><tr><th>Supplier</th><th>Bid Status</th><th>Compliance</th><th>Delivery (days)</th><th>Items and Unit Prices</th><th>Total</th><th>Difference from Lowest Compliant</th></tr></thead>
                     <tbody>
-                        @foreach (var offer in totals)
+                        @foreach (var offer in totals.OrderByDescending(offer => offer.Bid.SubmittedAt).ThenByDescending(offer => offer.Bid.BidId))
                         {
                             var difference = lowestCompliant == null || offer.Bid.Status != "Compliant" || offer.Bid.ComplianceStatus != "Compliant"
                                 ? (decimal?)null

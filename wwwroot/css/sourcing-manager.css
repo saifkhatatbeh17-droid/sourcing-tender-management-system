@@ -190,42 +190,44 @@ html[data-theme="dark"] body:has(.manager-refresh) { background:#101817; --color
 }
 .manager-shell .mr-priority-metric { border-color: var(--pharma-primary); border-top-width: 3px; }
 
-.mr-review-layout { display: grid; grid-template-columns: minmax(230px, .36fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-.mr-review-layout:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+.mr-review-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(16px, 2vw, 26px); align-items: start; }
+.mr-submissions-page .mr-review-layout > .workspace-section { min-width: 0; margin-bottom: 0; }
+.mr-submissions-page .mr-queue { padding: clamp(14px, 2vw, 22px); }
+.mr-queue > h2 { margin: 0 0 16px; font-size: 1.125rem; }
+.mr-queue-group h3 { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 0 8px; font-size: .875rem; font-weight: 600; }
 .mr-queue-group + .mr-queue-group { border-top: 1px solid var(--color-border); margin-top: 16px; padding-top: 16px; }
-.mr-queue-group h2 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .mr-queue-group ul { display: grid; gap: 6px; }
 .mr-queue-link {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+    min-height: 52px;
     padding: 10px 12px;
     color: var(--color-text);
     text-decoration: none;
     border: 1px solid var(--color-border);
     border-radius: 10px;
 }
+.mr-queue-link > span:first-child { display: grid; min-width: 0; gap: 2px; }
 .mr-queue-link small { display: block; color: var(--color-text-secondary); }
 .mr-queue-link strong { overflow-wrap: anywhere; font-weight: 600; }
-.mr-queue-link:hover,
-.mr-queue-link[aria-current="page"] { background: var(--color-selection); color: var(--color-text); }
-.mr-queue-link[aria-current="page"] { box-shadow: inset 3px 0 var(--color-link); }
-.manager-shell :is(.mr-queue-group, .mr-submission, .mr-action-panel, .mr-conversation-content) { scroll-margin-top: 24px; }
-.manager-shell :is(.mr-queue-group, .mr-action-panel):target { outline: 2px solid var(--color-link); outline-offset: 4px; }
+.mr-queue-link:hover { background: var(--color-selection); color: var(--color-text); }
+.mr-queue-link:focus-visible { outline: 2px solid var(--color-link); outline-offset: 2px; }
+.mr-queue-cta { color: var(--color-link); font-weight: 600; font-size: .875rem; text-align: end; }
+.mr-submissions-page .mr-facts { margin: 0; }
+.mr-submissions-page .mr-facts > div:first-child { background: var(--color-selection); }
+.mr-submissions-page .mr-evidence-heading { margin-bottom: 12px; }
+.mr-submissions-page .mr-evidence-heading h3 { margin: 0; }
+.mr-submissions-page .mr-evidence-heading .btn { font-size: .875rem; }
+.mr-committee-summary { overflow-wrap: anywhere; }
+.mr-offer-comparison .table { min-width: 36rem; }
+.mr-offer-comparison .mr-status { display: table; }
+.mr-offer-comparison td:nth-child(2) { white-space: nowrap; }
 
-.mr-next {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px 20px;
-    padding: 14px 16px;
-    margin-block: 18px;
-    border-radius: 12px;
-    background: var(--color-selection);
-}
-.mr-next > div { flex: 1 1 240px; }
-.mr-next p { margin: 4px 0 0; color: var(--color-text-secondary); }
+.manager-shell :is(.mr-queue-group, .mr-submission, .mr-conversation-content) { scroll-margin-top: 24px; }
+.manager-shell .mr-queue-group:target { outline: 2px solid var(--color-link); outline-offset: 4px; }
+
 .mr-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 10px; }
 .mr-facts > div { min-width: 0; padding: 12px; border-radius: 10px; background: var(--color-surface-alt); }
 .mr-facts dt { color: var(--color-text-secondary); font-size: .8125rem; font-weight: 500; }
@@ -239,9 +241,58 @@ html[data-theme="dark"] body:has(.manager-refresh) { background:#101817; --color
 .mr-disclosure { border: 1px solid var(--color-border); border-radius: 10px; padding: 12px; margin-block: 8px; }
 .mr-disclosure summary { cursor: pointer; color: var(--color-link); overflow-wrap: anywhere; font-weight: 600; }
 .mr-disclosure[open] > :not(summary) { margin-top: 12px; }
-.mr-action-panel { padding: clamp(14px, 2vw, 24px); margin-top: 24px; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface-alt); }
-.mr-action-panel textarea { resize: vertical; min-height: 100px; background: var(--color-surface); color: var(--color-text); border-color: var(--color-border); }
-.mr-action-panel .form-text { color: var(--color-text-secondary); }
+.mr-action-dialog {
+    box-sizing: border-box;
+    width: min(34rem, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 0;
+    overflow: hidden;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+}
+.mr-action-dialog[open] { display: flex; flex-direction: column; }
+.mr-action-dialog::backdrop { background: rgb(12 31 35 / 54%); }
+.mr-action-dialog .modal-header { align-items: flex-start; gap: 12px; }
+.mr-action-dialog .modal-title { font-size: 1.2rem; font-weight: 650; }
+.mr-action-dialog .mr-reference { overflow-wrap: anywhere; }
+.mr-action-dialog form { display: flex; flex-direction: column; min-height: 0; }
+.mr-action-dialog .modal-body { overflow-y: auto; overscroll-behavior: contain; }
+.mr-action-dialog .modal-footer { flex-shrink: 0; }
+.mr-action-dialog textarea { resize: vertical; }
+.mr-action-dialog .form-text { color: var(--color-text-secondary); }
+.mr-decision-choices { display: grid; gap: 6px; }
+.mr-decision-choices legend { font-size: .925rem; font-weight: 600; }
+.mr-decision-choices label {
+    display: flex;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    cursor: pointer;
+}
+.mr-decision-choices label:has(:checked) { background: var(--color-selection); border-color: var(--color-link); }
+.mr-decision-choices label:has(:focus-visible) { outline: 2px solid var(--color-link); outline-offset: 2px; }
+.mr-decision-choices input { flex: none; margin-top: 5px; align-self: flex-start; accent-color: var(--color-link); }
+.mr-decision-choices small { display: block; color: var(--color-text-secondary); }
+.mr-action-dialog [data-decision-notes] { margin-top: 12px; }
+.mr-submission-dialog { width: min(55rem, calc(100% - 2rem)); }
+.mr-submission-dialog > .modal-header { flex-shrink: 0; }
+.mr-submission-dialog > .modal-body { min-height: 0; }
+.mr-submission-dialog .modal-header h2 { margin: 2px 0 6px; overflow-wrap: anywhere; }
+.mr-submission-tabs {
+    flex-shrink: 0;
+    gap: 4px 8px;
+    padding: 8px var(--bs-modal-padding, 1rem) 0;
+}
+.mr-submission-tabs .nav-link { font-size: .875rem; font-weight: 600; color: var(--color-link); }
+.mr-submission-tabs .nav-link.active {
+    background: var(--color-selection);
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+.mr-submission-message { margin: 10px 16px 0; }
 .mr-status:is([data-state="Approved"], [data-state="Compliant"], [data-state="Resolved"]) {
     background: var(--pharma-positive-surface); color: var(--pharma-positive-text);
 }
@@ -260,15 +311,14 @@ html[data-theme="dark"] body:has(.manager-refresh) { background:#101817; --color
 .mr-thread-actions:empty { display: none; }
 
 @media (max-width: 960px) {
-    .mr-review-layout { grid-template-columns: minmax(0, 1fr); }
-    .manager-shell .mr-review-layout .mr-queue { margin-bottom: 0; }
+    .mr-submissions-page .mr-facts { grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); }
 }
 
 @media (max-width: 650px) {
     .manager-shell .mr-dashboard-metrics { grid-template-columns: minmax(0, 1fr); }
-    .manager-shell :is(.mr-actions, .mr-next) > .btn,
+    .manager-shell .mr-actions > .btn,
     .manager-shell .mr-actions > .dashboard-cta { flex: 1 1 100%; }
-    .manager-shell :is(.mr-actions, .mr-next) { width: 100%; }
+    .manager-shell .mr-actions { width: 100%; }
 }
 
 .manager-shell .mr-page-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; }
@@ -276,28 +326,20 @@ html[data-theme="dark"] body:has(.manager-refresh) { background:#101817; --color
 .mr-heading-copy p { margin: 8px 0 0; color: var(--color-text-secondary); }
 .manager-shell .mr-heading-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .manager-shell .mr-heading-actions :is(.btn, .dashboard-cta) { white-space: normal; overflow-wrap: anywhere; }
-/* Full-width review queues keep the current task and its status together. */
-.manager-refresh .mr-review-layout,.manager-refresh .mr-inbox { grid-template-columns:minmax(0,1fr); }
-.manager-refresh .mr-queue { padding:20px; }
-.mr-list-search { display:grid; gap:8px; margin-bottom:20px; max-width:640px; }
+.manager-refresh .mr-inbox { grid-template-columns:minmax(0,1fr); }
+.mr-list-search { display:grid; gap:6px; margin-bottom:16px; }
 .mr-list-search label { font-weight:600; }
 .mr-list-search .form-text { margin:0; }
-.mr-queue-group ul { gap:0; }
-.mr-queue-link { border:0; border-radius:0; border-bottom:1px solid var(--color-border); min-height:64px; padding:12px 14px; }
-.mr-queue-link > span:first-child { display:grid; grid-template-columns:100px minmax(0,1fr); align-items:center; gap:14px; flex:1; }
-.mr-queue-link strong { font-size:15px; }
 .mr-conversations nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-height:280px; }
 .manager-refresh .mr-conversation-content { min-height:0; }
 .manager-refresh .mr-award { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; padding-block:20px; }
 .manager-refresh .mr-award > details { grid-column:1/-1; }
 .manager-refresh .btn { min-height:44px; white-space:normal; }
 .manager-refresh .mr-disclosure > summary { min-height:44px; display:list-item; align-content:center; }
-.manager-refresh .mr-action-panel { border-top:3px solid var(--pharma-primary); }
 .manager-refresh [hidden] { display:none !important; }
 .manager-refresh .mr-status { max-width:100%; white-space:normal; }
 .manager-refresh .mr-heading h1 { line-height:1.2; }
 @media(max-width:650px) {
-    .mr-queue-link > span:first-child { grid-template-columns:minmax(0,1fr); gap:2px; }
     .mr-conversations nav { grid-template-columns:minmax(0,1fr); }
     .manager-refresh .mr-award { grid-template-columns:minmax(0,1fr); }
     .manager-refresh .mr-filters .input-group { flex-wrap:wrap; }

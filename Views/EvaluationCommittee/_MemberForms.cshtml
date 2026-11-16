@@ -5,7 +5,7 @@
 { <p class="ev-notice ev-notice-success">All offers have four completed reviews. <button type="button" class="ev-reference-link" data-open-evaluation-tab="report-tab">View scores &amp; report →</button></p> }
 <nav class="ev-offer-navigation" aria-label="Choose an offer to evaluate">
     <p>Choose an offer</p><div class="ev-offer-navigation-list">
-    @foreach (var choice in Model.Offers)
+    @foreach (var choice in Model.Offers.OrderByDescending(offer => offer.SubmittedAt).ThenByDescending(offer => offer.BidId))
     {
         var currentOffer = Model.ReviewOffer?.BidId == choice.BidId;
         <a asp-controller="EvaluationCommittee" asp-action="Evaluations" asp-route-id="@Model.Tender!.TenderId" asp-route-offerId="@choice.BidId" asp-route-tab="forms" asp-fragment="offer-review-@choice.BidId" aria-current="@(currentOffer ? "page" : null)">
