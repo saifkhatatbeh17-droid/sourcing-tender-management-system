@@ -2,16 +2,63 @@ namespace SourcingTenderManagement.Models;
 
 public sealed record TeamMember(int Id, string Name, string Role, string Department, string Bio)
 {
-    public string Portrait => $"~/images/team/member-{Id:D2}.jpg";
+    public string? PortraitFile { get; init; }
+    public string? LinkedInUrl { get; init; }
+    public string? GitHubUrl { get; init; }
+    public string? PortfolioUrl { get; init; }
+    public bool IsFictional { get; init; } = true;
+    public string Portrait => $"~/images/team/{PortraitFile ?? $"member-{Id:D2}.jpg"}";
 
     public static IReadOnlyList<TeamMember> Roster { get; } =
     [
-        new(1, "Lina Haddad", "Quality Assurance", "QA", "Lina builds quality into everyday operations. She turns procedures and review findings into clear checks teams can apply consistently."),
-        new(2, "Ahmad Nasser", "Quality Control", "QC", "Ahmad focuses on precise testing and reliable records. He helps teams trace each result back to its sample, method, and acceptance criteria."),
-        new(3, "Sara Khalil", "Production", "Manufacturing", "Sara translates requirements into practical production routines. She works with quality and operations to make handoffs clear from planning through release."),
-        new(4, "Omar Salim", "Procurement", "Supply Chain", "Omar connects business needs with qualified suppliers. He looks at specifications, availability, and lead times so teams can compare offers on the same basis."),
-        new(5, "Rania Mansour", "Regulatory Affairs", "Regulatory", "Rania keeps requirements and records aligned throughout the product lifecycle. She helps teams understand which documents they need at each stage."),
-        new(6, "Yousef Darwish", "Research & Development", "R&D", "Yousef explores new ideas through structured experiments. He documents what worked, what needs another test, and what production teams need to know."),
-        new(7, "Maha Ibrahim", "Pharmaceutical Operations", "Operations", "Maha brings people, timelines, and processes together. She helps each team see what is ready, what is blocked, and who owns the next decision.")
+        new(1, "Amani Azzam", "Developer", "", "")
+        {
+            IsFictional = false,
+            PortraitFile = "amani-azzam.jpg",
+            LinkedInUrl = "https://www.linkedin.com/in/amani-alazzam-57359936a/",
+            GitHubUrl = "https://github.com/amanialazzam04"
+        },
+        new(2, "Gaith", "Developer", "", "")
+        {
+            IsFictional = false,
+            PortraitFile = "gaith.png",
+            GitHubUrl = "https://github.com/gh2ith",
+            PortfolioUrl = "https://gh2ith.github.io/Portfolio/"
+        },
+        new(3, "Anas Ghawanmeh", "QA", "", "")
+        {
+            IsFictional = false,
+            PortraitFile = "anas.jpg",
+            LinkedInUrl = "https://www.linkedin.com/in/anas-ghawanmeh-4047902b5/",
+            GitHubUrl = "https://github.com/aghawanmeh857-alt"
+        },
+        new(4, "Yasmeen Talafha", "Team member", "", "")
+        {
+            IsFictional = false,
+            PortraitFile = "yasmin.jpg",
+            LinkedInUrl = "https://www.linkedin.com/in/yasmeentalafha/",
+            GitHubUrl = "https://github.com/yasmeenht"
+        },
+        new(5, "Taimaa Freahat", "Product Owner", "", "")
+        {
+            IsFictional = false,
+            PortraitFile = "taimaa.jpg",
+            LinkedInUrl = "https://www.linkedin.com/feed/foryou/?highlightedUpdateUrn=urn%3Ali%3Aactivity%3A7526703320338669569&highlightedUpdateType=REACTIONS_BY_YOUR_NETWORK&origin=inapp",
+            PortfolioUrl = "https://taimaafreahat4.github.io/project-portfolio/"
+        },
+        new(6, "Mohammad Mustafa", "Developer", "", "")
+        {
+            IsFictional = false,
+            PortraitFile = "mohammad-mustafa.png",
+            LinkedInUrl = "https://www.linkedin.com/in/mohammad-mustafa-71a9193b1/",
+            PortfolioUrl = "https://moazzam9444-wq.github.io/Portfolio/"
+        },
+        new(7, "Saif Khatatbeh", "Scrum Master", "", "")
+        {
+            IsFictional = false,
+            PortraitFile = "saif-khatatbeh.png",
+            LinkedInUrl = "https://www.linkedin.com/in/saif-khatatbeh-1a6ab1317/",
+            GitHubUrl = "https://github.com/saifkhatatbeh17-droid/new-portfolio"
+        }
     ];
 }

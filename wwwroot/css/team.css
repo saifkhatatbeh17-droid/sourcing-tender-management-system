@@ -43,6 +43,24 @@
     filter: brightness(0) invert(1);
     opacity: .09;
 }
+.team-heading {
+    text-align: center;
+    color: #fff;
+    padding-inline: 1rem;
+}
+.team-heading h1 {
+    color: inherit;
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 3.75rem);
+    font-weight: 700;
+    letter-spacing: -.04em;
+    line-height: 1.1;
+}
+.team-heading p {
+    margin: .75rem 0 0;
+    color: #d0eeeb;
+    font-size: clamp(.9rem, 2vw, 1.05rem);
+}
 .team-product-scene {
     position: relative;
     isolation: isolate;
@@ -370,10 +388,32 @@ html:has(.team-dialog[open]) { overflow: hidden; }
 }
 .team-profile-close:focus-visible { outline-color: #007c81; }
 .team-profile-index { color: #006d73; font-size: .75rem; font-weight: 750; letter-spacing: .14em; }
-.team-profile-copy h2 { margin: 0 0 .35rem; font-size: clamp(1.9rem, 4.3vw, 3.4rem); line-height: 1.03; letter-spacing: -.045em; }
+.team-profile-copy { container-type: inline-size; }
+.team-profile-copy h2 { margin: 0 0 .35rem; font-size: min(3.4rem, 10cqi); line-height: 1.08; letter-spacing: -.045em; white-space: nowrap; }
 .team-profile-role { margin-bottom: .6rem; font-size: 1.05rem; font-weight: 650; }
 .team-profile-department { display: inline-block; padding: .28rem .65rem; border-radius: 99rem; background: #d8eeea; color: #0b5860; font-size: .78rem; font-weight: 700; }
 .team-profile-bio { margin-bottom: 0; color: #365861; line-height: 1.6; }
+.team-profile-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .625rem;
+    margin-top: 1.25rem;
+}
+.team-profile-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    gap: .5rem;
+    padding: .5rem .85rem;
+    border: 1px solid #a8d1ce;
+    border-radius: .65rem;
+    background: #eaf6f3;
+    color: #07545b;
+    font-weight: 650;
+    text-decoration: none;
+}
+.team-profile-links a:hover { background: #d8eeea; color: #06444a; }
+.team-profile-links a:focus-visible { outline: 2px solid #007c81; outline-offset: 3px; }
 .team-flying-portrait { position: fixed; z-index: 3; object-fit: cover; pointer-events: none; transform-origin: top left; }
 .team-static-profiles { margin-top: 1.5rem; color: #f8fbfc; }
 .team-static-profiles details { margin-bottom: .65rem; }
@@ -395,6 +435,7 @@ html:has(.team-dialog[open]) { overflow: hidden; }
     .team-profile-content { grid-template-columns: 1fr; }
     .team-profile-portrait { width: min(100%, 15rem); margin-inline: auto; aspect-ratio: 1; }
     .team-profile-copy { text-align: center; }
+    .team-profile-links { justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) {
     .team-pack-stage.is-revealed .team-pack::after { animation: none; opacity: 0; }
