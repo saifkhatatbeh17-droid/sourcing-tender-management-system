@@ -1,6 +1,6 @@
 /* Role-scoped committee refinement: the active task keeps the full content width. */
 .evaluation-page h1::after { content:none; }
-.evaluation-page :is(h1,h2,h3,h4) { color:var(--color-link); }
+.evaluation-page :is(h1,h2,h3,h4) { color:var(--color-text); }
 .ev-tender-workspace,.cw-report-layout { display:block; }
 .ev-tender-switcher,.ev-offer-switcher { border:1px solid var(--color-border); border-radius:14px; background:var(--color-surface); margin:20px 0; }
 .ev-tender-switcher > summary,.ev-offer-switcher > summary,.ev-report-switcher > summary { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; cursor:pointer; color:var(--color-link); min-height:56px; list-style:none; }
@@ -48,13 +48,20 @@
 .ev-review-options a { align-items:flex-start; flex-direction:column; gap:6px; }
 .ev-tender-switcher .ev-tender-rail { max-height:340px; }
 }
-.ev-member-disclosure { cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px; color:var(--color-link); list-style:none; min-height:64px; }
-.ev-member-disclosure::-webkit-details-marker { display:none; }
-.ev-member-disclosure span { color:var(--color-text-secondary); font-size:13px; }
-.ev-offer-review-section .ev-forms-grid { grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; }
-.ev-offer-review-section .ev-forms-grid > .is-yours { grid-column:1 / -1; }
-.ev-offer-review-section .is-yours .ev-member-review { max-width:760px; }
 .ev-report-switcher nav { display:block; }
-@media(max-width:760px) { .ev-offer-review-section .ev-forms-grid { grid-template-columns:1fr; } }
+
+/* Center the signed-in member's form above the compact peer reviews. */
+.ev-offer-review-section .ev-forms-grid { grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:18px; }
+.ev-offer-review-section .ev-approval-card { display:block;grid-row:auto;min-width:0; }
+.ev-offer-review-section .ev-approval-card.is-yours { grid-column:1/-1;justify-self:center;width:min(100%,760px);margin-bottom:10px; }
+.ev-member-disclosure { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;min-height:64px;cursor:pointer;list-style:none;color:var(--color-text); }
+.ev-member-disclosure::-webkit-details-marker { display:none; }
+.ev-member-disclosure>span { font-size:12px;color:var(--color-text-secondary); }
+.ev-offer-review-section .ev-approval-card>header h4 { min-block-size:0; }
+.ev-offer-review-section .is-yours .ev-member-disclosure>strong { font-size:20px; }
+.ev-offer-review-section .is-yours>header h4 { font-size:18px; }
+.ev-offer-review-section .is-yours .ev-member-review { font-size:16px;color:var(--color-text); }
+.ev-offer-review-section .is-yours .ev-member-review :is(label,input,textarea) { font-size:16px;color:var(--color-text); }
+@media(max-width:900px) { .ev-offer-review-section .ev-forms-grid { grid-template-columns:1fr; }.ev-offer-review-section .ev-approval-card:not(.is-yours) { width:min(100%,760px);justify-self:center; } }
 
 .committee-workspace .cw-metrics .cw-metric-description { margin:0;font-size:12px;font-weight:400;letter-spacing:0;line-height:1.5;color:var(--color-text-secondary); }

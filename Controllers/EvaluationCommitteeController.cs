@@ -26,10 +26,8 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
     }
     public async Task<IActionResult> Reports(int? id)
     {
-        var page = await LoadPage(id);
-        return page.Tender != null && (!page.PercentageReady || !page.Locked && !page.SelectionReady)
-            ? RedirectToAction(nameof(Evaluations), new { id = page.Tender.TenderId, tab = page.PercentageReady ? "report" : "offers" })
-            : View(page);
+        var page = await LoadPage(id, selectFirst: false);
+        return View(page);
     }
     public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
 
