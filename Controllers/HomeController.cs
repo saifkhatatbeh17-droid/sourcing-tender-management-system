@@ -14,6 +14,7 @@ public class HomeController(ApplicationDbContext db, ILogger<HomeController> log
     public IActionResult Index() => View();
     public IActionResult About() => View();
     public IActionResult HowItWorks() => View();
+    public IActionResult Team() => View(TeamMember.Roster);
     [HttpGet, AllowAnonymous]
     public IActionResult Contact() => View(new ContactMessageInput());
 

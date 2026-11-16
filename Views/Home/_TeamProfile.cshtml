@@ -1,0 +1,38 @@
+@model TeamMember
+
+<div class="team-profile-portrait team-portrait" data-portrait-fallback="@Model.Name[0]">
+    <img src="@Url.Content(Model.Portrait)" alt="@Model.Name" width="384" height="432" />
+</div>
+<div class="team-profile-copy">
+    @if (Model.IsFictional)
+    {
+        <p class="team-profile-index">@Model.Id.ToString("D2") / 07 · Fictional profile</p>
+    }
+    <h2 id="team-member-name">@Model.Name</h2>
+    <p class="team-profile-role">@Model.Role</p>
+    @if (!string.IsNullOrWhiteSpace(Model.Department))
+    {
+        <p class="team-profile-department">@Model.Department</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.Bio))
+    {
+        <p class="team-profile-bio">@Model.Bio</p>
+    }
+    @if (Model.LinkedInUrl != null || Model.GitHubUrl != null || Model.PortfolioUrl != null)
+    {
+        <div class="team-profile-links">
+            @if (Model.LinkedInUrl != null)
+            {
+                <a href="@Model.LinkedInUrl" target="_blank" rel="noopener noreferrer">LinkedIn <span aria-hidden="true">↗</span></a>
+            }
+            @if (Model.GitHubUrl != null)
+            {
+                <a href="@Model.GitHubUrl" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+            }
+            @if (Model.PortfolioUrl != null)
+            {
+                <a href="@Model.PortfolioUrl" target="_blank" rel="noopener noreferrer">Portfolio <span aria-hidden="true">↗</span></a>
+            }
+        </div>
+    }
+</div>

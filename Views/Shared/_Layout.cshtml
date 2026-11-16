@@ -77,7 +77,7 @@
 {
     <partial name="_WorkspaceNavbar" />
 }
-else if (!standaloneLogin)
+else if (!standaloneLogin && ViewData["HidePublicNavigation"] is not true)
 {
 <header class="@(isSupplierRegistration ? "landing-header registration-navbar" : isContactPage ? "landing-header is-past-hero contact-navbar" : isHomeLanding ? "landing-header" : "border-bottom bg-white")">
     <nav class="container-fluid d-flex flex-wrap align-items-center gap-3 @(useLandingNavbar ? "landing-nav" : "p-3")" aria-label="Main navigation">
@@ -91,6 +91,7 @@ else if (!standaloneLogin)
         }
         <div class="d-flex flex-wrap align-items-center gap-3 @(useLandingNavbar ? "landing-links" : "")">
             <a asp-controller="Home" asp-action="Index" aria-current="@(isHomeLanding ? "page" : null)">Home</a>
+            <a asp-controller="Home" asp-action="Team">Our Team</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "About")" asp-fragment="@(isHomeLanding ? "about" : null)">About</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "HowItWorks")" asp-fragment="@(isHomeLanding ? "how-it-works" : null)">How It Works</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "Contact")" asp-fragment="@(isHomeLanding ? "contact" : null)" aria-current="@(isContactPage ? "page" : null)">Contact</a>

@@ -1,0 +1,68 @@
+@model IReadOnlyList<TeamMember>
+@{
+    ViewData["Title"] = "Meet Our Team";
+    ViewData["HidePublicNavigation"] = true;
+    ViewData["HideWorkspaceSidebar"] = true;
+}
+
+<section class="team-page" aria-labelledby="team-title" data-team>
+    <div class="team-brand-watermark" aria-hidden="true"><partial name="_DashboardMark" /></div>
+    <header class="team-heading">
+        <h1 id="team-title">Meet the Tiryaq team</h1>
+        <p>Select a capsule to meet a team member.</p>
+    </header>
+    <div class="team-product-scene">
+        <div class="team-carton" aria-hidden="true">
+            <span class="team-carton-mouth"><span class="team-carton-flap"></span></span>
+            <span class="team-carton-face"><span class="team-carton-mark"><partial name="_DashboardMark" /></span></span>
+        </div>
+
+        <div class="team-pack-stage">
+            <div class="team-pack" data-team-pack>
+                <div class="team-capsules">
+                    @foreach (var member in Model)
+                    {
+                        <button type="button" class="team-capsule" data-member="@member.Id"
+                                aria-label="Meet @member.Name, @member.Role" aria-haspopup="dialog" aria-controls="team-profile">
+                            <span class="team-capsule-portrait" aria-hidden="true">
+                                <img src="@Url.Content(member.Portrait)" alt="" width="104" height="104" />
+                            </span>
+                        </button>
+                        <template id="team-member-@member.Id">
+                            <partial name="_TeamProfile" model="member" />
+                        </template>
+                    }
+                    <span class="team-empty-pocket" aria-hidden="true"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="team-capsule-display" aria-hidden="true">
+            <span class="team-glass-dish"></span>
+            <span class="team-display-pill"></span>
+        </div>
+    </div>
+
+    <dialog class="team-dialog" id="team-profile" aria-labelledby="team-member-name">
+        <div class="team-profile">
+            <button type="button" class="team-profile-close" aria-label="Close profile" data-team-close autofocus>×</button>
+            <div class="team-profile-content" data-team-profile></div>
+        </div>
+    </dialog>
+
+    <noscript>
+        <div class="team-static-profiles">
+            @foreach (var member in Model)
+            {
+                <details><summary>@member.Name · @member.Role</summary><p>@member.Bio</p></details>
+            }
+        </div>
+    </noscript>
+</section>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/team.css" asp-append-version="true" />
+}
+@section Scripts {
+    <script src="~/js/team.js" asp-append-version="true" defer></script>
+}
