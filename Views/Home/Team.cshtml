@@ -1,0 +1,94 @@
+@{
+    Layout = null;
+}
+<!doctype html>
+<html lang="en">
+<head>
+  <base href="@Url.Content("~/team-redesign/")">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Meet the team — Tiryaq</title>
+  <meta name="description" content="Seven specialists, one formula. Meet the team behind Tiryaq.">
+  <meta name="theme-color" content="#f3f7f6">
+  <link rel="icon" href="assets/logo-mark.png">
+  <link rel="preload" href="assets/fonts/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/team-data.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <div class="app" data-app>
+
+    <!-- ============ Top bar ============ -->
+    <header class="topbar">
+      <a class="brand" href="@Url.Action("Team", "Home")" aria-label="Tiryaq — replay the intro">
+        <img src="assets/logo.png" alt="Tiryaq" width="640" height="190">
+      </a>
+
+      <div class="topbar-right">
+        <button class="batch" type="button" data-batch disabled aria-describedby="batch-label">
+          <span class="batch-capsule" aria-hidden="true">
+            <span class="batch-fill" data-batch-fill></span>
+            <span class="batch-ticks"></span>
+          </span>
+          <span class="batch-label" id="batch-label" data-batch-label role="status" aria-live="polite">0 / 7 met</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ============ Intro copy ============ -->
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>The team behind the formula</p>
+      <h1 id="page-title">Seven specialists. <span>One formula.</span></h1>
+      <p class="lede"><span class="lede-long">Take a seat at our table — select anyone to open their profile.</span><span class="lede-short">Tap anyone at the table to meet them.</span></p>
+    </section>
+
+    <!-- ============ The capsule table ============ -->
+    <main class="stage" id="main">
+      <div class="scene" data-scene aria-label="Team seating, seven people around the Tiryaq table">
+        <div class="table-shadow" aria-hidden="true"></div>
+        <div class="table" aria-hidden="true">
+          <div class="half half-a"></div>
+          <div class="half half-b"></div>
+          <span class="table-gloss"></span>
+        </div>
+        <div class="medallion" aria-hidden="true">
+          <img src="assets/logo-mark.png" alt="" width="160" height="182">
+        </div>
+        <!-- laptops + seats are rendered by js/app.js from js/team-data.js -->
+        <ol class="seats" data-seats></ol>
+      </div>
+    </main>
+
+    <!-- ============ Footer hint ============ -->
+    <footer class="hint">
+      <span class="hint-item"><kbd>Click</kbd> a seat to open a profile</span>
+      <span class="hint-sep" aria-hidden="true"></span>
+      <span class="hint-item hint-keys"><kbd>←</kbd><kbd>→</kbd> browse <kbd>Esc</kbd> close</span>
+    </footer>
+  </div>
+
+  <!-- ============ Profile card (dialog) ============ -->
+  <dialog class="sheet" data-sheet aria-labelledby="card-name">
+    <div class="card" data-card>
+      <button class="icon-btn close" type="button" data-close aria-label="Close profile">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+      <div class="card-body" data-card-body></div>
+    </div>
+  </dialog>
+
+  <noscript>
+    <style>body{overflow:auto}.app{height:auto;min-height:0}.stage,.scene,.hint,.batch{display:none!important}</style>
+    <ul class="noscript-list">
+      <li>Taimaa Freahat — Product Owner</li>
+      <li>Saif Khatatbeh — Scrum Master</li>
+      <li>Amani Azzam — Developer</li>
+      <li>Gaith — Developer</li>
+      <li>Mohammad Mustafa — Developer</li>
+      <li>Yasmeen Talafha — Team member</li>
+      <li>Anas Ghawanmeh — QA Engineer</li>
+    </ul>
+  </noscript>
+</body>
+</html>
