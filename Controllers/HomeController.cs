@@ -15,7 +15,6 @@ public class HomeController(ApplicationDbContext db, ILogger<HomeController> log
     public IActionResult About() => View();
     public IActionResult HowItWorks() => View();
     public IActionResult Team() => View(TeamMember.Roster);
-    public IActionResult InsideTiryaq() => View();
     [HttpGet, AllowAnonymous]
     public IActionResult Contact() => View(new ContactMessageInput());
 

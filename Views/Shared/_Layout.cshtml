@@ -101,7 +101,6 @@ else if (!standaloneLogin && ViewData["HidePublicNavigation"] is not true)
         <div class="d-flex flex-wrap align-items-center gap-3 @(useLandingNavbar ? "landing-links" : "")">
             <a asp-controller="Home" asp-action="Index" aria-current="@(isHomeLanding ? "page" : null)">Home</a>
             <a asp-controller="Home" asp-action="Team">Our Team</a>
-            <a asp-controller="Home" asp-action="InsideTiryaq">Inside Tiryaq</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "About")" asp-fragment="@(isHomeLanding ? "about" : null)">About</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "HowItWorks")" asp-fragment="@(isHomeLanding ? "how-it-works" : null)">How It Works</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "Contact")" asp-fragment="@(isHomeLanding ? "contact" : null)" aria-current="@(isContactPage ? "page" : null)">Contact</a>
