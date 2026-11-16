@@ -1,6 +1,6 @@
 /* Tiryaq sourcing workspace: compact summaries and content-first records. */
 .so-page {
- --so-accent:var(--pharma-primary); --so-accent-hover:#007b7e; --so-accent-soft:#eef8f6;
+ --so-accent:var(--pharma-primary); --so-accent-hover:#1d5560; --so-accent-soft:#eef8f6;
  --so-ink:var(--color-text,#103638); --so-muted:var(--color-text-secondary,#5a707a); --so-line:var(--color-border,#dce5e8);
  --so-surface:var(--color-surface,#fff); --so-surface-alt:var(--color-surface-alt,#f5f7fa);
  max-width:1500px; margin-inline:auto; color:var(--so-ink); line-height:1.6; min-width:0;

@@ -1,10 +1,10 @@
 /* All role dashboards share the committee dashboard's visual language. */
 body:has(.unified-dashboard) {
- --accent:#00a3a6; --color-primary:#00a3a6; --color-primary-hover:color-mix(in oklab,var(--accent),black 8%); --color-primary-active:color-mix(in oklab,var(--accent),black 14%); --color-on-primary:#002e30;
- --color-background:#f5f7f9; --color-surface:#fff; --color-surface-alt:#f5f7f9; --color-text:#152c32; --color-text-secondary:#607278; --color-border:#dfe7e8; --color-link:#007b7e; --color-selection:#eef8f6;
+ --accent:#1d5560; --color-primary:#1d5560; --color-primary-hover:color-mix(in oklab,var(--accent),black 8%); --color-primary-active:color-mix(in oklab,var(--accent),black 14%); --color-on-primary:#0c252d;
+ --color-background:#f5f7f9; --color-surface:#fff; --color-surface-alt:#f5f7f9; --color-text:#152c32; --color-text-secondary:#607278; --color-border:#dfe7e8; --color-link:#1d5560; --color-selection:#eef8f6;
  background:var(--color-background); color:var(--color-text);
 }
-html[data-theme="dark"] body:has(.unified-dashboard) { --color-background:#101817; --color-surface:#192321; --color-surface-alt:#202d2a; --color-text:#edf5f2; --color-text-secondary:#a6bbb5; --color-border:#34443f; --color-link:#70d9d3; --color-selection:#173a34; }
+html[data-theme="dark"] body:has(.unified-dashboard) { --color-background:#101817; --color-surface:#192321; --color-surface-alt:#202d2a; --color-text:#edf5f2; --color-text-secondary:#a6bbb5; --color-border:#34443f; --color-link:#efb85c; --color-selection:#173a34; }
 .app-shell:has(.unified-dashboard) .main-content { padding:24px 32px 40px !important; }
 .unified-dashboard { max-width:1280px; margin:auto; color:var(--color-text); font-family:"Segoe UI",Arial,sans-serif; font-size:16px; }
 .admin-shell .admin-dashboard.unified-dashboard,.tc-workspace:has(.unified-dashboard) { max-width:1280px; }
@@ -29,13 +29,13 @@ html[data-theme] body:has(.unified-dashboard) { background:var(--color-backgroun
 .unified-dashboard .dashboard-metric { position:relative; overflow:hidden; padding:22px 24px; border:1px solid var(--color-border); border-radius:18px; background:var(--color-surface); min-width:0; display:flex; flex-direction:column; align-items:start; }
 .unified-dashboard .dashboard-metric h2 { font-size:14px; line-height:1.5; font-weight:500; color:var(--color-text-secondary); margin:0; }
 .tc-workspace .unified-dashboard .dashboard-metric h2 { color:var(--color-text-secondary); font-weight:500; }
-.tc-workspace .unified-dashboard .dashboard-metric.is-primary h2 { color:#002e30; }
+.tc-workspace .unified-dashboard .dashboard-metric.is-primary h2 { color:#0c252d; }
 .unified-dashboard .dashboard-metric > strong { font-size:38px; font-weight:600; letter-spacing:-.045em; line-height:1.1; font-variant-numeric:tabular-nums; margin:14px 0 10px; }
 .unified-dashboard .dashboard-metric p { color:var(--color-text-secondary); font-size:12px; line-height:1.6; margin:0; }
 .unified-dashboard .dashboard-metric a { color:var(--color-link); font-size:12px; font-weight:600; text-decoration:none; margin-top:auto; padding-top:16px; position:relative; z-index:1; }
 .dashboard-metric a span[aria-hidden] { margin-left:12px; }
-.unified-dashboard .dashboard-metric.is-primary { background:#00a3a6; border-color:#00a3a6; color:#002e30; }
-.unified-dashboard .dashboard-metric.is-primary :is(h2,p,a) { color:#002e30; }
+.unified-dashboard .dashboard-metric.is-primary { background:#1d5560; border-color:#1d5560; color:#0c252d; }
+.unified-dashboard .dashboard-metric.is-primary :is(h2,p,a) { color:#0c252d; }
 .dashboard-metric > :not(svg) { position:relative; z-index:1; }
 .dashboard-mark { position:absolute; width:96px; height:110px; right:14px; bottom:-12px; opacity:.16; filter:brightness(0); pointer-events:none; }
 .unified-dashboard :is(.workspace-section,.supplier-card,.verification-panel) { border:1px solid var(--color-border); border-radius:18px; background:var(--color-surface); padding:24px; margin:0 0 24px; box-shadow:none; color:var(--color-text); }

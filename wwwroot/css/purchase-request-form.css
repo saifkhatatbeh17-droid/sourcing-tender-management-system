@@ -147,21 +147,21 @@ html[data-theme="dark"] .rq-page { --rq-field-surface: #141f1c; }
 .rq-heading { margin-top: 1rem; }
 /* Use the shared orange action palette for submitting this request. */
 html body .rq-page .rq-footer .rq-submit {
-    --bs-btn-bg: var(--brand-highlight, #ff6b4a);
-    --bs-btn-border-color: var(--brand-highlight, #ff6b4a);
-    --bs-btn-color: var(--brand-highlight-ink, #123032);
-    background: var(--brand-highlight, #ff6b4a);
-    border-color: var(--brand-highlight, #ff6b4a);
-    color: var(--brand-highlight-ink, #123032);
+    --bs-btn-bg: var(--brand-highlight, #efb85c);
+    --bs-btn-border-color: var(--brand-highlight, #efb85c);
+    --bs-btn-color: var(--brand-highlight-ink, #0c252d);
+    background: var(--brand-highlight, #efb85c);
+    border-color: var(--brand-highlight, #efb85c);
+    color: var(--brand-highlight-ink, #0c252d);
 }
 html body .rq-page .rq-footer .rq-submit:hover,
 html body .rq-page .rq-footer .rq-submit:active {
-    background: var(--brand-highlight-hover, #f05c3c);
-    border-color: var(--brand-highlight-hover, #f05c3c);
-    color: var(--brand-highlight-ink, #123032);
+    background: var(--brand-highlight-hover, #e5a23e);
+    border-color: var(--brand-highlight-hover, #e5a23e);
+    color: var(--brand-highlight-ink, #0c252d);
 }
 html body .rq-page .rq-footer .rq-submit:focus-visible {
-    outline: 2px solid var(--color-focus, #1170cf);
+    outline: 2px solid var(--color-focus, #1d5560);
     outline-offset: 3px;
 }
 

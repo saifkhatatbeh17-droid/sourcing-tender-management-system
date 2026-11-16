@@ -1,8 +1,8 @@
 /* Isolated to Account/Login. Shared login.css also serves biometric setup pages. */
-.login-main:has(.cinematic-login) { --pharma-primary:#305b5c; background:#edf1ee; }
+.login-main:has(.cinematic-login) { --pharma-primary:#1d5560; background:#edf1ee; }
 html[data-theme="dark"] .login-main:has(.cinematic-login) { background:#101c1d; }
 .login-main #login-stage.cinematic-login { max-width:1320px; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:center; align-items:stretch; gap:24px; padding:32px; min-height:100dvh; }
-#login-stage.cinematic-login .login-identity { display:flex; flex-direction:column; justify-content:space-between; gap:0; padding:34px 38px 28px; min-height:700px; border:0; border-radius:20px; box-shadow:0 22px 50px -30px #061a1c; background:radial-gradient(ellipse at 42% 40%,#416c69 0%,#234b49 38%,#123032 76%); overflow:hidden; }
+#login-stage.cinematic-login .login-identity { display:flex; flex-direction:column; justify-content:space-between; gap:0; padding:34px 38px 28px; min-height:700px; border:0; border-radius:20px; box-shadow:0 22px 50px -30px #061a1c; background:radial-gradient(ellipse at 42% 40%,#416c69 0%,#234b49 38%,#0c252d 76%); overflow:hidden; }
 #login-stage .login-identity::before { display:none; }
 #login-stage .login-access-effect { display:none; }
 #login-stage .login-brand { position:relative; z-index:2; width:145px; margin:0; padding:0; background:none; border:0; border-radius:0; box-shadow:none; }
@@ -25,7 +25,7 @@ html body .login-main #login-stage.cinematic-login .login-panel { box-shadow:0 1
 #login-stage .login-panel-top { margin-bottom:40px; }
 #login-stage .login-panel h1 { font-size:36px; letter-spacing:-.035em; font-weight:600; }
 #login-stage .login-intro { font-size:14px; margin-bottom:30px; }
-#login-stage .form-control { border-radius:9px; min-height:52px; caret-color:#305b5c; }
+#login-stage .form-control { border-radius:9px; min-height:52px; caret-color:#1d5560; }
 #login-stage .login-submit { border-radius:9px; }
 #login-stage .login-method { border-radius:9px; }
 #login-stage .login-method strong { color:inherit; }
@@ -38,18 +38,18 @@ html[data-theme="dark"] #login-stage .form-control { border-color:#59716d!import
 #login-stage .login-registration { font-size:13px; }
 #login-stage .login-panel::before { border-radius:14px; }
 #login-stage .login-panel > .small { font-size:11px; line-height:1.65; }
-#login-stage :focus-visible { outline:2px solid #305b5c; outline-offset:4px; }
+#login-stage :focus-visible { outline:2px solid #1d5560; outline-offset:4px; }
 html[data-theme="dark"] #login-stage :focus-visible { outline-color:#91c9c4; }
-#login-stage ::selection { background:#305b5c; color:#fff; }
+#login-stage ::selection { background:#1d5560; color:#fff; }
 /* A CSS product still remains visible if the module, GPU or context is unavailable. */
 #login-stage .pharma-fallback { position:absolute; inset:0; display:grid; place-items:center; opacity:0; visibility:hidden; }
 #login-stage #pharma-scene[data-render="fallback"] .pharma-fallback { opacity:1; visibility:visible; }
 #login-stage .scene-ready .pharma-fallback { opacity:0; visibility:hidden; }
 #login-stage .fallback-bottle { position:relative; width:178px; height:268px; border-radius:49px 49px 24px 24px; transform:rotate(-12deg); background:linear-gradient(90deg,#b7c9bd,#fcfff1 27%,#e8eee2 68%,#9dafaa); box-shadow:20px 36px 35px -18px #041a1c80,inset -10px 0 16px #788b8650; }
-#login-stage .fallback-cap { position:absolute; width:130px; height:58px; border-radius:9px 9px 5px 5px; top:-37px; left:24px; background:repeating-linear-gradient(90deg,#204e4d 0 2px,#396764 2px 4px); box-shadow:inset 0 8px 8px #517a76,inset 0 -4px #123032; }
+#login-stage .fallback-cap { position:absolute; width:130px; height:58px; border-radius:9px 9px 5px 5px; top:-37px; left:24px; background:repeating-linear-gradient(90deg,#204e4d 0 2px,#396764 2px 4px); box-shadow:inset 0 8px 8px #517a76,inset 0 -4px #0c252d; }
 #login-stage .fallback-label { position:absolute; inset:80px 0 40px; display:flex; align-items:center; flex-direction:column; justify-content:center; color:#234b49; background:linear-gradient(90deg,#cdd9d0,#f7f7eb 32%,#f0f1e7 70%,#bfcfc7); font-family:'Segoe UI',sans-serif; }
 #login-stage .fallback-label span { font-size:28px; letter-spacing:.09em; font-weight:600; }
-#login-stage .fallback-label i { width:25px; height:3px; background:#ff6b4a; margin:12px; }
+#login-stage .fallback-label i { width:25px; height:3px; background:#efb85c; margin:12px; }
 #login-stage .fallback-label small { font-size:8px; letter-spacing:.12em; text-align:center; line-height:1.8; }
 #login-stage .fallback-tablet { position:absolute; width:28px; height:55px; border-radius:20px; background:linear-gradient(100deg,#d1d8c8,#ffffef 42%,#aab8ad); box-shadow:8px 16px 16px #102f3040; }
 #login-stage .tablet-a { top:28%; left:20%; transform:rotate(40deg); }
@@ -62,7 +62,7 @@ html[data-theme="dark"] #login-stage :focus-visible { outline-color:#91c9c4; }
 
 /* ===== Polish pass ===== */
 #login-stage{font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif}
-#login-stage .login-identity{background:radial-gradient(ellipse at 40% 38%,#4d7f7a 0%,#2a5755 34%,#123032 78%);animation:tqpop .9s cubic-bezier(.2,.7,.2,1) both}
+#login-stage .login-identity{background:radial-gradient(ellipse at 40% 38%,#4d7f7a 0%,#2a5755 34%,#0c252d 78%);animation:tqpop .9s cubic-bezier(.2,.7,.2,1) both}
 #login-stage .login-identity::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 12% 22%,#64f4dc40 0 2px,transparent 3px),radial-gradient(circle at 84% 30%,#ffffff33 0 2px,transparent 3px),radial-gradient(circle at 72% 80%,#ff6b4a55 0 2.5px,transparent 3.5px),radial-gradient(circle at 22% 72%,#ffffff2b 0 1.5px,transparent 2.5px),radial-gradient(circle at 91% 62%,#64f4dc38 0 2px,transparent 3px);animation:tqdrift 12s ease-in-out infinite alternate}
 #login-stage .pharma-scene::before{content:"";position:absolute;left:50%;top:50%;width:72%;aspect-ratio:1;translate:-50% -50%;border-radius:50%;background:radial-gradient(circle,#64f4dc30,#18c5c81c 38%,transparent 68%);animation:tqbreathe 5s ease-in-out infinite}
 #login-stage .login-identity[data-access=pending] .pharma-scene::before{animation-duration:1.5s}
@@ -73,21 +73,21 @@ html[data-theme="dark"] #login-stage :focus-visible { outline-color:#91c9c4; }
 @keyframes tqpop{from{opacity:0;transform:scale(.97)}}
 @keyframes tqflow{to{background-position:200% 0}}
 @keyframes tqping{70%,100%{box-shadow:0 0 0 9px transparent}}
-#login-stage .login-panel h1 span{color:#ff6b4a}
+#login-stage .login-panel h1 span{color:#efb85c}
 #login-stage .form-control{transition:border-color .25s,box-shadow .25s}
-#login-stage .form-control:focus{border-color:#305b5c!important;box-shadow:0 0 0 4px #305b5c24,0 10px 24px -14px #305b5c}
-html[data-theme=dark] #login-stage .form-control:focus{border-color:#64f4dc!important;box-shadow:0 0 0 4px #64f4dc22}
-#login-stage .login-submit{position:relative;overflow:hidden;background:var(--action-petrol)!important;border:0!important;color:var(--action-petrol-text)!important;box-shadow:0 14px 26px -14px #123032;transition:box-shadow .3s,filter .3s}
+#login-stage .form-control:focus{border-color:#1d5560!important;box-shadow:0 0 0 4px #305b5c24,0 10px 24px -14px #1d5560}
+html[data-theme=dark] #login-stage .form-control:focus{border-color:#efb85c!important;box-shadow:0 0 0 4px #64f4dc22}
+#login-stage .login-submit{position:relative;overflow:hidden;background:var(--action-petrol)!important;border:0!important;color:var(--action-petrol-text)!important;box-shadow:0 14px 26px -14px #0c252d;transition:box-shadow .3s,filter .3s}
 #login-stage .login-submit::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,#ffffff40 50%,transparent 70%);translate:-120% 0;transition:translate .8s}
 #login-stage .login-submit:hover::after{translate:120% 0}
 #login-stage .login-submit:is(:hover,:focus-visible){background:var(--action-petrol-hover)!important;box-shadow:0 18px 30px -14px var(--action-petrol-hover)}
 #login-stage .login-submit .submit-arrow{color:inherit;transition:translate .25s}
 #login-stage .login-submit:hover .submit-arrow{translate:5px 0}
-#login-stage:has(.login-identity[data-access=pending]) .login-submit{pointer-events:none;background:linear-gradient(90deg,#3b7272,#18c5c8,#3b7272) 0 0/200% 100%!important;animation:tqflow 1s linear infinite}
+#login-stage:has(.login-identity[data-access=pending]) .login-submit{pointer-events:none;background:linear-gradient(90deg,#3b7272,#efb85c,#3b7272) 0 0/200% 100%!important;animation:tqflow 1s linear infinite}
 #login-stage .login-method{transition:transform .25s,border-color .25s,box-shadow .25s}
-#login-stage .login-method:hover{transform:translateY(-2px)!important;border-color:#305b5c;box-shadow:0 12px 22px -16px #305b5c}
-#login-stage .status-dot{background:#64f4dc;animation:tqping 2.2s infinite;box-shadow:0 0 0 0 #64f4dc99}
-#login-stage .login-identity[data-access=pending] .status-dot{background:#ff6b4a}
+#login-stage .login-method:hover{transform:translateY(-2px)!important;border-color:#1d5560;box-shadow:0 12px 22px -16px #1d5560}
+#login-stage .status-dot{background:#efb85c;animation:tqping 2.2s infinite;box-shadow:0 0 0 0 #64f4dc99}
+#login-stage .login-identity[data-access=pending] .status-dot{background:#efb85c}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 /* Balanced desktop proportions with a bounded, readable sign-in form. */
 .login-main #login-stage.cinematic-login {

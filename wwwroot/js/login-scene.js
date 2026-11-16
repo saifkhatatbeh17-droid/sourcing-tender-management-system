@@ -28,7 +28,7 @@ async function start() {
         box.position.set(x,y,z); box.lookAt(0,0,0); studio.add(box);
     }
     softbox(-3,3,3,2,6,5); softbox(4,1,1,1.5,5,3); softbox(0,5,-2,5,2,4);
-    const warm=new T.Mesh(new T.PlaneGeometry(1,4),new T.MeshBasicMaterial({color:new T.Color('#ff6b4a').multiplyScalar(1.6),side:T.DoubleSide}));warm.position.set(3,-1,-3);warm.lookAt(0,0,0);studio.add(warm);
+    const warm=new T.Mesh(new T.PlaneGeometry(1,4),new T.MeshBasicMaterial({color:new T.Color('#efb85c').multiplyScalar(1.6),side:T.DoubleSide}));warm.position.set(3,-1,-3);warm.lookAt(0,0,0);studio.add(warm);
     const pmrem = new T.PMREMGenerator(renderer);
     const environment = pmrem.fromScene(studio,.08);
     scene.environment = environment.texture;
@@ -42,7 +42,7 @@ async function start() {
     key.shadow.radius=5; key.shadow.blurSamples=8; scene.add(key);
     const rim = new T.DirectionalLight('#c4ded9',2); rim.position.set(4,2,-3); scene.add(rim);
     const fill=new T.DirectionalLight('#f6fff9',.65); fill.position.set(2,0,5); scene.add(fill);
-    const reaction = new T.PointLight('#00a3a6',0,8,2); reaction.position.set(-1,1,2.4); scene.add(reaction);
+    const reaction = new T.PointLight('#1d5560',0,8,2); reaction.position.set(-1,1,2.4); scene.add(reaction);
 
     const product = new T.Group();
     product.rotation.set(.05,-.13,-.16);
@@ -58,8 +58,8 @@ async function start() {
     grainContext.putImageData(grainPixels,0,0);
     const grain=new T.CanvasTexture(grainCanvas);grain.wrapS=grain.wrapT=T.RepeatWrapping;grain.repeat.set(8,8);
     const plastic = new T.MeshPhysicalMaterial({color:'#eef1e6',roughness:.26,metalness:0,clearcoat:.45,clearcoatRoughness:.18,sheen:1,sheenColor:new T.Color('#cfe9e2'),sheenRoughness:.5,envMapIntensity:1.1,bumpMap:grain,bumpScale:.005});
-    const teal = new T.MeshPhysicalMaterial({color:'#305b5c',roughness:.28,metalness:.08,clearcoat:.55,envMapIntensity:.9});
-    const orange = new T.MeshStandardMaterial({color:'#ff6b4a',roughness:.48});
+    const teal = new T.MeshPhysicalMaterial({color:'#1d5560',roughness:.28,metalness:.08,clearcoat:.55,envMapIntensity:.9});
+    const orange = new T.MeshStandardMaterial({color:'#efb85c',roughness:.48});
     function lathe(points,material,parent=product) {
         const mesh=new T.Mesh(new T.LatheGeometry(points.map(p=>new T.Vector2(...p)),128),material);
         mesh.castShadow=true; mesh.receiveShadow=true; parent.add(mesh); return mesh;
@@ -92,18 +92,18 @@ async function start() {
     const labelCanvas=document.createElement('canvas'); labelCanvas.width=2048; labelCanvas.height=1024;
     const ctx=labelCanvas.getContext('2d');
     ctx.fillStyle='#f2f1e7'; ctx.fillRect(0,0,2048,1024);
-    ctx.fillStyle='#305b5c'; ctx.fillRect(0,0,2048,14); ctx.fillRect(0,900,2048,124);
+    ctx.fillStyle='#1d5560'; ctx.fillRect(0,0,2048,14); ctx.fillRect(0,900,2048,124);
     ctx.textAlign='center'; ctx.fillStyle='#234b49';
     ctx.font='600 114px Segoe UI, sans-serif'; ctx.fillText('TIRYAQ',1024,402);
-    ctx.fillStyle='#ff6b4a'; ctx.fillRect(986,450,76,8);
+    ctx.fillStyle='#efb85c'; ctx.fillRect(986,450,76,8);
     ctx.fillStyle='#234b49'; ctx.font='500 32px Segoe UI, sans-serif';
     ctx.letterSpacing='3px'; ctx.fillText('SOURCING & TENDER',1024,535); ctx.fillText('MANAGEMENT',1024,585);
     ctx.fillStyle='#91a69b'; ctx.fillRect(880,675,288,2);
     ctx.font='400 24px Segoe UI, sans-serif'; ctx.fillStyle='#506f68'; ctx.fillText('ترياق',1024,760);
     ctx.fillStyle='#edf3e9';ctx.font='400 21px Segoe UI, sans-serif';ctx.fillText('T I R Y A Q',1024,973);
-    ctx.fillStyle='#ff6b4a';ctx.fillRect(0,886,2048,8);
+    ctx.fillStyle='#efb85c';ctx.fillRect(0,886,2048,8);
     ctx.fillStyle='#c5d1c7';[[360,800],[300,826],[330,852]].forEach(([w,y])=>ctx.fillRect(1024-w/2,y,w,6));
-    ctx.fillStyle='#305b5c';ctx.fillRect(994,108,60,24);ctx.fillRect(1012,90,24,60);ctx.fillStyle='#ff6b4a';ctx.beginPath();ctx.arc(1024,120,7,0,7);ctx.fill();
+    ctx.fillStyle='#1d5560';ctx.fillRect(994,108,60,24);ctx.fillRect(1012,90,24,60);ctx.fillStyle='#efb85c';ctx.beginPath();ctx.arc(1024,120,7,0,7);ctx.fill();
     const texture=new T.CanvasTexture(labelCanvas); texture.colorSpace=T.SRGBColorSpace; texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
     const labelMaterial=new T.MeshPhysicalMaterial({map:texture,roughness:.58,clearcoat:.1,bumpMap:grain,bumpScale:.002});
     const label=new T.Mesh(new T.CylinderGeometry(.886,.886,1.65,128,1,true),labelMaterial);
@@ -181,7 +181,7 @@ async function start() {
         const g=new T.Group(), kind=i%4;
         if(kind===0){const body=new T.Mesh(tabletGeo,tabletMat);body.castShadow=true;g.add(body);g.add(new T.Mesh(edgeGeometry,tabletEdgeMaterial));}
         else if(kind===3){const r=new T.Mesh(roundGeo,tabletMat);r.castShadow=true;g.add(r);const sc=new T.Mesh(new T.BoxGeometry(.24,.012,.018),tabletEdgeMaterial);sc.position.z=.05;g.add(sc);}
-        else capsule(kind===1?'#1fa6a3':'#ff6b4a').forEach(m=>g.add(m));
+        else capsule(kind===1?'#1fa6a3':'#efb85c').forEach(m=>g.add(m));
         const glow=new T.Sprite(new T.SpriteMaterial({map:glowTex,blending:T.AdditiveBlending,transparent:true,opacity:0,depthWrite:false}));glow.scale.setScalar(.95);g.add(glow);
         g.position.fromArray(p); g.rotation.set(i*.45,i*.7,-.6+i*.8); product.add(g);
         tablets.push({mesh:g,home:new T.Vector3(...p),rotation:g.rotation.clone(),glow,flight:null,consumed:false,seed:i*1.7});
@@ -280,10 +280,10 @@ async function start() {
         gulp=still?0:Math.max(0,gulp-dt*2.4);product.scale.setScalar(1+Math.sin(gulp*Math.PI)*.02);
         product.position.y=smooth(product.position.y,(moving?.08:0)+(still?0:Math.sin(time*.9)*.035),dt);
         pulse=Math.max(0,pulse-dt*.7);
-        reaction.color.set(failureGlow>0?'#e94747':'#00a3a6');
+        reaction.color.set(failureGlow>0?'#e94747':'#1d5560');
         reaction.intensity=smooth(reaction.intensity,failureGlow>0?failureGlow*5:focus==='email'?1.3+pulse*1.5:focus==='password'?.6+pulse*2.2:pulse,dt);
         plastic.emissive.set('#b42b32');plastic.emissiveIntensity=failureGlow*.085;
-        labelMaterial.emissive.set(failureGlow>0?'#ba3434':'#305b5c');labelMaterial.emissiveIntensity=failureGlow>0?failureGlow*.17:(focus==='email'?.13+pulse*.12:0)+gulp*.22;
+        labelMaterial.emissive.set(failureGlow>0?'#ba3434':'#1d5560');labelMaterial.emissiveIntensity=failureGlow>0?failureGlow*.17:(focus==='email'?.13+pulse*.12:0)+gulp*.22;
         scanMaterial.opacity=!still&&moving?.24:0; scan.position.y=-1.4+(time*.7%1)*2.4;
         ringMaterial.opacity=!still&&moving?.12*(.5+.5*Math.sin(time*2)):0;
         ring.scale.setScalar(1+(time*.22%1)*.3);

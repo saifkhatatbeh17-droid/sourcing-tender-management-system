@@ -22,7 +22,7 @@
 @media(max-width:650px){.admin-shell .workspace-heading { align-items:start; }.admin-shell .admin-record-table :is(th,td) { padding:14px 16px; }.admin-shell .admin-record-table { min-width:620px; }.admin-shell .modal-header,.admin-shell .modal-body,.admin-shell .modal-footer { padding:18px; }.admin-shell .voice-search-control .input-group { flex-wrap:wrap; }.admin-shell .voice-search-control .input-group>.form-control { flex-basis:100%;width:100%;border-radius:8px; }.admin-shell .voice-search-control .input-group>.form-select { flex:1;max-width:none; }.admin-shell .table-responsive { max-width:100%;overscroll-behavior-inline:contain; }}
 @media(prefers-reduced-motion:reduce){.admin-shell .modal.fade .modal-dialog { transition:none; }}
 
-html[data-theme="dark"] .admin-shell main a:not(.btn-primary):not(.btn-danger):not(.dashboard-cta):not(.admin-review-button):not(.admin-applications-button) { color:var(--color-link,#70d9d3); }
+html[data-theme="dark"] .admin-shell main a:not(.btn-primary):not(.btn-danger):not(.dashboard-cta):not(.admin-review-button):not(.admin-applications-button) { color:var(--color-link,#efb85c); }
 /* Supplier application review: three explicit stages, one decision at the end. */
 .admin-shell [data-review-flow] [hidden] { display:none!important; }
 .admin-shell .admin-review-overview { margin-bottom:20px; }.admin-shell .admin-review-overview p { margin:8px 0 0;font-size:14px;line-height:1.6; }

@@ -16,7 +16,7 @@ html[data-theme="dark"] {
     --muted: #bcc5c2;
     --line: #455c78;
     --surface: #232728;
-    --accent: #adcff1;
+    --accent: #efb85c;
     --focus: #f2c77f;
     --bs-body-bg: #171a1b;
     --bs-body-color: var(--ink);
@@ -85,7 +85,7 @@ html[data-theme="dark"] :is(.supplier-table, .offer-table, .tc-workspace .table)
 
 html[data-theme="dark"] {
     --navy: #d9e9fb;
-    --teal: #adcff1;
+    --teal: #efb85c;
 }
 html[data-theme="dark"] :is(.registration-page, .main-content:has(.registration-page)) {
     background: var(--bs-body-bg);

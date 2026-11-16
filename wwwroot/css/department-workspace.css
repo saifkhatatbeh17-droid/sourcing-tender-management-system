@@ -8,7 +8,7 @@ body:has(.department-workspace) {
     --dr-teal-hover: #008a8d;
     --dr-teal-deep: #00686a;
     --dr-teal-soft: #eef8f6;
-    --dr-coral: #ff6b4a;
+    --dr-coral: #efb85c;
     --dr-coral-soft: #fff2ee;
     --dr-amber: #b45309;
     --dr-amber-soft: #fef6e7;
@@ -18,7 +18,7 @@ body:has(.department-workspace) {
     --dr-success-soft: #ecfdf3;
     --dr-blue: #175cd3;
     --dr-blue-soft: #eff8ff;
-    --color-link: #007b7e;
+    --color-link: #1d5560;
     --color-selection: #eef8f6;
     background: #f4f7f8;
 }
@@ -30,7 +30,7 @@ html[data-theme="dark"] body:has(.department-workspace) {
     --color-surface: #182321;
     --color-surface-alt: #202e2b;
     --color-border: #31433e;
-    --color-link: #70d9d3;
+    --color-link: #efb85c;
     --color-selection: #163833;
     --dr-teal-soft: #153532;
     --dr-coral-soft: #3a201b;
@@ -1307,30 +1307,30 @@ body:has(.workspace-shell):has(.department-workspace) {
 
 /* Requests history: shared orange entry action. */
 html body .department-requests > .dr-heading > .dr-primary {
-    background: var(--brand-highlight, #ff6b4a);
-    border-color: var(--brand-highlight, #ff6b4a);
-    color: var(--brand-highlight-ink, #123032);
+    background: var(--brand-highlight, #efb85c);
+    border-color: var(--brand-highlight, #efb85c);
+    color: var(--brand-highlight-ink, #0c252d);
     box-shadow: none;
 }
 html body .department-requests > .dr-heading > .dr-primary:hover,
 html body .department-requests > .dr-heading > .dr-primary:active {
-    background: var(--brand-highlight-hover, #f05c3c);
-    border-color: var(--brand-highlight-hover, #f05c3c);
-    color: var(--brand-highlight-ink, #123032);
+    background: var(--brand-highlight-hover, #e5a23e);
+    border-color: var(--brand-highlight-hover, #e5a23e);
+    color: var(--brand-highlight-ink, #0c252d);
     transform: none;
     box-shadow: none;
 }
 html body .department-requests > .dr-heading > .dr-primary:focus-visible {
-    outline: 2px solid var(--color-focus, #1170cf);
+    outline: 2px solid var(--color-focus, #1d5560);
     outline-offset: 3px;
 }
 /* Request detail navigation is a clear return path, rather than a second tab bar. */
 .department-workspace .dr-back-link { display:inline-flex;align-items:center;min-height:44px;margin-bottom:16px;color:var(--color-link);font-size:13px;text-decoration:none; }.department-workspace .dr-back-link:hover { text-decoration:underline; }
 
 /* Primary actions use the shared orange with legible ink in both themes. */
-html body .department-workspace .dr-primary { background:var(--brand-highlight,#ff6b4a);border-color:var(--brand-highlight,#ff6b4a);color:#111;box-shadow:none; }
-html body .department-workspace .dr-primary:hover { background:#f05c3c;border-color:#f05c3c;color:#111; }
-html body .department-workspace .dr-stepper li.is-current .dr-step-dot { background:var(--brand-highlight,#ff6b4a);border-color:var(--brand-highlight,#ff6b4a);color:#111; }
+html body .department-workspace .dr-primary { background:var(--brand-highlight,#efb85c);border-color:var(--brand-highlight,#efb85c);color:#111;box-shadow:none; }
+html body .department-workspace .dr-primary:hover { background:#e5a23e;border-color:#e5a23e;color:#111; }
+html body .department-workspace .dr-stepper li.is-current .dr-step-dot { background:var(--brand-highlight,#efb85c);border-color:var(--brand-highlight,#efb85c);color:#111; }
 .department-workspace .text-secondary { color:var(--color-text-secondary)!important; }
 /* Compact progress overview; stage detail is available on demand. */
 .department-workspace .dr-progress-summary { margin-bottom:24px;padding:18px 22px;background:var(--color-surface);border-radius:14px;color:var(--color-text); }

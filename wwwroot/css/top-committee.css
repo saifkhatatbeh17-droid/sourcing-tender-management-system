@@ -6,7 +6,7 @@ body:has(.tc-workspace) .main-content { padding: var(--space-24) var(--page-gutt
     --tc-primary-hover: color-mix(in oklab, var(--tc-primary), black 8%);
     --tc-primary-active: color-mix(in oklab, var(--tc-primary), black 14%);
     --tc-on-primary: var(--pharma-on-primary);
-    --tc-link: #007b7e;
+    --tc-link: #1d5560;
     --tc-selection: #eef8f6;
     --tc-success: #006b5b;
     --tc-danger: #a12622;
@@ -22,7 +22,7 @@ body:has(.tc-workspace) .main-content { padding: var(--space-24) var(--page-gutt
     overflow-wrap: anywhere;
 }
 html[data-theme="dark"] .tc-workspace {
-    --tc-link: #67d4d3; --tc-selection: #112e2d; --tc-success: #89dbc8;
+    --tc-link: #efb85c; --tc-selection: #112e2d; --tc-success: #89dbc8;
     --tc-danger: #ffb4ad; --tc-danger-bg: #391e1e; --tc-warning: #edcb8b; --tc-warning-bg: #342b1b;
 }
 .tc-workspace h1 { font-size: var(--font-size-heading); line-height: var(--line-height-heading); letter-spacing: -.025em; font-weight: var(--font-weight-semibold); }
@@ -162,7 +162,7 @@ html .tc-workspace textarea[readonly] { background: var(--color-surface-alt); }
     font-weight: 600;
 }
 .tc-review-steps a:hover { color: var(--tc-link); }
-.tc-review-steps a[aria-current="step"] { color: var(--tc-link); border-bottom-color: var(--workspace-sidebar-accent, #00777a); }
+.tc-review-steps a[aria-current="step"] { color: var(--tc-link); border-bottom-color: var(--workspace-sidebar-accent, #1d5560); }
 .tc-review-steps small { padding: 1px 6px; border-radius: 6px; background: var(--tc-selection); color: var(--tc-link); }
 .tc-review-panel { min-width: 0; }
 .tc-review-navigation {
@@ -181,7 +181,7 @@ html .tc-workspace textarea[readonly] { background: var(--color-surface-alt); }
     background: var(--color-surface-alt);
     color: var(--color-text-secondary);
 }
-.tc-review-steps a[aria-current="step"] > span { background: var(--workspace-sidebar-accent, #00777a); color: #fff; }
+.tc-review-steps a[aria-current="step"] > span { background: var(--workspace-sidebar-accent, #1d5560); color: #fff; }
 .tc-tender :is(#recommendation, #bid-comparison, #review-clarifications, #voting) { scroll-margin-top: 20px; }
 .tc-tender .tc-review-disclosure > summary { color: var(--tc-link); cursor: pointer; font-weight: 600; }
 .tc-tender .tc-review-disclosure[open] > summary { margin-bottom: 16px; }
@@ -255,7 +255,7 @@ html .tc-workspace textarea[readonly] { background: var(--color-surface-alt); }
     margin: 12px clamp(14px, 3vw, 24px) 0;
     padding: 12px clamp(12px, 2vw, 20px);
     border-radius: 12px;
-    background: var(--workspace-sidebar-accent, #00777a);
+    background: var(--workspace-sidebar-accent, #1d5560);
     color: #fff;
 }
 html[data-theme] body .tc-workspace .tc-review-dialog-header h2 {
@@ -285,7 +285,7 @@ html[data-theme] body .tc-workspace .tc-review-dialog-header h2 {
     font: 400 1.625rem/1 system-ui, sans-serif;
     cursor: pointer;
 }
-.tc-review-dialog-close:hover { background: var(--workspace-sidebar-hover, #006568); }
+.tc-review-dialog-close:hover { background: var(--workspace-sidebar-hover, #174750); }
 .tc-workspace .tc-review-dialog-header .tc-review-dialog-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .tc-review-dialog-footer {
     display: flex;

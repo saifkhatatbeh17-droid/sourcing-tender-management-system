@@ -5,7 +5,7 @@
     --sidebar-line: #cedfda;
     --sidebar-hover: #f4faf8;
     --sidebar-active: #fff;
-    --sidebar-accent: #245687;
+    --sidebar-accent: #1d5560;
     display: flex;
     flex: 0 0 252px;
     flex-direction: column;
@@ -119,7 +119,7 @@ body:has(.admin-shell) {
     padding: clamp(1.5rem, 3vw, 2.75rem);
     border-radius: 24px;
     color: #fff;
-    background: #123032;
+    background: #0c252d;
     box-shadow: 0 14px 32px #173e4820;
 }
 
@@ -226,11 +226,11 @@ body:has(.admin-shell) {
     justify-content: space-between;
     gap: .75rem;
 }
-.admin-record-icon { padding: .55rem; border-radius: 12px; background: #e4effc; color: #245687; }
+.admin-record-icon { padding: .55rem; border-radius: 12px; background: #e4effc; color: #1d5560; }
 .admin-record-icon svg { display: block; width: 21px; height: 21px; }
 .admin-record-meta { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .3rem .75rem; margin: 0; font-size: .85rem; }
 .admin-record-meta dd { margin: 0; overflow-wrap: anywhere; }
-.admin-record-action { margin-top: auto; padding-top: .75rem; border-top: 1px solid #e5edf8; color: #245687; font-weight: 650; }
+.admin-record-action { margin-top: auto; padding-top: .75rem; border-top: 1px solid #e5edf8; color: #1d5560; font-weight: 650; }
 .admin-pager { margin-top: 1rem; padding: .75rem 0; }
 .admin-reminder { padding: .75rem 0; border-top: 1px solid #e5edf8; }
 
@@ -268,7 +268,7 @@ body:has(.admin-shell) {
     place-items: center;
     border-radius: 12px;
     background: #e4effc;
-    color: #245687;
+    color: #1d5560;
     font-weight: 750;
 }
 
@@ -287,7 +287,7 @@ body:has(.admin-shell) {
     --sidebar-line: #ccdcef;
     --sidebar-hover: #f4f8fe;
     --sidebar-active: #fff;
-    --sidebar-accent: #214f8c;
+    --sidebar-accent: #1d5560;
 }
 .admin-sidebar-header { padding-inline-start: .45rem; }
 .admin-sidebar:not(.is-collapsed) .admin-sidebar-toggle { margin-inline-start: auto; }

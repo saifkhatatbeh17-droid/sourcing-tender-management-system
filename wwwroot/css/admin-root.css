@@ -6,7 +6,7 @@ body:has(.admin-shell) {
     --color-primary-hover: color-mix(in oklab, var(--accent), black 8%);
     --color-primary-active: color-mix(in oklab, var(--accent), black 14%);
     --color-on-primary: var(--pharma-on-primary);
-    --color-link: #007b7e;
+    --color-link: #1d5560;
     --color-link-hover: var(--color-primary-active);
     --color-focus: var(--accent);
     --color-selection: var(--color-primary-bg);
@@ -37,11 +37,11 @@ body:has(.admin-shell) {
 }
 html body:has(.admin-shell) .admin-sidebar {
     --sidebar-bg: var(--color-primary);
-    --sidebar-ink: #002e30;
+    --sidebar-ink: #0c252d;
     --sidebar-line: color-mix(in oklab, var(--accent), black 14%);
     --sidebar-hover: var(--color-primary-hover);
     --sidebar-active: #eef8f6;
-    --sidebar-accent: #005c5f;
+    --sidebar-accent: #1d5560;
     box-shadow: none;
 }
 html body:has(.admin-shell) .admin-navbar {
@@ -107,7 +107,7 @@ html .admin-shell :is(.admin-record-avatar, .admin-record-icon, .admin-feedback)
 html .admin-shell :is(.table > thead > tr > th, .admin-record-meta, .admin-record-filters .form-label, .admin-record-filters .form-control, .admin-record-filters .form-select) { font-size: var(--font-size-body); }
 html[data-theme="dark"] body:has(.admin-shell) {
     --color-primary-bg: #112e2d;
-    --color-link: #67d4d3;
+    --color-link: #efb85c;
     --admin-pager-ink: var(--color-on-primary);
     --admin-pager-fill: var(--color-primary);
     --admin-pager-hover: var(--color-primary-hover);

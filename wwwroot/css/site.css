@@ -263,4 +263,4 @@ html[data-theme="dark"] .tiryaq-logo img,
 .pharma-footer .tiryaq-logo img { filter:var(--tiryaq-logo-on-dark); }
 .dashboard-mark { object-fit:contain; }
 /* Secondary brand accent: reserve coral for moments that need attention. */
-:root { --brand-highlight:#ff6b4a; --brand-highlight-hover:#f05c3c; --brand-highlight-ink:#123032; }
+:root { --brand-highlight:#efb85c; --brand-highlight-hover:#e5a23e; --brand-highlight-ink:#0c252d; }
