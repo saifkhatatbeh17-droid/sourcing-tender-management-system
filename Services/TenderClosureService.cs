@@ -22,6 +22,11 @@ public sealed class TenderClosureService(IServiceScopeFactory scopes, ILogger<Te
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
             catch (Exception ex) { logger.LogError(ex, "Could not close expired tenders; the next scheduled attempt will retry."); }
-        } while (await timer.WaitForNextTickAsync(stoppingToken));
+            try
+            {
+                if (!await timer.WaitForNextTickAsync(stoppingToken)) return;
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
+        } while (!stoppingToken.IsCancellationRequested);
     }
 }
