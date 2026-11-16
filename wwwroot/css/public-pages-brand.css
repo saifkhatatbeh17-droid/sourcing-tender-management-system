@@ -1,0 +1,83 @@
+/* Public destinations share the production journey's teal, honey and ivory. */
+.main-content:has(.public-contact-page),.main-content:has(.campus-page) { padding:0!important;max-width:none; }
+.public-contact-page,.campus-page { --public-night:var(--tq-primary-deep,#0c252d);--public-ink:var(--tq-on-secondary,#0a1f26);--public-paper:#fbf7ef;--public-ivory:#f4eee2;--public-muted:#526765;--public-line:#d1d9ce;color-scheme:light;font-family:'Geist','Segoe UI',sans-serif; }
+.public-page-nav { position:sticky;top:0;z-index:25;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px 28px;min-height:76px;padding:14px clamp(20px,3.2vw,64px);background:var(--public-night);color:var(--public-ivory);border-bottom:1px solid #ffffff20; }
+.public-page-brand { display:flex;align-items:center;gap:10px;color:var(--public-ivory);font:28px/1.1 'Instrument Serif',Georgia,serif;text-decoration:none;white-space:nowrap; }
+.public-page-brand>span { color:var(--tq-secondary);font:24px/1 'Segoe UI',sans-serif; }
+.public-page-brand small { font:11px/1.4 'Segoe UI',sans-serif;letter-spacing:.12em; }
+.public-page-nav nav,.public-page-account { display:flex;align-items:center;flex-wrap:wrap;gap:8px; }
+.public-page-nav :is(nav,.public-page-account)>a { display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 15px;font-size:14px;line-height:1.4;color:var(--public-ivory);text-decoration:none; }
+.public-page-nav nav>a:hover,.public-page-nav nav>a[aria-current=page] { color:var(--tq-secondary);background:#ffffff09; }
+.public-page-nav nav>a[aria-current=page] { box-shadow:inset 0 -2px var(--tq-secondary); }
+.public-page-nav .public-page-account>.public-page-cta { background:var(--tq-secondary);color:var(--tq-on-secondary);border:1px solid var(--tq-secondary);border-radius:4px;font-weight:600; }
+.public-page-nav .public-page-cta:hover { background:var(--tq-secondary-hover); }
+.public-page-nav a:focus-visible { outline:2px solid var(--tq-secondary);outline-offset:3px; }
+.public-page-brand:hover { color:var(--tq-secondary); }
+/* Contact retains its live correspondence preview and validated form. */
+.public-contact-page { background:var(--public-ivory);color:var(--public-ink);display:flow-root; }
+.public-contact-page .contact-studio { width:calc(100% - 80px);max-width:1240px;margin:54px auto 64px;color:var(--public-ink); }
+.public-contact-page .contact-intro { margin-bottom:36px;max-width:760px; }
+.public-contact-page .contact-intro h1 { font-family:'Instrument Serif',Georgia,serif;font-size:clamp(44px,5vw,68px);font-weight:400;letter-spacing:-.035em; }
+.public-contact-page .contact-intro p { color:var(--public-muted);font-size:17px;max-width:52ch; }
+.public-contact-page .contact-layout { gap:clamp(24px,4vw,72px); }
+.public-contact-page .contact-panel { background:var(--public-paper);border:1px solid var(--public-line);border-radius:8px;padding:28px;color:var(--public-ink); }
+.public-contact-page .contact-panel h2 { font-size:22px;margin:0 0 24px;color:var(--tq-primary); }
+.public-contact-page .contact-form .form-control { background:#fffdf8;color:var(--public-ink);border-color:#9baba5;border-radius:4px; }
+.public-contact-page .contact-form .contact-send { background:var(--tq-secondary);border-color:var(--tq-secondary);color:var(--tq-on-secondary);border-radius:4px; }
+.public-contact-page .contact-form .contact-send:hover { background:var(--tq-secondary-hover);border-color:var(--tq-secondary-hover); }
+.public-contact-page .contact-clipboard { background:var(--tq-primary);box-shadow:0 14px 32px #0c252d18; }
+.public-contact-page .contact-paper { background:var(--public-paper);color:var(--public-ink);border-top-color:var(--tq-secondary); }
+.public-contact-page .contact-paper-header { border-color:var(--tq-primary); }
+.public-contact-page .contact-rx,.public-contact-page .contact-stamp { color:var(--tq-primary);border-color:var(--tq-primary); }
+.public-contact-page .contact-preview-caption { color:var(--public-muted); }
+/* City: ivory canvas, teal wayfinding and honey for the request and actions. */
+.campus-page { --campus-ink:var(--public-ink);--campus-teal:var(--tq-primary);--campus-paper:var(--public-paper);--campus-line:var(--public-line);--campus-muted:var(--public-muted);background:var(--public-ivory);color:var(--public-ink); }
+.campus-page .campus-story h1 { font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spacing:-.025em; }
+.campus-page .campus-world { background:#e3eeec;border-color:#c2d3cc;border-radius:8px; }
+.campus-page .campus-description,.campus-page .campus-hint,.campus-page .campus-activity p { color:var(--public-muted); }
+.campus-page .campus-primary { background:var(--tq-secondary);border-color:var(--tq-secondary);color:var(--tq-on-secondary);border-radius:4px; }
+.campus-page .campus-primary:hover { background:var(--tq-secondary-hover);border-color:var(--tq-secondary-hover); }
+.campus-page .campus-step-actions .campus-primary { background:transparent;border-color:#8aa5a0;color:var(--tq-primary); }
+.campus-page .campus-modes { background:var(--public-paper);border-color:var(--public-line); }
+.campus-page .campus-modes button[aria-pressed=true] { background:var(--tq-primary);color:var(--tq-on-primary); }
+.campus-page .campus-labels button { background:var(--public-paper);border-color:#a7bfb5; }
+.campus-page .campus-labels button>span:first-child { background:#e3eeec;color:var(--tq-primary); }
+.campus-page .campus-labels button[aria-current=step] { background:var(--tq-primary);border-color:var(--tq-primary); }
+.campus-page .campus-labels button[aria-current=step]>.campus-place-name { color:var(--tq-on-primary); }
+.campus-page .campus-labels button[aria-current=step]>span:first-child { background:var(--tq-secondary);color:var(--tq-on-secondary); }
+.campus-page .campus-zoom,.campus-page .campus-back { background:var(--public-paper);border-color:var(--public-line); }
+.campus-page .campus-zoom button { color:var(--tq-primary); }
+.campus-page .campus-route button:hover,.campus-page .campus-route button[aria-current=step] { background:#e3eeec; }
+.campus-page .campus-route button[aria-current=step]>span { background:var(--tq-primary);border-color:var(--tq-primary);color:var(--tq-on-primary); }
+.campus-page .campus-loading { background:var(--public-ivory);color:var(--tq-primary); }
+.campus-page .campus-activity { background:transparent; }
+.campus-page>.campus-access { --campus-access-primary:var(--tq-primary);--campus-access-hover:var(--tq-primary-hover);--campus-access-accent:var(--tq-primary);background:var(--public-paper);border-color:var(--public-line);border-top-color:var(--tq-primary); }
+.campus-page .campus-access-primary { background:var(--tq-secondary);border-color:var(--tq-secondary);color:var(--tq-on-secondary); }
+.campus-page .campus-access-primary:hover { background:var(--tq-secondary-hover);border-color:var(--tq-secondary-hover);color:var(--tq-on-secondary); }
+.campus-page :is(button,a):focus-visible { outline:2px solid var(--tq-primary);outline-offset:4px; }
+.campus-page .public-page-nav a:focus-visible { outline-color:var(--tq-secondary); }
+@media(max-width:1000px) {
+ .public-page-nav { gap:10px 20px; }
+ .public-page-nav nav { order:3;flex-basis:100%;justify-content:center;border-top:1px solid #ffffff20;padding-top:6px; }
+}
+@media(max-width:700px) {
+ .public-contact-page .contact-studio { width:calc(100% - 40px);margin-block:32px 40px; }
+ .public-contact-page .contact-panel { padding:22px; }
+ .public-contact-page .contact-intro { margin-bottom:28px; }
+ .public-page-brand { font-size:24px; }
+ .public-page-nav { padding:12px 20px; }
+ .public-page-nav :is(nav,.public-page-account)>a { padding:9px 10px;font-size:12px; }
+ .public-page-account { gap:4px; }
+}
+@media(max-width:380px) {
+ .public-page-brand small { display:none; }
+ .public-page-nav { padding-inline:14px;gap:8px; }
+}
+@media(max-width:700px) {
+ .public-page-brand small { display:none; }
+ .public-page-nav { column-gap:12px; }
+ .public-page-brand { gap:8px; }
+}
+@media(min-width:701px) and (max-width:1000px) {
+ .public-contact-page .contact-layout>.contact-preview { top:150px; }
+}

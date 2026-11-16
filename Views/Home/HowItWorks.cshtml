@@ -1,11 +1,64 @@
-@{ ViewData["Title"] = "How It Works"; }
-
-<partial name="_HowItWorksSection" />
-
+@{
+    ViewData["Title"] = "How It Works";
+    ViewData["HidePublicNavigation"] = true;
+    ViewData["HideWorkspaceSidebar"] = true;
+}
 @section Styles {
-    <link rel="stylesheet" href="~/css/public-guide.css" asp-append-version="true" />
+    <link rel="modulepreload" href="~/lib/login-scene/three.module.js" />
+    <link rel="stylesheet" href="~/css/inside-tiryaq.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/public-pages-brand.css" asp-append-version="true" />
 }
+<div class="campus-page" data-campus>
+    <partial name="_PublicPageNavbar" />
+    <div class="campus-scroll" data-campus-scroll>
+        <section class="campus-stage" aria-labelledby="campus-title">
+            <div class="campus-stage-top">
+                <span class="campus-demo"><i aria-hidden="true"></i>Interactive process · Illustrative activity</span>
+                <div class="campus-modes" aria-label="Explore the sourcing process">
+                    <button type="button" data-campus-mode="journey" aria-pressed="true">Guided journey</button>
+                    <button type="button" data-campus-mode="explore" aria-pressed="false">Explore freely</button>
+                </div>
+            </div>
+            <aside class="campus-story">
+                <span class="campus-chapter" data-campus-chapter>From request to award</span>
+                <h1 id="campus-title">One request.<br />Six clear steps.</h1>
+                <p class="campus-description" data-campus-description>See how a purchase request moves through Tiryaq. Six connected stops bring the right people into each decision.</p>
+                <div class="campus-progress" aria-hidden="true"><svg viewBox="0 0 300 16" focusable="false"><path d="M8 8H292" class="campus-progress-track"/><path d="M8 8H292" pathLength="100" class="campus-progress-fill"/><g fill="currentColor"><circle cx="8.0" cy="8" r="3"/><circle cx="64.8" cy="8" r="3"/><circle cx="121.6" cy="8" r="3"/><circle cx="178.39999999999998" cy="8" r="3"/><circle cx="235.2" cy="8" r="3"/><circle cx="292.0" cy="8" r="3"/></g></svg><span data-campus-progress>Six steps. One connected process.</span></div><div class="campus-facts" data-campus-facts><span><strong>6</strong> connected stages</span><span><strong>1</strong> shared record</span></div>
+                <div class="campus-story-action"><div class="campus-step-actions"><button type="button" class="campus-back" data-campus-back aria-label="Previous stage" disabled>←</button><button class="campus-primary" type="button" data-campus-start>Begin the journey <span aria-hidden="true">→</span></button></div><button type="button" class="campus-primary" data-campus-autoplay aria-pressed="false">Autoplay process</button><button type="button" class="campus-more" data-campus-enter>Enter the city</button></div>
+                <p class="campus-hint" data-campus-hint>Scroll to follow the request, or choose any numbered stop.</p>
+            </aside>
+            <div class="campus-world" data-campus-world>
+                <noscript><style>.campus-loading,.campus-scroll{display:none}</style><p class="campus-noscript">Enable JavaScript to explore the city, or read the process below.</p></noscript><div class="campus-loading" data-campus-loading><span class="campus-loading-symbol" aria-hidden="true">✚</span><strong>Opening the campus…</strong></div>
+                <canvas data-campus-canvas tabindex="0" aria-keyshortcuts="ArrowLeft ArrowRight + -" aria-label="Tiryaq sourcing city: request needs, publish tender, submit offers, evaluate offers, approve selection, and finalize award. Use the numbered stage buttons to explore. Focus the map and use left or right arrows to rotate, plus or minus to zoom." role="img"></canvas>
+                <div class="campus-labels" data-campus-labels aria-label="Campus locations">
+                    <button type="button" data-campus-place="0"><span>01</span>Request needs</button>
+                    <button type="button" data-campus-place="1"><span>02</span>Publish tender</button>
+                    <button type="button" data-campus-place="2"><span>03</span>Submit offers</button>
+                    <button type="button" data-campus-place="3"><span>04</span>Evaluate offers</button>
+                    <button type="button" data-campus-place="4"><span>05</span>Approve selection</button>
+                    <button type="button" data-campus-place="5"><span>06</span>Finalize award</button>
+                </div>
+                <div class="campus-zoom" aria-label="Camera controls"><button type="button" data-campus-rotate="-1" aria-label="Rotate map left">↶</button><button type="button" data-campus-zoom="-1" aria-label="Zoom out">−</button><button type="button" data-campus-overview>Overview</button><button type="button" data-campus-zoom="1" aria-label="Zoom in">+</button><button type="button" data-campus-rotate="1" aria-label="Rotate map right">↷</button></div>
+            </div>
 
-@section Scripts {
-    <script src="~/js/sourcing-journey.js" asp-append-version="true"></script>
-}
+            <div class="campus-activity">
+                <div class="campus-activity-heading"><span>Sample supplier activity</span><button type="button" class="campus-motion" data-campus-motion aria-pressed="false">Pause motion</button></div>
+                <label for="campus-suppliers"><span>Supplier offers <output id="campus-supplier-count">3</output></span><input id="campus-suppliers" type="range" min="3" max="6" value="3" step="1" aria-describedby="campus-supplier-help" /></label>
+                <p id="campus-supplier-help">Illustrative only. Adjust the activity to see how offers join the process.</p>
+            </div>
+            <nav class="campus-route" aria-label="Sourcing journey stages">
+                @foreach (var step in new[] { (Id: 0, Name: "Request needs"), (Id: 1, Name: "Publish tender"), (Id: 2, Name: "Submit offers"), (Id: 3, Name: "Evaluate offers"), (Id: 4, Name: "Approve selection"), (Id: 5, Name: "Finalize award") })
+                { <button type="button" data-campus-step="@step.Id"><span>@((step.Id + 1).ToString("00"))</span><strong>@step.Name</strong></button> }
+            </nav>
+            <p class="campus-fallback" data-campus-fallback hidden>The 3D view is unavailable on this device. Use the six stage buttons to read each stage and follow the journey.</p>
+            <p class="visually-hidden" data-campus-status role="status" aria-live="polite"></p>
+        </section>
+    </div>
+    <noscript><partial name="_CityProcessDetails" /></noscript>
+            <section class="campus-access" aria-labelledby="campus-access-title">
+                <div class="campus-access-copy"><span>Your workspace</span><h2 id="campus-access-title">Take the next step.</h2><p>Access your workspace or join Tiryaq as a supplier.</p></div>
+                <div class="campus-access-actions"><a class="campus-access-primary" asp-controller="Account" asp-action="Login">Sign in <span aria-hidden="true">↗</span></a><a class="campus-access-secondary" asp-controller="Account" asp-action="Register">Register as a supplier</a><button type="button" data-campus-replay>Replay the journey</button></div>
+            </section>
+
+</div>
+@section Scripts { <script type="module" src="~/js/inside-tiryaq.js" asp-append-version="true"></script> }

@@ -225,3 +225,14 @@ footer{max-width:1320px;margin:70px auto 0;padding-top:22px;border-top:1px solid
 .tj-foot-links a{text-decoration:none}.tj-foot-links a:hover{text-decoration:underline}
 @media(max-width:860px){.links>a:not(.cta):not(.keep){display:none}}
 #c-hero .tj-btn:not(.solid){background:rgba(12,37,45,.6);backdrop-filter:blur(6px)}
+
+/* Destination pages remain reachable from the mobile production journey. */
+@media(max-width:860px) {
+ .tj-nav { position:absolute;flex-wrap:wrap;gap:10px;padding:14px 16px; }
+ .tj-nav .links { flex-wrap:wrap;justify-content:flex-end;max-width:100%; }
+ .tj-nav .links>a.public-page-link { display:inline-flex;min-height:44px;align-items:center; }
+ .tj-nav .links>a { padding:8px 10px; }
+}
+@media(max-width:540px) {
+ .tj-nav .links { width:100%;justify-content:center;border-radius:16px; }
+}

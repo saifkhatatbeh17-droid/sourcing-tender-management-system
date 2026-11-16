@@ -1,5 +1,7 @@
 @model ContactMessageInput
-@{ ViewData["Title"] = "Contact Us"; }
+@{ ViewData["Title"] = "Contact Us"; ViewData["HidePublicNavigation"] = true; ViewData["HideWorkspaceSidebar"] = true; }
+<div class="public-contact-page">
+<partial name="_PublicPageNavbar" />
 
 <div class="contact-studio">
     <header class="contact-intro"><h1>Let’s talk.</h1><p>A question, an idea, or a little help getting started. Send the Tiryaq team a note.</p></header>
@@ -30,11 +32,13 @@
     </div>
 </div>
 
+</div>
 @section Styles {
     <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/home-polish.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/public-guide.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/contact-studio.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/public-pages-brand.css" asp-append-version="true" />
 }
 
 @section Scripts {

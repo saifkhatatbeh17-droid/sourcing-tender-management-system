@@ -18,8 +18,8 @@
     <button type="button" data-go="6.95">Quality</button>
     <button type="button" data-go="9.0">Products</button>
     <a asp-controller="Home" asp-action="Team">Our team</a>
-    <a asp-controller="Home" asp-action="HowItWorks">Sourcing</a>
-    <a asp-controller="Home" asp-action="Contact">Contact</a>
+    <a class="public-page-link" asp-controller="Home" asp-action="HowItWorks">Sourcing</a>
+    <a class="public-page-link" asp-controller="Home" asp-action="Contact">Contact</a>
     @if (signedIn)
     {
         <a asp-controller="FaceEnrollment" asp-action="Index">Biometric sign-in</a>
