@@ -1,12 +1,14 @@
-/* One public nav for Home, About, Team, Contact and Login: logo and links in a single teal pill. */
-.pn{position:sticky;top:0;z-index:1030;display:flex;justify-content:center;padding:14px 16px;pointer-events:none}
+/* Shared navigation for the public pages. */
+.pn{position:sticky;top:0;z-index:1030;display:flex;justify-content:center;padding:12px 16px;pointer-events:none}
 .pn-overlay{position:fixed;left:0;right:0}
-.pn-bar{pointer-events:auto;display:flex;align-items:center;gap:6px;max-width:100%;padding:6px 6px 6px 16px;border-radius:99px;
-  background:rgba(12,37,45,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(244,238,226,.14);
-  box-shadow:0 10px 30px rgba(6,22,27,.22);font-family:Geist,system-ui,sans-serif}
+.pn-bar{pointer-events:auto;display:flex;align-items:center;gap:6px;max-width:100%;padding:3px 26px;border-radius:99px;
+  background:linear-gradient(155deg,rgba(45,85,94,.66),rgba(9,31,39,.76));
+  backdrop-filter:blur(22px) saturate(145%);-webkit-backdrop-filter:blur(22px) saturate(145%);
+  border:1px solid rgba(244,238,226,.22);box-shadow:inset 0 1px rgba(255,255,255,.09),0 8px 24px rgba(6,22,27,.24);
+  font-family:Geist,system-ui,sans-serif}
 .pn-brand{display:flex;align-items:center;gap:8px;margin-right:10px;color:#f4eee2!important;text-decoration:none!important;font:400 1.35rem/1 "Instrument Serif",Georgia,serif;white-space:nowrap}
 .pn-brand{padding:0!important;opacity:1!important}
-.pn-brand .tiryaq-logo{display:block;width:118px}
+.pn-brand .tiryaq-logo{display:block;width:106px}
 .pn-brand .tiryaq-logo img{display:block;width:100%;height:auto;filter:var(--tiryaq-logo-on-dark)}
 .pn-links{display:flex;align-items:center;gap:2px;padding-left:10px;border-left:1px solid rgba(244,238,226,.18)}
 .pn-bar a,.pn-out button{color:#f4eee2!important;text-decoration:none!important;white-space:nowrap;font-size:.86rem;font-weight:500;line-height:1;
@@ -20,16 +22,15 @@
 .pn-bar a.pn-ghost+a.pn-login{margin-left:4px}
 .pn-out{margin:0}
 .pn-bar :is(a,button):focus-visible{outline:2px solid #efb85c;outline-offset:2px}
-@media(max-width:900px){
+@media(max-width:960px){
   .pn-bar{flex-wrap:wrap;justify-content:space-between;border-radius:24px;row-gap:4px;width:100%}
   .pn-brand{margin-right:auto}
-  .pn-links{order:3;flex-basis:100%;justify-content:center;border-left:0;padding:4px 0 0;border-top:1px solid rgba(244,238,226,.14);overflow-x:auto;scrollbar-width:none}
+  .pn-links{order:3;flex-basis:100%;justify-content:safe center;border-left:0;padding:4px 0 0;border-top:1px solid rgba(244,238,226,.14);overflow-x:auto;scrollbar-width:none}
 }
 @media(max-width:560px){
   .pn{padding:10px 10px}
-  .pn-bar{gap:2px;padding:4px 4px 4px 10px}
+  .pn-bar{gap:2px;padding:3px 14px}
   .pn-brand{margin-right:auto}.pn-brand .tiryaq-logo{width:84px}
-  .pn-bar{padding:6px 6px 4px 12px}
   .pn-bar a,.pn-out button{padding:8px 7px;font-size:.76rem}
   .pn-bar a.pn-login,.pn-bar a.pn-ghost{margin-left:2px}
 }

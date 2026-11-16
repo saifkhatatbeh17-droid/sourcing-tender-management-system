@@ -31,7 +31,7 @@
     }
 
     async function openCarton() {
-        if (reducedMotion.matches) {
+        if (reducedMotion.matches || typeof stage.animate !== 'function') {
             flap.classList.add('is-open');
             return;
         }
@@ -55,19 +55,19 @@
                     { translate: '0 0' },
                     { translate: '-3px -9px', offset: .46 },
                     { translate: '0 0' }
-                ], { duration: 990, easing: 'cubic-bezier(.24,.7,.28,1)' }),
+                ], { duration: 540, easing: 'cubic-bezier(.24,.7,.28,1)' }),
                 animate(flap, [
                     { transform: 'scaleX(1)' },
                     { transform: 'scaleX(.16)', offset: .76 },
                     { transform: 'scaleX(.27)' }
-                ], { duration: 610, delay: 340, easing: 'ease-in-out', fill: 'backwards' })
+                ], { duration: 360, delay: 160, easing: 'ease-in-out', fill: 'backwards' })
                     .then(() => flap.classList.add('is-open')),
                 animate(stage, [
                     { opacity: .25, transform: `translate(${x}px, ${y}px) scale(.26) rotate(-8deg)`, clipPath: closed },
                     { opacity: 1, transform: `translate(${x * .64}px, ${y * .64}px) scale(.57) rotate(-5deg)`, clipPath: emerging, offset: .41 },
                     { opacity: 1, transform: 'translateY(-9px) scale(1.015) rotate(.8deg)', clipPath: clear, offset: .83 },
                     { opacity: 1, transform: 'none', clipPath: clear }
-                ], { duration: 1860, delay: 740, easing: 'cubic-bezier(.35,.02,.28,1)', fill: 'backwards' })
+                ], { duration: 860, delay: 270, easing: 'cubic-bezier(.35,.02,.28,1)', fill: 'backwards' })
             ]);
             stage.classList.add('is-revealed');
         } finally {
@@ -116,7 +116,7 @@
         selected = capsule;
         capsule.setAttribute('aria-expanded', 'true');
         const source = capsule.querySelector('.team-capsule-portrait');
-        if (!reducedMotion.matches) {
+        if (!reducedMotion.matches && typeof stage.animate === 'function') {
             capsule.classList.add('is-pressed');
             try {
                 await animate(source, [
@@ -134,6 +134,7 @@
         content.replaceChildren(template.content.cloneNode(true));
         const destination = content.querySelector('.team-profile-portrait');
         watchPortrait(destination.querySelector('img'));
+        dialog.setAttribute('aria-labelledby', 'team-member-name');
         dialog.showModal();
         if (reducedMotion.matches) {
             dialog.classList.add('is-visible');
@@ -177,6 +178,7 @@
     });
     dialog.addEventListener('close', () => {
         dialog.classList.remove('is-visible');
+        dialog.removeAttribute('aria-labelledby');
         selected.removeAttribute('aria-expanded');
         selected.focus({ preventScroll: true });
         selected = undefined;

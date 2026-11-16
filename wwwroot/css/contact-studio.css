@@ -32,7 +32,7 @@
 .contact-note-subject h2 { margin:6px 0 0;font-size:18px;line-height:1.5;font-weight:600;overflow-wrap:anywhere; }
 .contact-note-body { padding:8px 6px;min-height:158px;border-radius:4px; }
 .contact-note-body p { margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:28px;background:repeating-linear-gradient(transparent 0 27px,#e6eeed 27px 28px); }
-.contact-paper [data-note-for].is-placeholder { color:#7b8c90; }
+.contact-paper [data-note-for].is-placeholder { color:#597178; }
 .contact-paper [data-note-row] { transition:background-color 180ms; }
 .contact-paper [data-note-row].is-active { background-color:#eaf6f3; }
 .contact-paper-footer { display:flex;align-items:center;justify-content:space-between;border-top:1px solid #dce7e5;padding-top:14px;margin-top:16px;color:#597178;font-size:11px; }
@@ -77,11 +77,6 @@
 @media(max-width:700px) { .contact-clipboard { transform:none; } }
 @media(prefers-reduced-motion:reduce) { .is-signing .contact-signature path { animation:none;stroke-dashoffset:0; }.is-signing .contact-stamp { animation:none;opacity:.85;transform:rotate(-12deg); }.is-signing .contact-paper { animation:none; } }
 /* Ink strokes keep the preview expressive without repeating the entered text. */
-.contact-paper [data-note-for]:not(.is-placeholder),
-.contact-signature strong:not(:empty) { font-family:'Segoe Script','Brush Script MT',cursive;font-style:italic;letter-spacing:-1.5px;word-spacing:9px; }
-.contact-paper [data-note-for]:not(.is-placeholder) { font-size:24px;line-height:1.2;color:#315668; }
-.contact-note-body p:not(.is-placeholder) { line-height:28px;max-height:140px;overflow:hidden; }
-.contact-paper [data-note-for].is-placeholder { font-family:inherit;font-style:normal;letter-spacing:normal;word-spacing:normal; }
 .contact-note-subject h2 { min-height:28px; }
 .contact-studio { max-width:1080px;margin:20px auto 24px; }
 .contact-intro { margin-bottom:20px;max-width:720px; }
@@ -106,7 +101,7 @@
 .contact-paper-details>div { padding:4px 6px; }
 .contact-note-subject { padding-block:5px; }
 .contact-note-subject h2 { font-size:17px;margin-top:3px; }
-.contact-note-body { min-height:112px;height:112px;margin-top:4px;overflow:hidden; }
+.contact-note-body { min-height:112px;height:112px;margin-top:4px;overflow:auto; }
 .contact-note-body p { font-size:14px;line-height:28px; }
 .contact-signoff { min-height:80px;margin-top:6px; }
 .contact-signature svg { height:36px; }
@@ -119,15 +114,6 @@
 @media(max-width:700px) { .contact-studio { margin:18px auto 28px; }.contact-intro h1 { font-size:34px; }.contact-layout { gap:26px; } }
 /* Draw continuous SVG ink on each input event, as in the original letter. */
 .contact-paper [data-note-for] { position:relative;min-height:24px; }
-.contact-live-ink { display:block;width:100%;height:24px;overflow:visible; }
-.contact-live-ink:not(.has-ink) { display:none; }
-.contact-live-ink path { fill:none;stroke:#315668;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 140ms linear; }
-.contact-note-body .contact-live-ink { height:84px; }
-.contact-paper [data-note-for]:not(.is-placeholder) { font-size:inherit;line-height:24px;letter-spacing:normal;word-spacing:normal; }
-.contact-note-body p:not(.is-placeholder) { background:none;overflow:visible; }
-.contact-paper [data-note-row].is-active [data-note-for]::after { display:none; }
-.contact-ink-placeholder[hidden] { display:none!important; }
-@media(prefers-reduced-motion:reduce) { .contact-live-ink path { transition:none; } }
 /* A smaller note, raised slightly beside the contact form. */
 .contact-layout > .contact-preview {
     width:100%;max-width:430px;justify-self:center;
@@ -165,3 +151,6 @@
     .contact-layout > .contact-preview { position:sticky;top:110px; }
 }
 @media(max-width:700px) { .contact-layout > .contact-preview { margin-top:4px;max-width:430px; } }
+
+.contact-studio .contact-form :autofill { animation:contact-autofill .01s; }
+@keyframes contact-autofill { from {} to {} }

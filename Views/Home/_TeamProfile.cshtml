@@ -2,13 +2,13 @@
 
 <div class="team-profile-frame">
 <div class="team-profile-portrait team-portrait" data-portrait-fallback="@Model.Name[0]">
-    <img src="@Url.Content(Model.Portrait)" alt="@Model.Name" width="384" height="432" />
+    <img src="@Url.Content(Model.Portrait)" alt="" width="384" height="432" />
 </div>
 </div>
 <div class="team-profile-copy">
     @if (Model.IsFictional)
     {
-        <p class="team-profile-index">@Model.Id.ToString("D2") / 07 · Fictional profile</p>
+        <p class="team-profile-index">Fictional profile</p>
     }
     <h2 id="team-member-name">@Model.Name</h2>
     <p class="team-profile-role">@Model.Role</p>

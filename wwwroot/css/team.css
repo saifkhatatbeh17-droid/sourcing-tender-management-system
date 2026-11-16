@@ -1,4 +1,18 @@
-.main-content:has(.team-page) { padding: 0 !important; }
+body:has(.team-page) {
+    background:
+        linear-gradient(rgba(177, 239, 236, .045) 1px, transparent 1px) 0 0 / 4.5rem 4.5rem,
+        linear-gradient(90deg, rgba(177, 239, 236, .045) 1px, transparent 1px) 0 0 / 4.5rem 4.5rem,
+        radial-gradient(ellipse at 53% 43%, rgba(44, 99, 105, .72), transparent 73%),
+        linear-gradient(155deg, #0c252d, #11333d 65%, #0c252d);
+}
+body:has(.team-page) .app-shell,
+.main-content:has(.team-page) {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 !important;
+    background: transparent;
+}
 
 .team-page {
     --team-ink: #0c252d;
@@ -10,55 +24,27 @@
     overflow: clip;
     align-content: center;
     justify-items: center;
-    min-height: 100svh;
-    padding: clamp(1rem, 5vw, 4rem);
+    min-height: calc(100svh - 80px);
+    padding: clamp(1.75rem, 4vw, 3.5rem) clamp(14px, 4vw, 56px) clamp(2rem, 5vw, 4rem);
     color: var(--team-ink);
-    background:
-        radial-gradient(ellipse at 53% 43%, #28777a 0, #115159 34%, transparent 72%),
-        linear-gradient(155deg, #081b2b, #0b363e 65%, #09232d);
-}
-.team-page::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset: 0;
-    background-image:
-        linear-gradient(#b1efec12 1px, transparent 1px),
-        linear-gradient(90deg, #b1efec12 1px, transparent 1px);
-    background-size: 4.5rem 4.5rem;
-    mask-image: radial-gradient(ellipse at 45% 45%, transparent 5%, #0008 65%, #000);
-    pointer-events: none;
-}
-.team-brand-watermark {
-    position: absolute;
-    z-index: -1;
-    top: -15%;
-    right: -4%;
-    width: min(56vw, 44rem);
-    pointer-events: none;
-}
-.team-brand-watermark .dashboard-mark {
-    display: block;
-    width: 100%;
-    filter: brightness(0) invert(1);
-    opacity: .09;
+    font-family: Geist, system-ui, sans-serif;
 }
 .team-heading {
     text-align: center;
-    color: #fff;
+    color: #f4eee2;
     padding-inline: 1rem;
 }
 .team-heading h1 {
     color: inherit;
     margin: 0;
-    font-size: clamp(2rem, 5vw, 3.75rem);
-    font-weight: 700;
-    letter-spacing: -.04em;
-    line-height: 1.1;
+    font: 400 clamp(3.15rem, 7vw, 6.4rem)/.95 "Instrument Serif", Georgia, serif;
+    letter-spacing: -.025em;
+    text-wrap: balance;
 }
+.team-heading em { color: #efb85c; }
 .team-heading p {
     margin: .75rem 0 0;
-    color: #d0eeeb;
+    color: #cfe6da;
     font-size: clamp(.9rem, 2vw, 1.05rem);
 }
 .team-product-scene {
@@ -68,8 +54,8 @@
     grid-template-columns: minmax(5.5rem, .78fr) minmax(0, 2.7fr) minmax(5.5rem, .78fr);
     align-items: center;
     gap: clamp(1rem, 3vw, 3rem);
-    width: min(100%, 69rem);
-    padding: clamp(1rem, 3vw, 3rem);
+    width: min(100%, 58rem);
+    padding: clamp(1.5rem, 3vw, 2.5rem);
 }
 .team-product-scene::before {
     content: "";
@@ -195,7 +181,7 @@
         0 6px 0 #b1c5c9,
         0 24px 40px -14px #153b485e,
         0 45px 90px -26px #16485266;
-    transform: rotateZ(23deg) rotateX(calc(8deg + var(--pack-tilt-x, 0deg))) rotateY(calc(-9deg + var(--pack-tilt-y, 0deg)));
+    transform: rotateZ(16deg) rotateX(calc(8deg + var(--pack-tilt-x, 0deg))) rotateY(calc(-9deg + var(--pack-tilt-y, 0deg)));
     transition: transform .26s ease-out;
 }
 .team-pack::before {
@@ -332,7 +318,7 @@
     font-size: clamp(1.2rem, 4vw, 3rem);
     font-weight: 750;
 }
-.team-capsule:is(:focus-visible, [aria-expanded="true"]) { outline: 2px solid #1d5560; outline-offset: 3px; }
+.team-capsule:is(:focus-visible, [aria-expanded="true"]) { outline: 2px solid #efb85c; outline-offset: 3px; }
 @media (hover: hover) {
     .team-capsule:hover { transform: translateY(-5px); box-shadow: 0 0 0 2px #1d556050, 0 7px 15px #164a5d4a, inset 0 1px 4px #4771806b; }
     .team-capsule:hover::after { opacity: 1; transform: translateX(24%) rotate(5deg); }
@@ -354,9 +340,9 @@
     opacity: 0;
     transition: opacity .2s ease;
 }
-.team-dialog[open] { display: grid; place-items: center; }
+.team-dialog[open] { display: grid; place-items: safe center; }
 .team-dialog.is-visible { opacity: 1; }
-.team-dialog::backdrop { background: #0c252d94; backdrop-filter: blur(7px); opacity: 0; transition: opacity .25s ease; }
+.team-dialog::backdrop { background: rgba(8, 26, 32, .76); backdrop-filter: blur(16px); opacity: 0; transition: opacity .25s ease; }
 .team-dialog.is-visible::backdrop { opacity: 1; }
 html:has(.team-dialog[open]) { overflow: hidden; }
 .team-profile {
@@ -389,7 +375,7 @@ html:has(.team-dialog[open]) { overflow: hidden; }
 .team-profile-close:focus-visible { outline-color: #1d5560; }
 .team-profile-index { color: #006d73; font-size: .75rem; font-weight: 750; letter-spacing: .14em; }
 .team-profile-copy { container-type: inline-size; }
-.team-profile-copy h2 { margin: 0 0 .35rem; font-size: min(3.4rem, 10cqi); line-height: 1.08; letter-spacing: -.045em; white-space: nowrap; }
+.team-profile-copy h2 { margin: 0 0 .35rem; font-size: clamp(2rem, 12cqi, 3.4rem); line-height: 1; overflow-wrap: anywhere; }
 .team-profile-role { margin-bottom: .6rem; font-size: 1.05rem; font-weight: 650; }
 .team-profile-department { display: inline-block; padding: .28rem .65rem; border-radius: 99rem; background: #d8eeea; color: #0b5860; font-size: .78rem; font-weight: 700; }
 .team-profile-bio { margin-bottom: 0; color: #365861; line-height: 1.6; }
@@ -418,11 +404,10 @@ html:has(.team-dialog[open]) { overflow: hidden; }
 .team-static-profiles { margin-top: 1.5rem; color: #f8fbfc; }
 .team-static-profiles details { margin-bottom: .65rem; }
 @media (max-width: 720px) {
-    .team-brand-watermark { top: 0; right: -12%; width: min(80vw, 32rem); }
     .team-product-scene {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         width: min(100%, 33rem);
-        padding: .5rem;
+        padding: 1rem .5rem .5rem;
         gap: clamp(1.5rem, 5vw, 2.5rem);
     }
     .team-pack-stage { grid-column: 1 / -1; grid-row: 1; width: min(100%, 14.5rem); }
@@ -435,6 +420,7 @@ html:has(.team-dialog[open]) { overflow: hidden; }
     .team-profile-content { grid-template-columns: 1fr; }
     .team-profile-portrait { width: min(100%, 15rem); margin-inline: auto; aspect-ratio: 1; }
     .team-profile-copy { text-align: center; }
+    .team-profile-role { justify-content: center; }
     .team-profile-links { justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -444,7 +430,7 @@ html:has(.team-dialog[open]) { overflow: hidden; }
 }
 
 /* Profile card: arch-framed portrait with a slow honey ring, homepage type, icon links. */
-.team-profile { background: linear-gradient(140deg, #ffffff, #f1f6f5) !important; border-color: rgba(255,255,255,.7) !important; color: #0c252d; }
+.team-profile { background: linear-gradient(145deg, rgba(255,252,244,.98), rgba(222,239,234,.92)) !important; border-color: rgba(255,255,255,.7) !important; color: #0c252d; }
 .team-profile-frame { position: relative; padding: 10px; isolation: isolate; }
 .team-profile-frame::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 999px 999px 1.6rem 1.6rem;
   background: conic-gradient(from var(--tp-a, 0deg), #efb85c, #1d5560 30%, #f6d49a 55%, #1d5560 80%, #efb85c);
@@ -460,9 +446,9 @@ html:has(.team-dialog[open]) { overflow: hidden; }
 
 .team-profile-index { font-family: "JetBrains Mono", ui-monospace, monospace; color: #b06f1c !important; font-weight: 500 !important; }
 .team-profile-copy h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; letter-spacing: -.01em !important; color: #0c252d; }
-.team-profile-role { display: inline-flex; align-items: center; gap: .55rem; font: 500 .74rem/1 "JetBrains Mono", ui-monospace, monospace !important;
+.team-profile-role { display: inline-flex; align-items: center; gap: .55rem; font: 500 .74rem/1.4 "JetBrains Mono", ui-monospace, monospace !important;
   letter-spacing: .2em; text-transform: uppercase; color: #b06f1c; margin-bottom: .9rem !important; }
-.team-profile-role::before { content: ""; width: 22px; height: 1px; background: currentColor; }
+.team-profile-role::before { content: ""; flex: 0 0 22px; height: 1px; background: currentColor; }
 .team-profile-department { background: rgba(29,85,96,.1) !important; color: #1d5560 !important; }
 .team-profile-bio { color: #3f5a60 !important; }
 .team-profile-links a { gap: .55rem !important; padding: .55rem .95rem .55rem .75rem !important; border-radius: 99px !important; border: 1px solid rgba(29,85,96,.25) !important;
