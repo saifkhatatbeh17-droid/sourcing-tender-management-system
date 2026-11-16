@@ -1,24 +1,43 @@
 @model ContactMessageInput
 @{ ViewData["Title"] = "Contact Us"; }
 
-<partial name="_ContactSection" />
+<div class="contact-studio">
+    <header class="contact-intro"><h1>Let’s talk.</h1><p>A question, an idea, or a little help getting started. Send the Tiryaq team a note.</p></header>
+    <div class="contact-layout">
+        <partial name="_ContactSection" />
+        <aside class="contact-preview" aria-label="Live message preview">
+            <div class="contact-clipboard">
+                <span class="contact-clip" aria-hidden="true"></span>
+                <div class="contact-paper">
+                    <header class="contact-paper-header"><span class="contact-rx" aria-hidden="true">℞</span><div><strong>Tiryaq</strong><span>A note to our team</span></div></header>
+                    <div class="contact-document-meta"><span>Correspondence note</span><time datetime="@DateTime.Today.ToString("yyyy-MM-dd")">@DateTime.Today.ToString("dd MMM yyyy")</time></div>
+                    <dl class="contact-paper-details">
+                        <div data-note-row="contact-name"><dt>From</dt><dd data-note-for="contact-name" data-placeholder="Your name" dir="auto">Your name</dd></div>
+                        <div data-note-row="contact-email"><dt>Reply to</dt><dd data-note-for="contact-email" data-placeholder="Your email address" dir="auto">Your email address</dd></div>
+                    </dl>
+                    <div class="contact-note-subject" data-note-row="contact-subject"><span>Regarding</span><h2 data-note-for="contact-subject" data-placeholder="What’s on your mind?" dir="auto">What’s on your mind?</h2></div>
+                    <div class="contact-note-body" data-note-row="contact-message"><p data-note-for="contact-message" data-placeholder="Your message takes shape here…" dir="auto">Your message takes shape here…</p></div>
+                    <div class="contact-signoff">
+                        <div class="contact-signature"><span>Signed by</span><svg viewBox="0 0 230 65" aria-hidden="true"><path pathLength="1" d="M8 46 C38 10 52 3 42 29 S19 65 46 43 S90 6 75 29 S49 64 82 42 S113 20 99 42 S121 43 133 31 S116 55 146 39 S165 25 158 39 S177 43 186 31 M37 55 Q108 44 216 49" /></svg><strong data-note-signature dir="auto">Your signature</strong></div>
+                        <div class="contact-stamp" aria-hidden="true"><span>Tiryaq</span><b>✚</b><small>Contact desk</small></div>
+                    </div>
+                    <footer class="contact-paper-footer"><span>Tiryaq · Sourcing &amp; tender management</span><span>01 / 01</span></footer>
+                </div>
+            </div>
+            <p class="contact-preview-caption">Your note, as you write it.</p>
+            <p class="contact-send-status" role="status" aria-live="polite"></p>
+        </aside>
+    </div>
+</div>
 
 @section Styles {
     <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/home-polish.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/public-guide.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/contact-studio.css" asp-append-version="true" />
 }
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        const contactForm = document.getElementById('contact-form');
-        const contactSubmit = contactForm.querySelector('button[type="submit"]');
-        document.addEventListener('submit', event => {
-            if (event.target !== contactForm || event.defaultPrevented) return;
-            if (contactSubmit.disabled) event.preventDefault();
-            else contactSubmit.disabled = true;
-        });
-        window.addEventListener('pageshow', () => { contactSubmit.disabled = false; });
-    </script>
+    <script src="~/js/contact-studio.js" asp-append-version="true" defer></script>
 }

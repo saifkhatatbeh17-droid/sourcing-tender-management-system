@@ -88,3 +88,80 @@ html[data-theme=dark] #login-stage .form-control:focus{border-color:#64f4dc!impo
 #login-stage .status-dot{background:#64f4dc;animation:tqping 2.2s infinite;box-shadow:0 0 0 0 #64f4dc99}
 #login-stage .login-identity[data-access=pending] .status-dot{background:#ff6b4a}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* Balanced desktop proportions with a bounded, readable sign-in form. */
+.login-main #login-stage.cinematic-login {
+    width:100%;max-width:1520px;min-height:100dvh;
+    grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);
+    gap:24px;padding:clamp(20px,3vh,42px) 32px;
+}
+#login-stage.cinematic-login .login-identity {
+    min-height:680px;min-height:clamp(680px,78dvh,900px);
+    padding:38px 42px 32px;border-radius:24px;box-shadow:none;
+}
+html body .login-main #login-stage.cinematic-login .login-panel {
+    display:flex;flex-direction:column;justify-content:center;
+    padding:36px clamp(28px,3vw,56px);border-radius:24px;box-shadow:none;
+}
+#login-stage.cinematic-login .login-panel>* { width:100%;max-width:440px;margin-inline:auto; }
+#login-stage.cinematic-login .login-panel-top { margin-bottom:32px; }
+#login-stage.cinematic-login .login-panel h1 { font-size:clamp(32px,2.5vw,42px);line-height:1.15;margin-bottom:10px;letter-spacing:-.04em; }
+#login-stage.cinematic-login .login-intro { font-size:16px;line-height:1.5;margin-bottom:28px;color:var(--tq-muted); }
+#login-stage.cinematic-login .login-form .field { margin-bottom:20px; }
+#login-stage.cinematic-login .login-form label { font-size:14px;line-height:1.4;font-weight:600;margin-bottom:8px; }
+#login-stage.cinematic-login .login-form .form-control { height:52px;font-size:16px;border-width:1px;border-radius:10px; }
+#login-stage.cinematic-login .login-submit { height:52px;min-height:52px;margin-top:4px;border-radius:10px;font-size:16px;box-shadow:none; }
+#login-stage.cinematic-login .login-divider { margin-top:24px;margin-bottom:18px;font-size:13px; }
+#login-stage.cinematic-login .login-methods { gap:12px; }
+#login-stage.cinematic-login .login-method { min-height:52px;padding:10px 14px;border-radius:10px;box-shadow:none; }
+#login-stage.cinematic-login .login-methods strong { font-size:14px;font-weight:600; }
+#login-stage.cinematic-login .login-panel>.small { font-size:12px;line-height:1.6;margin-bottom:0; }
+#login-stage.cinematic-login .login-registration { font-size:14px;line-height:1.6;padding-top:20px;margin-top:20px;margin-bottom:0;border-top:1px solid var(--tq-input-border); }
+#login-stage.cinematic-login .back-home-pill { padding:8px 12px;min-height:40px;border-radius:8px;font-size:13px; }
+#login-stage.cinematic-login .pharma-scene { inset:70px 0 140px; }
+#login-stage.cinematic-login .identity-story { padding-top:360px; }
+#login-stage.cinematic-login .login-identity-copy { font-size:clamp(30px,2.3vw,40px);line-height:1.2;max-width:20ch;margin-bottom:0; }
+#login-stage.cinematic-login .identity-status { font-size:12px;margin-top:20px; }
+#login-stage.cinematic-login .status-dot { animation:none;box-shadow:none; }
+#login-stage.cinematic-login .login-panel>* { animation:none; }
+html[data-theme="dark"] #login-stage.cinematic-login .login-registration { border-color:#3e5857; }
+@media(min-width:2000px) {
+    .login-main #login-stage.cinematic-login { max-width:1680px;gap:32px;padding-block:48px; }
+    #login-stage.cinematic-login .login-identity { padding:48px; }
+    html body .login-main #login-stage.cinematic-login .login-panel { padding:48px 64px; }
+    #login-stage.cinematic-login .login-panel>* { max-width:480px; }
+    #login-stage.cinematic-login .login-panel-top { margin-bottom:44px; }
+    #login-stage.cinematic-login .login-identity-copy { font-size:44px; }
+}
+@media(min-width:761px) and (max-height:850px) {
+    .login-main #login-stage.cinematic-login { padding-block:20px; }
+    #login-stage.cinematic-login .login-identity { min-height:640px;padding:28px 32px; }
+    html body .login-main #login-stage.cinematic-login .login-panel { padding:24px 32px; }
+    #login-stage.cinematic-login .login-panel-top { margin-bottom:20px; }
+    #login-stage.cinematic-login .login-intro { margin-bottom:20px; }
+    #login-stage.cinematic-login .login-form .field { margin-bottom:14px; }
+    #login-stage.cinematic-login .login-divider { margin-top:18px;margin-bottom:14px; }
+    #login-stage.cinematic-login .login-registration { padding-top:14px;margin-top:14px; }
+    #login-stage.cinematic-login .login-identity-copy { font-size:30px; }
+}
+@media(max-width:1050px) {
+    .login-main #login-stage.cinematic-login { padding-inline:20px;gap:18px;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); }
+    #login-stage.cinematic-login .login-identity { padding:28px; }
+    html body .login-main #login-stage.cinematic-login .login-panel { padding-inline:26px; }
+    #login-stage.cinematic-login .login-identity-copy { font-size:28px; }
+}
+@media(max-width:760px) {
+    .login-main #login-stage.cinematic-login { grid-template-columns:minmax(0,1fr);gap:14px;padding:12px;align-content:start; }
+    #login-stage.cinematic-login .login-identity { min-height:240px;padding:22px;border-radius:16px; }
+    #login-stage.cinematic-login .pharma-scene { inset:0 0 0 32%; }
+    #login-stage.cinematic-login .identity-story { display:block;padding-top:100px;max-width:50%; }
+    #login-stage.cinematic-login .login-identity-copy { font-size:20px; }
+    #login-stage.cinematic-login .identity-status { display:none; }
+    html body .login-main #login-stage.cinematic-login .login-panel { max-width:none;padding:26px 22px;border-radius:16px; }
+    #login-stage.cinematic-login .login-panel-top { margin-bottom:24px; }
+    #login-stage.cinematic-login .login-panel h1 { font-size:32px; }
+}
+@media(max-width:380px) {
+    html body .login-main #login-stage.cinematic-login .login-panel { padding-inline:16px; }
+    #login-stage.cinematic-login .login-method { gap:6px;padding-inline:8px; }
+    #login-stage.cinematic-login .login-methods strong { font-size:12px; }
+}
