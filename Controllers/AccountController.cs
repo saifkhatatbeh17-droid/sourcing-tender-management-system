@@ -21,11 +21,27 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     private RedirectToActionResult ContinueAfterLogin(LoginViewModel model) =>
         RedirectToAction(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) });
 
+    private bool IsAsyncLogin => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
+    private IActionResult PasswordLoginSuccess(LoginViewModel model) => IsAsyncLogin
+        ? Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) })
+        : ContinueAfterLogin(model);
+
+    private IActionResult PasswordLoginFailure(LoginViewModel model, int statusCode) => IsAsyncLogin
+        ? StatusCode(statusCode, new
+        {
+            message = "Unable to sign in. Check your email and password, or try again later.",
+            errors = ModelState.Where(entry => entry.Value?.Errors.Count > 0)
+                .ToDictionary(entry => entry.Key, entry => entry.Value!.Errors.Select(error => error.ErrorMessage).ToArray())
+        })
+        : View("Login", model);
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
-        if (User.Identity?.IsAuthenticated == true) return ContinueAfterLogin(model);
-        if (!ModelState.IsValid) return View(model);
+        Response.Headers.CacheControl = "no-store";
+        if (User.Identity?.IsAuthenticated == true) return PasswordLoginSuccess(model);
+        if (!ModelState.IsValid) return PasswordLoginFailure(model, StatusCodes.Status400BadRequest);
         var user = await users.FindByEmailAsync(model.Email);
         if (user != null && user.IsActive)
         {
@@ -34,11 +50,11 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             {
                 Response.Cookies.Delete(SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieName,
                     SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieOptions(Request));
-                return ContinueAfterLogin(model);
+                return PasswordLoginSuccess(model);
             }
         }
         ModelState.AddModelError("", "Unable to sign in. Check your email and password, or try again later.");
-        return View(model);
+        return PasswordLoginFailure(model, StatusCodes.Status401Unauthorized);
     }
 
     // This path must not call Login: that would issue a session before checking the face.
