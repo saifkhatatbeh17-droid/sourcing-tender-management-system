@@ -10,7 +10,7 @@ public sealed class CommitteeTenderFilter
     public DateOnly? FromDate { get; init; }
     public DateOnly? ToDate { get; init; }
     [Range(1, 1000000)] public int Page { get; init; } = 1;
-    [Range(1, 100)] public int PageSize { get; init; } = 20;
+    [Range(7, 7)] public int PageSize { get; init; } = 7;
 }
 
 public sealed record CommitteePage<T>(IReadOnlyList<T> Items, int TotalCount, int Page, int PageSize);

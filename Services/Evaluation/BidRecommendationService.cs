@@ -7,11 +7,11 @@ namespace SourcingTenderManagement.Services.Evaluation;
 
 public record BidComparison(int BidId, string Strengths, string Tradeoffs);
 public record BidScenario(decimal FinancialWeight, int? RecommendedBidId, string Reason);
-public record BidRecommendation(BidScenario[] Scenarios, string[] MissingInformation, BidComparison[] Comparisons, string? Report = null);
+public record BidRecommendation(BidScenario[] Scenarios, string[] MissingInformation, BidComparison[] Comparisons, string? Report = null, bool UsesVerifiedQuoteFacts = false);
 public record SavedBidRecommendation(string Fingerprint, BidRecommendation Recommendation);
 public record TenderImportance(string Level, string Reason, string[] MissingInformation);
 
-public partial class BidRecommendationService(HttpClient http, IConfiguration configuration)
+public partial class BidRecommendationService(HttpClient http, IConfiguration configuration, ILogger<BidRecommendationService>? logger = null)
 {
     private record ReasonSections(string DecisionBasis, string CostAndTerms, string TechnicalFitAndDelivery, string TradeoffsAndLimitations);
     private record StructuredScenario(decimal FinancialWeight, int? RecommendedBidId, ReasonSections Reason);
@@ -71,7 +71,7 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
 
     // Deliberately excludes committee scores, observations, user accounts, and contact details.
     public static string BidData(CommitteeEvaluationPage page, decimal? financialWeight = null) => JsonSerializer.Serialize(new {
-        recommendationVersion = 2,
+        recommendationVersion = 3,
         tender = new { page.Tender!.TenderId, page.Tender.Title, page.Tender.Description, page.Tender.Terms },
         requirements = page.Tender.PurchaseRequest.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId)
             .Select(i => new { i.PurchaseRequestItemId, i.ItemName, i.Quantity, i.Unit, i.Specifications }),
@@ -210,22 +210,20 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
             if (sections.Length != 4 || sections.Any(t => string.IsNullOrWhiteSpace(t) || t.Length < 100 || t.Length > 1200))
                 throw new InvalidOperationException("The AI explanation needs four substantive sections. Nothing was saved; try again.");
             var headings = new[] { "Recommendation", "Cost", "Technical fit & delivery", "Tradeoffs" };
-            var narrative = string.Join(" ", sections);
-            // Catch the observed local-model error: calling the slowest quoted delivery the fastest.
-            var longest = page.Offers.Max(b => b.DeliveryDays);
-            if (longest > page.Offers.Min(b => b.DeliveryDays) &&
-                System.Text.RegularExpressions.Regex.IsMatch(narrative,
-                    $@"(?:faster|quicker)\s+delivery\s+(?:of\s+|in\s+)?{longest}\s*[- ]?\s*days?\b|\b{longest}\s*[- ]?\s*days?\s+delivery\s*(?:,\s*which\s+)?is\s+(?:also\s+)?(?:faster|quicker)|delivery\s+terms\s+are\s+{longest}\s+days,?\s+which\s+is\s+(?:faster|quicker)",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-                throw new InvalidOperationException($"The {longest}-day offer is the slowest, not faster. Follow objectiveFacts.comparisonStatements exactly for cost, delivery and additional charges.");
             return new BidScenario(s.FinancialWeight, s.RecommendedBidId, string.Join("\n\n", sections.Select((t, index) => headings[index] + "\n" + t.Trim())));
         }).ToArray();
         var result = new BidRecommendation(scenarios, structured.MissingInformation, structured.Comparisons, structured.Report);
-        Validate(result, page, financialWeight);
+        ValidateStructure(result, page, financialWeight);
+        try { ValidateNarratives(result, page); }
+        catch (InvalidOperationException ex) when (attempt == 1) {
+            logger?.LogWarning(ex, "Using recorded quote facts after unverified AI narrative for tender {TenderId}", page.Tender?.TenderId);
+            return WithVerifiedQuoteFacts(result, page);
+        }
         return result!;
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
+            logger?.LogWarning(ex, "Recommendation validation failed for tender {TenderId}, attempt {Attempt}", page.Tender?.TenderId, attempt + 1);
             correction = ex.Message;
             if (attempt == 1) throw new InvalidOperationException("The AI could not produce a complete, consistent explanation after retrying. Nothing was saved; try again.", ex);
         }
@@ -322,6 +320,12 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
 
     public static void Validate(BidRecommendation? result, CommitteeEvaluationPage page, decimal? financialWeight = null)
     {
+        ValidateStructure(result, page, financialWeight);
+        ValidateNarratives(result!, page);
+    }
+
+    private static void ValidateStructure(BidRecommendation? result, CommitteeEvaluationPage page, decimal? financialWeight)
+    {
         var ids = page.Offers.Select(b => b.BidId).ToHashSet();
         var weights = financialWeight.HasValue ? new[] { financialWeight.Value } : new decimal[] { 60, 100, 0 };
         if (result == null || result.Scenarios == null || result.Scenarios.Length != weights.Length
@@ -339,9 +343,27 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
             || page.Offers.Select(b => b.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() != 1
                 && result.Scenarios.Any(s => s.FinancialWeight > 0 && s.RecommendedBidId != null))
             throw new InvalidOperationException("The AI returned an invalid comparison. No recommendation was saved. Try again.");
+    }
+
+    private static void ValidateNarratives(BidRecommendation result, CommitteeEvaluationPage page)
+    {
         foreach (var scenario in result.Scenarios.Where(s => s.RecommendedBidId.HasValue))
+        {
+            ValidateDeliveryDurations(scenario.Reason, page);
             BidNarrativeValidation.Check(page, scenario.RecommendedBidId!.Value, scenario.Reason);
+        }
         foreach (var comparison in result.Comparisons)
             BidNarrativeValidation.Check(page, comparison.BidId, comparison.Strengths + "\n" + comparison.Tradeoffs, true);
     }
+    private static void ValidateDeliveryDurations(string text, CommitteeEvaluationPage page)
+    {
+            // Catch the observed local-model error: calling the slowest quoted delivery the fastest.
+            var longest = page.Offers.Max(b => b.DeliveryDays);
+            if (longest > page.Offers.Min(b => b.DeliveryDays) &&
+                System.Text.RegularExpressions.Regex.IsMatch(text,
+                    $@"(?:faster|quicker)\s+delivery\s+(?:of\s+|in\s+)?{longest}\s*[- ]?\s*days?\b|\b{longest}\s*[- ]?\s*days?\s+delivery\s*(?:,\s*which\s+)?is\s+(?:also\s+)?(?:faster|quicker)|delivery\s+terms\s+are\s+{longest}\s+days,?\s+which\s+is\s+(?:faster|quicker)",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                throw new InvalidOperationException($"The {longest}-day offer is the slowest, not faster. Follow objectiveFacts.comparisonStatements exactly for cost, delivery and additional charges.");
+    }
+
 }

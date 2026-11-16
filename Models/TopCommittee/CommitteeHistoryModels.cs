@@ -7,7 +7,7 @@ public sealed class CommitteeHistoryFilter
     [StringLength(40)] public string? Status { get; set; }
     [StringLength(20)] public string? Decision { get; set; }
     [Range(1, 1000000)] public int Page { get; set; } = 1;
-    [Range(1, 100)] public int PageSize { get; set; } = 20;
+    [Range(7, 7)] public int PageSize { get; set; } = 7;
 }
 
 public sealed record CommitteeHistoryRow(int VoteId, int TenderId, string Title, string Status,

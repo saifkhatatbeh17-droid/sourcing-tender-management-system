@@ -19,6 +19,7 @@
     let closeRequested = false;
     let pointerOnBackdrop = false;
     let lightingFrame = 0;
+    let visit = 0;
 
     function watchPortrait(image) {
         const showFallback = () => { image.hidden = true; };
@@ -29,7 +30,6 @@
     function markDiscovered(capsule) {
         capsule.dataset.discovered = '';
         capsule.setAttribute('aria-description', 'Profile already discovered. Open again.');
-        try { sessionStorage.setItem(`tiryaq.team.discovered.${capsule.dataset.member}`, '1'); } catch { /* The current page still remembers it. */ }
     }
 
     function animate(element, frames, options) {
@@ -37,6 +37,7 @@
     }
 
     async function openCarton() {
+        const currentVisit = visit;
         if (reducedMotion.matches) {
             flap.classList.add('is-open');
             return;
@@ -75,7 +76,7 @@
                     { opacity: 1, transform: 'none', clipPath: clear }
                 ], { duration: 1860, delay: 740, easing: 'cubic-bezier(.35,.02,.28,1)', fill: 'backwards' })
             ]);
-            stage.classList.add('is-revealed');
+            if (currentVisit === visit) stage.classList.add('is-revealed');
         } finally {
             stage.inert = false;
             stage.style.removeProperty('transform-origin');
@@ -118,6 +119,7 @@
 
     async function openMember(capsule) {
         if (selected || transitionInProgress) return;
+        const currentVisit = visit;
         transitionInProgress = true;
         selected = capsule;
         capsule.setAttribute('aria-expanded', 'true');
@@ -136,6 +138,7 @@
             }
         }
 
+        if (currentVisit !== visit) return;
         const template = document.getElementById(`team-member-${capsule.dataset.member}`);
         content.replaceChildren(template.content.cloneNode(true));
         const destination = content.querySelector('.team-profile-portrait');
@@ -146,6 +149,7 @@
             dialog.classList.add('is-visible');
         } else {
             await new Promise(resolve => requestAnimationFrame(resolve));
+            if (currentVisit !== visit) return;
             dialog.classList.add('is-visible');
             const motions = [movePortrait(source, destination)];
             content.querySelectorAll('.team-profile-copy > *').forEach((part, index) => {
@@ -154,6 +158,7 @@
             });
             await Promise.all(motions);
         }
+        if (currentVisit !== visit) return;
         transitionInProgress = false;
         if (closeRequested) void closeMember();
     }
@@ -173,9 +178,6 @@
 
     capsules.forEach(capsule => {
         watchPortrait(capsule.querySelector('img'));
-        try {
-            if (sessionStorage.getItem(`tiryaq.team.discovered.${capsule.dataset.member}`) === '1') markDiscovered(capsule);
-        } catch { /* Storage may be unavailable. */ }
         capsule.addEventListener('click', () => void openMember(capsule));
     });
     closeButton.addEventListener('click', () => void closeMember());
@@ -187,8 +189,8 @@
     });
     dialog.addEventListener('close', () => {
         dialog.classList.remove('is-visible');
-        selected.removeAttribute('aria-expanded');
-        selected.focus({ preventScroll: true });
+        selected?.removeAttribute('aria-expanded');
+        selected?.focus({ preventScroll: true });
         selected = undefined;
         transitionInProgress = false;
     });
@@ -214,6 +216,33 @@
     });
     stage.addEventListener('pointerleave', resetLighting);
     reducedMotion.addEventListener('change', resetLighting);
+
+    function resetVisit() {
+        visit++;
+        selected = undefined;
+        page.getAnimations({ subtree: true }).forEach(animation => animation.cancel());
+        if (dialog.open) dialog.close();
+        dialog.classList.remove('is-visible');
+        transitionInProgress = false;
+        closeRequested = false;
+        pointerOnBackdrop = false;
+        stage.inert = false;
+        stage.classList.remove('is-revealed');
+        flap.classList.remove('is-open');
+        capsules.forEach(capsule => {
+            delete capsule.dataset.discovered;
+            capsule.classList.remove('is-pressed');
+            capsule.removeAttribute('aria-expanded');
+            capsule.removeAttribute('aria-description');
+            capsule.querySelector('.team-capsule-portrait').style.visibility = '';
+        });
+        content.replaceChildren();
+        resetLighting();
+    }
+    window.addEventListener('pagehide', resetVisit);
+    window.addEventListener('pageshow', event => {
+        if (event.persisted) { resetVisit(); void openCarton(); }
+    });
 
     void openCarton();
 })();

@@ -1,7 +1,7 @@
 @model CommitteeNotificationPage
 @{
     ViewData["Title"] = "Committee Notifications";
-    var pages = Math.Max(1, (int)Math.Ceiling(Model.Total / 20d));
+    var pages = Math.Max(1, (int)Math.Ceiling(Model.Total / 7d));
 }
 <div class="workspace-heading">
     <div><h1>Notifications</h1><p>@Model.Unread unread @(Model.Unread == 1 ? "notification" : "notifications") · @Model.Total total. Reload to see the latest updates.</p></div>

@@ -13,6 +13,7 @@
             ? RoleNames.Supplier
             : RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     }
+    var publicDestination = currentController == "Home" || currentController == "Account" && currentAction is "Login" or "Register" or "RegistrationStatus";
     var standaloneLogin = ViewData["StandaloneLogin"] is true;
     var isHomeLanding = ViewData["HomeLanding"] is true;
     var isSupplierRegistration = currentController == "Account" && currentAction == "Register";
@@ -20,7 +21,7 @@
     var useLandingNavbar = isHomeLanding || isSupplierRegistration || isContactPage;
     if (!PageNavigation.Menus.ContainsKey(workspaceController) || !User.IsInRole(workspaceController))
         workspaceController = RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
-    var showWorkspace = !isHomeLanding && User.Identity?.IsAuthenticated == true
+    var showWorkspace = !publicDestination && !isHomeLanding && User.Identity?.IsAuthenticated == true
         && ViewData["HideWorkspaceSidebar"] is not true && PageNavigation.Menus.ContainsKey(workspaceController)
         && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "Clarification" or "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
     var showAdminSidebar = showWorkspace && workspaceController == "Admin";
@@ -67,17 +68,23 @@
     @if (showWorkspace) { <link rel="stylesheet" href="~/css/workspace-shell.css" asp-append-version="true" /> }
     @if (showWorkspace && currentAction == "Dashboard") { <link rel="stylesheet" href="~/css/workspace-dashboard.css" asp-append-version="true" /> }
     <link rel="stylesheet" href="~/css/workflow-ux.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/record-pagination.css" asp-append-version="true" />
     @if (showWorkspace)
     {
         <link rel="stylesheet" href="~/css/ai-chat.css" asp-append-version="true" />
     }
     <link rel="stylesheet" href="~/css/brand-theme.css" asp-append-version="true" />
+    @if (publicDestination) { <link rel="stylesheet" href="~/css/public-navigation.css" asp-append-version="true" /> }
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 @if (showWorkspace)
 {
     <partial name="_WorkspaceNavbar" />
+}
+else if (publicDestination)
+{
+    <partial name="_PublicPageNavbar" />
 }
 else if (!standaloneLogin && ViewData["HidePublicNavigation"] is not true)
 {
@@ -94,6 +101,7 @@ else if (!standaloneLogin && ViewData["HidePublicNavigation"] is not true)
         <div class="d-flex flex-wrap align-items-center gap-3 @(useLandingNavbar ? "landing-links" : "")">
             <a asp-controller="Home" asp-action="Index" aria-current="@(isHomeLanding ? "page" : null)">Home</a>
             <a asp-controller="Home" asp-action="Team">Our Team</a>
+            <a asp-controller="Home" asp-action="InsideTiryaq">Inside Tiryaq</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "About")" asp-fragment="@(isHomeLanding ? "about" : null)">About</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "HowItWorks")" asp-fragment="@(isHomeLanding ? "how-it-works" : null)">How It Works</a>
             <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "Contact")" asp-fragment="@(isHomeLanding ? "contact" : null)" aria-current="@(isContactPage ? "page" : null)">Contact</a>
@@ -149,6 +157,8 @@ else if (!standaloneLogin && ViewData["HidePublicNavigation"] is not true)
 <script src="~/js/notification-center.js" asp-append-version="true"></script>
 
 <script src="~/js/workflow-ux.js" asp-append-version="true"></script>
+<script src="~/js/record-pagination.js" asp-append-version="true" defer></script>
+@if (publicDestination) { <script src="~/js/public-navigation.js" asp-append-version="true" defer></script> }
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -139,7 +139,9 @@ using (var scope = app.Services.CreateScope())
     }
 }
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Home/Error");
-app.UseStaticFiles();
+var staticContentTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+staticContentTypes.Mappings[".vtt"] = "text/vtt";
+app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = staticContentTypes });
 app.UseRouting();
 app.UseAuthentication();
 app.UseRateLimiter();

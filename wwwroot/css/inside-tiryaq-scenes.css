@@ -1,0 +1,49 @@
+/* Inside Tiryaq interiors: local SVG timelines, layered above the existing campus. */
+.campus-scroll { height:1050vh; }
+.request-trail { position:absolute;z-index:7;bottom:102px;left:36px;right:36px;display:flex;gap:22px;align-items:center;padding:10px 14px;background:#f9fcfaee;border:1px solid #ccddd3;border-radius:10px;font-size:12px; }
+.request-trail strong { font-size:12px;white-space:nowrap; }.request-trail small { color:#59716f;font-weight:400;margin-left:8px; }
+.request-trail ol { display:flex;justify-content:space-between;flex:1;gap:12px;list-style:none;padding:0;margin:0; }
+.request-trail li { color:#6c8078;display:flex;gap:7px;align-items:center; }.request-trail li.is-done { color:#087f85;font-weight:600; }
+.campus-world { bottom:152px; }.campus-activity { bottom:166px; }
+.interior { position:absolute;z-index:6;left:360px;right:30px;top:92px;bottom:166px;background:#fbfdfb;border:1px solid #c6d9cf;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 16px 38px #17383c0c; }
+.interior[hidden],.interior-transition[hidden] { display:none!important; }
+.interior-header { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #dbe7df;background:#f7fbf9; }
+.interior-header span { display:block;font-size:12px;color:#59716f;margin-bottom:4px; }.interior-header h2 { font-size:20px;line-height:1.25;letter-spacing:-.02em;color:#17383c;margin:0; }
+.interior button { min-height:38px;padding:8px 12px;border:1px solid #c4d8cd;border-radius:7px;background:#fff;color:#315c60;font:12px 'Segoe UI',sans-serif;cursor:pointer;white-space:nowrap; }
+.interior button:disabled { opacity:.4;cursor:default; }.interior button[data-interior-play] { background:#315c60;color:white;border-color:#315c60; }
+.interior-viewport { min-height:0;flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;background:#eef4f1; }
+.interior svg { display:block;width:100%;max-height:100%;aspect-ratio:16/9;flex-shrink:0;font-family:'Segoe UI',Arial,sans-serif; }
+.interior svg text { font-family:"Segoe UI",Arial,sans-serif; }
+.interior svg [data-action] { transform-box:view-box;transform-origin:0 0;will-change:transform,opacity; }
+.interior-controls { padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid #dbe7df; }
+.interior-controls>div { display:flex;gap:8px;align-items:center; }.interior-controls output { font-size:12px;color:#315c60;min-width:77px;text-align:center; }
+.interior-scrub { width:100%;display:block;height:20px;margin:0; }.interior-scrub input { width:100%;height:20px;padding:0;border:0;accent-color:#087f85; }
+.interior-transition { position:absolute;z-index:8;left:360px;right:30px;top:92px;bottom:166px;background:#315c60;display:flex;align-items:center;justify-content:center;gap:22px;flex-direction:column;border-radius:16px;color:white;font-size:15px;pointer-events:none; }
+.interior-travelling-document { width:90px;height:115px;display:grid;place-items:center;border-radius:5px;background:#ee8d54;color:#17383c;border-top:12px solid #ffbb84;font-size:16px;font-weight:600; }
+.campus-page[data-interior-open=true] .campus-activity { top:auto;bottom:158px;left:36px;right:auto;width:294px; }
+.campus-page[data-interior-open=true] .campus-facts { display:none; }.campus-page[data-interior-open=true] .campus-story h1 { font-size:34px; }.campus-page[data-interior-open=true] .campus-description { font-size:16px;line-height:1.7; }.campus-page[data-interior-open=true] .campus-hint { display:none; }
+.campus-page[data-interior-open=true] .campus-labels,.campus-page[data-interior-open=true] .campus-zoom { visibility:hidden;pointer-events:none; }
+.campus-page[data-render=fallback] .campus-world { opacity:1;background:repeating-linear-gradient(45deg,#e4eee8,#e4eee8 1px,#eef4f1 1px,#eef4f1 20px); }.campus-page[data-render=fallback][data-interior-open=true] .campus-fallback { display:none; }
+@media(min-width:1800px) { .interior,.interior-transition { left:410px;right:60px; }.request-trail { left:60px;right:60px; }.campus-page[data-interior-open=true] .campus-activity { left:60px; } }
+@media(max-height:800px) and (min-width:901px) { .interior,.interior-transition { top:80px;bottom:154px; }.interior-header { padding:10px 16px; }.interior-header h2 { font-size:17px; }.interior-controls { padding:6px 12px; }.campus-page[data-interior-open=true] .campus-story { top:15%; }.campus-page[data-interior-open=true] .campus-story h1 { font-size:28px; }.campus-page[data-interior-open=true] .campus-description { font-size:14px; }.campus-page[data-interior-open=true] .campus-activity { padding:10px 14px;bottom:160px; }.request-trail { bottom:96px; } }
+@media(max-width:1150px) and (min-width:901px) { .interior,.interior-transition { left:290px;right:20px; }.campus-page[data-interior-open=true] .campus-activity { width:246px;left:24px; }.campus-page[data-interior-open=true] .campus-story h1 { font-size:28px; } }
+@media(max-width:900px) {
+ .campus-scroll { height:auto; }.campus-world { bottom:auto; }.interior { position:relative;inset:auto;order:1;min-height:0;margin:18px -6px 0;max-height:none; }
+ .interior-viewport { display:block;overflow-x:auto;min-height:350px; }.interior svg { width:100%;min-width:680px;height:auto;max-height:none; }
+ .interior-header { padding:12px; }.interior-header h2 { font-size:17px; }.interior-header span { font-size:11px; }.interior-header button { font-size:11px;padding:8px; }
+ .interior-controls { padding:10px; }.interior-controls button { min-height:42px; }.interior-controls output { font-size:11px; }
+ .interior-transition { position:absolute;inset:100px 14px auto;min-height:350px; }.request-trail { position:relative;inset:auto;order:4;flex-direction:column;align-items:start;gap:10px;margin-top:18px; }.request-trail ol { display:grid;grid-template-columns:repeat(3,1fr);width:100%;gap:10px;font-size:11px; }
+ .campus-page[data-interior-open=true] .campus-world { display:none; }.campus-page[data-interior-open=true] .campus-story { padding-top:20px; }.campus-page[data-interior-open=true] .campus-story h1 { font-size:28px; }.campus-page[data-interior-open=true] .campus-activity { position:relative;inset:auto;width:100%; }
+ .campus-route { order:5; }.campus-page[data-interior-open=true] .campus-story-action { display:none; }
+}
+@media(prefers-reduced-motion:reduce) { .interior svg [data-action] { will-change:auto; } }
+
+[data-interior-art]{width:100%;height:100%;min-width:0;display:grid;place-items:center;}
+[data-interior-art] svg{width:100%;height:100%;max-height:100%;font-family:"Segoe UI",sans-serif;}
+@media(max-width:900px){[data-interior-art]{min-width:1000px;min-height:563px;}[data-interior-art] svg{min-width:1000px;min-height:563px;} }
+
+.interior-viewport{justify-content:flex-start;align-items:flex-start;}[data-interior-art]{min-width:900px;min-height:507px;}[data-interior-art] svg{min-width:900px;min-height:507px;aspect-ratio:16/9;}
+.interior-transition{animation:interior-enter .8s ease both;}
+@keyframes interior-enter{0%{opacity:0;transform:scale(.86);}30%,75%{opacity:1;}100%{opacity:1;transform:scale(1);}}
+.interior button:focus-visible,.interior-viewport:focus-visible{outline:3px solid #ee8d54;outline-offset:-3px;}
+@media(prefers-reduced-motion:reduce){.interior-transition{animation:none;}}

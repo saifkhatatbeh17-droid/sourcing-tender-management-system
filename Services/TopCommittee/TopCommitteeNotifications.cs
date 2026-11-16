@@ -9,7 +9,7 @@ public sealed class TopCommitteeNotifications(ApplicationDbContext db,TopCommitt
 {
  public async Task<CommitteeNotificationPage> GetAsync(ClaimsPrincipal actor,int page=1,CancellationToken ct=default)
  {
-  var id=await access.RequireRoleAsync(actor,RoleNames.TopCommittee,ct);if(page<1||page>1000000)throw new ValidationException("Choose a valid notification page.");var q=db.Notifications.AsNoTracking().Where(n=>n.UserId==id);var total=await q.CountAsync(ct);var unread=await q.CountAsync(n=>!n.IsRead,ct);var rows=await q.OrderByDescending(n=>n.CreatedAt).ThenByDescending(n=>n.NotificationId).Skip((page-1)*20).Take(20).ToListAsync(ct);
+  var id=await access.RequireRoleAsync(actor,RoleNames.TopCommittee,ct);if(page<1||page>1000000)throw new ValidationException("Choose a valid notification page.");var q=db.Notifications.AsNoTracking().Where(n=>n.UserId==id);var total=await q.CountAsync(ct);var unread=await q.CountAsync(n=>!n.IsRead,ct);var rows=await q.OrderByDescending(n=>n.CreatedAt).ThenByDescending(n=>n.NotificationId).Skip((page-1)*7).Take(7).ToListAsync(ct);
   var assigned=await db.CommitteeAssignments.AsNoTracking().Where(a=>a.UserId==id&&a.CommitteeType=="Top").Select(a=>a.TenderId).ToListAsync(ct);
   return new(rows.Select(n=>{int? tender=null;var match=Regex.Match(n.RelativeUrl??"","^/TopCommittee/TenderDetails/([1-9][0-9]*)$",RegexOptions.CultureInvariant);if(match.Success&&int.TryParse(match.Groups[1].Value,out var t)&&assigned.Contains(t))tender=t;return new CommitteeNotificationItem(n.NotificationId,n.Title,n.Message,n.IsRead,n.CreatedAt,tender);}).ToList(),total,unread,page);
  }

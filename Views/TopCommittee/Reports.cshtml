@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "CEO & Chiefs Reports";
     var f = Model.Filter;
-    var pages = Math.Max(1, (int)Math.Ceiling(Model.Summary.Matching / 20d));
+    var pages = Math.Max(1, (int)Math.Ceiling(Model.Summary.Matching / 7d));
     var hasFilters = !string.IsNullOrWhiteSpace(f.Search) || !string.IsNullOrWhiteSpace(f.Status) ||
         !string.IsNullOrWhiteSpace(f.Decision) || f.FromDate.HasValue || f.ToDate.HasValue;
 }

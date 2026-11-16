@@ -1,0 +1,28 @@
+@using SourcingTenderManagement.Models.Entities
+@{
+    var tenders = ViewBag.OfferTenders as List<Tender> ?? [];
+}
+<section class="ot-list" aria-labelledby="tender-list-title">
+    <div class="ot-list-heading">
+        <div><h2 id="tender-list-title">Choose a tender</h2><p>Open a tender to review its supplier offers and progress.</p></div>
+        <div class="ot-search"><label for="tender-search">Search tenders</label><input id="tender-search" type="search" class="form-control" placeholder="Search title, number, category or status" autocomplete="off" aria-controls="officer-tender-list" /></div>
+    </div>
+    <p class="tb-result" role="status" aria-live="polite">@tenders.Count @(tenders.Count == 1 ? "tender" : "tenders")</p>
+    <div class="ot-columns" aria-hidden="true"><span>Tender</span><span>Status</span><span>Deadline (UTC)</span><span></span></div>
+    <nav id="officer-tender-list" aria-label="Choose a tender">
+        @foreach (var tender in tenders)
+        {
+            var needsReplacement = tender.RejectionForwardedAt != null && !tenders.Any(r => r.ReplacesTenderId == tender.TenderId);
+            var status = needsReplacement ? "Replacement tender needed" : SourcingTenderManagement.Models.CommitteeEvaluationPage.StatusLabel(tender.Status);
+            <div class="tb-choice-row">
+                <a class="tb-choice ot-tender-row" asp-action="Offers" asp-route-id="" asp-route-tenderId="@tender.TenderId" data-search="@($"#{tender.TenderId} {tender.Title} {tender.Category} {status}")">
+                    <span class="ot-tender-name"><small>#@tender.TenderId · @(tender.Category ?? "Uncategorized")</small><strong>@tender.Title</strong></span>
+                    <span class="so-status-badge" data-status="@(needsReplacement ? "Rejected" : tender.Status)">@status</span>
+                    <span class="ot-deadline"><span class="ot-mobile-label">Deadline · </span><time datetime="@tender.ClosesAt.ToString("yyyy-MM-ddTHH:mm:ssZ")">@tender.ClosesAt.ToString("dd MMM yyyy, HH:mm")</time><span class="ot-mobile-label"> UTC</span></span>
+                    <span class="ot-open">View offers <span aria-hidden="true">→</span></span>
+                </a>
+            </div>
+        }
+    </nav>
+    <p class="tb-no-results" hidden>No matching tenders. Try another title, number, category or status.</p>
+</section>

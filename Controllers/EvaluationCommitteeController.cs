@@ -140,7 +140,7 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
         catch (InvalidOperationException ex) { TempData["AiError"] = ex.Message; }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException or KeyNotFoundException)
         { TempData["AiError"] = "Could not reach local Ollama or finish the comparison. Check that Ollama is running, then try again."; }
-        return RedirectToAction(nameof(Evaluations), new { id });
+        return RedirectToAction(nameof(Evaluations), new { id, tab = writeReport ? "report" : "offers", focus = writeReport ? null : "ai" });
     }
 
     private IQueryable<Tender> TenderQuery() => db.Tenders.AsSplitQuery()

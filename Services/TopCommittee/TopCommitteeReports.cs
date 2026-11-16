@@ -19,7 +19,7 @@ public sealed class TopCommitteeReports(ApplicationDbContext db,TopCommitteeAcce
   var count=await q.CountAsync(ct);if(export&&count>5000)throw new ValidationException("More than 5000 matching tenders. Narrow the filters before exporting.");
   var summary=new CommitteeReportSummary(await assigned.CountAsync(ct),count,await q.CountAsync(t=>t.Status=="AwaitingCommitteeDecision"&&!t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.Decision=="Rejected"),ct),await q.CountAsync(t=>t.Status=="Awarded",ct),await q.CountAsync(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.Decision=="Rejected"),ct),await q.CountAsync(t=>t.Status=="AwaitingManagerReview",ct),await q.CountAsync(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.UserId==id),ct));
   var ordered=q.OrderByDescending(t=>t.CreatedAt).ThenByDescending(t=>t.TenderId);
-  var rows=await ProjectRows(export?ordered.Take(5000):ordered.Skip((f.Page-1)*20).Take(20),id).ToListAsync(ct);
+  var rows=await ProjectRows(export?ordered.Take(5000):ordered.Skip((f.Page-1)*7).Take(7),id).ToListAsync(ct);
   // System-wide aggregates are export-only. Detail rows retain their assignment scope above.
   if (!export) return new(f,summary,rows,DateTime.UtcNow);
   var supplierCount = await db.SupplierProfiles.AsNoTracking().CountAsync(ct);

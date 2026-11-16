@@ -1,0 +1,55 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using Microsoft.Extensions.Configuration;
+using SourcingTenderManagement.Checks;
+using SourcingTenderManagement.Services.Evaluation;
+
+await ReportContentChecks.RunAsync();
+await FinalReportChecks.RunAsync();
+foreach (var invalidId in new[] { false, true })
+{
+    var page = CommitteeScoringChecks.Fixture();
+    page.Offers[0].DeliveryDays = 6;
+    page.Offers[1].DeliveryDays = 3;
+    var handler = new ComparisonHandler(invalidId);
+    using var http = new HttpClient(handler);
+    var service = new BidRecommendationService(http, new ConfigurationBuilder().Build());
+    if (invalidId)
+    {
+        try { await service.Recommend(page, 50, default); throw new Exception("Unknown supplier was accepted."); }
+        catch (InvalidOperationException) { }
+    }
+    else
+    {
+        var result = await service.Recommend(page, 50, default);
+        if (!result.UsesVerifiedQuoteFacts || result.Scenarios[0].RecommendedBidId != 1 || result.Report != null || handler.Calls != 2)
+            throw new Exception("Recovery changed the advisory pick or skipped the retry/disclosure.");
+        if (result.Scenarios[0].Reason.Contains("fastest") || !result.Scenarios[0].Reason.Contains("6 days"))
+            throw new Exception("Recovered facts contain the rejected claim or lost delivery facts.");
+        BidRecommendationService.Validate(result, page, 50);
+        var saved = JsonSerializer.Serialize(result, BidRecommendationService.Json);
+        if (!JsonSerializer.Deserialize<BidRecommendation>(saved, BidRecommendationService.Json)!.UsesVerifiedQuoteFacts)
+            throw new Exception("Recovery disclosure was lost after saving.");
+    }
+}
+Console.WriteLine("PASS: narrative retry and factual recovery; invalid supplier rejected; saved disclosure round-trip; existing report safeguards.");
+
+sealed class ComparisonHandler(bool invalidId) : HttpMessageHandler
+{
+    public int Calls { get; private set; }
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        Calls++;
+        var narrative = "Offer #1 is the fastest quoted delivery. This advisory comparison uses the agreed financial and technical percentages; committee members remain responsible for every review.";
+        var neutral = "Recorded quote details must be checked against the submitted evidence and the purchase request. No unverified warranty, price advantage or mandatory specification is assumed.";
+        var output = JsonSerializer.Serialize(new {
+            scenarios = new[] { new { financialWeight = 50, recommendedBidId = invalidId ? 999 : 1, reason = new {
+                decisionBasis = narrative, costAndTerms = neutral, technicalFitAndDelivery = neutral, tradeoffsAndLimitations = neutral } } },
+            missingInformation = Array.Empty<string>(), report = "Advisory only.",
+            comparisons = new[] { new { bidId=1, strengths=neutral, tradeoffs=neutral }, new { bidId=2, strengths=neutral, tradeoffs=neutral } }
+        });
+        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(
+            JsonSerializer.Serialize(new { done = true, done_reason = "stop", response = output }), Encoding.UTF8, "application/json") });
+    }
+}

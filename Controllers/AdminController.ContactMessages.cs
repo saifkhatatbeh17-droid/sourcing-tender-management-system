@@ -11,7 +11,7 @@ public partial class AdminController
     public async Task<IActionResult> ContactMessages(string? search, string? status, int page = 1,
         CancellationToken cancellationToken = default)
     {
-        const int pageSize = 25;
+        const int pageSize = 7;
         search = search?.Trim();
         if (search?.Length > 254) search = search[..254];
         status = status is ContactMessage.Unread or ContactMessage.Read ? status : null;

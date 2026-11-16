@@ -75,6 +75,21 @@ public static class FaceLoginChecks
         {
             var owner = await Create(true); var missing = await Create(false);
             await app.StartAsync();
+            using (var passkeyClient = Client())
+            {
+                var html = await passkeyClient.GetStringAsync("/Account/Login");
+                var body = new Dictionary<string, string> { ["credential"] = "{}", ["__RequestVerificationToken"] = Token(html) };
+                using var missingCeremony = await passkeyClient.PostAsync("/Account/Passkeys/SignIn", new FormUrlEncodedContent(body));
+                Check(missingCeremony.StatusCode == HttpStatusCode.Unauthorized, "Missing passkey ceremony fails without HTTP 500");
+                Check((await passkeyClient.GetAsync("/__face-gate/protected")).StatusCode == HttpStatusCode.Redirect,
+                    "Missing passkey ceremony grants no authentication");
+                using var options = await passkeyClient.PostAsync("/Account/Passkeys/LoginOptions", new FormUrlEncodedContent(body));
+                Check(options.IsSuccessStatusCode, "Passkey ceremony can still start");
+                using var malformed = await passkeyClient.PostAsync("/Account/Passkeys/SignIn", new FormUrlEncodedContent(body));
+                Check(malformed.StatusCode == HttpStatusCode.Unauthorized, "Malformed assertion still fails verification");
+                using var consumed = await passkeyClient.PostAsync("/Account/Passkeys/SignIn", new FormUrlEncodedContent(body));
+                Check(consumed.StatusCode == HttpStatusCode.Unauthorized, "Consumed passkey ceremony fails without HTTP 500");
+            }
             await Denied(owner, password, null, "Password alone");
             await Denied(owner, password, new float[127], "Malformed descriptor");
             await Denied(owner, password, samples[0], "Missing CSRF", false);

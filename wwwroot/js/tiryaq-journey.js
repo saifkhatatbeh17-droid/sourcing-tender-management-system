@@ -30,7 +30,7 @@ const P = { night: '#0c252d', deep: '#11333d', teal: '#1d5560', teal2: '#2a6b74'
 /* ---------------- viewport ---------------- */
 let W = 0, H = 0, DPR = 1, BZ = 1, portrait = false;
 function resize() {
-  DPR = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; portrait = W / H < .9;
+  DPR = Math.min(devicePixelRatio || 1, 2); W = cv.clientWidth; H = cv.clientHeight; portrait = W / H < .9;
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   BZ = portrait ? Math.min(W / 620, H / 900) : Math.min(W / 1180, H / 820);
 }
@@ -630,7 +630,9 @@ function home(b, a) {
 
 /* ---------------- frame ---------------- */
 let B = 0, tgt = 0, last = performance.now();
-const targetFromScroll = () => { const r = track.getBoundingClientRect(); return clamp(-r.top / Math.max(1, r.height - innerHeight)) * BMAX; };
+const navbarHeight = () => document.querySelector(".public-page-nav")?.getBoundingClientRect().height ?? 0;
+const targetFromScroll = () => { const r = track.getBoundingClientRect(); return clamp((navbarHeight() - r.top) / Math.max(1, r.height - cv.clientHeight)) * BMAX; };
+window.addEventListener("publicnavresize", resize);
 function render() {
   const cam = camAt(B); Z = cam.z * BZ;
   g.setTransform(DPR, 0, 0, DPR, 0, 0); g.fillStyle = P.night; g.fillRect(0, 0, W, H);
@@ -714,7 +716,7 @@ function ui() {
 // jump navigation (buttons anywhere with data-go)
 document.addEventListener('click', e => {
   const bt = e.target.closest('[data-go]'); if (!bt) return;
-  const at = +bt.dataset.go, top = track.offsetTop + at / BMAX * (track.offsetHeight - innerHeight);
+  const at = +bt.dataset.go, top = track.offsetTop - navbarHeight() + at / BMAX * (track.offsetHeight - cv.clientHeight);
   scrollTo({ top, behavior: RM ? 'auto' : 'smooth' });
 });
 // product cards: gentle tilt toward the pointer

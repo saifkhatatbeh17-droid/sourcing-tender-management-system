@@ -4,6 +4,9 @@
     var currentStatus = ViewBag.Status as string ?? "";
     var currentQuery = ViewBag.Query as string ?? "";
     var filtered = !string.IsNullOrEmpty(currentQuery) || !string.IsNullOrEmpty(currentStatus);
+    var page = (int?)ViewBag.RequestPage ?? 1;
+    var pages = (int?)ViewBag.RequestPages ?? 1;
+    var total = (int?)ViewBag.RequestTotal ?? Model.Count;
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 @section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
@@ -53,7 +56,7 @@
 
         <div class="dr-list-heading">
             <div>
-                <h2 id="department-requests-heading">@(filtered ? "Matching requests" : "Department requests") <span class="dr-count-pill">@Model.Count</span></h2>
+                <h2 id="department-requests-heading">@(filtered ? "Matching requests" : "Department requests") <span class="dr-count-pill">@total</span></h2>
                 <p class="dr-list-note">Current status follows the tender once it is created.</p>
             </div>
             @if (!string.IsNullOrEmpty(currentStatus))
@@ -114,6 +117,16 @@
                     </article>
                 }
             </div>
+        }
+        @if (total > 0)
+        {
+            <nav class="record-pagination" aria-label="Request pages">
+                <span>Page @(page) of @pages · @total requests</span>
+                <div>
+                    @if (page > 1) { <a class="btn btn-outline-primary" asp-action="Requests" asp-route-q="@currentQuery" asp-route-status="@currentStatus" asp-route-page="@(page - 1)">Previous</a> }
+                    @if (page < pages) { <a class="btn btn-outline-primary" asp-action="Requests" asp-route-q="@currentQuery" asp-route-status="@currentStatus" asp-route-page="@(page + 1)">Next</a> }
+                </div>
+            </nav>
         }
     </section>
 </div>

@@ -1,0 +1,6 @@
+[data-page-hidden] { display:none!important; }
+.record-pagination { display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:16px 0 0;padding:14px 4px;border-top:1px solid var(--color-border,#d9e2e3);color:var(--color-text-secondary,#51666b);font-size:13px; }
+.record-pagination[hidden] { display:none!important; }
+.record-pagination>div { display:flex;gap:8px; }
+.record-pagination .btn { min-height:40px;padding:8px 14px;border-radius:8px;font-size:13px; }
+.record-pagination .btn:focus-visible { outline:2px solid var(--color-link,#087f85);outline-offset:3px; }

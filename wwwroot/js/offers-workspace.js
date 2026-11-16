@@ -8,6 +8,4 @@
      requestAnimationFrame(() => (trigger?.isConnected ? trigger : fallback)?.focus());
    });
  });
- const picker = document.getElementById('tender-picker');
- picker?.addEventListener('shown.bs.modal', () => document.getElementById('tender-search')?.focus());
 })();

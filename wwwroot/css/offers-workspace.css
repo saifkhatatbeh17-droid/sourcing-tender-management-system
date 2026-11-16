@@ -269,3 +269,28 @@ html body main .oc-confirm .btn.oc-negative { background:#a4483e;border-color:#a
 .offer-redesign .ow-committee-handoff .btn { min-height:44px;border-radius:8px;padding:12px 20px;font-size:14px;line-height:1.4;white-space:normal; }
 html body main .offer-redesign :is(.ow-committee-handoff,.offer-handoff) .btn:disabled { background:var(--color-disabled-bg);border-color:var(--color-disabled-bg);color:var(--color-disabled-text);opacity:1;box-shadow:none;cursor:not-allowed; }
 @media(max-width:800px) { .offer-redesign .ow-committee-handoff { padding:18px;gap:16px; }.offer-redesign .ow-committee-handoff form { width:100%; } }
+/* Full tender list uses the existing searchable tender choices. */
+.offer-redesign .ot-list { margin-top:24px; }
+.ot-list-heading { display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:18px; }
+.ot-list-heading h2 { font-size:22px;margin:0 0 8px; }
+.ot-list-heading p { color:var(--so-muted);margin:0; }
+.ot-search { width:min(100%,360px); }
+.ot-search label { display:block;font-size:13px;margin-bottom:6px; }
+.ot-columns,.so-page.offer-redesign a.ot-tender-row { display:grid;grid-template-columns:minmax(180px,2fr) minmax(130px,1fr) minmax(150px,1fr) auto;align-items:center;gap:20px; }
+.ot-columns { padding:12px 18px;font-size:12px;color:var(--so-muted); }
+.so-page.offer-redesign a.ot-tender-row { padding:18px;min-height:86px;text-decoration:none;border-radius:8px; }
+.ot-tender-name { display:grid;gap:6px;min-width:0;overflow-wrap:anywhere; }
+.ot-tender-name small,.ot-deadline { font-size:13px;color:var(--so-muted); }
+.ot-open { font-size:13px;white-space:nowrap; }
+.ot-mobile-label { display:none; }
+@media(max-width:800px) {
+ .ot-list-heading { align-items:stretch;flex-direction:column;gap:16px; }
+ .ot-search { width:100%; }.ot-columns { display:none; }
+ .so-page.offer-redesign a.ot-tender-row { grid-template-columns:minmax(0,1fr) auto;gap:12px; }
+ .ot-tender-name { grid-column:1/-1; }.ot-mobile-label { display:inline; }
+ .ot-deadline { grid-column:1/-1; }.ot-open { grid-row:2;grid-column:2; }
+}
+
+.ot-list .tb-choice-row { border-bottom:1px solid var(--so-line); }
+
+.ot-tender-row .so-status-badge { justify-self:start; }

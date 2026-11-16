@@ -30,7 +30,8 @@
 @if (TempData["EvaluationError"] is string reviewError) { <div data-flash-message class="alert alert-danger" role="alert">@reviewError</div> }
 @if (TempData["ComplianceSuccess"] is string saved) { <div data-flash-message class="alert alert-success" role="status">@saved</div> }
 @if (TempData["ComplianceError"] is string failed) { <div data-flash-message class="alert alert-danger" role="alert">@failed</div> }
-@if (tender == null) { <section class="workspace-section"><h2>No tenders yet</h2><p>Prepare a tender from a purchase request to begin.</p><a asp-action="Create">Prepare tender →</a></section> }
+@if (tender == null && tenders.Count > 0) { <partial name="_TenderList" /> }
+else if (tender == null) { <section class="workspace-section"><h2>No tenders yet</h2><p>Prepare a tender from a purchase request to begin.</p><a asp-action="Create">Prepare tender →</a></section> }
 else
 {
     <section class="ow-tender-context" aria-labelledby="tw-tender-title"><partial name="_TenderChooser" /></section>

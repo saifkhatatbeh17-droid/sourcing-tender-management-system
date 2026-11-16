@@ -24,7 +24,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return View(await DepartmentRequests(user).OrderByDescending(r => r.CreatedAt).ToListAsync());
     }
 
-    public async Task<IActionResult> Requests(string? q, string? status)
+    public async Task<IActionResult> Requests(string? q, string? status, int page = 1)
     {
         var user = await users.GetUserAsync(User);
         if (user?.DepartmentId == null) return Forbid();
@@ -37,7 +37,14 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         if (!string.IsNullOrWhiteSpace(status)) requests = DepartmentRequestProgress.Filter(requests, status);
         ViewBag.Query = q;
         ViewBag.Status = status;
-        return View(await requests.OrderByDescending(r => r.CreatedAt).ToListAsync());
+        var total = await requests.CountAsync();
+        var pages = Math.Max(1, (int)Math.Ceiling(total / 7d));
+        page = Math.Clamp(page, 1, pages);
+        ViewBag.RequestTotal = total;
+        ViewBag.RequestPage = page;
+        ViewBag.RequestPages = pages;
+        return View(await requests.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.PurchaseRequestId)
+            .Skip((page - 1) * 7).Take(7).ToListAsync());
     }
 
     public async Task<IActionResult> Details(int id)

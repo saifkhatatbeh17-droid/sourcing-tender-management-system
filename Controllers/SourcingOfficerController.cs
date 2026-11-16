@@ -60,7 +60,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         q = q?.Trim();
         if (!string.IsNullOrWhiteSpace(q))
             requestQuery = requestQuery.Where(r => r.Title.Contains(q) || r.Department.Name.Contains(q) || r.PurchaseRequestId.ToString() == q);
-        const int pageSize = 10;
+        const int pageSize = 7;
         var total = await requestQuery.CountAsync();
         var pages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
         page = Math.Clamp(page, 1, pages);
@@ -545,7 +545,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             if (bid == null) return NotFound();
             tenderId = bid.TenderId;
         }
-        tenderId ??= tenders.FirstOrDefault()?.TenderId;
+        ViewBag.OfferTenders = tenders;
+        if (!tenderId.HasValue)
+            return View("Offers", new List<Bid>());
         if (tenderId.HasValue && !tenders.Any(t => t.TenderId == tenderId)) return NotFound();
         var bids = await db.Bids.AsNoTracking().Where(b => b.TenderId == tenderId && b.SubmittedAt != null)
             .Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile)

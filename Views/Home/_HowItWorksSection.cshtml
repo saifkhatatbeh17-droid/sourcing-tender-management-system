@@ -1,5 +1,6 @@
 @{
-    var isHomeLanding = ViewData["HomeLanding"] is true;
+    var chapterStarts = new[] { 0d, 18.350, 33.508, 54.474, 72.584, 90.646 };
+    var chapterLabels = new[] { "0:00", "0:18", "0:33", "0:54", "1:12", "1:30" };
     var stages = new[]
     {
         (Icon: "needs", Title: "Identify Needs", Description: "Departments submit purchase requests with specifications, quantities, and target dates."),
@@ -11,47 +12,38 @@
     };
 }
 
-<div class="public-guide" id="how-it-works">
-    <section class="guide-hero guide-split" aria-labelledby="guide-title">
-        <div>
-            <p class="guide-kicker">Pharmaceutical procurement</p>
-            @if (isHomeLanding)
-            {
-                <h2 id="guide-title">How It Works</h2>
-            }
+<div class="public-guide journey-video-page" id="how-it-works">
+    <section class="journey-video" aria-labelledby="journey-video-title">
+        <header><div>
+            @if (ViewData["HomeLanding"] is true || ViewData["EmbeddedSourcingJourney"] is true)
+            { <h2 id="journey-video-title" class="journey-main-title">Our Sourcing Journey</h2> }
             else
-            {
-                <h1 id="guide-title">How It Works</h1>
-            }
-            <p class="guide-headline">Smarter Sourcing. Better Decisions.</p>
-            <p>At Tiryaq, we believe that effective sourcing begins with clear planning, trusted collaboration, and transparent decisions.</p>
-            <p>Our Sourcing &amp; Tender Management System brings departments, sourcing teams, suppliers, and evaluation committees together in one organized platform.</p>
-            <a class="guide-link" href="#sourcing-journey">Explore the sourcing journey <span aria-hidden="true">↓</span></a>
-        </div>
-        <svg class="guide-art" viewBox="0 0 320 200" aria-hidden="true" focusable="false"><use href="@Url.Content("~/images/public-guide.svg#lab")" /></svg>
-    </section>
-
-    <section class="guide-section guide-split" aria-labelledby="guide-purpose">
-        <svg class="guide-art" viewBox="0 0 320 200" aria-hidden="true" focusable="false"><use href="@Url.Content("~/images/public-guide.svg#platform")" /></svg>
-        <div>
-            <h2 id="guide-purpose">Connecting Every Step of the Sourcing Process</h2>
-            <p>The platform keeps purchase requests, tender documents, supplier submissions, evaluation records, and procurement decisions together. Each team can work from the same requirements and see when its input is needed.</p>
-            <p>For suppliers, it provides one place to review invitations, submit offers, and follow the outcome of a tender.</p>
-        </div>
+            { <h1 id="journey-video-title" class="journey-main-title">Our Sourcing Journey</h1> }
+            <p>See how your team takes a purchase request from first submission to final award.</p>
+        </div></header>
+        <div class="journey-video-meta"><span>1 min 51 sec</span><span>6 chapters</span><span>English AI narration</span><span>Closed captions</span></div>
+        <video controls playsinline preload="metadata" poster="@Url.Content("~/media/sourcing-journey/poster-natural.jpg")" aria-label="Tiryaq sourcing journey explained with English narration">
+            <source src="~/media/sourcing-journey/tiryaq-sourcing-journey-natural.mp4" type="video/mp4" />
+            <track kind="captions" src="~/media/sourcing-journey/captions-natural-en.vtt" srclang="en" label="English" default />
+            <track kind="chapters" src="~/media/sourcing-journey/chapters-natural-en.vtt" srclang="en" label="Sourcing stages" />
+            <p>Your browser cannot play this video. <a href="~/media/sourcing-journey/tiryaq-sourcing-journey-natural.mp4">Download the walkthrough</a>.</p>
+        </video>
+        <div class="journey-player-footer"><p data-journey-current>Start the walkthrough, or choose a step below.</p><a href="~/media/sourcing-journey/tiryaq-sourcing-journey-natural.mp4" download>Download video</a></div>
+        <details class="journey-transcript"><summary>Read the transcript</summary><partial name="_SourcingVideoTranscript" /></details>
     </section>
 
     <section class="guide-section guide-journey" id="sourcing-journey" aria-labelledby="journey-title">
-        <h2 id="journey-title">Our Sourcing Journey</h2>
+        <div class="journey-steps-heading"><h2 id="journey-title">The six steps</h2><p>Choose a step to watch that part of the journey.</p></div>
         <div class="guide-journey-controls" hidden>
             <button type="button" data-direction="-1" aria-controls="journey-steps" aria-label="Previous sourcing stage">←</button>
             <button type="button" data-direction="1" aria-controls="journey-steps" aria-label="Next sourcing stage">→</button>
         </div>
-        <div class="guide-journey-scroll" id="journey-steps" tabindex="0" role="group" aria-label="Sourcing stages. Scroll horizontally to see all six.">
+        <div class="guide-journey-scroll" id="journey-steps" tabindex="0" role="group" aria-label="The six sourcing stages">
             <ol class="guide-journey-track" role="list">
             @for (var index = 0; index < stages.Length; index++)
             {
                 var stage = stages[index];
-                <li class="guide-stage">
+                <li class="guide-stage" data-journey-stage="@index">
                     <div class="guide-stage-marker">
                         <span class="guide-step" aria-hidden="true">@((index + 1).ToString("00"))</span>
                     </div>
@@ -59,21 +51,12 @@
                         <svg class="guide-art" viewBox="0 0 320 200" aria-hidden="true" focusable="false"><use href="@Url.Content($"~/images/public-guide.svg#{stage.Icon}")" /></svg>
                         <h3>@stage.Title</h3>
                         <p>@stage.Description</p>
+                        <button type="button" class="journey-chapter" data-journey-seek="@chapterStarts[index].ToString(System.Globalization.CultureInfo.InvariantCulture)" aria-label="Watch @stage.Title at @chapterLabels[index]" hidden><span>Watch step</span><span>@chapterLabels[index]</span></button>
                     </div>
                 </li>
             }
             </ol>
         </div>
-    </section>
-
-    <section class="guide-section guide-benefits" aria-labelledby="guide-benefits-title">
-        <h2 id="guide-benefits-title">Why Our Process Matters</h2>
-        <dl>
-            <div><dt>Transparency in Every Decision</dt><dd>Requirements, reviews, and approvals give teams a record of how decisions were made.</dd></div>
-            <div><dt>Better Collaboration</dt><dd>Departments, sourcing teams, and reviewers work from the same tender information.</dd></div>
-            <div><dt>Fair and Consistent Evaluation</dt><dd>Eligible offers are assessed against the same published criteria.</dd></div>
-            <div><dt>Greater Efficiency</dt><dd>Keeping documents and decisions together reduces duplicate work and makes handoffs clearer.</dd></div>
-        </dl>
     </section>
 
 </div>
