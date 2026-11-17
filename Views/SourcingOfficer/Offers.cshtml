@@ -49,9 +49,18 @@ else
     }
     @if (ViewBag.ForwardedRejection is TenderApproval rejection)
     {
-        <section class="workspace-section" aria-label="Forwarded rejection"><h2>@(ViewBag.ReplacementTender is Tender ? "Replacement tender prepared" : "Replacement tender needed")</h2><p>Rejected by @rejection.User.FullName · @rejection.DecidedAt.ToString("dd MMM yyyy, HH:mm") UTC</p><p class="tw-preserve">@rejection.Notes</p>
+        <section class="workspace-section" aria-label="Forwarded rejection"><h2>@(ViewBag.ReplacementTender is Tender ? "Replacement tender prepared" : tender.Status == "Cancelled" ? "Replacement declined" : "Replacement tender needed")</h2><p>Rejected by @rejection.User.FullName · @rejection.DecidedAt.ToString("dd MMM yyyy, HH:mm") UTC</p><p class="tw-preserve">@rejection.Notes</p>
         @if (ViewBag.ReplacementTender is Tender replacement) { <a asp-action="Offers" asp-route-tenderId="@replacement.TenderId">View replacement tender #@replacement.TenderId →</a> }
-        else { <a class="btn btn-primary officer-prepare" asp-action="Create" asp-route-replacesTenderId="@tender.TenderId">Prepare replacement tender</a> }
+        else if (tender.Status == "Closed")
+        {
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-primary officer-prepare" asp-action="Create" asp-route-replacesTenderId="@tender.TenderId">Prepare replacement tender</a>
+                <form asp-action="CancelTender" asp-route-id="@tender.TenderId" method="post" onsubmit="return confirm('Reject the replacement and close this tender without a new round?');">
+                    <input type="hidden" name="declineReplacement" value="true" />
+                    <button type="submit" class="btn btn-outline-danger">Reject</button>
+                </form>
+            </div>
+        }
         </section>
     }
     <header class="tw-offers-heading"><div><h2>Offers <span class="tw-offer-count">@Model.Count</span></h2></div></header>

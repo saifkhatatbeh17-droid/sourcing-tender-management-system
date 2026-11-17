@@ -406,7 +406,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> CancelTender(int id, bool fromList = false)
+    public async Task<IActionResult> CancelTender(int id, bool fromList = false, bool declineReplacement = false)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await using var transaction = await db.Database.BeginTransactionAsync();
@@ -414,16 +414,21 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         var tender = await db.Tenders.SingleOrDefaultAsync(t => t.TenderId == id && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
 
-        if (!tender.CanCancel(DateTime.UtcNow))
+        var canCancel = declineReplacement
+            ? tender.Status == "Closed" && tender.RejectionForwardedAt != null &&
+              await db.TenderApprovals.AnyAsync(a => a.TenderId == id && a.Stage == "Top" && a.Decision == "Rejected") &&
+              !await db.Tenders.AnyAsync(t => t.ReplacesTenderId == id)
+            : tender.CanCancel(DateTime.UtcNow);
+        if (!canCancel)
         {
-            TempData["TenderError"] = "Only an active tender can be canceled before its deadline.";
+            TempData["TenderError"] = declineReplacement ? "This replacement can no longer be declined." : "Only an active tender can be canceled before its deadline.";
         }
         else
         {
             tender.Status = "Cancelled";
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
-            TempData["TenderSuccess"] = "Tender canceled.";
+            TempData["TenderSuccess"] = declineReplacement ? "Replacement declined." : "Tender canceled.";
         }
 
         return fromList ? RedirectToAction(nameof(Tenders)) : RedirectToAction(nameof(Offers), new { tenderId = id });

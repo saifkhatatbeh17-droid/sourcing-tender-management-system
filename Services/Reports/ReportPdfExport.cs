@@ -13,6 +13,25 @@ namespace SourcingTenderManagement.Services.Reports;
 // No database access, AI calls, workflow writes, or watermark application here.
 public static class ReportPdfExport
 {
+    public static byte[] SupplierActivity(SupplierActivityRow supplier)
+    {
+        var report = new Report("Supplier activity report", "Administration");
+        report.Heading(supplier.Company);
+        report.Rows(["Supplier ID", "Registration number", "Supply category", "Account status"],
+            [4, 6.5, 10.2, 6], [new[] { supplier.SupplierId.ToString(), supplier.RegistrationNumber,
+                supplier.Category ?? "Not recorded", supplier.Status }], "");
+        report.Heading("Activity summary");
+        report.Rows(["Submitted tenders", "Awarded", "Rejected"], [8.9, 8.9, 8.9],
+            [new[] { supplier.History.Count.ToString(), supplier.Awarded.ToString(), supplier.Rejected.ToString() }], "");
+        report.Heading("Tender history");
+        report.Rows(["Tender", "Offer", "Submitted (UTC)", "Total", "Compliance", "Outcome"],
+            [8.2, 2.1, 4.5, 4.2, 4.2, 3.5],
+            supplier.History.Select(row => new[] { $"#{row.TenderId} - {row.Title}", $"#{row.BidId}",
+                Date(row.SubmittedAt), $"{row.Total:N2} {row.Currency}", row.Compliance ?? "Pending", row.Outcome }),
+            "No submitted offers are recorded for this supplier.");
+        return report.Pdf();
+    }
+
     public static byte[] OfficerReports(IReadOnlyList<EvaluationReport> reports)
     {
         var r=new Report("Evaluation reports for your tenders","Sourcing Officer");

@@ -44,7 +44,16 @@
                         }
                         else
                         {
-                            <a class="notice-center-card-link notice-center-open" href="@notification.RelativeUrl" aria-label="View details: @notification.Title"><span aria-hidden="true">›</span></a>
+                            @if (!notification.IsRead)
+                            {
+                                <form asp-controller="Account" asp-action="OpenNotification" method="post" class="notice-center-open">
+                                    <button type="submit" name="id" value="@notification.NotificationId" class="notice-center-card-link" aria-label="View details: @notification.Title"><span aria-hidden="true">›</span></button>
+                                </form>
+                            }
+                            else
+                            {
+                                <a class="notice-center-card-link notice-center-open" href="@notification.RelativeUrl" aria-label="View details: @notification.Title"><span aria-hidden="true">›</span></a>
+                            }
                         }
                     }
                 </li>

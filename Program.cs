@@ -141,7 +141,12 @@ using (var scope = app.Services.CreateScope())
     }
 }
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Home/Error");
-if (app.Environment.IsDevelopment()) app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    var phonePreviewPort = app.Configuration.GetValue<int?>("Links:PhonePreviewHttpPort");
+    app.UseWhen(context => context.Connection.LocalPort != phonePreviewPort,
+        branch => branch.UseHttpsRedirection());
+}
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();

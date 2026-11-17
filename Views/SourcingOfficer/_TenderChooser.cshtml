@@ -1,7 +1,7 @@
 @using SourcingTenderManagement.Models.Entities
 @{
  var tenders = ViewBag.OfferTenders as List<Tender> ?? [];
- var pendingReplacements = tenders.Where(t => t.RejectionForwardedAt != null && !tenders.Any(r => r.ReplacesTenderId == t.TenderId)).Select(t => t.TenderId).ToHashSet();
+ var pendingReplacements = tenders.Where(t => t.Status == "Closed" && t.RejectionForwardedAt != null && !tenders.Any(r => r.ReplacesTenderId == t.TenderId)).Select(t => t.TenderId).ToHashSet();
  var selected = ViewBag.SelectedTender as Tender;
  var invitations = ViewBag.WorkspaceInvitations as List<Invitation> ?? [];
  var offers = ViewData.Model as List<Bid> ?? [];

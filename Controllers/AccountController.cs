@@ -9,6 +9,18 @@ namespace SourcingTenderManagement.Controllers;
 public class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     ApplicationDbContext db) : Controller
 {
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> OpenNotification(int id, CancellationToken ct)
+    {
+        var userId = users.GetUserId(User);
+        if (userId == null) return Forbid();
+        var items = db.Notifications.Where(n => n.NotificationId == id && n.UserId == userId);
+        var destination = await items.Select(n => n.RelativeUrl).SingleOrDefaultAsync(ct);
+        if (!Url.IsLocalUrl(destination)) return NotFound();
+        await items.Where(n => !n.IsRead).ExecuteUpdateAsync(update => update.SetProperty(n => n.IsRead, true), ct);
+        return LocalRedirect(destination!);
+    }
+
     [HttpGet]
     public IActionResult Login(string? returnUrl)
     {

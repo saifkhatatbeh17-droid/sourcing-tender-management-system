@@ -31,7 +31,13 @@
         <p>@item.Message</p>
         <p class="small text-secondary"><time datetime="@item.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")">@CommitteeDisplay.Utc(item.CreatedAt)</time></p>
         <div class="workspace-toolbar mb-0">
-            @if (item.TenderId.HasValue)
+            @if (item.TenderId.HasValue && !item.IsRead)
+            {
+                <form asp-controller="Account" asp-action="OpenNotification" method="post">
+                    <button class="btn btn-link p-0" type="submit" name="id" value="@item.Id">View tender #@item.TenderId</button>
+                </form>
+            }
+            else if (item.TenderId.HasValue)
             {
                 <a asp-action="TenderDetails" asp-route-id="@item.TenderId">View tender #@item.TenderId</a>
             }
