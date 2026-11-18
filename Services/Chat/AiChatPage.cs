@@ -62,8 +62,8 @@ public static class AiChatPage
         ],
         RoleNames.SourcingOfficer =>
         [
-            hasRecord ? "Summarize this record and what I can do next" : "What requests and tenders need my attention?",
-            "What actions can you perform for me here?",
+            hasRecord ? "Summarize this tender and export a downloadable PDF & Excel" : "What requests and tenders need my attention?",
+            "Create a downloadable summary of my active tenders",
             "Take me to Tender workspace"
         ],
         RoleNames.EvaluationCommittee =>

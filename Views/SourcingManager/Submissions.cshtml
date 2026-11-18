@@ -9,6 +9,9 @@
         (Id: "ready-to-forward", Title: "Ready to forward", Items: referralQueue)
     };
     var rejections = (IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender>)ViewBag.RejectedTenders;
+    var editRequests = ViewBag.TopEditRequests as IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender> ?? [];
+    var editRequesters = ViewBag.TopEditRequesters as Dictionary<string, string> ?? new Dictionary<string, string>();
+    var totalTopReturns = rejections.Count + editRequests.Count;
     var message = TempData["ManagerMessage"] as string;
     var requestedId = ViewContext.RouteData.Values["id"]?.ToString() ?? Context.Request.Query["id"].ToString();
     var openSubmission = report != null && requestedId == report.EvaluationReportId.ToString() && ViewBag.OpenRejections != true;
@@ -21,16 +24,77 @@
 <div class="manager-shell manager-refresh mr-submissions-page">
     <header class="workspace-heading mr-page-heading">
         <div class="mr-heading-copy"><h1>Officer Submissions</h1><p>Review recommendations from the Evaluation Committee and forward approved cases to the CEO & Chiefs.</p></div>
-        @if (rejections.Count > 0)
+        @if (totalTopReturns > 0)
         {
         <div class="mr-actions mr-heading-actions">
-            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#manager-rejections">CEO & Chiefs rejections <span class="mr-count">@rejections.Count</span></button>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#manager-rejections">CEO &amp; Chiefs rejections &amp; edits <span class="mr-count">@totalTopReturns</span></button>
         </div>
         }
     </header>
     @if (message != null && !openSubmission)
     {
         <div data-flash-message class="alert alert-info" role="status">@message</div>
+    }
+    @if (editRequests.Count > 0)
+    {
+        <section class="workspace-section mb-3" aria-label="CEO &amp; Chiefs edit requests">
+            <h2 class="fs-5 mb-2">CEO &amp; Chiefs Edit Requests (@editRequests.Count)</h2>
+            @foreach (var editTender in editRequests)
+            {
+                var requesterName = editTender.TopEditRequestedByUserId != null && editRequesters.TryGetValue(editTender.TopEditRequestedByUserId, out var rn) ? rn : "CEO & Chiefs Member";
+                var nomBid = editTender.EvaluationReport?.Bid;
+                var nomTotal = nomBid != null ? nomBid.BidItems.Sum(x => x.Quantity * x.UnitPrice) + nomBid.TaxAmount + nomBid.AdditionalCosts : (decimal?)null;
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                        <div>
+                            <span class="mr-reference">Tender #@editTender.TenderId</span>
+                            <h3 class="fs-6 mb-0">@editTender.Title</h3>
+                        </div>
+                        <span class="badge @(editTender.TopEditState == "WithOfficer" ? "text-bg-secondary" : editTender.TopEditState == "OfficerAnswered" ? "text-bg-success" : "text-bg-warning")">
+                            @(editTender.TopEditState == "WithOfficer" ? "With Sourcing Officer" : editTender.TopEditState == "OfficerAnswered" ? "Officer Responded · Ready for Your Action" : "Awaiting Your Answer or Push to Officer")
+                        </span>
+                    </div>
+                    <p class="small text-secondary mb-1">Requested by <strong>@requesterName</strong> @(editTender.TopEditRequestedAt.HasValue ? $"· {editTender.TopEditRequestedAt.Value:dd MMM yyyy · HH:mm} UTC" : "")</p>
+                    <p class="mb-2"><strong>CEO &amp; Chiefs edit request:</strong> @editTender.TopEditRequestNotes</p>
+                    @if (nomBid != null)
+                    {
+                        <p class="small mb-2"><strong>Current nominated offer:</strong> #@nomBid.BidId · @nomBid.Invitation.SupplierProfile.CompanyName (@(nomTotal?.ToString("N2")) @nomBid.Currency)</p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(editTender.TopEditOfficerNotes))
+                    {
+                        <div class="alert alert-secondary py-2 px-3 mb-2">
+                            <strong>Sourcing Officer response @(editTender.TopEditOfficerRespondedAt.HasValue ? $"({editTender.TopEditOfficerRespondedAt.Value:yyyy-MM-dd HH:mm} UTC)" : ""):</strong>
+                            <div class="text-break">@editTender.TopEditOfficerNotes</div>
+                        </div>
+                    }
+                    @if (editTender.Status == "AwaitingManagerReview" && editTender.TopEditState is "WithManager" or "OfficerAnswered")
+                    {
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6">
+                                <form asp-action="AnswerTopEditRequest" method="post" class="border rounded p-3 h-100">
+                                    <input type="hidden" name="id" value="@editTender.TenderId" />
+                                    <label class="form-label fw-semibold" for="mgr-answer-@editTender.TenderId">Option 1: Answer &amp; return to CEO &amp; Chiefs</label>
+                                    <textarea id="mgr-answer-@editTender.TenderId" name="answerNotes" class="form-control mb-2" rows="2" required maxlength="4000" placeholder="Write your answer (or confirm the Officer's updated offer/answer) to reopen CEO &amp; Chiefs voting…"></textarea>
+                                    <button type="submit" class="btn btn-primary btn-sm">Answer &amp; send to CEO &amp; Chiefs</button>
+                                </form>
+                            </div>
+                            <div class="col-md-6">
+                                <form asp-action="PushTopEditToOfficer" method="post" class="border rounded p-3 h-100">
+                                    <input type="hidden" name="id" value="@editTender.TenderId" />
+                                    <label class="form-label fw-semibold" for="mgr-push-@editTender.TenderId">Option 2: Push back to Sourcing Officer</label>
+                                    <textarea id="mgr-push-@editTender.TenderId" name="managerNotes" class="form-control mb-2" rows="2" required maxlength="4000" placeholder="Ask the Sourcing Officer to answer or select another compliant offer…"></textarea>
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm">Push back to Sourcing Officer</button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    else if (editTender.TopEditState == "WithOfficer")
+                    {
+                        <p class="small text-muted mb-0">Currently with the Sourcing Officer to answer or choose an alternative offer. Notes sent: @editTender.TopEditManagerNotes</p>
+                    }
+                </div>
+            }
+        </section>
     }
 
     <div class="mr-review-layout">

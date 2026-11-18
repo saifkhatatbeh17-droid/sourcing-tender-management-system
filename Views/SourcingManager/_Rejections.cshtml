@@ -1,21 +1,60 @@
 @model IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender>
+@{
+    var editRequests = ViewBag.TopEditRequests as IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender> ?? [];
+    var editRequesters = ViewBag.TopEditRequesters as Dictionary<string, string> ?? new Dictionary<string, string>();
+}
 <div class="modal fade mr-rejections-modal" id="manager-rejections" tabindex="-1" aria-labelledby="manager-rejections-title" aria-hidden="true">
 <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
-<div class="modal-header"><h2 id="manager-rejections-title" class="modal-title fs-5">CEO & Chiefs rejections</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+<div class="modal-header"><h2 id="manager-rejections-title" class="modal-title fs-5">CEO &amp; Chiefs rejections &amp; edit requests</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
 <div class="modal-body">
-@if (Model.Count == 0) { <p>No committee rejections assigned to you.</p> }
+@if (Model.Count == 0 && editRequests.Count == 0) { <p>No committee rejections or edit requests assigned to you.</p> }
+
+@foreach (var editTender in editRequests)
+{
+    var requesterName = editTender.TopEditRequestedByUserId != null && editRequesters.TryGetValue(editTender.TopEditRequestedByUserId, out var rn) ? rn : "CEO & Chiefs Member";
+    <section class="mr-rejection-record mb-3">
+        <span class="mr-reference">Tender #@editTender.TenderId · Edit Requested</span>
+        <h3>@editTender.Title</h3>
+        <p class="mr-muted">Edit requested by <strong>@requesterName</strong> @(editTender.TopEditRequestedAt.HasValue ? $"· {editTender.TopEditRequestedAt.Value:dd MMM yyyy · HH:mm} UTC" : "")</p>
+        <p class="text-break mr-rejection-notes">@editTender.TopEditRequestNotes</p>
+        @if (!string.IsNullOrWhiteSpace(editTender.TopEditOfficerNotes))
+        {
+            <p class="text-break"><strong>Sourcing Officer update:</strong> @editTender.TopEditOfficerNotes</p>
+        }
+        @if (editTender.Status == "AwaitingManagerReview" && editTender.TopEditState is "WithManager" or "OfficerAnswered")
+        {
+            <form asp-action="AnswerTopEditRequest" method="post" class="mb-2">
+                <input name="id" value="@editTender.TenderId" type="hidden" />
+                <label class="form-label" for="modal-mgr-answer-@editTender.TenderId">Answer &amp; return to CEO &amp; Chiefs</label>
+                <textarea id="modal-mgr-answer-@editTender.TenderId" name="answerNotes" class="form-control mb-2" rows="2" required maxlength="4000"></textarea>
+                <button class="btn btn-primary btn-sm">Answer &amp; send to CEO &amp; Chiefs</button>
+            </form>
+            <form asp-action="PushTopEditToOfficer" method="post">
+                <input name="id" value="@editTender.TenderId" type="hidden" />
+                <label class="form-label" for="modal-mgr-push-@editTender.TenderId">Or push back to Sourcing Officer</label>
+                <textarea id="modal-mgr-push-@editTender.TenderId" name="managerNotes" class="form-control mb-2" rows="2" required maxlength="4000"></textarea>
+                <button class="btn btn-outline-secondary btn-sm">Push back to Sourcing Officer</button>
+            </form>
+        }
+        else if (editTender.TopEditState == "WithOfficer")
+        {
+            <p class="mb-0">Pushed back to the Sourcing Officer to answer or select another offer.</p>
+        }
+    </section>
+}
+
 @foreach (var tender in Model)
 {
     var rejection = tender.TenderApprovals.First(a => a.Stage == "Top" && a.Decision == "Rejected");
     <section class="mr-rejection-record">
-        <span class="mr-reference">Tender #@tender.TenderId</span>
+        <span class="mr-reference">Tender #@tender.TenderId · Complete Rejection</span>
         <h3>@tender.Title</h3>
-        <p class="mr-muted">Rejected by <strong>@rejection.User.FullName</strong> · @rejection.DecidedAt.ToString("dd MMM yyyy · HH:mm") UTC</p>
+        <p class="mr-muted">Completely rejected by <strong>@rejection.User.FullName</strong> · @rejection.DecidedAt.ToString("dd MMM yyyy · HH:mm") UTC</p>
         <p class="text-break mr-rejection-notes">@rejection.Notes</p>
         @if (tender.RejectionForwardedAt.HasValue)
         { <p>Forwarded to the responsible officer on @tender.RejectionForwardedAt.Value.ToString("yyyy-MM-dd HH:mm") UTC.</p> }
         else if (tender.Status == "AwaitingManagerReview")
-        { <form asp-action="ForwardRejection" method="post"><input name="id" value="@tender.TenderId" type="hidden" /><button class="btn btn-primary">Forward to Sourcing Officer</button></form> }
+        { <form asp-action="ForwardRejection" method="post"><input name="id" value="@tender.TenderId" type="hidden" /><button class="btn btn-danger">Forward complete rejection to Sourcing Officer</button></form> }
     </section>
 }
 

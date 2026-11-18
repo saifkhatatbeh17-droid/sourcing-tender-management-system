@@ -14,8 +14,19 @@
     @if (tender.Readiness.HasRejection)
     {
         <div class="tc-decision-outcome tc-decision-rejected">
-            <h3>Tender rejected</h3>
-            <p class="mb-0">Voting has ended on this tender. Review the recorded decisions below.</p>
+            <h3>Tender completely rejected</h3>
+            <p class="mb-0">Voting has permanently ended on this tender. Review the recorded decisions below.</p>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(tender.TopEditState))
+    {
+        <div class="tc-decision-outcome">
+            <h3>Edits requested by CEO &amp; Chiefs</h3>
+            <p class="mb-1">This tender was returned for edits/clarification (@(tender.TopEditState == "WithOfficer" ? "currently with Sourcing Officer" : tender.TopEditState == "OfficerAnswered" ? "Officer responded — with Sourcing Manager" : "currently with Sourcing Manager")). Voting will reopen once the Sourcing Manager returns the updated response or offer.</p>
+            @if (!string.IsNullOrWhiteSpace(tender.TopEditRequestNotes))
+            {
+                <p class="mb-0 text-secondary"><strong>Requested edit:</strong> @tender.TopEditRequestNotes</p>
+            }
         </div>
     }
     else if (isAwarded)
@@ -70,23 +81,44 @@
                     <span asp-validation-for="Vote!.Notes" class="text-danger"></span>
                     <span asp-validation-for="Vote!.Decision" class="text-danger"></span>
                     <span asp-validation-for="Vote!.Confirmed" class="text-danger"></span>
-                    <p class="tc-member-help">After you submit your decision, you can’t change it.</p>
-                    <div class="tc-member-actions"><button type="submit" class="btn btn-primary pharma-action-approve">Approve</button><button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reject-top-@member.Position">Reject</button></div>
+                    <p class="tc-member-help">Approve the nominated offer, ask for edits/clarification (returns to Manager/Officer and comes back for voting), or completely reject the tender.</p>
+                    <div class="tc-member-actions d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-primary pharma-action-approve">Approve</button>
+                        <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#edit-top-@member.Position">Ask for edit</button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reject-top-@member.Position">Reject completely</button>
+                    </div>
                 </form>
+                <div class="modal fade" id="edit-top-@member.Position" tabindex="-1" aria-labelledby="edit-title-@member.Position" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+                        <form asp-action="SubmitVote" method="post">
+                            <div class="modal-header"><h2 class="modal-title fs-5" id="edit-title-@member.Position">Ask for edit / return to Manager</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                            <div class="modal-body">
+                                <p>This sends the tender back to the Sourcing Manager. The Manager can answer directly and return it here, or push it back to the Sourcing Officer to answer or choose another compliant offer instead.</p>
+                                <input name="Vote.TenderId" value="@tender.TenderId" type="hidden" />
+                                <input name="Vote.ExpectedNominatedBidId" value="@tender.Report?.RecommendedBidId" type="hidden" />
+                                <input name="Vote.Decision" value="RequestEdit" type="hidden" />
+                                <input name="Vote.Confirmed" value="true" type="hidden" />
+                                <label for="edit-reason-@member.Position">What edits, answers, or offer review do you need?</label>
+                                <textarea id="edit-reason-@member.Position" name="Vote.Notes" class="form-control" rows="3" required maxlength="4000" oninput="this.setCustomValidity(this.value.trim() ? '' : 'Describe the requested edit or question.')"></textarea>
+                            </div>
+                            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-warning">Send edit request</button></div>
+                        </form>
+                    </div></div>
+                </div>
                 <div class="modal fade" id="reject-top-@member.Position" tabindex="-1" aria-labelledby="reject-title-@member.Position" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
                         <form asp-action="SubmitVote" method="post">
-                            <div class="modal-header"><h2 class="modal-title fs-5" id="reject-title-@member.Position">Reject tender</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                            <div class="modal-header"><h2 class="modal-title fs-5" id="reject-title-@member.Position">Completely reject tender</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                             <div class="modal-body">
-                                <p>This ends voting and returns the tender to its Sourcing Manager.</p>
+                                <p>This permanently ends CEO &amp; Chiefs voting on this tender and returns it to the Sourcing Manager for closure / replacement tender.</p>
                                 <input name="Vote.TenderId" value="@tender.TenderId" type="hidden" />
                                 <input name="Vote.ExpectedNominatedBidId" value="@tender.Report?.RecommendedBidId" type="hidden" />
                                 <input name="Vote.Decision" value="Rejected" type="hidden" />
                                 <input name="Vote.Confirmed" value="true" type="hidden" />
-                                <label for="reject-reason-@member.Position">Rejection reason</label>
-                                <textarea id="reject-reason-@member.Position" name="Vote.Notes" class="form-control" required maxlength="4000" oninput="this.setCustomValidity(this.value.trim() ? '' : 'Enter a rejection reason.')"></textarea>
+                                <label for="reject-reason-@member.Position">Complete rejection reason</label>
+                                <textarea id="reject-reason-@member.Position" name="Vote.Notes" class="form-control" rows="3" required maxlength="4000" oninput="this.setCustomValidity(this.value.trim() ? '' : 'Enter a rejection reason.')"></textarea>
                             </div>
-                            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger">Reject tender</button></div>
+                            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger">Reject tender completely</button></div>
                         </form>
                     </div></div>
                 </div>

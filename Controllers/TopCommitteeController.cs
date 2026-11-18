@@ -96,9 +96,11 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
                     var result = await voting.SubmitAsync(User, input, cancellationToken);
                     TempData["VotingSuccess"] = result.IsAwarded
                         ? "Your approval was recorded. All four members approved, and the nominated bid was awarded."
-                        : result.Decision == "Rejected"
-                            ? "Your rejection was recorded. Voting has permanently ended and the tender has returned to Sourcing Manager review."
-                            : "Your final approval was recorded. Reload this page to see the other members' decisions.";
+                        : result.Decision == "RequestEdit"
+                            ? "Your edit request was sent to the Sourcing Manager to answer directly or push back to the Sourcing Officer."
+                            : result.Decision == "Rejected"
+                                ? "Your complete rejection was recorded. Voting has permanently ended and the tender has returned to Sourcing Manager review."
+                                : "Your final approval was recorded. Reload this page to see the other members' decisions.";
                     return RedirectToAction(nameof(TenderDetails), new { id = result.TenderId });
                 }
                 catch (ValidationException error) { ModelState.AddModelError("", error.Message); }

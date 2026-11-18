@@ -1,20 +1,20 @@
-# vLLM & AI Setup Guide (Replacing Ollama)
+# vLLM & AI Setup Guide
 
-Tiryaq Pharma’s AI capabilities—role-scoped workspace chat (`AiChatClient`), tender bid comparison, top-three committee narratives, manager referral summaries, and Top Committee importance assessments (`BidRecommendationService`)—use an **OpenAI-compatible `/v1/chat/completions` client** (`Services/VllmSettings.cs`) designed around **vLLM**.
+Tiryaq Pharma’s AI capabilities—role-scoped workspace chat (`AiChatClient`), AI Intelligence Hub (`AiIntelligenceService`), tender bid comparison, top-three committee narratives, manager referral summaries, and Top Committee importance assessments (`BidRecommendationService`)—use a native **vLLM OpenAI-compatible `/v1/chat/completions` client** (`Services/VllmSettings.cs`).
 
 ---
 
-## 1. What Is vLLM (and Why Use It Instead of Ollama)?
+## 1. Why vLLM?
 
-**vLLM** is a high-throughput, GPU-native open-source LLM inference and serving engine originally developed at UC Berkeley. Compared with Ollama:
+**vLLM** is a high-throughput, GPU-native open-source LLM inference and serving engine originally developed at UC Berkeley:
 
-| Capability | Ollama (`/api/generate`) | vLLM (`/v1/chat/completions`) |
-|---|---|---|
-| **GPU KV-Cache Memory** | Contiguous allocations; often spills layers to slow CPU RAM when context grows on 8 GB cards | **PagedAttention** packs KV-cache in non-contiguous GPU pages (<4% waste), keeping 100% of execution in VRAM |
-| **4-Bit Ampere Kernels** | Generic `llama.cpp` GGUF kernels | **Marlin (`awq_marlin`) Tensor-Core kernels** purpose-built for NVIDIA Ampere GPUs (RTX 30-series) |
-| **Repeated System Prompts** | Re-evaluates prompt caches inconsistently across concurrent calls | **Automatic Prefix Caching (`--enable-prefix-caching`)** caches Tiryaq’s long evaluation/chat system prompts in VRAM |
-| **Structured JSON Schemas** | Proprietary `format` field | **XGrammar Guided Decoding** (`response_format: json_schema`) compiles schemas to zero-overhead token masks |
-| **API Standard** | Ollama-specific payload | **Standard OpenAI `/v1/chat/completions` + Bearer API Key**—identical across local GPU vLLM and cloud API providers |
+| Capability | vLLM (`/v1/chat/completions`) |
+|---|---|
+| **GPU KV-Cache Memory** | **PagedAttention** packs KV-cache in non-contiguous GPU pages (<4% waste), keeping 100% of execution in VRAM |
+| **4-Bit Ampere Kernels** | **Marlin (`awq_marlin`) Tensor-Core kernels** purpose-built for NVIDIA Ampere GPUs (RTX 30-series) |
+| **Repeated System Prompts** | **Automatic Prefix Caching (`--enable-prefix-caching`)** caches Tiryaq’s evaluation and workspace chat system prompts in VRAM |
+| **Structured JSON Schemas** | **XGrammar Guided Decoding** (`response_format: json_schema`) compiles schemas to zero-overhead token masks |
+| **API Standard** | **Standard OpenAI `/v1/chat/completions` + Bearer API Key**—identical across local GPU vLLM and OpenAI-compatible cloud providers |
 
 ---
 
@@ -23,7 +23,7 @@ Tiryaq Pharma’s AI capabilities—role-scoped workspace chat (`AiChatClient`),
 For a machine with **64 GB System RAM** and an **NVIDIA GeForce RTX 3070 (8 GB GDDR6, Ampere SM 8.6)**:
 
 - **Primary Model (`Smart8B` default):** **`Qwen/Qwen3-8B-AWQ`**
-  - **Why this model:** Qwen3-8B significantly outperforms `qwen2.5:7b` on instruction adherence, numerical faithfulness, and strict JSON schema compliance, while 4-bit AWQ (`awq_marlin`) compresses weights to `~5.5 GB` so **100% of the model stays in the RTX 3070’s 8 GB VRAM** (zero CPU layer offload).
+  - **Why this model:** Qwen3-8B delivers strong instruction adherence, numerical faithfulness, and strict JSON schema compliance, while 4-bit AWQ (`awq_marlin`) compresses weights to `~5.5 GB` so **100% of the model stays in the RTX 3070’s 8 GB VRAM** (zero CPU layer offload).
   - **Why thinking is turned OFF (`enable_thinking: false`):** By default, Qwen3 generates hundreds of hidden `<think>...</think>` reasoning tokens before answering. Disabling thinking both on the vLLM server (`--default-chat-template-kwargs '{"enable_thinking":false}'`) and per C# request (`chat_template_kwargs.enable_thinking = false`) makes JSON generation start on the very first token (**~65–85 tokens/sec**).
   - **Important Ampere SM 8.6 Note:** `--kv-cache-dtype fp8` requires Ada Lovelace (`SM 8.9+`, RTX 40-series) and is **intentionally omitted** so vLLM runs cleanly on the RTX 3070 using native `half` (`FP16`) PagedAttention + `--enforce-eager` (which saves `~0.6 GB` of CUDA graph memory).
 - **High-Headroom Alternative (`Fast16k` profile):** **`Qwen/Qwen3-4B-AWQ`**

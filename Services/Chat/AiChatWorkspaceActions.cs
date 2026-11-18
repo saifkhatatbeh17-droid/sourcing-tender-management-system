@@ -22,24 +22,26 @@ public sealed record AiChatToolExecutionResult(
     string Summary,
     string? TargetUrl = null,
     string? TargetLabel = null,
-    string? NavigateUrl = null);
+    string? NavigateUrl = null,
+    IReadOnlyList<AiChatDownloadLink>? Downloads = null);
 
 public sealed class AiChatWorkspaceActions(
     ApplicationDbContext db,
     UserManager<ApplicationUser> users,
-    ITopCommitteeVoting topCommitteeVoting)
+    ITopCommitteeVoting topCommitteeVoting,
+    AiChatExportService exportService)
 {
     public static IReadOnlyList<AiChatToolDefinition> GetAuthorizedTools(string workspace)
     {
         var allowedPages = workspace switch
         {
-            RoleNames.Department => "Dashboard | Create (New request) | Requests (Requests history) | Details (needs recordId) | Edit (needs recordId) | Clarifications | Profile",
-            RoleNames.SourcingOfficer => "Dashboard | Requests (Request Review, optional recordId) | Offers (Tender workspace, optional recordId=tenderId) | Create (New tender, optional recordId=requestId) | Comparison (optional recordId=tenderId) | Reports (Evaluation reports, optional recordId) | Clarifications | Profile",
-            RoleNames.EvaluationCommittee => "Dashboard | Evaluations (optional recordId=tenderId) | Reports (Combined Reports, optional recordId=tenderId) | Clarifications | Profile",
-            RoleNames.SourcingManager => "Dashboard | Submissions (Officer Submissions, optional recordId=reportId) | ChosenOffers (Chosen Offers) | Reports | Clarifications | Profile",
-            RoleNames.TopCommittee => "Dashboard | Decisions | TenderDetails (needs recordId=tenderId) | History (Tender History) | Reports | Clarifications | Profile",
+            RoleNames.Department => "Dashboard | AiIntelligence | Create (New request) | Requests (Requests history) | Details (needs recordId) | Edit (needs recordId) | Clarifications | Profile",
+            RoleNames.SourcingOfficer => "Dashboard | AiIntelligence | Requests (Request Review, optional recordId) | Offers (Tender workspace, optional recordId=tenderId) | Create (New tender, optional recordId=requestId) | Comparison (optional recordId=tenderId) | Reports (Evaluation reports, optional recordId) | Clarifications | Profile",
+            RoleNames.EvaluationCommittee => "Dashboard | AiIntelligence | Evaluations (optional recordId=tenderId) | Reports (Combined Reports, optional recordId=tenderId) | Clarifications | Profile",
+            RoleNames.SourcingManager => "Dashboard | AiIntelligence | Submissions (Officer Submissions, optional recordId=reportId) | ChosenOffers (Chosen Offers) | Reports | Clarifications | Profile",
+            RoleNames.TopCommittee => "Dashboard | AiIntelligence | Decisions | TenderDetails (needs recordId=tenderId) | History (Tender History) | Reports | Clarifications | Profile",
             RoleNames.Supplier => "Dashboard | Invitations | Invitation (needs recordId) | CreateOffer (needs recordId=invitationId) | Offers (My Offers) | Offer (needs recordId=bidId) | History | Clarifications | Profile",
-            RoleNames.Admin => "Dashboard | Users | Departments | SupplierApplications | Suppliers | SupplierDetails (needs recordId) | SupplierActivity | ContactMessages | ContactMessageDetails (needs recordId) | Profile",
+            RoleNames.Admin => "Dashboard | AiIntelligence | Users | Departments | SupplierApplications | Suppliers | SupplierDetails (needs recordId) | SupplierActivity | ContactMessages | ContactMessageDetails (needs recordId) | Profile",
             _ => "Dashboard | Profile"
         };
 
@@ -48,7 +50,15 @@ public sealed class AiChatWorkspaceActions(
             new(
                 "navigate_to_page",
                 $"Transfer/navigate the user's browser directly to an authorized page or record inside their {RoleNames.DisplayName(workspace)} workspace when they ask to open, go to, switch to, or transfer to a page.",
-                $"{{\"page\":\"{allowedPages}\",\"recordId\":null}}")
+                $"{{\"page\":\"{allowedPages}\",\"recordId\":null}}"),
+            new(
+                "inspect_record_details",
+                "Load complete live details of an authorized Tender, Purchase Request, or Supplier (items, specifications, quotations, compliance, scores, reports) so you can summarize or answer deep questions about any record by ID or title.",
+                "{\"recordType\":\"tender|request|supplier\",\"id\":191,\"search\":\"optional title or company\"}"),
+            new(
+                "export_downloadable_file",
+                "Generate downloadable PDF (.pdf) and/or Excel (.xlsx) files for a specific Tender, Purchase Request, full Workspace summary, or any custom summary/note/comparison requested by the user (including follow-ups like 'can I download it' or 'export this').",
+                "{\"scope\":\"tender|request|workspace|custom\",\"tenderId\":null,\"requestId\":null,\"search\":null,\"format\":\"both|pdf|excel\",\"title\":\"string\",\"executiveSummary\":\"detailed summary text\",\"highlights\":[\"bullet 1\"],\"columns\":[\"optional col 1\"],\"rows\":[[\"optional val 1\"]]}")
         };
 
         switch (workspace)
@@ -116,8 +126,8 @@ public sealed class AiChatWorkspaceActions(
             case RoleNames.TopCommittee:
                 list.Add(new(
                     "top_committee_cast_vote",
-                    "Cast the current CEO & Chiefs member's final vote (Approved or Rejected) on an assigned tender in AwaitingCommitteeDecision. Four approvals automatically award the tender.",
-                    "{\"tenderId\":1,\"decision\":\"Approved|Rejected\",\"notes\":\"required when Rejected, optional when Approved\"}"));
+                    "Cast the current CEO & Chiefs member's decision (Approved, RequestEdit to ask Sourcing Manager/Officer for edits or another offer, or Rejected to completely reject) on an assigned tender in AwaitingCommitteeDecision. Four approvals automatically award the tender.",
+                    "{\"tenderId\":1,\"decision\":\"Approved|RequestEdit|Rejected\",\"notes\":\"required when RequestEdit or Rejected, optional when Approved\"}"));
                 break;
 
             case RoleNames.Supplier:
@@ -182,6 +192,16 @@ public sealed class AiChatWorkspaceActions(
             return await ResolveNavigationAsync(workspace, user, args, ct);
         }
 
+        if (toolName == "inspect_record_details")
+        {
+            return await exportService.InspectRecordAsync(workspace, principal, user, args, ct);
+        }
+
+        if (toolName == "export_downloadable_file")
+        {
+            return await exportService.GenerateDownloadAsync(workspace, principal, user, args, ct);
+        }
+
         return (workspace, toolName) switch
         {
             (RoleNames.Department, "department_create_request") => await DepartmentCreateRequestAsync(user, args, ct),
@@ -233,6 +253,15 @@ public sealed class AiChatWorkspaceActions(
         if (key is "profile" or "account" or "settings" or "accountprofile" or "myprofile")
         {
             return Nav("/Account/Profile", "Account Profile");
+        }
+
+        if (key is "aiintelligence" or "intelligence" or "aihub" or "aidashboard")
+        {
+            if (workspace == RoleNames.Supplier)
+                return new(false, false, "The AI Intelligence hub is restricted to internal Tiryaq roles and is not available to Supplier accounts.");
+
+            var suffix = recordId is > 0 ? $"?tenderId={recordId}" : "";
+            return Nav($"/{workspace}/AiIntelligence{suffix}", "AI Intelligence");
         }
 
         switch (workspace)
@@ -1251,16 +1280,17 @@ public sealed class AiChatWorkspaceActions(
         var rawDecision = (GetString(args, "decision") ?? "").Trim();
         var notes = TrimTo(GetString(args, "notes"), 4000);
 
-        var decision = rawDecision.ToLowerInvariant() switch
+        var decision = rawDecision.ToLowerInvariant().Replace(" ", "").Replace("_", "") switch
         {
             "approve" or "approved" => "Approved",
-            "reject" or "rejected" => "Rejected",
+            "requestedit" or "requestedits" or "askforedit" or "edit" => "RequestEdit",
+            "reject" or "rejected" or "rejectcompletely" => "Rejected",
             _ => ""
         };
         if (tenderId <= 0 || decision == "")
-            return new(false, false, "Provide tenderId and decision (Approved or Rejected).");
-        if (decision == "Rejected" && string.IsNullOrWhiteSpace(notes))
-            return new(false, false, "A written rejection reason is required when voting Rejected.");
+            return new(false, false, "Provide tenderId and decision (Approved, RequestEdit, or Rejected).");
+        if (decision is "Rejected" or "RequestEdit" && string.IsNullOrWhiteSpace(notes))
+            return new(false, false, $"A written note is required when choosing {decision}.");
 
         var nominatedBidId = await db.EvaluationReports.AsNoTracking()
             .Where(r => r.TenderId == tenderId)

@@ -66,11 +66,23 @@ public partial class SourcingManagerController : Controller
     public IActionResult Submissions(int? id, int? rejectedTenderId = null, bool showRejections = false)
     {
         var rejections = ManagedRejections();
+        var editRequests = ManagedTopEditRequests();
         if (rejectedTenderId.HasValue)
         {
-            if (!rejections.Any(t => t.TenderId == rejectedTenderId)) return NotFound();
-            rejections = rejections.Where(t => t.TenderId == rejectedTenderId);
+            var inRejections = rejections.Any(t => t.TenderId == rejectedTenderId);
+            var inEdits = editRequests.Any(t => t.TenderId == rejectedTenderId);
+            if (!inRejections && !inEdits) return NotFound();
+            if (inRejections) rejections = rejections.Where(t => t.TenderId == rejectedTenderId);
+            if (inEdits) editRequests = editRequests.Where(t => t.TenderId == rejectedTenderId);
         }
+        var editList = editRequests.OrderByDescending(t => t.TopEditRequestedAt ?? t.CreatedAt).ToList();
+        var requesterIds = editList.Select(t => t.TopEditRequestedByUserId).Where(uid => !string.IsNullOrWhiteSpace(uid)).Distinct().ToArray();
+        ViewBag.TopEditRequests = editList;
+        ViewBag.TopEditRequesters = requesterIds.Length == 0
+            ? new Dictionary<string, string>()
+            : _context.Users.AsNoTracking()
+                .Where(u => requesterIds.Contains(u.Id))
+                .ToDictionary(u => u.Id, u => u.FullName);
         ViewBag.RejectedTenders = rejections.OrderByDescending(t => t.CreatedAt).ToList();
         ViewBag.OpenRejections = showRejections || rejectedTenderId.HasValue;
         var evaluationReports = _context.EvaluationReports

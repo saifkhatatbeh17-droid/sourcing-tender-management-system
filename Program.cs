@@ -10,6 +10,7 @@ using SourcingTenderManagement.Services.FaceVerification;
 using SourcingTenderManagement.Services.FaceLogin;
 using SourcingTenderManagement.Services.PdfWatermark;
 using SourcingTenderManagement.Services.Chat;
+using SourcingTenderManagement.Services.Intelligence;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true).AddEnvironmentVariables();
@@ -24,7 +25,11 @@ builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidR
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHttpClient<AiChatClient>(client => client.Timeout = TimeSpan.FromSeconds(90))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<AiIntelligenceService>(client => client.Timeout = TimeSpan.FromSeconds(90))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddSingleton<AiChatDownloadStore>();
 builder.Services.AddScoped<AiChatContext>();
+builder.Services.AddScoped<AiChatExportService>();
 builder.Services.AddScoped<AiChatWorkspaceActions>();
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
 builder.Services.AddTopCommitteeFoundation();

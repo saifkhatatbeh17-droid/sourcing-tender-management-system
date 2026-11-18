@@ -90,4 +90,9 @@ public sealed record CommitteeTenderDetails(int TenderId, string Title, string D
     IReadOnlyList<CommitteeVote> Votes, IReadOnlyList<CommitteeBid> Bids,
     IReadOnlyList<CommitteeDocument> Documents, int OpenClarifications,
     IReadOnlyList<CommitteeClarification> MyClarifications, CommitteeReadiness Readiness)
-{ public string OfferRoundSummary { get; init; } = ""; }
+{
+    public string OfferRoundSummary { get; init; } = "";
+    public string? TopEditState { get; init; }
+    public string? TopEditRequestNotes { get; init; }
+    public DateTime? TopEditRequestedAt { get; init; }
+}

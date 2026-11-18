@@ -60,6 +60,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.ToTable("CommitteeWeightProposals", table => table.HasCheckConstraint("CK_CommitteeWeightProposals_Weight", "[FinancialWeight] > 0 AND [FinancialWeight] < 100"));
         });
         modelBuilder.Entity<Tender>().Property(t => t.CommitteeFinancialWeight).HasPrecision(5, 2);
+        modelBuilder.Entity<Tender>(entity =>
+        {
+            entity.Property(t => t.TopEditState).HasMaxLength(30);
+            entity.Property(t => t.TopEditRequestedByUserId).HasMaxLength(450);
+            entity.Property(t => t.TopEditRequestNotes).HasMaxLength(4000);
+            entity.Property(t => t.TopEditManagerNotes).HasMaxLength(4000);
+            entity.Property(t => t.TopEditOfficerNotes).HasMaxLength(4000);
+        });
         modelBuilder.Entity<CommitteeTieVote>(entity =>
         {
             entity.HasIndex(v => new { v.TenderId, v.CommitteeAssignmentId }).IsUnique();

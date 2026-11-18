@@ -47,6 +47,58 @@ else
         @foreach (var question in questions) { <a class="btn btn-outline-primary" asp-controller="Clarification" asp-action="Index" asp-route-id="@question">Open question #@question ↗</a> }
         </aside>
     }
+    @if (!string.IsNullOrWhiteSpace(tender.TopEditState))
+    {
+        var editRequester = ViewBag.TopEditRequesterName as string ?? "CEO & Chiefs Member";
+        var compliantChoices = ViewBag.CompliantOffersForSwitch as List<Bid> ?? [];
+        var currentRecommendedId = (ViewBag.WorkspaceReport as EvaluationReport)?.RecommendedBidId;
+        <section class="workspace-section border-warning" aria-label="CEO &amp; Chiefs edit request">
+            <h2>@(tender.TopEditState == "WithOfficer" ? "Action Required: CEO & Chiefs / Manager Edit Request" : "CEO & Chiefs Edit Cycle in Progress")</h2>
+            <p class="mb-1"><strong>CEO &amp; Chiefs request (@editRequester @(tender.TopEditRequestedAt.HasValue ? $"· {tender.TopEditRequestedAt.Value:dd MMM yyyy, HH:mm} UTC" : "")):</strong></p>
+            <p class="tw-preserve mb-2">@tender.TopEditRequestNotes</p>
+            @if (!string.IsNullOrWhiteSpace(tender.TopEditManagerNotes))
+            {
+                <p class="mb-1"><strong>Sourcing Manager instructions:</strong></p>
+                <p class="tw-preserve mb-3">@tender.TopEditManagerNotes</p>
+            }
+
+            @if (tender.Status == "AwaitingOfficerSummary" && tender.TopEditState == "WithOfficer")
+            {
+                <form asp-action="RespondToTopEdit" method="post" class="border rounded p-3">
+                    <input type="hidden" name="tenderId" value="@tender.TenderId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="top-edit-bid-select">Keep current offer or choose another compliant offer instead</label>
+                        <select id="top-edit-bid-select" name="selectedBidId" class="form-select" required>
+                            @foreach (var choice in compliantChoices)
+                            {
+                                var choiceTotal = choice.BidItems.Sum(x => x.Quantity * x.UnitPrice) + choice.TaxAmount + choice.AdditionalCosts;
+                                var isCurrent = choice.BidId == currentRecommendedId;
+                                <option value="@choice.BidId" selected="@isCurrent">
+                                    @(isCurrent ? "★ Keep current nominated offer: " : "Switch to alternative offer: ")#@choice.BidId — @choice.Invitation.SupplierProfile.CompanyName (@choiceTotal.ToString("N2") @choice.Currency · @choice.DeliveryDays days delivery)
+                                </option>
+                            }
+                        </select>
+                        <div class="form-text">Choose the existing offer to answer &amp; keep it, or select a different compliant offer to nominate instead.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="top-edit-officer-notes">Your answer / offer-selection justification (sent back to Sourcing Manager)</label>
+                        <textarea id="top-edit-officer-notes" name="officerNotes" class="form-control" rows="3" required maxlength="4000" placeholder="Provide your answer for the Sourcing Manager / CEO &amp; Chiefs, or explain why you selected an alternative offer…"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send answer / selected offer to Sourcing Manager</button>
+                </form>
+            }
+            else if (tender.TopEditState == "OfficerAnswered")
+            {
+                <div class="alert alert-info mb-0">
+                    <strong>Sent to Sourcing Manager:</strong> @tender.TopEditOfficerNotes
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mb-0">Currently with the Sourcing Manager for review.</p>
+            }
+        </section>
+    }
     @if (ViewBag.ForwardedRejection is TenderApproval rejection)
     {
         <section class="workspace-section" aria-label="Forwarded rejection"><h2>@(ViewBag.ReplacementTender is Tender ? "Replacement tender prepared" : tender.Status == "Cancelled" ? "Replacement declined" : "Replacement tender needed")</h2><p>Rejected by @rejection.User.FullName · @rejection.DecidedAt.ToString("dd MMM yyyy, HH:mm") UTC</p><p class="tw-preserve">@rejection.Notes</p>

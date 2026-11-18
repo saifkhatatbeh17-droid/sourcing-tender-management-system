@@ -1,0 +1,559 @@
+.ai-intel-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 1480px;
+    margin: 0 auto;
+    color: var(--color-text, #111827);
+}
+
+/* Hero Banner */
+.ai-intel-hero {
+    position: relative;
+    padding: 1.5rem 1.75rem;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #0c252d 0%, #164450 62%, #1d5560 100%);
+    color: #f8fafb;
+    border: 1px solid rgba(239, 184, 92, 0.42);
+    box-shadow: 0 12px 28px rgba(12, 37, 45, 0.16);
+}
+
+.ai-intel-hero-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.ai-intel-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.55rem;
+}
+
+.ai-intel-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.68rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: rgba(239, 184, 92, 0.16);
+    color: #f7cf7d;
+    border: 1px solid rgba(239, 184, 92, 0.48);
+}
+
+.ai-intel-pill.is-secure {
+    background: rgba(0, 163, 166, 0.2);
+    color: #b7f4f5;
+    border-color: rgba(0, 163, 166, 0.48);
+}
+
+.ai-intel-hero h1 {
+    margin: 0;
+    font-size: clamp(1.45rem, 2.2vw, 1.9rem);
+    font-weight: 750;
+    color: #ffffff;
+}
+
+.ai-intel-scope {
+    margin: 0.35rem 0 0;
+    font-size: 0.92rem;
+    color: rgba(248, 250, 251, 0.84);
+}
+
+.ai-intel-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: center;
+}
+
+.ai-intel-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.95rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 650;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    transition: transform 140ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.ai-intel-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+}
+
+.ai-intel-btn.is-gold {
+    background: #efb85c;
+    color: #0c252d;
+    border-color: #f7cf7d;
+    font-weight: 750;
+}
+
+.ai-intel-btn.is-gold:hover {
+    background: #f7cf7d;
+    color: #081b21;
+}
+
+.ai-intel-btn.is-surface {
+    background: var(--color-surface, #ffffff);
+    color: var(--color-text, #111827);
+    border-color: var(--color-border, #dce3e9);
+}
+
+.ai-intel-btn.is-surface:hover {
+    border-color: #1d5560;
+    color: #1d5560;
+}
+
+.ai-intel-btn.is-primary {
+    background: #1d5560;
+    color: #ffffff;
+    border-color: #1d5560;
+}
+
+.ai-intel-btn.is-primary:hover {
+    background: #144049;
+    color: #ffffff;
+}
+
+.ai-intel-btn:disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+}
+
+.ai-intel-advisory-note {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 0.81rem;
+    color: rgba(248, 250, 251, 0.82);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* KPI Grid */
+.ai-intel-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+}
+
+.ai-intel-kpi {
+    padding: 1.1rem 1.2rem;
+    border-radius: 14px;
+    background: var(--color-surface, #ffffff);
+    border: 1px solid var(--color-border, #dce3e9);
+    border-top: 3px solid #1d5560;
+    box-shadow: 0 2px 10px rgba(12, 37, 45, 0.04);
+}
+
+.ai-intel-kpi[data-tone="positive"] { border-top-color: #185735; }
+.ai-intel-kpi[data-tone="warning"] { border-top-color: #c98b2e; }
+.ai-intel-kpi[data-tone="danger"] { border-top-color: #a52a35; }
+
+.ai-intel-kpi-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-secondary, #4b5563);
+}
+
+.ai-intel-kpi-value {
+    margin-top: 0.35rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--color-text, #111827);
+    line-height: 1.2;
+}
+
+.ai-intel-kpi-sub {
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary, #4b5563);
+}
+
+/* Section Panels */
+.ai-intel-section {
+    padding: 1.35rem 1.5rem;
+    border-radius: 15px;
+    background: var(--color-surface, #ffffff);
+    border: 1px solid var(--color-border, #dce3e9);
+    box-shadow: 0 3px 12px rgba(12, 37, 45, 0.04);
+}
+
+.ai-intel-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1.1rem;
+}
+
+.ai-intel-section-head h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 750;
+}
+
+.ai-intel-section-sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary, #4b5563);
+}
+
+/* Charts 2x2 Grid */
+.ai-intel-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 1.15rem;
+}
+
+.ai-intel-chart-card {
+    padding: 1.15rem 1.25rem;
+    border-radius: 14px;
+    background: var(--color-surface, #ffffff);
+    border: 1px solid var(--color-border, #dce3e9);
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.ai-intel-chart-card h3 {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 720;
+}
+
+.ai-intel-donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.ai-intel-donut-svg {
+    width: 148px;
+    height: 148px;
+    flex-shrink: 0;
+}
+
+.ai-intel-legend {
+    flex: 1;
+    min-width: 170px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.42rem;
+}
+
+.ai-intel-legend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.83rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+    text-align: start;
+}
+
+.ai-intel-legend-item:hover {
+    background: var(--color-surface-alt, #f5f7fa);
+    border-color: var(--color-border, #dce3e9);
+}
+
+.ai-intel-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-inline-end: 0.45rem;
+}
+
+/* Horizontal Bar List */
+.ai-intel-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.ai-intel-bar-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.24rem;
+}
+
+.ai-intel-bar-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+}
+
+.ai-intel-bar-label {
+    font-weight: 650;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ai-intel-bar-meta {
+    color: var(--color-text-secondary, #4b5563);
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.ai-intel-bar-track {
+    height: 9px;
+    border-radius: 999px;
+    background: var(--color-surface-alt, #eef2f6);
+    overflow: hidden;
+}
+
+.ai-intel-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #1d5560;
+    transition: width 320ms ease;
+}
+
+/* Analysis Cards */
+.ai-intel-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(265px, 1fr));
+    gap: 1rem;
+}
+
+.ai-intel-card {
+    padding: 1.05rem 1.15rem;
+    border-radius: 12px;
+    background: var(--color-surface-alt, #f5f7fa);
+    border: 1px solid var(--color-border, #dce3e9);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.ai-intel-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.ai-intel-card-cat {
+    font-size: 0.72rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #1d5560;
+}
+
+.ai-intel-card-metric {
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 0.14rem 0.52rem;
+    border-radius: 999px;
+    background: var(--color-surface, #ffffff);
+    border: 1px solid var(--color-border, #dce3e9);
+}
+
+.ai-intel-card h4 {
+    margin: 0;
+    font-size: 0.96rem;
+    font-weight: 720;
+}
+
+.ai-intel-card p {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.48;
+    color: var(--color-text-secondary, #4b5563);
+}
+
+.ai-intel-rec {
+    margin-top: 0.35rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed var(--color-border, #dce3e9);
+    font-size: 0.83rem;
+    color: var(--color-text, #111827);
+}
+
+/* Custom AI Prompt Bar */
+.ai-intel-prompt-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.ai-intel-input,
+.ai-intel-select {
+    padding: 0.52rem 0.78rem;
+    border-radius: 10px;
+    border: 1px solid var(--color-border, #dce3e9);
+    background: var(--color-surface, #ffffff);
+    color: var(--color-text, #111827);
+    font-size: 0.88rem;
+}
+
+.ai-intel-prompt-bar .ai-intel-input {
+    flex: 1;
+    min-width: 240px;
+}
+
+/* Lifecycle Stepper inside Per-Tender Report */
+.ai-intel-stepper {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(95px, 1fr));
+    gap: 0.45rem;
+    margin: 0.85rem 0 1.15rem;
+    overflow-x: auto;
+}
+
+.ai-intel-step {
+    padding: 0.55rem 0.65rem;
+    border-radius: 10px;
+    background: var(--color-surface-alt, #f5f7fa);
+    border: 1px solid var(--color-border, #dce3e9);
+    font-size: 0.77rem;
+    font-weight: 650;
+    text-align: center;
+    color: var(--color-text-secondary, #4b5563);
+}
+
+.ai-intel-step.is-done {
+    background: var(--pharma-positive-surface, #e8f4ed);
+    color: var(--pharma-positive-text, #185735);
+    border-color: rgba(24, 87, 53, 0.3);
+}
+
+.ai-intel-step.is-current {
+    background: #0c252d;
+    color: #efb85c;
+    border-color: #efb85c;
+}
+
+/* Upload Studio */
+.ai-intel-dropzone {
+    border: 2px dashed var(--color-border, #cbd5e1);
+    border-radius: 14px;
+    padding: 1.25rem;
+    background: var(--color-surface-alt, #f8fafc);
+    transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.ai-intel-dropzone.is-dragover {
+    border-color: #00a3a6;
+    background: rgba(0, 163, 166, 0.06);
+}
+
+/* Analytical Tables */
+.ai-intel-table-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+}
+
+.ai-intel-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--color-border, #dce3e9);
+    border-radius: 12px;
+}
+
+.ai-intel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.ai-intel-table th {
+    background: var(--color-surface-alt, #f5f7fa);
+    color: var(--color-text, #111827);
+    font-weight: 720;
+    padding: 0.68rem 0.85rem;
+    border-bottom: 1px solid var(--color-border, #dce3e9);
+    white-space: nowrap;
+    text-align: start;
+}
+
+.ai-intel-table td {
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid var(--color-border, #dce3e9);
+    vertical-align: middle;
+}
+
+.ai-intel-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.ai-intel-table tbody tr.is-clickable {
+    cursor: pointer;
+}
+
+.ai-intel-table tbody tr.is-clickable:hover {
+    background: var(--color-surface-alt, #f5f7fa);
+}
+
+.ai-intel-table tbody tr.is-selected {
+    background: rgba(29, 85, 96, 0.09);
+}
+
+.ai-intel-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.52rem;
+    border-radius: 999px;
+    font-size: 0.73rem;
+    font-weight: 700;
+    background: var(--color-surface-alt, #eef2f6);
+    border: 1px solid var(--color-border, #dce3e9);
+}
+
+.ai-intel-tag.is-win {
+    background: var(--pharma-positive-surface, #e8f4ed);
+    color: var(--pharma-positive-text, #185735);
+    border-color: rgba(24, 87, 53, 0.32);
+}
+
+.ai-intel-tag.is-warn {
+    background: var(--pharma-warning-surface, #fff1d8);
+    color: var(--pharma-warning-text, #774500);
+    border-color: rgba(119, 69, 0, 0.28);
+}
+
+.ai-intel-status-msg {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary, #4b5563);
+    margin: 0.5rem 0 0;
+}
+
+.ai-intel-status-msg[data-error="true"] {
+    color: var(--pharma-danger-text, #a52a35);
+}
+
+@media (max-width: 768px) {
+    .ai-intel-hero { padding: 1.15rem; }
+    .ai-intel-section { padding: 1.05rem; }
+    .ai-intel-charts-grid { grid-template-columns: 1fr; }
+}

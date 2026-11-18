@@ -66,7 +66,7 @@ public sealed class AiChatContext(
             }
         }
 
-        var workspaceData = await BuildRoleWorkspaceDataAsync(workspace, principal, user, ct);
+        var workspaceData = await BuildRoleWorkspaceDataAsync(workspace, principal, user, recordType, recordId, ct);
         return new AiChatWorkspaceSnapshot(userProfile, workspaceData, currentRecord, currentUrl, currentLabel);
     }
 
@@ -90,6 +90,8 @@ public sealed class AiChatContext(
         string workspace,
         ClaimsPrincipal principal,
         ApplicationUser user,
+        AiChatRecord? currentRecordType,
+        int? currentRecordId,
         CancellationToken ct)
     {
         switch (workspace)
@@ -110,7 +112,7 @@ public sealed class AiChatContext(
                     .Include(r => r.PurchaseRequestItems)
                     .Include(r => r.Tenders)
                     .OrderByDescending(r => r.CreatedAt)
-                    .Take(12)
+                    .Take(8)
                     .ToListAsync(ct);
 
                 return new
@@ -124,7 +126,7 @@ public sealed class AiChatContext(
                         r.Status,
                         r.Priority,
                         TargetDate = r.TargetDate.ToString("yyyy-MM-dd"),
-                        ReturnOrReviewNotes = r.ReviewNotes,
+                        ReturnOrReviewNotes = Cap(r.ReviewNotes, 160),
                         CanEditOrResubmit = r.RequestedByUserId == user.Id && (r.Status == "Returned" || r.Status == "Submitted"),
                         LinkedTenderStatuses = r.Tenders.Select(t => new { t.TenderId, t.Status }).ToArray(),
                         Items = r.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId).Select(i => new
@@ -132,8 +134,7 @@ public sealed class AiChatContext(
                             i.PurchaseRequestItemId,
                             i.ItemName,
                             i.Quantity,
-                            i.Unit,
-                            i.Specifications
+                            i.Unit
                         }).ToArray()
                     }).ToArray()
                 };
@@ -148,7 +149,7 @@ public sealed class AiChatContext(
                     .Include(r => r.PurchaseRequestItems)
                     .Include(r => r.Tenders)
                     .OrderByDescending(r => r.SubmittedAt ?? r.CreatedAt)
-                    .Take(12)
+                    .Take(8)
                     .ToListAsync(ct);
 
                 var ownTenders = await db.Tenders.AsNoTracking()
@@ -158,17 +159,20 @@ public sealed class AiChatContext(
                     .Include(t => t.Invitations).ThenInclude(i => i.SupplierProfile)
                     .Include(t => t.Invitations).ThenInclude(i => i.Bids).ThenInclude(b => b.BidItems)
                     .Include(t => t.EvaluationReport)
-                    .OrderByDescending(t => t.CreatedAt)
-                    .Take(10)
+                    .OrderByDescending(t => t.Status == "Published" || t.Status == "Closed" || t.Status == "UnderEvaluation")
+                    .ThenByDescending(t => t.CreatedAt)
+                    .Take(8)
                     .ToListAsync(ct);
 
                 var approvedSuppliers = await db.SupplierProfiles.AsNoTracking()
                     .Where(s => s.Status == "Approved")
                     .OrderBy(s => s.SupplierProfileId)
+                    .Take(15)
                     .Select(s => new { s.SupplierProfileId, s.CompanyName, s.Category })
                     .ToListAsync(ct);
 
                 var now = DateTime.UtcNow;
+                var activeOfferListCount = 0;
                 return new
                 {
                     ApprovedSuppliers = approvedSuppliers,
@@ -182,7 +186,7 @@ public sealed class AiChatContext(
                         r.Priority,
                         TargetDate = r.TargetDate.ToString("yyyy-MM-dd"),
                         HasTender = r.Tenders.Count > 0,
-                        Items = r.PurchaseRequestItems.Select(i => new { i.ItemName, i.Quantity, i.Unit }).ToArray()
+                        Items = r.PurchaseRequestItems.Select(i => $"{i.ItemName} ({i.Quantity:0.##} {i.Unit})").ToArray()
                     }).ToArray(),
                     Tenders = ownTenders.Select(t =>
                     {
@@ -190,6 +194,9 @@ public sealed class AiChatContext(
                             .Where(b => b.SubmittedAt != null && b.Status != "Withdrawn")
                             .OrderBy(b => b.BidId)
                             .ToList();
+                        var isCurrent = currentRecordType == AiChatRecord.OfficerTender && currentRecordId == t.TenderId;
+                        var includeOffers = !isCurrent && t.Status is "Published" or "Closed" && activeOfferListCount < 4;
+                        if (includeOffers) activeOfferListCount++;
                         return new
                         {
                             t.TenderId,
@@ -197,7 +204,6 @@ public sealed class AiChatContext(
                             t.Title,
                             t.Category,
                             t.Status,
-                            t.OpensAt,
                             t.ClosesAt,
                             DeadlinePassed = t.ClosesAt <= now,
                             Round = 1 + t.OfferExtensions.Count,
@@ -214,7 +220,7 @@ public sealed class AiChatContext(
                                 t.EvaluationReport.Status,
                                 t.EvaluationReport.RecommendedBidId
                             },
-                            Offers = submittedBids.Select(b => new
+                            Offers = includeOffers ? submittedBids.Select(b => new
                             {
                                 b.BidId,
                                 Supplier = b.Invitation.SupplierProfile.CompanyName,
@@ -223,7 +229,7 @@ public sealed class AiChatContext(
                                 Total = CommitteeEvaluationPage.Total(b),
                                 b.Currency,
                                 b.DeliveryDays
-                            }).ToArray()
+                            }).ToArray() : null
                         };
                     }).ToArray()
                 };
@@ -231,8 +237,9 @@ public sealed class AiChatContext(
 
             case RoleNames.EvaluationCommittee:
             {
-                var tenders = await db.Tenders.AsNoTracking()
-                    .InEvaluationWorkspace(user.Id)
+                var baseEvalQuery = db.Tenders.AsNoTracking().InEvaluationWorkspace(user.Id);
+                var totalEvalTendersCount = await baseEvalQuery.CountAsync(ct);
+                var tenders = await baseEvalQuery
                     .AsSplitQuery()
                     .Include(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
                     .Include(t => t.Invitations).ThenInclude(i => i.SupplierProfile)
@@ -243,8 +250,9 @@ public sealed class AiChatContext(
                     .Include(t => t.CommitteeAssignments).ThenInclude(a => a.User)
                     .Include(t => t.TenderApprovals)
                     .Include(t => t.EvaluationReport)
-                    .OrderByDescending(t => t.CreatedAt)
-                    .Take(10)
+                    .OrderByDescending(t => t.Status == "UnderEvaluation")
+                    .ThenByDescending(t => t.CreatedAt)
+                    .Take(8)
                     .ToListAsync(ct);
 
                 var tenderIds = tenders.Select(t => t.TenderId).ToArray();
@@ -253,9 +261,10 @@ public sealed class AiChatContext(
                     .Include(e => e.EvaluationScores)
                     .ToListAsync(ct);
 
+                var expandedOffersCount = 0;
                 return new
                 {
-                    TendersInWorkspaceCount = tenders.Count,
+                    TendersInWorkspaceCount = totalEvalTendersCount,
                     Tenders = tenders.Select(t =>
                     {
                         var page = new CommitteeEvaluationPage
@@ -267,15 +276,19 @@ public sealed class AiChatContext(
                         var me = page.Members.SingleOrDefault(m => m.UserId == user.Id);
                         var myWeight = me == null ? null : page.WeightProposals.SingleOrDefault(p => p.CommitteeAssignmentId == me.CommitteeAssignmentId)?.FinancialWeight;
                         var ranking = AllOfferScoring.Ranking(page);
+                        var isCurrent = currentRecordType == AiChatRecord.EvaluationTender && currentRecordId == t.TenderId;
+                        var includeOffers = !isCurrent && t.Status == "UnderEvaluation" && expandedOffersCount < 4;
+                        if (includeOffers) expandedOffersCount++;
+                        var tiedLeaders = AllOfferScoring.Leaders(page);
+
                         return new
                         {
                             t.TenderId,
                             t.Title,
-                            t.Category,
                             t.Status,
                             StatusDisplay = CommitteeEvaluationPage.StatusLabel(t.Status),
                             MySeatPosition = me?.Position,
-                            MySeatTitle = me == null ? "Unassigned (Start evaluation to initialize)" : CommitteeEvaluationPage.MemberName(me.Position),
+                            MySeatTitle = me == null ? "Unassigned" : CommitteeEvaluationPage.MemberName(me.Position),
                             CanWriteFinalReport = page.IsDepartmentManager,
                             WeightsConfirmedCount = page.WeightProposals.Count,
                             ConsensusLocked = page.ConsensusLocked,
@@ -284,10 +297,11 @@ public sealed class AiChatContext(
                             MyConfirmedFinancialWeight = myWeight,
                             AllScoringComplete = AllOfferScoring.Complete(page),
                             WinningBidId = AllOfferScoring.Winner(page),
-                            TiedLeaderBidIds = AllOfferScoring.Leaders(page).Count > 1 ? AllOfferScoring.Leaders(page).Select(l => l.BidId).ToArray() : [],
+                            TiedLeaderBidIds = tiedLeaders.Count > 1 ? tiedLeaders.Select(l => l.BidId).ToArray() : null,
                             ReportStatus = t.EvaluationReport?.Status,
                             RecommendedBidId = t.EvaluationReport?.RecommendedBidId,
-                            CompliantOffers = page.Offers.Select(b =>
+                            CompliantOffersCount = page.Offers.Count,
+                            CompliantOffers = includeOffers ? page.Offers.Select(b =>
                             {
                                 var myEval = me == null ? null : page.Evaluation(me, b);
                                 var rankRow = ranking.SingleOrDefault(r => r.BidId == b.BidId);
@@ -298,15 +312,13 @@ public sealed class AiChatContext(
                                     Total = CommitteeEvaluationPage.Total(b),
                                     b.Currency,
                                     b.DeliveryDays,
-                                    b.PaymentTerms,
                                     ReviewsCompletedCount = AllOfferScoring.Count(page, b),
                                     MyReviewApproved = page.MyReviewApproved(b),
                                     MyFinancialMark = myEval?.FinancialMark,
                                     MyTechnicalMark = myEval?.TechnicalMark,
-                                    MyNotes = myEval?.Notes,
                                     AverageOverallScore = rankRow?.Score
                                 };
-                            }).ToArray()
+                            }).ToArray() : null
                         };
                     }).ToArray()
                 };
@@ -431,7 +443,7 @@ public sealed class AiChatContext(
                     .Include(i => i.Tender).ThenInclude(t => t.TenderDocuments)
                     .Include(i => i.Bids).ThenInclude(b => b.BidItems)
                     .OrderByDescending(i => i.SentAt)
-                    .Take(10)
+                    .Take(8)
                     .ToListAsync(ct);
 
                 return new
@@ -441,6 +453,7 @@ public sealed class AiChatContext(
                     Invitations = invitations.Select(i =>
                     {
                         var myBid = i.Bids.OrderByDescending(b => b.BidId).FirstOrDefault();
+                        var isCurrent = currentRecordType == AiChatRecord.SupplierInvitation && currentRecordId == i.InvitationId;
                         return new
                         {
                             i.InvitationId,
@@ -449,19 +462,17 @@ public sealed class AiChatContext(
                             i.Tender.Category,
                             InvitationStatus = i.Status,
                             TenderStatus = i.Tender.Status,
-                            i.Tender.OpensAt,
                             i.Tender.ClosesAt,
                             AcceptingOffersNow = i.Tender.IsAcceptingOffers(now),
                             MandatoryTenderDocumentsCount = i.Tender.TenderDocuments.Count(d => d.IsMandatory),
-                            RequestedItems = i.Tender.PurchaseRequest.PurchaseRequestItems
+                            RequestedItems = isCurrent ? null : i.Tender.PurchaseRequest.PurchaseRequestItems
                                 .OrderBy(x => x.PurchaseRequestItemId)
                                 .Select(x => new
                                 {
                                     x.PurchaseRequestItemId,
                                     x.ItemName,
                                     x.Quantity,
-                                    x.Unit,
-                                    x.Specifications
+                                    x.Unit
                                 }).ToArray(),
                             MyOffer = myBid == null ? null : new
                             {
@@ -474,7 +485,6 @@ public sealed class AiChatContext(
                                 Total = CommitteeEvaluationPage.Total(myBid),
                                 myBid.Currency,
                                 myBid.DeliveryDays,
-                                myBid.PaymentTerms,
                                 myBid.SubmittedAt
                             }
                         };
@@ -489,9 +499,13 @@ public sealed class AiChatContext(
                     .Select(d => new { d.DepartmentId, d.Name, d.IsActive })
                     .ToListAsync(ct);
 
+                var totalSuppliersCount = await db.SupplierProfiles.AsNoTracking().CountAsync(ct);
+                var pendingSuppliersCount = await db.SupplierProfiles.AsNoTracking().CountAsync(s => s.Status == "Pending", ct);
                 var suppliers = await db.SupplierProfiles.AsNoTracking()
-                    .OrderBy(s => s.SupplierProfileId)
-                    .Select(s => new { s.SupplierProfileId, s.CompanyName, s.Category, s.Status, s.RegistrationNumber })
+                    .OrderByDescending(s => s.Status == "Pending" || s.Status == "ChangesRequested")
+                    .ThenByDescending(s => s.SupplierProfileId)
+                    .Take(12)
+                    .Select(s => new { s.SupplierProfileId, s.CompanyName, s.Category, s.Status })
                     .ToListAsync(ct);
 
                 var roleLinks = from ur in db.UserRoles.AsNoTracking()
@@ -499,8 +513,10 @@ public sealed class AiChatContext(
                                 where r.Name != null
                                 select new { ur.UserId, RoleName = r.Name! };
 
+                var totalUsersCount = await db.Users.AsNoTracking().CountAsync(ct);
                 var accounts = await db.Users.AsNoTracking()
                     .OrderBy(u => u.Email)
+                    .Take(15)
                     .Select(u => new
                     {
                         u.Email,
@@ -512,14 +528,15 @@ public sealed class AiChatContext(
                     .ToListAsync(ct);
 
                 var messages = await db.ContactMessages.AsNoTracking()
-                    .OrderByDescending(m => m.SubmittedAt)
-                    .Take(8)
+                    .OrderByDescending(m => m.Status == ContactMessage.Unread)
+                    .ThenByDescending(m => m.SubmittedAt)
+                    .Take(5)
                     .Select(m => new { m.ContactMessageId, m.FullName, m.Email, m.Subject, m.Status, m.SubmittedAt })
                     .ToListAsync(ct);
 
                 var tenders = await db.Tenders.AsNoTracking()
                     .OrderByDescending(t => t.TenderId)
-                    .Take(10)
+                    .Take(6)
                     .Select(t => new { t.TenderId, t.Title, t.Category, t.Status, t.ClosesAt })
                     .ToListAsync(ct);
 
@@ -529,10 +546,10 @@ public sealed class AiChatContext(
                 {
                     Counts = new
                     {
-                        Users = accounts.Count,
+                        Users = totalUsersCount,
                         Departments = departments.Count,
-                        Suppliers = suppliers.Count,
-                        PendingSuppliers = suppliers.Count(s => s.Status == "Pending"),
+                        Suppliers = totalSuppliersCount,
+                        PendingSuppliers = pendingSuppliersCount,
                         PurchaseRequests = requestsCount,
                         Tenders = await db.Tenders.AsNoTracking().CountAsync(ct),
                         UnreadMessages = await db.ContactMessages.AsNoTracking().CountAsync(m => m.Status == ContactMessage.Unread, ct)
@@ -676,12 +693,13 @@ public sealed class AiChatContext(
                 if (tender == null) return null;
                 var evals = await db.Evaluations.AsNoTracking().Where(e => e.TenderId == id).ToListAsync(ct);
                 var page = new CommitteeEvaluationPage { Tender = tender, UserId = userId, Evaluations = evals };
+                var me = page.Members.SingleOrDefault(m => m.UserId == userId);
                 return new
                 {
                     tender.TenderId,
                     tender.Title,
-                    tender.Description,
-                    tender.Terms,
+                    Description = Cap(tender.Description, 220),
+                    Terms = Cap(tender.Terms, 220),
                     tender.Status,
                     page.ConsensusLocked,
                     page.FinancialWeight,
@@ -689,32 +707,46 @@ public sealed class AiChatContext(
                     WeightsConfirmed = page.WeightProposals.Count,
                     ReportStatus = tender.EvaluationReport?.Status,
                     RecommendedBidId = tender.EvaluationReport?.RecommendedBidId,
-                    CommitteeSummary = tender.EvaluationReport?.CommitteeSummary,
-                    RequestedItems = tender.PurchaseRequest.PurchaseRequestItems.Select(i => new
+                    CommitteeSummary = Cap(tender.EvaluationReport?.CommitteeSummary, 400),
+                    RequestedItems = tender.PurchaseRequest.PurchaseRequestItems.Take(12).Select(i => new
                     {
                         i.PurchaseRequestItemId,
                         i.ItemName,
                         i.Quantity,
                         i.Unit,
-                        i.Specifications
+                        Specifications = Cap(i.Specifications, 180)
                     }).ToArray(),
-                    Offers = page.Offers.Select(b => new
+                    Offers = page.Offers.Select(b =>
                     {
-                        b.BidId,
-                        Supplier = b.Invitation.SupplierProfile.CompanyName,
-                        Total = CommitteeEvaluationPage.Total(b),
-                        b.Currency,
-                        b.DeliveryDays,
-                        b.PaymentTerms,
-                        b.TechnicalDetails,
-                        Items = b.BidItems.Select(bi => new { bi.PurchaseRequestItemId, bi.Quantity, bi.UnitPrice, bi.OfferedSpecifications }).ToArray(),
-                        ReviewsCount = AllOfferScoring.Count(page, b)
+                        var myEval = me == null ? null : page.Evaluation(me, b);
+                        return new
+                        {
+                            b.BidId,
+                            Supplier = b.Invitation.SupplierProfile.CompanyName,
+                            Total = CommitteeEvaluationPage.Total(b),
+                            b.Currency,
+                            b.DeliveryDays,
+                            PaymentTerms = Cap(b.PaymentTerms, 120),
+                            TechnicalDetails = Cap(b.TechnicalDetails, 180),
+                            Items = b.BidItems.Take(12).Select(bi => new
+                            {
+                                bi.PurchaseRequestItemId,
+                                bi.Quantity,
+                                bi.UnitPrice,
+                                OfferedSpecifications = Cap(bi.OfferedSpecifications, 160)
+                            }).ToArray(),
+                            ReviewsCount = AllOfferScoring.Count(page, b),
+                            MyFinancialMark = myEval?.FinancialMark,
+                            MyTechnicalMark = myEval?.TechnicalMark,
+                            MyNotes = Cap(myEval?.Notes, 140)
+                        };
                     }).ToArray()
                 };
             }
 
             case AiChatRecord.ManagerReport:
-                return await db.EvaluationReports.AsNoTracking()
+            {
+                var report = await db.EvaluationReports.AsNoTracking()
                     .InManagerReview()
                     .Where(r => r.EvaluationReportId == id)
                     .Select(r => new
@@ -731,6 +763,22 @@ public sealed class AiChatContext(
                         r.ManagerSummary,
                         r.SubmittedAt
                     }).SingleOrDefaultAsync(ct);
+
+                return report == null ? null : new
+                {
+                    report.EvaluationReportId,
+                    report.TenderId,
+                    report.TenderTitle,
+                    report.TenderStatus,
+                    report.ReportStatus,
+                    report.RecommendedBidId,
+                    report.RecommendedSupplier,
+                    CommitteeSummary = Cap(report.CommitteeSummary, 400),
+                    OfficerSummary = Cap(report.OfficerSummary, 400),
+                    ManagerSummary = Cap(report.ManagerSummary, 400),
+                    report.SubmittedAt
+                };
+            }
 
             case AiChatRecord.TopTender:
                 try
@@ -843,5 +891,12 @@ public sealed class AiChatContext(
             default:
                 return null;
         }
+    }
+
+    private static string? Cap(string? text, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var trimmed = text.Trim();
+        return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength].TrimEnd() + "…";
     }
 }

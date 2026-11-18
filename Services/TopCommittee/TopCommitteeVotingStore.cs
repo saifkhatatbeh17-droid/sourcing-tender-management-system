@@ -13,6 +13,7 @@ internal interface ICommitteeVotingSession
     Task AssertNotPausedAsync(CancellationToken cancellationToken);
     Task<bool> IsDatabaseReadyAsync(CancellationToken cancellationToken);
     void Add(TenderApproval vote);
+    void ClearTopVotes() { }
     Task SaveAsync(CancellationToken cancellationToken);
 }
 
@@ -44,6 +45,16 @@ internal sealed class TopCommitteeVotingStore(ITopCommitteeTenderTransaction tra
         public Task AssertNotPausedAsync(CancellationToken cancellationToken) => pause.AssertNotPausedAsync(db, tenderId, cancellationToken);
         public Task<bool> IsDatabaseReadyAsync(CancellationToken cancellationToken) => TopCommitteeVotingDatabase.IsReadyAsync(db, cancellationToken);
         public void Add(TenderApproval vote) => db.TenderApprovals.Add(vote);
+        public void ClearTopVotes()
+        {
+            if (context.Access.Tender is not { } tender) return;
+            var existingTop = tender.TenderApprovals.Where(v => v.Stage == "Top" && v.Decision != "Rejected").ToList();
+            if (existingTop.Count > 0)
+            {
+                db.TenderApprovals.RemoveRange(existingTop);
+                foreach (var v in existingTop) tender.TenderApprovals.Remove(v);
+            }
+        }
         public async Task SaveAsync(CancellationToken cancellationToken)
         {
             await TopCommitteeNotificationEvents.DecisionAsync(db,context,cancellationToken);

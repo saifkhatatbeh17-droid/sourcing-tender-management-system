@@ -12,6 +12,14 @@ public class Tender
     public string? RejectionForwardedByUserId { get; set; }
     public DateTime? RejectionForwardedAt { get; set; }
 
+    public string? TopEditState { get; set; }
+    public string? TopEditRequestedByUserId { get; set; }
+    public DateTime? TopEditRequestedAt { get; set; }
+    public string? TopEditRequestNotes { get; set; }
+    public string? TopEditManagerNotes { get; set; }
+    public string? TopEditOfficerNotes { get; set; }
+    public DateTime? TopEditOfficerRespondedAt { get; set; }
+
     public int PurchaseRequestId { get; set; }
 
     public string CreatedByUserId { get; set; } = null!;

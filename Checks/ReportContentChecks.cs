@@ -46,6 +46,32 @@ public static class ReportContentChecks
         var result = await ai.Recommend(page, 50, default);
         Check(ReportContent.Parse(result.Scenarios[0].Reason).Count(b => b.Kind == "heading") == 4, "Structured recommendation lost one of its four sections.");
         Check(handler.Calls == 2, "Contradictory delivery explanation must be rejected and retried once.");
+
+        // 3-offer comparison checks: middle offer comparatives and post-claim target mentions must not false-fail.
+        var levant = new SourcingTenderManagement.Models.Entities.Invitation { SupplierProfile = new() { CompanyName = "Levant Medicine Supply" } };
+        var middleBid = new SourcingTenderManagement.Models.Entities.Bid
+        {
+            BidId = 3, TenderId = 1, Currency = "JOD", DeliveryDays = 5, Status = "Compliant", ComplianceStatus = "Compliant",
+            Invitation = levant, BidItems = [new() { Quantity = 10, UnitPrice = 110.5m }]
+        };
+        levant.Bids.Add(middleBid);
+        page.Tender.Invitations.Add(levant);
+        BidNarrativeValidation.Check(page, 2, "The other bids are more expensive, making Cedar Pharmacy Wholesale the lowest cost choice.");
+        BidNarrativeValidation.Check(page, 2, "No material tradeoff is evident; the alternative bids are more expensive.");
+        BidNarrativeValidation.Check(page, 1, "No material tradeoff is evident; the alternative bids are slower.");
+        BidNarrativeValidation.Check(page, 2, "Apart from the higher cost of the other offers, there are no material trade-offs for Cedar Pharmacy Wholesale.");
+        BidNarrativeValidation.Check(page, 2, "Cedar Pharmacy Wholesale is cheapest; Levant Medicine Supply is cheaper than Rimal Pharmaceutical Distribution.");
+        BidNarrativeValidation.Check(page, 3, "Higher total cost (1,105.00 vs 1,092.00 JOD) than Bid #2. Slower delivery.", true);
+        BidNarrativeValidation.Check(page, 3, "Slower than the 3-day offer, yet faster than the 7-day offer.", true);
+        foreach (var threeOfferContradiction in new[] {
+            "Higher total cost than Bid #1.",
+            "Slower delivery than Cedar Pharmacy Wholesale." })
+        {
+            try { BidNarrativeValidation.Check(page, 3, threeOfferContradiction, true); throw new Exception("3-offer contradiction accepted."); }
+            catch (InvalidOperationException) { }
+        }
+        try { BidNarrativeValidation.Check(page, 2, "The alternative bids are slower."); throw new Exception("Invalid alternative-bids claim accepted."); }
+        catch (InvalidOperationException) { }
         Console.WriteLine("PASS: report headings/lists, legacy text, emphasized facts, accurate price order and detailed structured AI instructions.");
     }
 

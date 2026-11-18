@@ -587,11 +587,21 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         ViewBag.OpenQuestions = await db.Clarifications.AsNoTracking()
             .Where(c => c.Status != "Resolved" && ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn")))
             .Select(c => c.ClarificationId).ToListAsync();
-                ViewBag.ForwardedRejection = selectedTender?.RejectionForwardedAt != null
+        ViewBag.ForwardedRejection = selectedTender?.RejectionForwardedAt != null
             ? await db.TenderApprovals.AsNoTracking().Include(a => a.User)
                 .FirstOrDefaultAsync(a => a.TenderId == tenderId && a.Stage == "Top" && a.Decision == "Rejected") : null;
         ViewBag.ReplacementTender = selectedTender?.RejectionForwardedAt != null
             ? await db.Tenders.AsNoTracking().FirstOrDefaultAsync(t => t.ReplacesTenderId == tenderId && t.CreatedByUserId == userId) : null;
+        if (selectedTender?.TopEditState != null)
+        {
+            ViewBag.TopEditRequesterName = !string.IsNullOrWhiteSpace(selectedTender.TopEditRequestedByUserId)
+                ? await db.Users.AsNoTracking().Where(u => u.Id == selectedTender.TopEditRequestedByUserId).Select(u => u.FullName).FirstOrDefaultAsync() ?? "CEO & Chiefs Member"
+                : "CEO & Chiefs Member";
+            ViewBag.CompliantOffersForSwitch = bids
+                .Where(b => b.ComplianceStatus == "Compliant" && b.Status is not ("Draft" or "Withdrawn" or "Rejected" or "NonCompliant"))
+                .OrderBy(b => b.BidItems.Sum(x => x.Quantity * x.UnitPrice) + b.TaxAmount + b.AdditionalCosts)
+                .ToList();
+        }
         return View("Offers", bids);
     }
 
@@ -914,6 +924,90 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         await transaction.CommitAsync();
         TempData["EvaluationSuccess"] = decision switch { "Approve" => "Approved. The unchanged report was sent to the Sourcing Manager.", "RequestEdits" => "Returned to the committee for edits and four fresh approvals.", _ => "Report rejected and tender cancelled." };
         return ReviewDestination();
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RespondToTopEdit(int tenderId, int selectedBidId, string? officerNotes)
+    {
+        IActionResult Fail(string msg)
+        {
+            TempData["EvaluationError"] = msg;
+            return RedirectToAction(nameof(Offers), new { tenderId });
+        }
+
+        var trimmed = officerNotes?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed) || trimmed.Length > 4000)
+            return Fail("Enter your response or offer-selection justification (1–4,000 characters).");
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};");
+
+        var tender = await db.Tenders
+            .Include(t => t.EvaluationReport)
+            .SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == userId);
+        if (tender == null) return NotFound();
+
+        var report = tender.EvaluationReport;
+        if (tender.Status != "AwaitingOfficerSummary" || tender.TopEditState != "WithOfficer" || report == null)
+            return Fail("This tender is not currently awaiting your edit response.");
+
+        var openClarifications = await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
+            ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn")));
+        if (openClarifications)
+            return Fail("Resolve open tender and offer clarifications before sending your response.");
+
+        var chosenBid = await db.Bids
+            .Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile)
+            .SingleOrDefaultAsync(b => b.BidId == selectedBidId && b.TenderId == tenderId &&
+                b.SubmittedAt != null && b.ComplianceStatus == "Compliant" &&
+                b.Status != "Draft" && b.Status != "Withdrawn" && b.Status != "Rejected" && b.Status != "NonCompliant");
+        if (chosenBid == null)
+            return Fail("Choose an eligible compliant offer from this tender.");
+
+        var previousBidId = report.RecommendedBidId;
+        var switchedOffer = previousBidId != chosenBid.BidId;
+        report.RecommendedBidId = chosenBid.BidId;
+
+        var summaryLine = switchedOffer
+            ? $"Selected alternative compliant offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}) instead of offer #{previousBidId}. Officer response: {trimmed}"
+            : $"Confirmed offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}). Officer response: {trimmed}";
+
+        tender.TopEditOfficerNotes = summaryLine;
+        tender.TopEditOfficerRespondedAt = DateTime.UtcNow;
+        tender.TopEditState = "OfficerAnswered";
+        tender.Status = "AwaitingManagerReview";
+
+        report.OfficerSummary = summaryLine;
+        report.Status = "OfficerSubmitted";
+        report.SubmittedAt = DateTime.UtcNow;
+
+        var managerIds = await db.Users
+            .Where(u => u.IsActive && db.UserRoles.Any(ur => ur.UserId == u.Id && db.Roles.Any(r => r.Id == ur.RoleId && r.Name == RoleNames.SourcingManager)))
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        foreach (var mgrId in managerIds)
+        {
+            db.Notifications.Add(new Notification
+            {
+                UserId = mgrId,
+                Title = switchedOffer ? "Sourcing Officer selected an alternative offer" : "Sourcing Officer answered edit request",
+                Message = switchedOffer
+                    ? $"Tender #{tenderId}: Officer chose compliant offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}) and answered the edit request."
+                    : $"Tender #{tenderId}: Officer answered the CEO & Chiefs edit request and returned it to you.",
+                RelativeUrl = $"/SourcingManager/Submissions?rejectedTenderId={tenderId}&showRejections=true",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        TempData["EvaluationSuccess"] = switchedOffer
+            ? $"Selected alternative offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}) and sent your response back to the Sourcing Manager."
+            : "Sent your answer back to the Sourcing Manager to continue the CEO & Chiefs cycle.";
+        return RedirectToAction(nameof(Offers), new { tenderId });
     }
     public IActionResult Clarifications(int? id) => RedirectToAction("Index", "Clarification", new { id });
 

@@ -168,9 +168,8 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
         var prompt = (selectedBidId.HasValue ? $"The committee has already selected bid {selectedBidId.Value}. Write the final report about THAT offer; do not select or substitute another bid. Explain its evidence-based benefits and tradeoffs honestly; if another bid is cheaper or stronger, disclose that rather than inventing advantages. recommendedBidId must equal {selectedBidId.Value}.\n" : "")
             + "Compare these bids: " + input + "\nOfficer revision request: "
             + (page.Tender!.EvaluationReport?.Status == "ReturnedForReview" ? page.Tender.EvaluationReport.OfficerSummary : "None")
-            + "\nJSON schema: " + JsonSerializer.Serialize(schema, Json)
             + (correction == null ? "" : "\nCorrect the previous response: " + correction);
-        var output = await VllmSettings.CompleteJsonAsync(http, configuration, system, prompt, "bid_recommendation", schema, 4500, cancellationToken);
+        var output = await VllmSettings.CompleteJsonAsync(http, configuration, system, prompt, "bid_recommendation", schema, 2200, cancellationToken);
         var structured = JsonSerializer.Deserialize<StructuredRecommendation>(output, Json);
         if (structured?.Scenarios == null) throw new InvalidOperationException("The AI did not return a structured explanation. Try again.");
         var scenarios = structured.Scenarios.Select(s => {
@@ -235,7 +234,7 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
                         ? $"\nTrusted scoring outcome: all {page.Offers.Count} eligible offers received four locked reviews. Offer #{selected.BidId} progresses with a total average of {AllOfferScoring.Ranking(page).Single(r => r.BidId == selected.BidId).Score:0.##}/100. This is the selection basis; disclose any tied highest score resolved by committee. Do not substitute a different winner or infer numeric marks for any criterion."
                         : "")
                     + (attempt == 1 ? "\nCorrect the previous response: " + correction + ". Fill every section and include every alternative exactly once." : "");
-                var rawJson = await VllmSettings.CompleteJsonAsync(http, configuration, system, prompt, "final_committee_report", schema, 3000, ct);
+                var rawJson = await VllmSettings.CompleteJsonAsync(http, configuration, system, prompt, "final_committee_report", schema, 1800, ct);
                 using var output = JsonDocument.Parse(rawJson);
                 var report = output.RootElement;
                 string Read(JsonElement element, string key, int minimum, int maximum)

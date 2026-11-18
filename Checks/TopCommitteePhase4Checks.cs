@@ -114,6 +114,14 @@ public static class TopCommitteePhase4Checks
         Check(rejected.Tender.Status == "AwaitingManagerReview" && rejected.Votes.Count() == 3 && rejected.Tender.AwardedBidId == null,
             "Rejection returns the tender and preserves previous approvals.");
 
+        var requestEdit = new MemoryStore(); await Approve(requestEdit, 1, 2);
+        await Denied<ValidationException>(() => Voting(requestEdit).SubmitAsync(Actor(3), Input("RequestEdit", "  ")), "RequestEdit must require notes.");
+        var editRes = await Voting(requestEdit).SubmitAsync(Actor(3), Input("RequestEdit", "Please verify cold-chain SLA or check second offer."));
+        Check(editRes.Decision == "RequestEdit" && !editRes.IsAwarded && requestEdit.Tender.Status == "AwaitingManagerReview" &&
+            requestEdit.Tender.TopEditState == "WithManager" && requestEdit.Tender.TopEditRequestedByUserId == "member-3" &&
+            requestEdit.Tender.TopEditRequestNotes == "Please verify cold-chain SLA or check second offer." &&
+            !requestEdit.Votes.Any(), "RequestEdit returns tender to Manager with TopEditState=WithManager and clears prior round approvals so voting can reopen.");
+
         async Task<CommitteeVoteResult?> TryVote(MemoryStore d, int member, string decision = "Approved")
         { try { return await Voting(d).SubmitAsync(Actor(member), Input(decision, "Reason")); } catch (Exception ex) when (ex is CommitteeStateConflictException or ValidationException) { return null; } }
         var duplicate = new MemoryStore();
@@ -162,7 +170,7 @@ public static class TopCommitteePhase4Checks
         var eligiblePage = Page(new MemoryStore());
         var html = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", eligiblePage);
         Check(html.Contains("tc-member-approval-form") && html.Contains("name=\"Vote.Confirmed\"") && html.Contains("__RequestVerificationToken") &&
-            html.Contains("value=\"Approved\"") && html.Contains("value=\"Rejected\""), "Voting form, modal, choices and CSRF token must render.");
+            html.Contains("value=\"Approved\"") && html.Contains("value=\"RequestEdit\"") && html.Contains("value=\"Rejected\""), "Voting form, edit/reject modals, choices and CSRF token must render.");
         Check(html.Contains("name=\"Vote.ExpectedNominatedBidId\"") && !html.Contains("name=\"UserId\"") && !html.Contains("name=\"CommitteeAssignmentId\""), "Browser cannot select actor/assignment.");
         var pausedUi = new MemoryStore(); pausedUi.Question("Pending");
         var pausedHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", Page(pausedUi));
@@ -299,6 +307,7 @@ public static class TopCommitteePhase4Checks
             { data.PauseChecks++; if (TopCommitteeClarificationScope.OpenCount(access) > 0) throw new CommitteeStateConflictException("Paused"); return Task.CompletedTask; }
             public Task<bool> IsDatabaseReadyAsync(CancellationToken ct) => Task.FromResult(data.DatabaseReady);
             public void Add(TenderApproval vote) { vote.TenderApprovalId = data.Tender.TenderApprovals.Count + 1; vote.User = new ApplicationUser { FullName = data.Members.Single(m => m.UserId == vote.UserId).FullName }; data.Tender.TenderApprovals.Add(vote); }
+            public void ClearTopVotes() { foreach (var v in data.Tender.TenderApprovals.Where(v => v.Stage == "Top" && v.Decision != "Rejected").ToList()) data.Tender.TenderApprovals.Remove(v); }
             public void Add(Clarification question) { question.ClarificationId = data.Tender.Clarifications.Count + 1; data.Tender.Clarifications.Add(question); }
             public void Add(ClarificationResponse response) => throw new InvalidOperationException("Not used by Phase 4 checks.");
             public async Task SaveAsync(CancellationToken ct) { if (data.FailSave) throw new IOException("Simulated persistence failure."); ct.ThrowIfCancellationRequested(); await Task.Yield(); }

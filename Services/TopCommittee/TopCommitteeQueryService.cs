@@ -179,7 +179,12 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
             tender.TenderDocuments.OrderBy(d => d.TenderDocumentId).Select(d =>
                 new CommitteeDocument(d.TenderDocumentId, d.OriginalFileName, null, d.FileSizeBytes)).ToList(),
             openClarifications, clarifications, TopCommitteeRules.Inspect(tender, members, managers, nomination, openClarifications, userId))
-        { OfferRoundSummary = SourcingTenderManagement.Services.Reports.OfferRoundContext.Describe(tender) };
+        {
+            OfferRoundSummary = SourcingTenderManagement.Services.Reports.OfferRoundContext.Describe(tender),
+            TopEditState = tender.TopEditState,
+            TopEditRequestNotes = tender.TopEditRequestNotes,
+            TopEditRequestedAt = tender.TopEditRequestedAt
+        };
     }
 
     private static CommitteeBid MapBid(Bid bid, Invitation invitation, int? nominationId, decimal? financialWeight)

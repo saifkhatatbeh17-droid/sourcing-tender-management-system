@@ -17,6 +17,7 @@ internal static class ProcurementVisibilityQueries
 
     public static IQueryable<EvaluationReport> InManagerReview(this IQueryable<EvaluationReport> reports) =>
         reports.Where(r => r.Tender.Status == "AwaitingManagerReview" &&
+            r.Tender.TopEditState == null &&
             !r.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") &&
             (r.Status == "OfficerSubmitted" || r.Status == "CommitteeApproved" || r.Status == "ManagerApproved"));
 }

@@ -1400,6 +1400,32 @@ namespace SourcingTenderManagement.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("TopEditManagerNotes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("TopEditOfficerNotes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("TopEditOfficerRespondedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TopEditRequestNotes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("TopEditRequestedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TopEditRequestedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("TopEditState")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.HasKey("TenderId");
 
                     b.HasIndex("CreatedByUserId");

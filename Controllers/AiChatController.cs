@@ -19,8 +19,29 @@ public sealed class AiChatController(
     IAuthorizationService authorization,
     AiChatContext context,
     AiChatWorkspaceActions actions,
-    AiChatClient client) : ControllerBase
+    AiChatClient client,
+    AiChatDownloadStore downloadStore,
+    ILogger<AiChatController> logger) : ControllerBase
 {
+    [HttpGet("Download/{token}")]
+    public async Task<IActionResult> Download(string token)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user?.IsActive != true)
+            return Forbid();
+
+        var file = downloadStore.TryGet(token, user.Id);
+        if (file == null)
+            return NotFound("This generated download has expired or does not exist. Ask Safi to export it again.");
+
+        if (!await users.IsInRoleAsync(user, file.Workspace))
+            return Forbid();
+
+        if (file.Workspace == RoleNames.Supplier && !(await authorization.AuthorizeAsync(User, HttpContext, "ApprovedSupplier")).Succeeded)
+            return Forbid();
+
+        return File(file.Bytes, file.ContentType, file.FileName);
+    }
     [HttpPost("Ask")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]
@@ -69,12 +90,14 @@ public sealed class AiChatController(
                 actionSummaries = result.ActionSummaries,
                 navigateUrl = result.NavigateUrl,
                 source = result.SourceUrl,
-                sourceLabel = result.SourceLabel ?? "Open record"
+                sourceLabel = result.SourceLabel ?? "Open record",
+                downloads = result.Downloads ?? []
             });
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException or
             KeyNotFoundException || (ex is OperationCanceledException && !ct.IsCancellationRequested))
         {
+            logger.LogWarning(ex, "AiChat request failed for workspace {Workspace} (page={Page}, recordId={RecordId}).", workspace, input.Page, input.RecordId);
             return StatusCode(503, new { error = "The assistant could not complete this request right now. Check your AI endpoint/API key or try again in a moment." });
         }
     }

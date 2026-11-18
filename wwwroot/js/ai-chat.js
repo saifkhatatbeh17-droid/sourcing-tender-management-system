@@ -234,10 +234,19 @@
         name.textContent = entry.sender === "you" ? "You" : "Safi";
         headerRow.append(name);
 
+        const safeDownloads = Array.isArray(entry.downloads)
+            ? entry.downloads.filter(d => d && typeof d.url === "string" && d.url.startsWith("/AiChat/Download/"))
+            : [];
+
         if (entry.mutated) {
             const badge = document.createElement("span");
             badge.className = "ai-chat-badge";
             badge.textContent = "✓ Workspace updated";
+            headerRow.append(badge);
+        } else if (safeDownloads.length > 0) {
+            const badge = document.createElement("span");
+            badge.className = "ai-chat-badge";
+            badge.textContent = "✓ File ready";
             headerRow.append(badge);
         } else if (entry.navigated) {
             const badge = document.createElement("span");
@@ -261,9 +270,19 @@
         message.append(headerRow, bubble);
 
         const hasSafeSource = typeof entry.source === "string" && entry.source.startsWith("/") && !entry.source.startsWith("//");
-        if (hasSafeSource || entry.mutated) {
+        if (safeDownloads.length > 0 || hasSafeSource || entry.mutated) {
             const actions = document.createElement("div");
             actions.className = "ai-chat-actions";
+
+            for (const dl of safeDownloads) {
+                const dlLink = document.createElement("a");
+                dlLink.className = "ai-chat-download-link";
+                dlLink.dataset.format = dl.format || "file";
+                dlLink.href = dl.url;
+                dlLink.setAttribute("download", dl.fileName || "Safi-Export");
+                dlLink.textContent = `⬇ ${dl.label || dl.fileName || "Download file"}`;
+                actions.append(dlLink);
+            }
 
             if (hasSafeSource) {
                 const link = document.createElement("a");
@@ -324,14 +343,26 @@
         const question = questionInput.value.trim();
         if (pending || !question) return;
 
-        const historyPayload = storedEntries.slice(-10).map(item => ({
-            role: item.sender === "assistant" ? "assistant" : "user",
-            content: item.text
-        }));
+        const historyPayload = storedEntries
+            .filter(item => !item.failed && !item.pending)
+            .slice(-8)
+            .map(item => ({
+                role: item.sender === "assistant" ? "assistant" : "user",
+                content: item.text
+            }));
 
         questionInput.focus({ preventScroll: true });
-        if (question !== failedQuestion) {
-            renderEntry({ sender: "you", text: question }, true);
+        let currentUserEntry = null;
+        if (question === failedQuestion) {
+            currentUserEntry = [...storedEntries].reverse().find(item => item.sender === "you" && item.text === question);
+            if (currentUserEntry) {
+                currentUserEntry.pending = true;
+                delete currentUserEntry.failed;
+            }
+        }
+        if (!currentUserEntry) {
+            currentUserEntry = { sender: "you", text: question, pending: true };
+            renderEntry(currentUserEntry, true);
         }
 
         pending = true;
@@ -366,6 +397,9 @@
                 throw new Error(result?.error ?? "Safi could not complete that right now. Try again.");
             }
 
+            delete currentUserEntry.pending;
+            delete currentUserEntry.failed;
+
             const safeNavigateUrl = typeof result.navigateUrl === "string" &&
                 result.navigateUrl.startsWith("/") && !result.navigateUrl.startsWith("//")
                 ? result.navigateUrl
@@ -377,7 +411,8 @@
                 mutated: Boolean(result.mutated),
                 navigated: Boolean(safeNavigateUrl),
                 source: result.source || null,
-                sourceLabel: result.sourceLabel || null
+                sourceLabel: result.sourceLabel || null,
+                downloads: Array.isArray(result.downloads) ? result.downloads : []
             }, true);
             status.textContent = safeNavigateUrl ? "Safi is transferring your page…" : "";
             failedQuestion = "";
@@ -392,6 +427,9 @@
                 }
             }
         } catch (error) {
+            delete currentUserEntry.pending;
+            currentUserEntry.failed = true;
+            persistEntries();
             status.dataset.state = "error";
             status.textContent = error instanceof TypeError ? "Connection lost. Try again." : error.message;
             questionInput.value = question;

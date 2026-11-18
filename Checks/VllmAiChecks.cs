@@ -1,10 +1,21 @@
+using System.ComponentModel.DataAnnotations;
 using System.Net;
+using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using SourcingTenderManagement.Contracts.TopCommittee;
+using SourcingTenderManagement.Controllers;
 using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Models;
+using SourcingTenderManagement.Models.Entities;
+using SourcingTenderManagement.Models.TopCommittee;
 using SourcingTenderManagement.Services;
 using SourcingTenderManagement.Services.Chat;
+using SourcingTenderManagement.Services.Intelligence;
+using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
 
@@ -40,6 +51,8 @@ public static class VllmAiChecks
         {
             var tools = AiChatWorkspaceActions.GetAuthorizedTools(role).Select(t => t.Name).ToHashSet();
             Require(tools.Contains("navigate_to_page"), $"{role} must include navigate_to_page.");
+            Require(tools.Contains("inspect_record_details"), $"{role} must include inspect_record_details.");
+            Require(tools.Contains("export_downloadable_file"), $"{role} must include export_downloadable_file.");
             Require(!tools.Any(n => n.Contains("demo", StringComparison.OrdinalIgnoreCase)),
                 $"{role} must not contain any demo data seeding tools.");
         }
@@ -122,7 +135,186 @@ public static class VllmAiChecks
             "Agentic page transfer failed to execute navigate_to_page and return NavigateUrl.");
         Require(cloudHandler.SawMultiTurnMessages, "Multi-turn conversation history was not sent to LLM.");
 
-        Console.WriteLine("PASS: vLLM /v1/chat/completions, thinking=false, Bearer API key auth, role-scoped actions, page transfer (navigate_to_page), and Agentic AiChatClient.");
+        // 5. Groq 429 rate-limit rotation across independent model buckets + per-model reasoning_effort
+        var groqCfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Vllm:BaseUrl"] = "https://api.groq.com/openai/v1",
+                ["Vllm:Model"] = "qwen/qwen3.8-27b",
+                ["Vllm:ApiKey"] = "gsk_test_token_123",
+                ["Vllm:EnableThinking"] = "false"
+            })
+            .Build();
+
+        var groqMock = new GroqRotationMockHandler();
+        using var groqHttp = new HttpClient(groqMock);
+        var groqChat = new AiChatClient(groqHttp, groqCfg);
+        var groqReply = await groqChat.RunAsync(
+            RoleNames.SourcingOfficer,
+            ["Dashboard", "Requests"],
+            "Summarize my queue",
+            [],
+            initialSnap,
+            AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.SourcingOfficer),
+            (_, _) => Task.FromResult(new AiChatToolExecutionResult(false, false, "Should not run")),
+            _ => Task.FromResult(initialSnap),
+            CancellationToken.None);
+
+        Require(groqReply.Answer.Contains("Queue is clear", StringComparison.OrdinalIgnoreCase),
+            "Groq 429 failover did not return fallback model reply.");
+        Require(groqMock.SawQwenEffortNone && groqMock.SawGptOssEffortLow,
+            "Groq per-model reasoning_effort mapping failed during 429 rotation.");
+
+        // 5b. Groq 413 Payload Too Large rotation + 400 json_validate_failed recovery without response_format
+        var groq413Mock = new Groq413And400MockHandler();
+        using var groq413Http = new HttpClient(groq413Mock);
+        var groq413Chat = new AiChatClient(groq413Http, groqCfg);
+        var groq413Reply = await groq413Chat.RunAsync(
+            RoleNames.EvaluationCommittee,
+            ["Dashboard", "Evaluations"],
+            "Summarize my queue",
+            [],
+            initialSnap,
+            AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.EvaluationCommittee),
+            (_, _) => Task.FromResult(new AiChatToolExecutionResult(false, false, "Should not run")),
+            _ => Task.FromResult(initialSnap),
+            CancellationToken.None);
+
+        Require(groq413Reply.Answer.Contains("Recovered via fallback", StringComparison.OrdinalIgnoreCase),
+            "Groq 413 failover + 400 plain-JSON recovery failed.");
+        Require(groq413Mock.Saw413OnPrimary && groq413Mock.Saw400JsonObjectFallback && groq413Mock.SawNoResponseFormatRetry,
+            "Expected 413 model rotation and 400 response_format omission fallback did not execute.");
+
+        // 6. Per-user download isolation + real PDF/Excel binary generation
+        var sampleExport = new AiChatExportDocument(
+            "Tender #191 Summary — Sterile Amber Vials",
+            "Tender #191 · Sourcing Officer Workspace",
+            "Tender-191-Summary",
+            [("Tender ID", "#191"), ("Status", "Open"), ("Compliant Offers", "3")],
+            "Three compliant supplier quotations have been submitted and are ready for Evaluation Committee handoff.",
+            ["Lowest offer: 4,200.00 JOD (7 days)", "All mandatory specifications satisfied"],
+            [
+                new AiChatExportTable(
+                    "Submitted Supplier Offers",
+                    ["Offer", "Supplier", "Compliance", "Total", "Delivery"],
+                    [
+                        ["#301", "Al-Shifa Pharma", "Compliant", "4,200.00 JOD", "7 days"],
+                        ["#302", "Petra Medical", "Compliant", "4,450.00 JOD", "10 days"]
+                    ])
+            ]);
+        var pdfBytes = AiChatExportService.RenderPdfDocument(sampleExport, "Sourcing Officer");
+        var xlsxBytes = AiChatExportService.RenderExcelDocument(sampleExport, "Sourcing Officer");
+        Require(pdfBytes.Length > 500 && pdfBytes[0] == (byte)'%' && pdfBytes[1] == (byte)'P', "Generated PDF binary invalid.");
+        Require(xlsxBytes.Length > 500 && xlsxBytes[0] == (byte)'P' && xlsxBytes[1] == (byte)'K', "Generated Excel XLSX binary invalid.");
+
+        var store = new AiChatDownloadStore();
+        var savedPdf = store.Save("user-1", RoleNames.SourcingOfficer, "Tender-191-Summary.pdf", "application/pdf", "Download PDF", "pdf", pdfBytes);
+        var token = savedPdf.Url.Split('/')[^1];
+        Require(store.TryGet(token, "user-1") != null, "Owner must be able to retrieve generated download.");
+        Require(store.TryGet(token, "other-user") == null, "Another user must never retrieve someone else's generated download.");
+
+        // 7. Standalone AI Intelligence page: accessible to all internal roles, strictly blocked for Suppliers, plus Excel/PDF extraction
+        foreach (var internalRole in AiIntelligenceService.AllowedWorkspaces)
+        {
+            Require(PageNavigation.Menus[internalRole].Any(m => m.Action == "AiIntelligence"),
+                $"{internalRole} menu must include AI Intelligence.");
+            var internalPrincipal = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, internalRole)], "TestAuth"));
+            Require(AiIntelligenceService.ResolveAuthorizedWorkspace(internalPrincipal, internalRole) == internalRole,
+                $"{internalRole} must be authorized on AI Intelligence.");
+        }
+        Require(!PageNavigation.Menus[RoleNames.Supplier].Any(m => m.Action == "AiIntelligence"),
+            "Supplier menu must NEVER include AI Intelligence.");
+        var supplierPrincipal = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, RoleNames.Supplier)], "TestAuth"));
+        Require(AiIntelligenceService.ResolveAuthorizedWorkspace(supplierPrincipal, null) == null &&
+                AiIntelligenceService.ResolveAuthorizedWorkspace(supplierPrincipal, RoleNames.Supplier) == null,
+            "Supplier principal must be blocked from AI Intelligence.");
+
+        using (var xlsxStream = new MemoryStream(xlsxBytes))
+        {
+            var (xlText, xlHeaders, xlRows, _) = AiIntelligenceService.ExtractExcelContent(xlsxStream, "Tender-191-Summary.xlsx");
+            Require(xlText.Contains("Al-Shifa Pharma", StringComparison.Ordinal) && xlHeaders.Length > 0 && xlRows.Length > 0,
+                "Excel upload extractor failed to parse workbook sheets and rows.");
+        }
+        using (var pdfStream = new MemoryStream(pdfBytes))
+        {
+            var (_, _, _, pdfMetrics) = AiIntelligenceService.ExtractPdfContent(pdfStream, "Tender-191-Summary.pdf");
+            Require(pdfMetrics.Length >= 2 && pdfMetrics[0].Value == "1",
+                "PDF upload extractor failed to inspect generated PDF document.");
+        }
+
+        // 8. Top Committee Reject vs Ask-for-Edit cycle (Top Committee -> Manager -> Officer -> Manager -> Top Committee)
+        var editVote = new CommitteeVoteInput { TenderId = 1, ExpectedNominatedBidId = 10, Decision = "RequestEdit", Notes = "Need cold-chain validation or alternate offer.", Confirmed = true };
+        Validator.ValidateObject(editVote, new ValidationContext(editVote), validateAllProperties: true);
+        var blankEditVote = new CommitteeVoteInput { TenderId = 1, ExpectedNominatedBidId = 10, Decision = "RequestEdit", Notes = "  ", Confirmed = true };
+        Require(!Validator.TryValidateObject(blankEditVote, new ValidationContext(blankEditVote), [], validateAllProperties: true),
+            "RequestEdit must require non-blank notes.");
+
+        var sampleReports = new[]
+        {
+            new EvaluationReport { EvaluationReportId = 1, Status = "OfficerSubmitted", Tender = new Tender { TenderId = 1, Status = "AwaitingManagerReview", TopEditState = null } },
+            new EvaluationReport { EvaluationReportId = 2, Status = "ManagerApproved", Tender = new Tender { TenderId = 2, Status = "AwaitingManagerReview", TopEditState = "WithManager" } },
+            new EvaluationReport { EvaluationReportId = 3, Status = "OfficerSubmitted", Tender = new Tender { TenderId = 3, Status = "AwaitingManagerReview", TopEditState = "OfficerAnswered" } }
+        }.AsQueryable();
+        Require(sampleReports.InManagerReview().Select(r => r.EvaluationReportId).SequenceEqual([1]),
+            "InManagerReview must exclude active TopEditState tenders so they route to the dedicated CEO & Chiefs edit-request workflow.");
+
+        foreach (var (ctrl, methodName) in new (Type, string)[]
+        {
+            (typeof(SourcingManagerController), "AnswerTopEditRequest"),
+            (typeof(SourcingManagerController), "PushTopEditToOfficer"),
+            (typeof(SourcingManagerController), "ForwardRejection"),
+            (typeof(SourcingOfficerController), "RespondToTopEdit")
+        })
+        {
+            var m = ctrl.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
+            var hasCsrf = m?.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>() != null ||
+                          ctrl.GetCustomAttribute<AutoValidateAntiforgeryTokenAttribute>() != null;
+            Require(m != null && m.GetCustomAttribute<HttpPostAttribute>() != null && hasCsrf,
+                $"{ctrl.Name}.{methodName} must exist with [HttpPost] and CSRF protection.");
+        }
+
+        // 8b. End-to-end TopCommitteeVotingService execution: 2 approvals -> RequestEdit -> Manager answers -> 4 fresh approvals -> Awarded
+        var editStore = new TopEditCycleMemoryStore();
+        var votingSvc = new TopCommitteeVotingService(editStore);
+        static ClaimsPrincipal TopActor(int pos) => new(new ClaimsIdentity([
+            new Claim(ClaimTypes.NameIdentifier, $"top-{pos}"),
+            new Claim(ClaimTypes.Role, RoleNames.TopCommittee)
+        ], "TopEditTest"));
+
+        await votingSvc.SubmitAsync(TopActor(1), new CommitteeVoteInput { TenderId = 1, ExpectedNominatedBidId = 10, Decision = "Approved", Confirmed = true });
+        await votingSvc.SubmitAsync(TopActor(2), new CommitteeVoteInput { TenderId = 1, ExpectedNominatedBidId = 10, Decision = "Approved", Confirmed = true });
+        Require(editStore.Tender.TenderApprovals.Count(a => a.Stage == "Top") == 2, "Expected 2 approvals before RequestEdit.");
+
+        var reqEditRes = await votingSvc.SubmitAsync(TopActor(3), new CommitteeVoteInput
+        {
+            TenderId = 1,
+            ExpectedNominatedBidId = 10,
+            Decision = "RequestEdit",
+            Notes = "Clarify cold-chain validation or switch to second offer.",
+            Confirmed = true
+        });
+        Require(reqEditRes.Decision == "RequestEdit" && !reqEditRes.IsAwarded &&
+                editStore.Tender.Status == "AwaitingManagerReview" &&
+                editStore.Tender.TopEditState == "WithManager" &&
+                editStore.Tender.TopEditRequestedByUserId == "top-3" &&
+                !editStore.Tender.TenderApprovals.Any(a => a.Stage == "Top"),
+            "RequestEdit must return tender to AwaitingManagerReview (TopEditState=WithManager) and clear prior round Top approvals.");
+
+        // Simulate Manager answering (or Officer switching offer -> Manager answering) and returning to Top Committee
+        editStore.Nomination.BidId = 11;
+        editStore.Tender.EvaluationReport!.RecommendedBidId = 11;
+        editStore.Tender.TopEditState = null;
+        editStore.Tender.Status = "AwaitingCommitteeDecision";
+
+        for (var pos = 1; pos <= 4; pos++)
+        {
+            var r = await votingSvc.SubmitAsync(TopActor(pos), new CommitteeVoteInput { TenderId = 1, ExpectedNominatedBidId = 11, Decision = "Approved", Confirmed = true });
+            if (pos == 4)
+                Require(r.IsAwarded && editStore.Tender.Status == "Awarded" && editStore.Tender.AwardedBidId == 11,
+                    "After edit cycle returns to Top Committee, 4 fresh approvals must award the (updated) nominated offer.");
+        }
+
+        Console.WriteLine("PASS: vLLM /v1/chat/completions, thinking=false, Bearer API key auth, Groq 429 multi-model rotation, AI Intelligence hub (Supplier-excluded + Excel/PDF upload/download), downloadable PDF/Excel exports, Top Committee complete-reject vs ask-for-edit cycle, role-scoped actions, page transfer (navigate_to_page), and Agentic AiChatClient.");
     }
 
     private static void Require(bool condition, string message)
@@ -184,6 +376,141 @@ public static class VllmAiChecks
                     choices = new[] { new { finish_reason = "stop", message = new { content = payload } } }
                 }), Encoding.UTF8, "application/json")
             };
+        }
+    }
+
+    private sealed class GroqRotationMockHandler : HttpMessageHandler
+    {
+        public bool SawQwenEffortNone;
+        public bool SawGptOssEffortLow;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+            var model = body.RootElement.GetProperty("model").GetString() ?? "";
+            var effort = body.RootElement.TryGetProperty("reasoning_effort", out var e) ? e.GetString() : null;
+
+            if (model.Contains("qwen3", StringComparison.OrdinalIgnoreCase))
+            {
+                SawQwenEffortNone = effort == "none";
+                var rateLimited = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+                rateLimited.Headers.TryAddWithoutValidation("x-ratelimit-reset-tokens", "8.5s");
+                return rateLimited;
+            }
+
+            if (model.Contains("gpt-oss-120b", StringComparison.OrdinalIgnoreCase))
+            {
+                SawGptOssEffortLow = effort == "low";
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(new
+                    {
+                        choices = new[]
+                        {
+                            new
+                            {
+                                finish_reason = "stop",
+                                message = new { content = "{\"mode\":\"reply\",\"reply\":\"Queue is clear right now.\",\"toolCalls\":[]}" }
+                            }
+                        }
+                    }), Encoding.UTF8, "application/json")
+                };
+            }
+
+            throw new InvalidOperationException($"Unexpected model: {model}");
+        }
+    }
+
+    private sealed class Groq413And400MockHandler : HttpMessageHandler
+    {
+        public bool Saw413OnPrimary;
+        public bool Saw400JsonObjectFallback;
+        public bool SawNoResponseFormatRetry;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+            var model = body.RootElement.GetProperty("model").GetString() ?? "";
+            var hasResponseFormat = body.RootElement.TryGetProperty("response_format", out _);
+
+            if (model.Contains("qwen3", StringComparison.OrdinalIgnoreCase))
+            {
+                Saw413OnPrimary = true;
+                return new HttpResponseMessage(HttpStatusCode.RequestEntityTooLarge);
+            }
+
+            if (model.Contains("gpt-oss-120b", StringComparison.OrdinalIgnoreCase) && hasResponseFormat)
+            {
+                Saw400JsonObjectFallback = true;
+                return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("{\"error\":{\"code\":\"json_validate_failed\"}}", Encoding.UTF8, "application/json")
+                };
+            }
+
+            if (model.Contains("gpt-oss-120b", StringComparison.OrdinalIgnoreCase) && !hasResponseFormat)
+            {
+                SawNoResponseFormatRetry = true;
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(new
+                    {
+                        choices = new[]
+                        {
+                            new
+                            {
+                                finish_reason = "stop",
+                                message = new { content = "{\"mode\":\"reply\",\"reply\":\"Recovered via fallback.\",\"toolCalls\":[]}" }
+                            }
+                        }
+                    }), Encoding.UTF8, "application/json")
+                };
+            }
+
+            throw new InvalidOperationException($"Unexpected request on model {model} (hasResponseFormat={hasResponseFormat}).");
+        }
+    }
+
+    private sealed class TopEditCycleMemoryStore : ITopCommitteeVotingStore
+    {
+        public Tender Tender { get; } = new()
+        {
+            TenderId = 1,
+            Title = "Oncology Cold-Chain Biologics",
+            Description = "Edit cycle test",
+            Status = "AwaitingCommitteeDecision",
+            EvaluationReport = new EvaluationReport { EvaluationReportId = 1, TenderId = 1, Status = "ManagerApproved", RecommendedBidId = 10, ManagerSummary = "Initial referral" }
+        };
+        public Bid Nomination { get; } = new() { BidId = 10, TenderId = 1, Status = "Compliant", ComplianceStatus = "Compliant", SubmittedAt = DateTime.UtcNow, Currency = "JOD" };
+        public List<CommitteeMember> Members { get; } = Enumerable.Range(1, 4).Select(i => new CommitteeMember(i, $"top-{i}", $"Chief {i}", i, true, true)).ToList();
+        public List<CommitteeManager> Managers { get; } = [new("mgr-1", "Sourcing Manager", true, true, DateTime.UtcNow)];
+
+        public TopEditCycleMemoryStore()
+        {
+            var inv = new Invitation { SupplierProfile = new SupplierProfile { CompanyName = "Al-Shifa Pharma" } };
+            inv.Bids.Add(Nomination);
+            Tender.Invitations.Add(inv);
+            Tender.TenderApprovals.Add(new TenderApproval { TenderId = 1, Stage = "Manager", Decision = "Approved", UserId = "mgr-1" });
+        }
+
+        public Task<T> ExecuteAsync<T>(string memberId, int tenderId, Func<ICommitteeVotingSession, CancellationToken, Task<T>> action, CancellationToken ct)
+        {
+            var access = new CommitteeClarificationContext(Tender, true, [RoleNames.TopCommittee], Members, Managers);
+            return action(new Session(this, access), ct);
+        }
+
+        private sealed class Session(TopEditCycleMemoryStore store, CommitteeClarificationContext access) : ICommitteeVotingSession
+        {
+            public CommitteeVotingContext Context => new(access, store.Nomination);
+            public Task AssertNotPausedAsync(CancellationToken ct) => Task.CompletedTask;
+            public Task<bool> IsDatabaseReadyAsync(CancellationToken ct) => Task.FromResult(true);
+            public void Add(TenderApproval vote) => store.Tender.TenderApprovals.Add(vote);
+            public void ClearTopVotes()
+            {
+                foreach (var v in store.Tender.TenderApprovals.Where(a => a.Stage == "Top" && a.Decision != "Rejected").ToList())
+                    store.Tender.TenderApprovals.Remove(v);
+            }
+            public Task SaveAsync(CancellationToken ct) => Task.CompletedTask;
         }
     }
 }
