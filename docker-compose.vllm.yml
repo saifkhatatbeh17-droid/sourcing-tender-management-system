@@ -1,0 +1,49 @@
+# Tiryaq Pharma — Local vLLM GPU Service (Tuned for 64 GB RAM + NVIDIA RTX 3070 8 GB VRAM)
+# Usage:
+#   docker compose -f docker-compose.vllm.yml up -d
+#
+# Notes for RTX 3070 (8 GB GDDR6, Ampere SM 8.6):
+# - Uses 4-bit AWQ with Ampere Marlin Tensor-Core kernels (--quantization awq_marlin --dtype half)
+#   so 100% of model weights + KV cache stay in GPU VRAM (zero CPU offload).
+# - Avoids --kv-cache-dtype fp8 (requires Ada SM 8.9+); uses native FP16 PagedAttention KV cache.
+# - Disables Qwen3 chain-of-thought thinking globally for instant structured JSON generation.
+
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: tiryaq-vllm
+    restart: unless-stopped
+    ipc: host
+    ports:
+      - "8000:8000"
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+      - VLLM_LOGGING_LEVEL=INFO
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command:
+      - --model
+      - ${VLLM_MODEL:-Qwen/Qwen3-8B-AWQ}
+      - --quantization
+      - awq_marlin
+      - --dtype
+      - half
+      - --gpu-memory-utilization
+      - "${VLLM_GPU_MEM:-0.88}"
+      - --max-model-len
+      - "${VLLM_MAX_LEN:-10240}"
+      - --enable-prefix-caching
+      - --enforce-eager
+      - --reasoning-parser
+      - qwen3
+      - --default-chat-template-kwargs
+      - '{"enable_thinking":false}'
+      - --api-key
+      - ${VLLM_API_KEY:-tiryaq-local-vllm}

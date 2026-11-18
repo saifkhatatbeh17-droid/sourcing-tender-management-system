@@ -80,7 +80,7 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
             return Json(result);
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or InvalidOperationException or KeyNotFoundException)
-        { return StatusCode(503, new { error = "Could not assess importance. Check local Ollama and try again." }); }
+        { return StatusCode(503, new { error = "Could not assess importance. Check your vLLM / AI endpoint or API key and try again." }); }
     });
 
     [HttpPost, ValidateAntiForgeryToken]

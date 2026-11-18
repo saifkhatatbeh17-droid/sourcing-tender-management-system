@@ -65,14 +65,16 @@ public static class RankedReportChecks
             Calls++;
             if (mode == "offline") throw new HttpRequestException("Fixture AI unavailable.");
             using var input = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
-            var system = input.RootElement.GetProperty("system").GetString()!;
+            var messages = input.RootElement.GetProperty("messages");
+            var system = messages[0].GetProperty("content").GetString()!;
+            var userPrompt = messages[1].GetProperty("content").GetString()!;
             if (mode == "referral")
             {
                 Check(system.Contains("ONLY the first-ranked winning offer") && system.Contains("without listing or comparing alternatives"), "Manager scope is ambiguous.");
                 return Reply(new { summary = "Supplier 1 is the recorded winner; final committee review is requested." });
             }
             Check(system.Contains("TOP THREE") && system.Contains("ONLY the first-place winner"), "Committee prompt lost its scope.");
-            using var evidence = JsonDocument.Parse(input.RootElement.GetProperty("prompt").GetString()!.Split("\nCorrect the previous response:")[0]);
+            using var evidence = JsonDocument.Parse(userPrompt.Split("\nCorrect the previous response:")[0]);
             var ids = evidence.RootElement.GetProperty("topOffers").EnumerateArray().Select(x => x.GetProperty("bidId").GetInt32()).ToArray();
             Check(ids.SequenceEqual(new[] { 1, 2, 3 }) && !evidence.RootElement.GetRawText().Contains("Supplier 4"), "AI received offers outside shortlist.");
             return Reply(new { winnerBidId = mode == "wrong-winner" ? 2 : 1, offers = ids.Select(id => new {
@@ -82,6 +84,8 @@ public static class RankedReportChecks
             }).ToArray() });
         }
         private static HttpResponseMessage Reply(object result) => new(HttpStatusCode.OK) {
-            Content = JsonContent.Create(new { done = true, done_reason = "stop", response = JsonSerializer.Serialize(result, BidRecommendationService.Json) }) };
+            Content = JsonContent.Create(new {
+                choices = new[] { new { finish_reason = "stop", message = new { content = JsonSerializer.Serialize(result, BidRecommendationService.Json) } } }
+            }) };
     }
 }

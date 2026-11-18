@@ -275,7 +275,7 @@ public partial class SourcingManagerController : Controller
             return Json(new { summary });
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or InvalidOperationException or KeyNotFoundException)
-        { return StatusCode(503, new { error = "Could not generate the summary. Check local Ollama and try again." }); }
+        { return StatusCode(503, new { error = "Could not generate the summary. Check your vLLM / AI endpoint or API key and try again." }); }
     }
 
     [HttpPost]

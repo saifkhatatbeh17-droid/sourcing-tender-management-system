@@ -40,7 +40,7 @@ The platform supports procurement categories including pharmaceuticals, laborato
 | Final decisions | Four CEO & Chiefs approvals for an award, with a rejection and replacement-tender path |
 | Communication | Record-linked clarifications, notifications and role-specific workspaces |
 | Reports | Committee reports, PDF downloads and selected Excel exports |
-| AI assistance | Local Ollama comparisons and report assistance, subject to validation and human review |
+| AI assistance | vLLM / OpenAI-compatible comparisons, workspace help and report assistance, subject to validation and human review |
 | Access and usability | ASP.NET Core Identity, optional face sign-in and passkeys, responsive layouts, voice search and QR detail links |
 
 AI suggestions support the review process. Recorded committee marks determine the ranking, and authorized users retain responsibility for approvals and the final decision.
@@ -92,7 +92,7 @@ Both committees use four distinct member positions. Permissions and record visib
 | Database | Microsoft SQL Server, Entity Framework Core with Code First migrations |
 | Authentication | ASP.NET Core Identity, WebAuthn passkeys, optional face verification |
 | Interface | Razor views, HTML, CSS, JavaScript and Bootstrap |
-| AI | Ollama with a locally configured language model |
+| AI | vLLM (`Qwen/Qwen3-8B-AWQ` on GPU) or any OpenAI-compatible `/v1/chat/completions` API key |
 | Documents | PDFsharp/MigraDoc for PDFs, ClosedXML for Excel exports |
 | Additional tools | QRCoder, browser speech recognition and face-api.js |
 
@@ -103,7 +103,7 @@ Both committees use four distinct member positions. Permissions and record visib
 - .NET 10 SDK.
 - SQL Server accessible from your development machine.
 - Visual Studio with .NET 10 support, or a terminal and your preferred editor.
-- Ollama and a local model if you want to use the AI features.
+- vLLM (Docker + WSL 2 on NVIDIA GPU) or an OpenAI-compatible API key if you want to use the AI features (see `VLLM-SETUP.md`).
 
 ### 1. Clone the application branch
 
@@ -159,27 +159,27 @@ Open [https://localhost:7130](https://localhost:7130).
 
 For HTTP development, run `dotnet run --launch-profile http` and open [http://localhost:5072](http://localhost:5072). Face and passkey features depend on browser, device, permissions and secure-context support; use HTTPS for their setup and testing.
 
-### Optional: enable local AI
+### Optional: enable AI (vLLM GPU or Cloud API Key)
 
-With Ollama installed, download the default model and start the local service:
+The application uses **vLLM** (`Qwen/Qwen3-8B-AWQ` with thinking disabled) or any OpenAI-compatible `/v1/chat/completions` API key. See `VLLM-SETUP.md` for full setup instructions:
 
-```powershell
-ollama pull qwen2.5:7b
-ollama serve
-```
-
-If Ollama is already running, keep the existing service. To change the model or local endpoint, add an `Ollama` section to your local configuration:
-
-```json
-{
-  "Ollama": {
-    "BaseUrl": "http://localhost:11434",
-    "Model": "qwen2.5:7b"
+- **Local NVIDIA GPU (e.g., 64 GB RAM + RTX 3070 8 GB VRAM):**
+  ```powershell
+  .\scripts\start-vllm-3070.ps1
+  ```
+- **Cloud API Key (for lightweight or non-GPU PCs):** Add a `Vllm` section to `appsettings.Local.json`:
+  ```json
+  {
+    "Vllm": {
+      "BaseUrl": "https://api.groq.com/openai/v1",
+      "Model": "qwen/qwen3.8-27b",
+      "ApiKey": "YOUR_API_KEY",
+      "EnableThinking": false
+    }
   }
-}
-```
+  ```
 
-The application accepts loopback HTTP endpoints for Ollama. Committee reports can fall back to recorded scoring and quotation facts when the AI narrative is unavailable or cannot be verified.
+Committee reports continue to fall back to recorded scoring and quotation facts when the AI narrative is unavailable or cannot be verified.
 
 ## Project structure
 

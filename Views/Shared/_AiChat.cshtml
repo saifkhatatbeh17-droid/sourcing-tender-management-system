@@ -1,3 +1,5 @@
+@using System.Security.Claims
+@using System.Text.Json
 @using SourcingTenderManagement.Data
 @using SourcingTenderManagement.Services.Chat
 @{
@@ -5,54 +7,174 @@
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var chatPage = controller == workspace && AiChatPage.Record(workspace, action) != null ? action : null;
-    var pageId = ViewData["AiChatRecordId"] ??
-        ViewContext.RouteData.Values["id"] ?? ViewContext.HttpContext.Request.Query["id"].ToString();
-    var recordId = chatPage != null && int.TryParse(pageId.ToString(), out var id) && id > 0 ? (int?)id : null;
-    var starterQuestion = recordId.HasValue ? "What's the status of this record?" : "What can I do in this workspace?";
+    var query = ViewContext.HttpContext.Request.Query;
+    var rawId = ViewData["AiChatRecordId"]?.ToString()
+        ?? ViewContext.RouteData.Values["id"]?.ToString()
+        ?? FirstQuery(query["id"], query["tenderId"], query["invitationId"], query["reportId"]);
+    var recordId = chatPage != null && int.TryParse(rawId, out var id) && id > 0 ? (int?)id : null;
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anon";
+    var roleDisplay = RoleNames.DisplayName(workspace);
+    var starters = AiChatPage.StarterPrompts(workspace, recordId.HasValue);
+    var greetings = AiChatPage.CharacterGreetings(workspace, action, recordId.HasValue);
+    var greetingsJson = JsonSerializer.Serialize(greetings);
+
+    static string? FirstQuery(params Microsoft.Extensions.Primitives.StringValues[] values)
+    {
+        foreach (var v in values)
+        {
+            var s = v.ToString();
+            if (!string.IsNullOrWhiteSpace(s)) return s;
+        }
+        return null;
+    }
 }
-<div class="ai-chat" data-ai-chat data-workspace="@workspace" data-page="@chatPage" data-record-id="@recordId">
-    <button class="ai-chat-launcher" type="button" aria-label="Open Tiryaq Assistant"
-            aria-haspopup="dialog" aria-controls="ai-chat-dialog" aria-expanded="false">
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 11.5a7.9 7.9 0 0 1-8 7.8 8.2 8.2 0 0 1-3.2-.7L4 20l1.4-4.1A7.7 7.7 0 0 1 4 11.5a8 8 0 0 1 16 0Z" />
-            <path d="M8.5 11.5h7" />
-        </svg>
-    </button>
+<div class="ai-chat" data-ai-chat data-user="@userId" data-workspace="@workspace" data-page="@chatPage"
+     data-record-id="@recordId" data-greetings="@greetingsJson">
+
+    <div class="ai-chat-dock" data-safi-dock>
+        <div class="ai-chat-speech" data-safi-speech role="region" aria-label="Safi assistant greeting">
+            <div class="ai-chat-speech-top">
+                <span class="ai-chat-speech-dot" aria-hidden="true"></span>
+                <span class="ai-chat-speech-name">Safi · صافي</span>
+                <button type="button" class="ai-chat-speech-dismiss" data-safi-dismiss aria-label="Dismiss Safi greeting">
+                    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+                        <path d="M4 4l8 8M12 4l-8 8" />
+                    </svg>
+                </button>
+            </div>
+            <button type="button" class="ai-chat-speech-body" data-safi-open>
+                <span data-safi-line>@greetings[0]</span>
+            </button>
+        </div>
+
+        <button class="ai-chat-launcher" type="button" aria-label="Chat with Safi, your Tiryaq co-pilot"
+                aria-haspopup="dialog" aria-controls="ai-chat-dialog" aria-expanded="false">
+            <span class="safi-stage" aria-hidden="true">
+                <svg class="safi-character" viewBox="0 0 88 98" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="safiCapGrad" x1="26" y1="8" x2="62" y2="24" gradientUnits="userSpaceOnUse">
+                            <stop offset="0" stop-color="#f7cf7d" />
+                            <stop offset="0.55" stop-color="#efb85c" />
+                            <stop offset="1" stop-color="#c98b2e" />
+                        </linearGradient>
+                        <linearGradient id="safiGlassGrad" x1="18" y1="26" x2="70" y2="84" gradientUnits="userSpaceOnUse">
+                            <stop offset="0" stop-color="#1d5560" />
+                            <stop offset="0.5" stop-color="#103640" />
+                            <stop offset="1" stop-color="#0a2027" />
+                        </linearGradient>
+                        <linearGradient id="safiElixirGrad" x1="22" y1="58" x2="66" y2="82" gradientUnits="userSpaceOnUse">
+                            <stop offset="0" stop-color="#2a7c8a" />
+                            <stop offset="1" stop-color="#174a54" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Ground shadow -->
+                    <ellipse class="safi-shadow" cx="44" cy="91" rx="22" ry="4.5" fill="#07181d" fill-opacity="0.26" />
+
+                    <!-- Friendly waving left hand -->
+                    <g class="safi-wave-arm">
+                        <rect x="8" y="49" width="11" height="7" rx="3.5" transform="rotate(-24 8 49)" fill="#164650" stroke="#efb85c" stroke-width="1.4" />
+                    </g>
+                    <!-- Resting right hand -->
+                    <rect x="69" y="54" width="10" height="6.5" rx="3.25" transform="rotate(18 69 54)" fill="#164650" stroke="#efb85c" stroke-width="1.3" />
+
+                    <!-- Floating vial body group -->
+                    <g class="safi-body">
+                        <!-- Honey-gold apothecary crimp cap -->
+                        <g class="safi-cap">
+                            <rect x="33" y="5" width="22" height="4.5" rx="2.25" fill="#f7cf7d" />
+                            <rect x="27" y="9" width="34" height="12" rx="4.5" fill="url(#safiCapGrad)" stroke="#0c252d" stroke-width="1.6" />
+                            <path d="M33 11.5v7M39 11.5v7M49 11.5v7M55 11.5v7" stroke="#9b6619" stroke-opacity="0.45" stroke-width="1.3" stroke-linecap="round" />
+                        </g>
+
+                        <!-- Neck collar -->
+                        <rect x="31" y="21" width="26" height="6" rx="2" fill="#0c252d" stroke="#2d6e7b" stroke-width="1.2" />
+
+                        <!-- Main rounded borosilicate vial torso -->
+                        <rect x="18" y="26" width="52" height="56" rx="20" fill="url(#safiGlassGrad)" stroke="#efb85c" stroke-opacity="0.78" stroke-width="1.8" />
+
+                        <!-- Luminous elixir fill in lower belly -->
+                        <path d="M20.5 60.5C28 58 35 62.5 44 60.5C53 58.5 60 62 67.5 60.5V64C67.5 73.2 60.2 80.2 51 80.2H37C27.8 80.2 20.5 73.2 20.5 64V60.5Z"
+                              fill="url(#safiElixirGrad)" />
+                        <path d="M21 60.5C28.5 58.2 35.5 62.4 44 60.5C52.5 58.6 59.5 62 67 60.5"
+                              stroke="#efb85c" stroke-opacity="0.8" stroke-width="1.5" stroke-linecap="round" />
+
+                        <!-- Rising effervescent elixir bubbles -->
+                        <circle class="safi-bubble safi-bubble-1" cx="34" cy="72" r="2.1" fill="#f7cf7d" fill-opacity="0.85" />
+                        <circle class="safi-bubble safi-bubble-2" cx="46" cy="75" r="1.6" fill="#ffffff" fill-opacity="0.7" />
+                        <circle class="safi-bubble safi-bubble-3" cx="55" cy="70" r="2.3" fill="#efb85c" fill-opacity="0.8" />
+
+                        <!-- Expressive face visor -->
+                        <rect x="24" y="34" width="40" height="22" rx="11" fill="#081b21" stroke="#2a6a77" stroke-width="1.2" />
+
+                        <!-- Eyes & warm smile -->
+                        <g class="safi-face">
+                            <g class="safi-eyes">
+                                <ellipse cx="36" cy="44" rx="3.7" ry="4.3" fill="#ffe4a8" />
+                                <circle cx="37.2" cy="42.6" r="1.3" fill="#ffffff" />
+                                <ellipse cx="52" cy="44" rx="3.7" ry="4.3" fill="#ffe4a8" />
+                                <circle cx="53.2" cy="42.6" r="1.3" fill="#ffffff" />
+                            </g>
+                            <path class="safi-smile" d="M40.2 50.2C41.5 52 46.5 52 47.8 50.2" stroke="#efb85c" stroke-width="2" stroke-linecap="round" />
+                        </g>
+
+                        <!-- Left borosilicate glass specular highlight -->
+                        <path d="M23.5 34C23.5 31 25.5 29.2 28 29.2" stroke="#ffffff" stroke-opacity="0.38" stroke-width="2.2" stroke-linecap="round" />
+                        <path d="M22.5 40V63" stroke="#ffffff" stroke-opacity="0.18" stroke-width="2" stroke-linecap="round" />
+                    </g>
+                </svg>
+                <span class="safi-nameplate">Safi</span>
+            </span>
+        </button>
+    </div>
+
     <dialog class="ai-chat-dialog" id="ai-chat-dialog" aria-labelledby="ai-chat-title">
         <div class="ai-chat-panel">
             <header class="ai-chat-header">
                 <span class="ai-chat-header-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                         stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 11.5a7.9 7.9 0 0 1-8 7.8 8.2 8.2 0 0 1-3.2-.7L4 20l1.4-4.1A7.7 7.7 0 0 1 4 11.5a8 8 0 0 1 16 0Z" />
-                        <path d="M8.5 11.5h7" />
+                    <svg viewBox="0 0 48 48" fill="none">
+                        <rect x="14" y="5" width="20" height="7" rx="3" fill="#efb85c" />
+                        <rect x="9" y="13" width="30" height="29" rx="12" fill="#0c252d" stroke="#efb85c" stroke-width="1.8" />
+                        <rect x="13" y="18" width="22" height="12" rx="6" fill="#07161b" />
+                        <circle cx="19.5" cy="24" r="2.3" fill="#ffe4a8" />
+                        <circle cx="28.5" cy="24" r="2.3" fill="#ffe4a8" />
+                        <path d="M21.5 27.6c1 1.1 4 1.1 5 0" stroke="#efb85c" stroke-width="1.6" stroke-linecap="round" />
+                        <path d="M11 33.5c5-1.5 9 1.5 13 0s8 1.5 13 0" stroke="#2e8594" stroke-width="2" stroke-linecap="round" />
                     </svg>
                 </span>
-                <div>
-                    <h2 id="ai-chat-title">Tiryaq Assistant</h2>
-                    <p>@RoleNames.DisplayName(workspace)</p>
+                <div class="ai-chat-header-copy">
+                    <div class="ai-chat-title-row">
+                        <h2 id="ai-chat-title">Safi</h2>
+                        <span class="ai-chat-persona-pill" data-safi-state>Ready</span>
+                    </div>
+                    <p>Tiryaq Co-Pilot · @roleDisplay</p>
                 </div>
-                <button class="ai-chat-close" type="button" aria-label="Close Tiryaq Assistant" autofocus>
+                <button class="ai-chat-reset" type="button" data-chat-clear hidden title="Start a fresh chat">Clear</button>
+                <button class="ai-chat-close" type="button" aria-label="Close Safi chat" autofocus>
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                          stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
                 </button>
             </header>
             <div class="ai-chat-body">
                 <div class="ai-chat-start" data-chat-start>
-                    <p>@(workspace == RoleNames.Admin ? "Ask about any Tiryaq workflow." :
-                            recordId.HasValue ? "Ask about this record or your workspace." : "Ask about your Tiryaq workspace.")</p>
-                    <button type="button" data-chat-question="What's my role?">What's my role?</button>
-                    <button type="button" data-chat-question="@starterQuestion">@starterQuestion</button>
+                    <p class="ai-chat-intro">
+                        @(workspace == RoleNames.Admin
+                            ? "Hi! I'm Safi (صافي), Tiryaq's apothecary co-pilot. Ask for a live cross-role overview, manage Admin records, or tell me which page to open."
+                            : $"Hi! I'm Safi (صافي), your {roleDisplay} co-pilot. Ask about your live queue, let me run authorized actions, or tell me which page to transfer you to.")
+                    </p>
+                    @foreach (var prompt in starters)
+                    {
+                        <button type="button" data-chat-question="@prompt">@prompt</button>
+                    }
                 </div>
-                <div class="ai-chat-messages" role="log" aria-label="Conversation" tabindex="-1"></div>
+                <div class="ai-chat-messages" role="log" aria-label="Conversation with Safi" tabindex="-1"></div>
             </div>
             <form class="ai-chat-form" asp-controller="AiChat" asp-action="Ask" method="post">
                 <p class="ai-chat-status" role="status" aria-atomic="true"></p>
-                <label class="visually-hidden" for="ai-chat-question">Your message</label>
+                <label class="visually-hidden" for="ai-chat-question">Message Safi</label>
                 <div class="ai-chat-composer">
-                    <textarea id="ai-chat-question" name="question" rows="2" maxlength="750" required
-                              dir="auto" enterkeyhint="send" placeholder="Type a message…" aria-describedby="ai-chat-shortcuts"></textarea>
+                    <textarea id="ai-chat-question" name="question" rows="2" maxlength="1500" required
+                              dir="auto" enterkeyhint="send" placeholder="Ask Safi a question, run an action, or jump to a page…" aria-describedby="ai-chat-shortcuts"></textarea>
                     <button class="ai-chat-send" type="submit" disabled>
                         <span>Send</span>
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"

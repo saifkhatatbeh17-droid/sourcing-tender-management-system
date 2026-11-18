@@ -40,18 +40,19 @@
 
 /* Light public pages (About, How it works, Contact, Register) share the homepage palette:
    near-white ground, cool panels, serif headings, and a teal band under the nav that fades in from the dark pages. */
-body.tq-light{background:#f8faf9!important;color:#0c252d}
+html body.tq-light{--ink:#0c252d;--muted:#4a6168;--color-text:#0c252d;--color-text-secondary:#4a6168;background:#f8faf9!important;color:#0c252d!important;color-scheme:light}
 body.tq-light::before{content:"";position:absolute;inset:0 0 auto;height:150px;z-index:0;pointer-events:none;
   background:linear-gradient(180deg,#0c252d 0,#163f48 42%,rgba(29,85,96,.35) 72%,rgba(248,250,249,0) 100%)}
 body.tq-light .app-shell{position:relative;z-index:1}
 body.tq-light :is(main.main-content,.registration-page,section.public-guide,.contact-studio,.guide-hero){background:transparent!important}
+html body.tq-light .registration-page{--reg-copy:#425b65;--reg-control-bg:#ffffff;--reg-control-ink:#0c252d;--reg-placeholder:#60747f;--reg-label:#0c252d;--reg-navy:#0c252d;--reg-teal:#1d5560;color:#0c252d!important}
 body.tq-light main :is(h1,.guide-headline){font-family:"Instrument Serif",Georgia,serif!important;font-weight:400!important;letter-spacing:-.005em!important;color:#0c252d!important}
 body.tq-light main :is(.guide-kicker,.form-step){font-family:"JetBrains Mono",ui-monospace,monospace!important;color:#b06f1c!important;letter-spacing:.2em}
 body.tq-light :is(.pharma-about,.guide-section){background:#eef3f2!important;border-color:#dfe7e5!important}
-body.tq-light :is(.pharma-company-story,.pharma-about-card,.registration-form-card,.contact-panel,.guide-stage-content){background:#ffffff!important;border-color:#e3eae8!important;box-shadow:0 18px 40px -24px rgba(12,37,45,.28)}
-body.tq-light :is(.pharma-company-priorities,.document-dropzone){background:#f3f7f6!important;border-color:#dfe7e5!important}
+body.tq-light :is(.pharma-company-story,.pharma-about-card,.registration-form-card,.contact-panel,.guide-stage-content){background:#ffffff!important;border-color:#e3eae8!important;color:#0c252d!important;box-shadow:0 18px 40px -24px rgba(12,37,45,.28)}
+body.tq-light :is(.pharma-company-priorities,.document-dropzone){background:#f3f7f6!important;border-color:#dfe7e5!important;color:#0c252d!important}
 body.tq-light :is(.pharma-about-icon,.guide-step,.upload-icon){background:rgba(29,85,96,.1)!important;color:#1d5560!important}
-body.tq-light main :is(.form-control,.form-select){background:#ffffff!important;border-color:#dfe7e5!important}
+body.tq-light main :is(.form-control,.form-select){background:#ffffff!important;border-color:#dfe7e5!important;color:#0c252d!important}
 body.tq-light main .registration-stepper li[aria-current="step"]>span{background:#1d5560!important;border-color:#1d5560!important;color:#f4eee2!important}
 body.tq-light main .registration-stepper li[aria-current="step"]{border-color:#efb85c!important}
 body.tq-light .registration-back{color:#1d5560!important;font-weight:600}

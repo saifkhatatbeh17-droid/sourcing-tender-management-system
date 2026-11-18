@@ -18,31 +18,16 @@
 .public-contact-page .contact-paper-header { border-color:var(--tq-primary); }
 .public-contact-page .contact-rx,.public-contact-page .contact-stamp { color:var(--tq-primary);border-color:var(--tq-primary); }
 .public-contact-page .contact-preview-caption { color:var(--public-muted); }
-/* City: ivory canvas, teal wayfinding and honey for the request and actions. */
-.campus-page { --campus-ink:var(--public-ink);--campus-teal:var(--tq-primary);--campus-paper:var(--public-paper);--campus-line:var(--public-line);--campus-muted:var(--public-muted);background:var(--public-ivory);color:var(--public-ink); }
-.campus-page .campus-story h1 { font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spacing:-.025em; }
-.campus-page .campus-world { background:#e3eeec;border-color:#c2d3cc;border-radius:8px; }
-.campus-page .campus-description,.campus-page .campus-hint,.campus-page .campus-activity p { color:var(--public-muted); }
-.campus-page .campus-primary { background:var(--tq-secondary);border-color:var(--tq-secondary);color:var(--tq-on-secondary);border-radius:4px; }
-.campus-page .campus-primary:hover { background:var(--tq-secondary-hover);border-color:var(--tq-secondary-hover); }
-.campus-page .campus-step-actions .campus-primary { background:transparent;border-color:#8aa5a0;color:var(--tq-primary); }
-.campus-page .campus-modes { background:var(--public-paper);border-color:var(--public-line); }
+/* City: cool ivory/paper surfaces, deep teal wayfinding, and honey for primary actions and active stops. */
+.campus-page { --campus-ink:var(--public-ink);--campus-teal:var(--tq-primary);--campus-teal-deep:var(--tq-primary-deep);--campus-honey:var(--tq-secondary);--campus-honey-hover:var(--tq-secondary-hover);--campus-honey-deep:var(--tq-secondary-deep); }
+.campus-page .campus-story h1 { font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spacing:-.02em; }
+.campus-page .campus-primary.campus-cta-main { background:var(--tq-secondary);border-color:var(--tq-secondary);color:var(--tq-on-secondary);border-radius:10px; }
+.campus-page .campus-primary.campus-cta-main:hover { background:var(--tq-secondary-hover);border-color:var(--tq-secondary-hover); }
 .campus-page .campus-modes button[aria-pressed=true] { background:var(--tq-primary);color:var(--tq-on-primary); }
-.campus-page .campus-labels button { background:var(--public-paper);border-color:#a7bfb5; }
-.campus-page .campus-labels button>span:first-child { background:#e3eeec;color:var(--tq-primary); }
-.campus-page .campus-labels button[aria-current=step] { background:var(--tq-primary);border-color:var(--tq-primary); }
-.campus-page .campus-labels button[aria-current=step]>.campus-place-name { color:var(--tq-on-primary); }
-.campus-page .campus-labels button[aria-current=step]>span:first-child { background:var(--tq-secondary);color:var(--tq-on-secondary); }
-.campus-page .campus-zoom,.campus-page .campus-back { background:var(--public-paper);border-color:var(--public-line); }
-.campus-page .campus-zoom button { color:var(--tq-primary); }
-.campus-page .campus-route button:hover,.campus-page .campus-route button[aria-current=step] { background:#e3eeec; }
-.campus-page .campus-route button[aria-current=step]>span { background:var(--tq-primary);border-color:var(--tq-primary);color:var(--tq-on-primary); }
-.campus-page .campus-loading { background:var(--public-ivory);color:var(--tq-primary); }
-.campus-page .campus-activity { background:transparent; }
-.campus-page>.campus-access { --campus-access-primary:var(--tq-primary);--campus-access-hover:var(--tq-primary-hover);--campus-access-accent:var(--tq-primary);background:var(--public-paper);border-color:var(--public-line);border-top-color:var(--tq-primary); }
 .campus-page .campus-access-primary { background:var(--tq-secondary);border-color:var(--tq-secondary);color:var(--tq-on-secondary); }
 .campus-page .campus-access-primary:hover { background:var(--tq-secondary-hover);border-color:var(--tq-secondary-hover);color:var(--tq-on-secondary); }
-.campus-page :is(button,a):focus-visible { outline:2px solid var(--tq-primary);outline-offset:4px; }
+.campus-page :is(button,a):focus-visible { outline:2px solid var(--tq-primary);outline-offset:3px; }
+.campus-page .campus-access :is(button,a):focus-visible { outline-color:var(--tq-secondary); }
 .campus-page .public-page-nav a:focus-visible { outline-color:var(--tq-secondary); }
 @media(max-width:700px) {
  .public-contact-page .contact-studio { width:calc(100% - 40px);margin-block:32px 40px; }

@@ -12,7 +12,7 @@ using SourcingTenderManagement.Services.PdfWatermark;
 using SourcingTenderManagement.Services.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddEnvironmentVariables();
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true).AddEnvironmentVariables();
 var connection = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DefaultConnection is missing.");
 builder.Services.AddControllersWithViews();
@@ -20,10 +20,12 @@ if (builder.Environment.IsDevelopment())
     builder.Services.AddHttpsRedirection(options => options.HttpsPort = 7130);
 builder.Services.AddHostedService<SourcingTenderManagement.Services.TenderClosureService>();
 builder.Services.AddPdfWatermarks();
-builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidRecommendationService>(client => client.Timeout = TimeSpan.FromMinutes(5));
-builder.Services.AddHttpClient<AiChatClient>(client => client.Timeout = TimeSpan.FromSeconds(60))
-    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidRecommendationService>(client => client.Timeout = TimeSpan.FromMinutes(5))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<AiChatClient>(client => client.Timeout = TimeSpan.FromSeconds(90))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddScoped<AiChatContext>();
+builder.Services.AddScoped<AiChatWorkspaceActions>();
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
 builder.Services.AddTopCommitteeFoundation();
 builder.Services.AddFaceEnrollment();
@@ -41,7 +43,7 @@ builder.Services.AddRateLimiter(options =>
         context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 10,
+            PermitLimit = 30,
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
@@ -99,6 +101,11 @@ if (args.Contains("--top-committee-foundation-check"))
 {
     using var checkScope = app.Services.CreateScope();
     await SourcingTenderManagement.Checks.TopCommitteeFoundationChecks.RunAsync(checkScope.ServiceProvider);
+    return;
+}
+if (args.Contains("--vllm-ai-checks"))
+{
+    await SourcingTenderManagement.Checks.VllmAiChecks.RunAsync();
     return;
 }
 using (var scope = app.Services.CreateScope())

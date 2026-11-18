@@ -61,14 +61,16 @@ public static class CommitteeApprovalOrderChecks
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             using var input = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
-            var schema = input.RootElement.GetProperty("format").GetProperty("properties");
+            var schema = input.RootElement.GetProperty("response_format").GetProperty("json_schema").GetProperty("schema").GetProperty("properties");
             var choices = schema.GetProperty("scenarios").GetProperty("items").GetProperty("properties").GetProperty("recommendedBidId").GetProperty("enum");
-            if (choices.GetArrayLength() != 1 || choices[0].GetInt32() != 47 || !input.RootElement.GetProperty("prompt").GetString()!.Contains("already selected bid 47"))
-                throw new Exception("Final-report request did not constrain the AI to the committee's selection.");
+            var userPrompt = input.RootElement.GetProperty("messages")[1].GetProperty("content").GetString()!;
+            var thinkingEnabled = input.RootElement.GetProperty("chat_template_kwargs").GetProperty("enable_thinking").GetBoolean();
+            if (thinkingEnabled || choices.GetArrayLength() != 1 || choices[0].GetInt32() != 47 || !userPrompt.Contains("already selected bid 47"))
+                throw new Exception("Final-report request did not constrain vLLM to the committee's selection with thinking disabled.");
             var result = new BidRecommendation([new(60, 47, "Selected by the committee")], [],
                 [new(45, "Lower cost", "Slower delivery"), new(47, "Faster delivery", "Higher cost")], "Report about bid 47");
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new {
-                done = true, done_reason = "stop", response = ReportContentChecks.StructuredResponse(result)
+                choices = new[] { new { finish_reason = "stop", message = new { content = ReportContentChecks.StructuredResponse(result) } } }
             }), Encoding.UTF8, "application/json") };
         }
     }

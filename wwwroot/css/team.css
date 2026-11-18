@@ -1,9 +1,9 @@
-body:has(.team-page) {
+html body:has(.team-page) {
     background:
         linear-gradient(rgba(177, 239, 236, .045) 1px, transparent 1px) 0 0 / 4.5rem 4.5rem,
         linear-gradient(90deg, rgba(177, 239, 236, .045) 1px, transparent 1px) 0 0 / 4.5rem 4.5rem,
         radial-gradient(ellipse at 53% 43%, rgba(44, 99, 105, .72), transparent 73%),
-        linear-gradient(155deg, #0c252d, #11333d 65%, #0c252d);
+        linear-gradient(155deg, #0c252d, #11333d 65%, #0c252d) !important;
 }
 body:has(.team-page) .app-shell,
 .main-content:has(.team-page) {

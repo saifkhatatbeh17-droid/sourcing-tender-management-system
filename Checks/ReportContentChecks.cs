@@ -65,14 +65,16 @@ public static class ReportContentChecks
         {
             Calls++;
             using var input = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
-            var system = input.RootElement.GetProperty("system").GetString()!;
+            var system = input.RootElement.GetProperty("messages")[0].GetProperty("content").GetString()!;
             if (!system.Contains("140–220 words") || !system.Contains("Tradeoffs and limitations") || !system.Contains("Do not output HTML") || !system.Contains("HIGHER cost"))
                 throw new Exception("AI prompt lost detail, format or price-accuracy instructions.");
             var result = new BidRecommendation([new(50, 1, "Decision basis\nFaster delivery carries a higher total cost; the committee must weigh this tradeoff.")], [],
                 [new(1, "Faster delivery", "Higher total cost"), new(2, "Lower total cost", "Slower delivery")], "Chosen offer\nOffer #1");
             var response = System.Text.Json.Nodes.JsonNode.Parse(StructuredResponse(result))!;
             if (Calls == 1) response["scenarios"]![0]!["reason"]!["technicalFitAndDelivery"] = "This alternative has a 7-day delivery, which is faster than the other supplier's three-day delivery. This is a technical advantage to review against the actual requested requirements.";
-            return new(HttpStatusCode.OK) { Content = JsonContent.Create(new { done = true, done_reason = "stop", response = response.ToJsonString() }) };
+            return new(HttpStatusCode.OK) { Content = JsonContent.Create(new {
+                choices = new[] { new { finish_reason = "stop", message = new { content = response.ToJsonString() } } }
+            }) };
         }
     }
 }
