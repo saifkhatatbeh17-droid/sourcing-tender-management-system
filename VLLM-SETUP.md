@@ -33,17 +33,80 @@ For a machine with **64 GB System RAM** and an **NVIDIA GeForce RTX 3070 (8 GB G
 
 ## 3. Step-by-Step Setup After Cloning From GitHub
 
-Clone the repository and restore .NET dependencies as usual:
+For testing the latest changes, use **`ghaith-changes`**. On Windows, install Git, the **.NET 10 SDK**, and a running **SQL Server** instance accessible to your Windows account.
+
+#### Step 1 — Get the testing branch
 
 ```powershell
-git clone https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system.git
+git clone --branch ghaith-changes https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system.git
 cd sourcing-tender-management-system
+```
+
+For an existing checkout, save any local changes first, then run:
+
+```powershell
+git fetch origin
+git switch ghaith-changes
+git pull --ff-only origin ghaith-changes
+```
+
+#### Step 2 — Configure SQL Server and Groq
+
+Create `appsettings.Local.json` in the project root (beside the `.csproj`). For cloud AI, use **Qwen 3.8 27B on Groq**, with model ID **`qwen/qwen3.8-27b`**:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=SourcingTenderManagementCodeFirst;Trusted_Connection=True;TrustServerCertificate=True;"
+  },
+  "Vllm": {
+    "BaseUrl": "https://api.groq.com/openai/v1",
+    "Model": "qwen/qwen3.8-27b",
+    "ApiKey": "PASTE_YOUR_GROQ_KEY_HERE",
+    "EnableThinking": false
+  }
+}
+```
+
+- Change `Server=localhost` to your SQL Server instance if needed, such as `Server=.\\SQLEXPRESS` or `Server=(localdb)\\MSSQLLocalDB` in JSON.
+- Generate your own key in the [Groq console](https://console.groq.com/keys). Keep it in this Git-ignored local file.
+- **A key alone is insufficient with the repository defaults:** set the Groq `BaseUrl` and `Model` too. Once this configuration is in place, only the key needs replacing for another tester using the same SQL Server setup.
+- Groq requires internet access and an active key with available quota. No Docker, WSL, model download or local GPU is required for this option.
+- Qwen is the primary model. The client also has GPT-OSS fallback models for retryable failures. See [Groq's supported models](https://console.groq.com/docs/models) for availability.
+- If you already have `appsettings.Local.json`, merge these sections into it rather than discarding other local settings. Restart the app after configuration changes.
+
+#### Step 3 — Restore dependencies and update the database
+
+Run from the project root, after configuring the connection:
+
+```powershell
 dotnet tool restore
 dotnet restore
 dotnet ef database update
 ```
 
-Then choose **Option A (Local RTX 3070 GPU via vLLM)** or **Option B (Cloud API Key — No Local GPU Needed)**.
+**Yes, existing testers must run `dotnet ef database update` after pulling these changes.** It applies missing migrations, including `20261118122012_AddTopCommitteeEditCycle`. On a fresh setup, it creates the database schema; the SQL Server account needs permission to create/update the database. Startup does not automatically apply migrations.
+
+Git and migrations do **not** copy existing demo accounts, tenders, quotations or uploaded files. For the same demo data, obtain a database backup and corresponding private uploaded files from the project owner, restore them, then apply pending migrations. Do not commit those files or credentials.
+
+For a fresh empty database, create an administrator:
+
+```powershell
+.\scripts\create-admin.ps1 -Email admin@example.com
+```
+
+The script prompts for a password. Sign in as administrator to create departments and staff accounts and assign the committee positions. Suppliers register through the public page and require administrator approval. Existing restored databases can use their existing accounts.
+
+#### Step 4 — Trust HTTPS and start the app
+
+```powershell
+dotnet dev-certs https --trust
+dotnet run --launch-profile https
+```
+
+Open [https://localhost:7130](https://localhost:7130), sign in, and test Safi or AI Intelligence from an authorized workspace. AI Intelligence is available to internal roles; suppliers can use their scoped Safi chat.
+
+For local GPU AI instead of Groq, follow **Option A** below and use its local `Vllm` configuration. **Option B** lists cloud configuration alternatives.
 
 ---
 
@@ -112,7 +175,7 @@ Because `Services/VllmSettings.cs` speaks the standard OpenAI `/v1/chat/completi
 
 Create or edit `appsettings.Local.json` (already listed in `.gitignore` so your API key is never committed) using any OpenAI-compatible provider:
 
-#### Example 1 — Groq (Ultra-fast LPU inference, supports Qwen3 with thinking off)
+#### Example 1 — Groq (primary: Qwen 3.8 27B, thinking off)
 ```json
 {
   "Vllm": {
@@ -160,7 +223,7 @@ Create or edit `appsettings.Local.json` (already listed in `.gitignore` so your 
 }
 ```
 
-> **Environment Variable Alternative:** Instead of storing the key in `appsettings.Local.json`, you can set `VLLM_API_KEY`, `VLLM_BASE_URL`, and `VLLM_MODEL` in your shell or OS environment variables.
+> **Environment Variable Alternative:** Use `Vllm__ApiKey`, `Vllm__BaseUrl`, and `Vllm__Model` to override JSON settings. The legacy `VLLM_API_KEY`, `VLLM_BASE_URL`, and `VLLM_MODEL` names are fallbacks only when the corresponding configuration value is absent; the repository already defines a default base URL and model.
 
 ---
 

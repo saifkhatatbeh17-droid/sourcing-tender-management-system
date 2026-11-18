@@ -14,7 +14,7 @@
   </p>
 </div>
 
-> **Application branch:** Clone the default branch, `main`, to run the complete application.
+> **Testing branch:** Use `ghaith-changes` for the latest AI Intelligence and committee edit-cycle changes. Follow the complete [tester setup guide](VLLM-SETUP.md#3-step-by-step-setup-after-cloning-from-github), including database migrations and Groq/Qwen 3.8 configuration.
 
 ## About TIRYAQ
 
@@ -108,7 +108,7 @@ Both committees use four distinct member positions. Permissions and record visib
 ### 1. Clone the application branch
 
 ```powershell
-git clone https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system.git
+git clone --branch ghaith-changes https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system.git
 cd sourcing-tender-management-system
 ```
 
