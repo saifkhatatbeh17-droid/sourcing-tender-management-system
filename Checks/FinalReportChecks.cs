@@ -19,7 +19,7 @@ public static class FinalReportChecks
         {
             var handler = new Handler(mode);
             using var http = new HttpClient(handler);
-            var ai = new BidRecommendationService(http, new ConfigurationBuilder().Build());
+            var ai = new BidRecommendationService(http, VllmAiChecks.LocalFixtureConfiguration());
             try
             {
                 var result = await ai.FinalReport(page, 40, default);

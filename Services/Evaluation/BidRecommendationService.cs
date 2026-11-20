@@ -7,7 +7,11 @@ namespace SourcingTenderManagement.Services.Evaluation;
 
 public record BidComparison(int BidId, string Strengths, string Tradeoffs);
 public record BidScenario(decimal FinancialWeight, int? RecommendedBidId, string Reason);
-public record BidRecommendation(BidScenario[] Scenarios, string[] MissingInformation, BidComparison[] Comparisons, string? Report = null);
+public record BidRecommendation(BidScenario[] Scenarios, string[] MissingInformation, BidComparison[] Comparisons, string? Report = null)
+{
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? ModelName { get; init; }
+}
 public record SavedBidRecommendation(string Fingerprint, BidRecommendation Recommendation);
 public record TenderImportance(string Level, string Reason, string[] MissingInformation);
 
@@ -17,7 +21,6 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
     private record StructuredScenario(decimal FinancialWeight, int? RecommendedBidId, ReasonSections Reason);
     private record StructuredRecommendation(StructuredScenario[] Scenarios, string[] MissingInformation, BidComparison[] Comparisons, string? Report);
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    public string Model => VllmSettings.Model(configuration);
 
     public async Task<string> DraftReferral(object evidence, CancellationToken cancellationToken)
     {
@@ -169,7 +172,8 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
             + "Compare these bids: " + input + "\nOfficer revision request: "
             + (page.Tender!.EvaluationReport?.Status == "ReturnedForReview" ? page.Tender.EvaluationReport.OfficerSummary : "None")
             + (correction == null ? "" : "\nCorrect the previous response: " + correction);
-        var output = await VllmSettings.CompleteJsonAsync(http, configuration, system, prompt, "bid_recommendation", schema, 2200, cancellationToken);
+        var (output, model) = await VllmSettings.CompleteJsonWithModelAsync(
+            http, configuration, system, prompt, "bid_recommendation", schema, 2200, cancellationToken);
         var structured = JsonSerializer.Deserialize<StructuredRecommendation>(output, Json);
         if (structured?.Scenarios == null) throw new InvalidOperationException("The AI did not return a structured explanation. Try again.");
         var scenarios = structured.Scenarios.Select(s => {
@@ -187,9 +191,12 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
                 throw new InvalidOperationException($"The {longest}-day offer is the slowest, not faster. Follow objectiveFacts.comparisonStatements exactly for cost, delivery and additional charges.");
             return new BidScenario(s.FinancialWeight, s.RecommendedBidId, string.Join("\n\n", sections.Select((t, index) => headings[index] + "\n" + t.Trim())));
         }).ToArray();
-        var result = new BidRecommendation(scenarios, structured.MissingInformation, structured.Comparisons, structured.Report);
+        var result = new BidRecommendation(scenarios, structured.MissingInformation, structured.Comparisons, structured.Report)
+        {
+            ModelName = model
+        };
         Validate(result, page, financialWeight);
-        return result!;
+        return result;
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {

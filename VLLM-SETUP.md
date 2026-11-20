@@ -1,5 +1,7 @@
 # vLLM & AI Setup Guide
 
+For agent-driven setup after pulling, see [LOCAL-SETUP.md](LOCAL-SETUP.md).
+
 Tiryaq Pharma’s AI capabilities—role-scoped workspace chat (`AiChatClient`), AI Intelligence Hub (`AiIntelligenceService`), tender bid comparison, top-three committee narratives, manager referral summaries, and Top Committee importance assessments (`BidRecommendationService`)—use a native **vLLM OpenAI-compatible `/v1/chat/completions` client** (`Services/VllmSettings.cs`).
 
 ---
@@ -70,9 +72,11 @@ Create `appsettings.Local.json` in the project root (beside the `.csproj`). For 
 
 - Change `Server=localhost` to your SQL Server instance if needed, such as `Server=.\\SQLEXPRESS` or `Server=(localdb)\\MSSQLLocalDB` in JSON.
 - Generate your own key in the [Groq console](https://console.groq.com/keys). Keep it in this Git-ignored local file.
-- **A key alone is insufficient with the repository defaults:** set the Groq `BaseUrl` and `Model` too. Once this configuration is in place, only the key needs replacing for another tester using the same SQL Server setup.
+- The repository defaults already select Groq and Qwen 3.8. Check that existing local settings do not point to a different endpoint.
 - Groq requires internet access and an active key with available quota. No Docker, WSL, model download or local GPU is required for this option.
-- Qwen is the primary model. The client also has GPT-OSS fallback models for retryable failures. See [Groq's supported models](https://console.groq.com/docs/models) for availability.
+- `Vllm:Model` selects the primary model. On Groq rate limits or retryable service errors, Tiryaq switches to the model configured as `Vllm:FallbackModel` for that request. The repository defaults are `qwen/qwen3.8-27b` and `openai/gpt-oss-120b`. Set `FallbackModel` to an empty string in local settings to disable it.
+- Safi's voice mode prefers ElevenLabs when `ELEVENLABS_API_KEY` or `Speech:ElevenLabs:ApiKey` is configured. Keep keys outside Git. Set `Speech:ElevenLabs:VoiceId` to change the default voice, or `Speech:ElevenLabs:ArabicVoiceId` to choose a separate Arabic voice. Only the reply text is sent for speech synthesis.
+- To speak replies locally, use a Python 3.12 virtual environment and install `pip install -r scripts/requirements-safi-local-speech.txt`. Run `python scripts/safi-local-speech.py` and set `Speech:Local:Enabled` to `true` in `appsettings.Local.json`. The worker uses the model's built-in voice and listens only on this machine. The first run downloads the model weights.
 - If you already have `appsettings.Local.json`, merge these sections into it rather than discarding other local settings. Restart the app after configuration changes.
 
 #### Step 3 — Restore dependencies and update the database

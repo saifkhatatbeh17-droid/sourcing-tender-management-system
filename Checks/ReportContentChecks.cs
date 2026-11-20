@@ -42,8 +42,9 @@ public static class ReportContentChecks
             && prices[1].GetProperty("isLowestTotal").GetBoolean(), "1123 must be recorded as more expensive than 1092.");
         var handler = new PromptHandler();
         using var http = new HttpClient(handler);
-        var ai = new BidRecommendationService(http, new ConfigurationBuilder().Build());
+        var ai = new BidRecommendationService(http, VllmAiChecks.LocalFixtureConfiguration());
         var result = await ai.Recommend(page, 50, default);
+        Check(result.ModelName == "fixture/model", "Comparison must identify the model that returned it.");
         Check(ReportContent.Parse(result.Scenarios[0].Reason).Count(b => b.Kind == "heading") == 4, "Structured recommendation lost one of its four sections.");
         Check(handler.Calls == 2, "Contradictory delivery explanation must be rejected and retried once.");
 

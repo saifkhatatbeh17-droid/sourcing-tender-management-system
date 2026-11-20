@@ -11,10 +11,8 @@ internal static partial class VllmSettings
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public static string Model(IConfiguration configuration) =>
-        FirstNonEmpty(
-            configuration["Vllm:Model"],
-            Environment.GetEnvironmentVariable("VLLM_MODEL"),
-            "Qwen/Qwen3-8B-AWQ")!;
+        FirstNonEmpty(configuration["Vllm:Model"], Environment.GetEnvironmentVariable("VLLM_MODEL"))
+        ?? throw new InvalidOperationException("Configure Vllm:Model with an AI model ID.");
 
     public static string? ApiKey(IConfiguration configuration) =>
         FirstNonEmpty(
@@ -65,41 +63,6 @@ internal static partial class VllmSettings
         return (new Uri(fullUrl), baseUri.IsLoopback, apiKey);
     }
 
-    private static readonly string[] DefaultGroqFallbackModels =
-    [
-        "openai/gpt-oss-120b",
-        "openai/gpt-oss-20b"
-    ];
-
-    public static IReadOnlyList<string> CandidateModels(IConfiguration configuration, Uri endpoint)
-    {
-        var primary = Model(configuration);
-        var candidates = new List<string> { primary };
-
-        var configuredFallbacks = FirstNonEmpty(
-            configuration["Vllm:FallbackModels"],
-            Environment.GetEnvironmentVariable("VLLM_FALLBACK_MODELS"));
-
-        if (!string.IsNullOrWhiteSpace(configuredFallbacks))
-        {
-            foreach (var item in configuredFallbacks.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (!candidates.Contains(item, StringComparer.OrdinalIgnoreCase))
-                    candidates.Add(item);
-            }
-        }
-        else if (endpoint.Host.Contains("groq.com", StringComparison.OrdinalIgnoreCase))
-        {
-            foreach (var item in DefaultGroqFallbackModels)
-            {
-                if (!candidates.Contains(item, StringComparer.OrdinalIgnoreCase))
-                    candidates.Add(item);
-            }
-        }
-
-        return candidates;
-    }
-
     public static async Task<string> CompleteJsonAsync(
         HttpClient http,
         IConfiguration configuration,
@@ -109,91 +72,71 @@ internal static partial class VllmSettings
         object schema,
         int maxTokens,
         CancellationToken ct,
-        IReadOnlyList<(string Role, string Content)>? conversationHistory = null)
+        IReadOnlyList<(string Role, string Content)>? conversationHistory = null,
+        bool retryWithSchema = false) =>
+        (await CompleteJsonWithModelAsync(http, configuration, systemPrompt, userPrompt, schemaName,
+            schema, maxTokens, ct, conversationHistory, retryWithSchema)).Content;
+
+    public static async Task<(string Content, string Model)> CompleteJsonWithModelAsync(
+        HttpClient http,
+        IConfiguration configuration,
+        string systemPrompt,
+        string userPrompt,
+        string schemaName,
+        object schema,
+        int maxTokens,
+        CancellationToken ct,
+        IReadOnlyList<(string Role, string Content)>? conversationHistory = null,
+        bool retryWithSchema = false)
     {
         var (endpoint, isLoopback, apiKey) = ResolveEndpoint(configuration);
-        var models = CandidateModels(configuration, endpoint);
         var enableThinking = EnableThinking(configuration);
         var schemaInstruction = "\n\nRespond ONLY with a valid JSON object conforming strictly to this JSON Schema:\n" +
                                 JsonSerializer.Serialize(schema, Json);
 
         // Groq's qwen3 constrained json_schema FSM can prematurely close long string fields;
         // using json_object mode with the schema in the system prompt yields complete, fast JSON in one call.
-        var preferDirectJsonObject = !isLoopback && endpoint.Host.Contains("groq.com", StringComparison.OrdinalIgnoreCase);
+        var isGroq = IsGroq(endpoint);
 
         const int maxRounds = 3;
-        var skippedModels = new HashSet<int>();
+        var formatMode = isGroq ? ResponseFormatMode.JsonObject : ResponseFormatMode.JsonSchema;
+        var primaryModel = Model(configuration);
+        var fallbackModel = configuration["Vllm:FallbackModel"]?.Trim();
+        var activeModel = primaryModel;
 
         for (var round = 0; round < maxRounds; round++)
         {
-            var shortestDelay = double.MaxValue;
-            var sawRetryable = false;
-
-            for (var modelIndex = 0; modelIndex < models.Count; modelIndex++)
+            AttemptOutcome attempt;
+            try
             {
-                if (skippedModels.Contains(modelIndex))
-                    continue;
-
-                var activeModel = models[modelIndex];
-                var hasRemainingModels = Enumerable.Range(modelIndex + 1, models.Count - modelIndex - 1)
-                    .Any(i => !skippedModels.Contains(i));
-
-                var formatMode = preferDirectJsonObject ? ResponseFormatMode.JsonObject : ResponseFormatMode.JsonSchema;
-                var includeVllm = isLoopback || IsLikelyVllmOrQwenHost(endpoint);
-
-                var attemptResult = await SendWithFormatFallbacksAsync(
-                    http,
-                    endpoint,
-                    apiKey,
-                    activeModel,
-                    systemPrompt,
-                    schemaInstruction,
-                    userPrompt,
-                    schemaName,
-                    schema,
-                    maxTokens,
-                    enableThinking,
-                    includeVllm,
-                    formatMode,
-                    isLoopback,
-                    round,
-                    conversationHistory,
-                    ct);
-
-                using var lastResponse = attemptResult.LastResponse;
-
-                if (attemptResult.Content != null)
-                    return attemptResult.Content;
-
-                if (attemptResult.IsRetryable)
-                {
-                    sawRetryable = true;
-                    shortestDelay = Math.Min(shortestDelay, attemptResult.RetryDelaySeconds);
-                    if (round == maxRounds - 1 && !hasRemainingModels)
-                        lastResponse!.EnsureSuccessStatusCode();
-                    continue;
-                }
-
-                if (attemptResult.IsModelSkippedStatus)
-                {
-                    skippedModels.Add(modelIndex);
-                    if (!hasRemainingModels && !sawRetryable && skippedModels.Count == models.Count)
-                        lastResponse!.EnsureSuccessStatusCode();
-                    continue;
-                }
-
-                lastResponse!.EnsureSuccessStatusCode();
+                attempt = await SendWithFormatFallbacksAsync(
+                    http, endpoint, apiKey, activeModel, systemPrompt, schemaInstruction,
+                    userPrompt, schemaName, schema, maxTokens, enableThinking,
+                    formatMode, isLoopback, retryWithSchema, round, conversationHistory, ct);
+            }
+            catch (HttpRequestException ex) when (ex.HttpRequestError == HttpRequestError.ConnectionError &&
+                                                   round < maxRounds - 1)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2 * (round + 1)), ct);
+                continue;
             }
 
-            if (skippedModels.Count == models.Count || !sawRetryable)
-                break;
+            if (attempt.Content != null)
+                return (attempt.Content, activeModel);
 
-            if (round < maxRounds - 1)
+            if (isGroq && activeModel == primaryModel && !string.IsNullOrEmpty(fallbackModel) &&
+                !string.Equals(primaryModel, fallbackModel, StringComparison.OrdinalIgnoreCase) &&
+                round < maxRounds - 1)
             {
-                var waitSeconds = shortestDelay < double.MaxValue ? shortestDelay : 2.5 * (round + 1);
-                waitSeconds = Math.Clamp(waitSeconds, 0.5, 22.0);
-                await Task.Delay(TimeSpan.FromSeconds(waitSeconds), ct);
+                activeModel = fallbackModel;
+                continue;
             }
+
+            // A longer provider cooldown cannot fit in an interactive retry.
+            if (round == maxRounds - 1 || attempt.RetryDelaySeconds > 22)
+                throw new HttpRequestException("The AI endpoint is temporarily unavailable.", null, attempt.StatusCode);
+
+            await Task.Delay(TimeSpan.FromSeconds(Math.Max(attempt.RetryDelaySeconds, 0.5)), ct);
         }
 
         throw new HttpRequestException("The AI endpoint remained rate-limited or unavailable after retrying.");
@@ -208,9 +151,7 @@ internal static partial class VllmSettings
 
     private sealed record AttemptOutcome(
         string? Content,
-        HttpResponseMessage? LastResponse,
-        bool IsRetryable,
-        bool IsModelSkippedStatus,
+        HttpStatusCode? StatusCode,
         double RetryDelaySeconds);
 
     private static async Task<AttemptOutcome> SendWithFormatFallbacksAsync(
@@ -225,87 +166,51 @@ internal static partial class VllmSettings
         object schema,
         int maxTokens,
         bool enableThinking,
-        bool includeVllmExtensions,
         ResponseFormatMode initialMode,
         bool isLoopback,
+        bool retryWithSchema,
         int round,
         IReadOnlyList<(string Role, string Content)>? conversationHistory,
         CancellationToken ct)
     {
-        var steps = new List<(ResponseFormatMode Mode, bool IncludeVllm)>();
-        steps.Add((initialMode, includeVllmExtensions));
+        var steps = new List<ResponseFormatMode> { initialMode };
         if (!isLoopback)
         {
             if (initialMode == ResponseFormatMode.JsonSchema)
-                steps.Add((ResponseFormatMode.JsonObject, false));
-            if (initialMode != ResponseFormatMode.None)
-                steps.Add((ResponseFormatMode.None, false));
+                steps.Add(ResponseFormatMode.JsonObject);
+            if (initialMode == ResponseFormatMode.JsonObject && retryWithSchema)
+                steps.Add(ResponseFormatMode.JsonSchema);
+            steps.Add(ResponseFormatMode.None);
         }
 
-        HttpResponseMessage? lastResponse = null;
-        try
+        for (var i = 0; i < steps.Count; i++)
         {
-            for (var i = 0; i < steps.Count; i++)
-            {
-                var (mode, useVllm) = steps[i];
-                var effectiveSystem = mode == ResponseFormatMode.JsonSchema
-                    ? systemPrompt
-                    : systemPrompt + schemaInstruction;
+            var mode = steps[i];
+            var effectiveSystem = mode == ResponseFormatMode.JsonSchema
+                ? systemPrompt
+                : systemPrompt + schemaInstruction;
 
-                var response = await http.SendAsync(
-                    BuildRequest(
-                        endpoint,
-                        apiKey,
-                        model,
-                        effectiveSystem,
-                        userPrompt,
-                        schemaName,
-                        schema,
-                        maxTokens,
-                        enableThinking,
-                        useVllm,
-                        mode,
-                        conversationHistory),
-                    ct);
+            using var request = BuildRequest(
+                endpoint, apiKey, model, effectiveSystem, userPrompt, schemaName, schema,
+                maxTokens, enableThinking, isLoopback, mode, conversationHistory);
+            using var response = await http.SendAsync(request, ct);
 
-                lastResponse?.Dispose();
-                lastResponse = response;
+            if (IsRetryableOrRateLimited(response.StatusCode))
+                return new AttemptOutcome(null, response.StatusCode, ParseRateLimitDelaySeconds(response, round));
 
-                if (IsRetryableOrRateLimited(response.StatusCode))
-                {
-                    var delay = ParseRateLimitDelaySeconds(response, round);
-                    return new AttemptOutcome(null, lastResponse, true, false, delay);
-                }
+            var canTryAnotherFormat = i < steps.Count - 1;
+            if (response.StatusCode == HttpStatusCode.BadRequest && canTryAnotherFormat)
+                continue;
 
-                if (response.StatusCode == HttpStatusCode.RequestEntityTooLarge)
-                {
-                    return new AttemptOutcome(null, lastResponse, false, true, 0);
-                }
-
-                if (response.StatusCode == HttpStatusCode.BadRequest && i < steps.Count - 1)
-                {
-                    continue;
-                }
-
-                if (response.StatusCode == HttpStatusCode.BadRequest && !isLoopback)
-                {
-                    return new AttemptOutcome(null, lastResponse, false, true, 0);
-                }
-
-                response.EnsureSuccessStatusCode();
-                var content = ParseCompletionContent(await response.Content.ReadAsStringAsync(ct));
-                lastResponse.Dispose();
-                lastResponse = null;
-                return new AttemptOutcome(content, null, false, false, 0);
-            }
-
-            return new AttemptOutcome(null, lastResponse, false, true, 0);
+            response.EnsureSuccessStatusCode();
+            var content = ParseCompletionContent(await response.Content.ReadAsStringAsync(ct));
+            if (IsCompleteJsonObject(content))
+                return new AttemptOutcome(content, null, 0);
+            if (!canTryAnotherFormat)
+                throw new InvalidOperationException("The AI service did not return a complete JSON object.");
         }
-        catch
-        {
-            lastResponse?.Dispose();
-            throw;
-        }
+
+        throw new InvalidOperationException("No usable AI response format was available.");
     }
 
     private static bool IsRetryableOrRateLimited(HttpStatusCode statusCode) =>
@@ -463,19 +368,7 @@ internal static partial class VllmSettings
             !message.TryGetProperty("content", out var contentElement))
             throw new InvalidOperationException("The AI response contained no message content.");
 
-        var cleaned = CleanJsonContent(contentElement.GetString() ?? "");
-
-        if (first.TryGetProperty("finish_reason", out var finishReason))
-        {
-            var reason = finishReason.GetString();
-            if (!string.IsNullOrEmpty(reason) && reason is not ("stop" or "end_turn"))
-            {
-                if (string.IsNullOrWhiteSpace(cleaned) || !IsCompleteJsonObject(cleaned))
-                    throw new InvalidOperationException("The AI response was incomplete. Try again.");
-            }
-        }
-
-        return cleaned;
+        return CleanJsonContent(contentElement.GetString() ?? "");
     }
 
     private static bool IsCompleteJsonObject(string candidate)
@@ -504,33 +397,21 @@ internal static partial class VllmSettings
             cleaned = cleaned.Trim();
         }
 
-        var firstBrace = cleaned.IndexOf('{');
-        var lastBrace = cleaned.LastIndexOf('}');
-        if (firstBrace >= 0 && lastBrace > firstBrace && (firstBrace > 0 || lastBrace < cleaned.Length - 1))
-        {
-            cleaned = cleaned[firstBrace..(lastBrace + 1)];
-        }
-
         return cleaned;
     }
 
-    private static bool IsLikelyVllmOrQwenHost(Uri endpoint) =>
-        endpoint.Host.Contains("together", StringComparison.OrdinalIgnoreCase) ||
-        endpoint.Host.Contains("deepinfra", StringComparison.OrdinalIgnoreCase) ||
-        endpoint.Host.Contains("fireworks", StringComparison.OrdinalIgnoreCase);
+    private static bool IsGroq(Uri endpoint) =>
+        string.Equals(endpoint.Host, "api.groq.com", StringComparison.OrdinalIgnoreCase);
 
     private static string? ResolveReasoningEffort(Uri endpoint, string model)
     {
-        if (endpoint.Host.Contains("groq.com", StringComparison.OrdinalIgnoreCase))
+        if (IsGroq(endpoint))
         {
             if (model.Contains("qwen3", StringComparison.OrdinalIgnoreCase))
                 return "none";
             if (model.Contains("gpt-oss", StringComparison.OrdinalIgnoreCase))
                 return "low";
         }
-
-        if (endpoint.Host.Contains("generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase))
-            return "none";
 
         return null;
     }

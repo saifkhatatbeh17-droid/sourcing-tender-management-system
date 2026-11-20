@@ -132,7 +132,9 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
                     : "Top-three committee report generated and sent to the sourcing officer. The manager summary will cover the winner only.";
             }
             if (!writeReport) db.AiAnalyses.Add(new AiAnalysis { TenderId = id, RequestedByUserId = UserId,
-                FinancialWeight = financialWeight, RequirementsWeight = requirementsWeight, ModelName = ai.Model, CreatedAt = DateTime.UtcNow,
+                FinancialWeight = financialWeight, RequirementsWeight = requirementsWeight,
+                ModelName = result.ModelName ?? throw new InvalidOperationException("The comparison did not identify its AI model."),
+                CreatedAt = DateTime.UtcNow,
                 ResultJson = JsonSerializer.Serialize(new SavedBidRecommendation(fingerprint, result), BidRecommendationService.Json) });
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);

@@ -21,18 +21,27 @@ namespace SourcingTenderManagement.Checks;
 
 public static class VllmAiChecks
 {
+    internal static IConfiguration LocalFixtureConfiguration() => new ConfigurationBuilder()
+        .AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Vllm:BaseUrl"] = "http://localhost:8000/v1",
+            ["Vllm:Model"] = "fixture/model"
+        })
+        .Build();
+
     public static async Task RunAsync()
     {
+        await CheckElevenLabsSpeechAsync();
         await CommitteeApprovalOrderChecks.RunAsync();
         await FinalReportChecks.RunAsync();
         await RankedReportChecks.RunAsync();
         await ReportContentChecks.RunAsync();
 
         // 1. Default local vLLM resolution + thinking disabled
-        var defaultCfg = new ConfigurationBuilder().Build();
+        var defaultCfg = LocalFixtureConfiguration();
         var (localUri, isLoopback, _) = VllmSettings.ResolveEndpoint(defaultCfg);
         Require(isLoopback && localUri.ToString() == "http://localhost:8000/v1/chat/completions", "Default vLLM endpoint mismatch.");
-        Require(VllmSettings.Model(defaultCfg) == "Qwen/Qwen3-8B-AWQ", "Default vLLM model mismatch.");
+        Require(VllmSettings.Model(defaultCfg) == "fixture/model", "The configured model must be used.");
         Require(!VllmSettings.EnableThinking(defaultCfg), "Thinking must be disabled by default.");
 
         // 2. Remote endpoint security: block plain HTTP and require API key on remote HTTPS
@@ -110,11 +119,21 @@ public static class VllmAiChecks
 
         // 4b. Agentic page transfer (navigate_to_page) -> propagates NavigateUrl
         var navToolExecuted = false;
+        var priorTurns = Enumerable.Range(0, 6)
+            .SelectMany(i => new[]
+            {
+                new AiChatHistoryTurn("user", $"Prior question {i}"),
+                new AiChatHistoryTurn("assistant", $"Prior reply {i}")
+            })
+            .Concat([
+                new AiChatHistoryTurn("user", "Which page has the reports?"),
+                new AiChatHistoryTurn("assistant", new string('x', 800) + " Open Combined Reports.")
+            ]).ToArray();
         var navResult = await chat.RunAsync(
             RoleNames.EvaluationCommittee,
             ["Dashboard", "Evaluations", "Combined Reports"],
-            "Transfer me to Combined Reports",
-            [new AiChatHistoryTurn("user", "what actions can you do?"), new AiChatHistoryTurn("assistant", capResult.Answer)],
+            "Take me there",
+            priorTurns,
             initialSnap,
             AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.EvaluationCommittee),
             (call, _) =>
@@ -133,20 +152,22 @@ public static class VllmAiChecks
 
         Require(navToolExecuted && navResult.NavigateUrl == "/EvaluationCommittee/Reports",
             "Agentic page transfer failed to execute navigate_to_page and return NavigateUrl.");
-        Require(cloudHandler.SawMultiTurnMessages, "Multi-turn conversation history was not sent to LLM.");
+        Require(cloudHandler.RequestsWithFullHistory == 2,
+            "Decision and synthesis must both receive the latest 12 messages and preserve the prior reply.");
 
-        // 5. Groq 429 rate-limit rotation across independent model buckets + per-model reasoning_effort
+        // 5. Groq cooldown beyond the interactive retry budget
         var groqCfg = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Vllm:BaseUrl"] = "https://api.groq.com/openai/v1",
                 ["Vllm:Model"] = "qwen/qwen3.8-27b",
+                ["Vllm:FallbackModel"] = "openai/gpt-oss-120b",
                 ["Vllm:ApiKey"] = "gsk_test_token_123",
                 ["Vllm:EnableThinking"] = "false"
             })
             .Build();
 
-        var groqMock = new GroqRotationMockHandler();
+        var groqMock = new GroqRateLimitMockHandler();
         using var groqHttp = new HttpClient(groqMock);
         var groqChat = new AiChatClient(groqHttp, groqCfg);
         var groqReply = await groqChat.RunAsync(
@@ -156,20 +177,39 @@ public static class VllmAiChecks
             [],
             initialSnap,
             AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.SourcingOfficer),
-            (_, _) => Task.FromResult(new AiChatToolExecutionResult(false, false, "Should not run")),
+            (_, _) => throw new InvalidOperationException("No action should run during an outage."),
             _ => Task.FromResult(initialSnap),
             CancellationToken.None);
 
-        Require(groqReply.Answer.Contains("Queue is clear", StringComparison.OrdinalIgnoreCase),
-            "Groq 429 failover did not return fallback model reply.");
-        Require(groqMock.SawQwenEffortNone && groqMock.SawGptOssEffortLow,
-            "Groq per-model reasoning_effort mapping failed during 429 rotation.");
+        Require(groqReply.WorkspaceOnly && !groqReply.Mutated && groqReply.Answer.Contains("Requests"),
+            "A long Groq cooldown should return workspace help.");
+        Require(groqMock.SawQwenEffortNone && groqMock.Calls == 2,
+            "Safi must try Qwen first, then GPT-OSS 120B once during a long cooldown.");
 
-        // 5b. Groq 413 Payload Too Large rotation + 400 json_validate_failed recovery without response_format
-        var groq413Mock = new Groq413And400MockHandler();
-        using var groq413Http = new HttpClient(groq413Mock);
-        var groq413Chat = new AiChatClient(groq413Http, groqCfg);
-        var groq413Reply = await groq413Chat.RunAsync(
+        using var recoveryHttp = new HttpClient(new GroqRateLimitMockHandler(recover: true));
+        var recoveryChat = new AiChatClient(recoveryHttp, groqCfg);
+        var recovered = await recoveryChat.RunAsync(
+            RoleNames.SourcingOfficer, ["Requests"], "Summarize my queue", [], initialSnap, [],
+            (_, _) => throw new InvalidOperationException("No action was requested."),
+            _ => Task.FromResult(initialSnap), CancellationToken.None);
+        Require(!recovered.WorkspaceOnly && recovered.Answer == "Queue is clear.",
+            "Safi should return the valid fallback reply after a Qwen rate limit.");
+
+        using var scopeHttp = new HttpClient(new GroqRateLimitMockHandler(recover: true, outsideScope: true));
+        var scopeChat = new AiChatClient(scopeHttp, groqCfg);
+        var scopeResult = await scopeChat.RunAsync(
+            RoleNames.EvaluationCommittee, ["Evaluations"], "اقترح لي هدية لعيد ميلاد", [], initialSnap, [],
+            (_, _) => throw new InvalidOperationException("Off-topic questions must not call tools."),
+            _ => Task.FromResult(initialSnap), CancellationToken.None);
+        Require(scopeResult.Answer == "بقدر أساعدك فقط بأسئلة Tiryaq ضمن دورك." &&
+                !scopeResult.WorkspaceOnly && !scopeResult.Mutated,
+            "An out-of-scope model decision must produce the localized refusal.");
+
+        // 5b. Recover from structured output rejection using the same model.
+        var formatMock = new GroqFormatMockHandler();
+        using var formatHttp = new HttpClient(formatMock);
+        var formatChat = new AiChatClient(formatHttp, groqCfg);
+        var formatReply = await formatChat.RunAsync(
             RoleNames.EvaluationCommittee,
             ["Dashboard", "Evaluations"],
             "Summarize my queue",
@@ -180,10 +220,10 @@ public static class VllmAiChecks
             _ => Task.FromResult(initialSnap),
             CancellationToken.None);
 
-        Require(groq413Reply.Answer.Contains("Recovered via fallback", StringComparison.OrdinalIgnoreCase),
-            "Groq 413 failover + 400 plain-JSON recovery failed.");
-        Require(groq413Mock.Saw413OnPrimary && groq413Mock.Saw400JsonObjectFallback && groq413Mock.SawNoResponseFormatRetry,
-            "Expected 413 model rotation and 400 response_format omission fallback did not execute.");
+        Require(formatReply.Answer.Contains("Recovered via fallback", StringComparison.OrdinalIgnoreCase),
+            "Groq 400 plain-JSON recovery failed.");
+        Require(formatMock.Saw400JsonObjectFallback && formatMock.SawNoResponseFormatRetry,
+            "Expected same-model response format recovery did not execute.");
 
         // 6. Per-user download isolation + real PDF/Excel binary generation
         var sampleExport = new AiChatExportDocument(
@@ -314,7 +354,40 @@ public static class VllmAiChecks
                     "After edit cycle returns to Top Committee, 4 fresh approvals must award the (updated) nominated offer.");
         }
 
-        Console.WriteLine("PASS: vLLM /v1/chat/completions, thinking=false, Bearer API key auth, Groq 429 multi-model rotation, AI Intelligence hub (Supplier-excluded + Excel/PDF upload/download), downloadable PDF/Excel exports, Top Committee complete-reject vs ask-for-edit cycle, role-scoped actions, page transfer (navigate_to_page), and Agentic AiChatClient.");
+        Console.WriteLine("PASS: vLLM /v1/chat/completions, thinking=false, Bearer API key auth, Groq 120B fallback and cooldown handling, AI Intelligence hub (Supplier-excluded + Excel/PDF upload/download), downloadable PDF/Excel exports, Top Committee complete-reject vs ask-for-edit cycle, role-scoped actions, page transfer (navigate_to_page), and Agentic AiChatClient.");
+    }
+
+    private static async Task CheckElevenLabsSpeechAsync()
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Speech:ElevenLabs:ApiKey"] = "speech-fixture",
+            ["Speech:ElevenLabs:Model"] = "eleven_v4_turbo",
+            ["Speech:ElevenLabs:VoiceId"] = "default-fixture",
+            ["Speech:ElevenLabs:ArabicVoiceId"] = "arabic-fixture"
+        }).Build();
+        var reply = string.Concat(Enumerable.Repeat("مرحباً بك في ترياق. ", 15));
+        using var http = new HttpClient(new ElevenLabsSpeechFixture(reply));
+        var speech = new AiChatSpeechClient(http, config);
+        var clip = await speech.SpeakAsync(reply, CancellationToken.None);
+        Require(speech.ClipLimit == AiChatSpeechClient.InputLimit &&
+                clip is { ContentType: "audio/mpeg" }, "ElevenLabs should return one MP3 for the full reply.");
+    }
+
+    private sealed class ElevenLabsSpeechFixture(string reply) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+            Require(request.RequestUri?.Host == "api.elevenlabs.io" &&
+                    request.RequestUri.AbsolutePath.EndsWith("/arabic-fixture", StringComparison.Ordinal) &&
+                    request.Headers.GetValues("xi-api-key").Single() == "speech-fixture" &&
+                    body.RootElement.GetProperty("model_id").GetString() == "eleven_v4_turbo" &&
+                    body.RootElement.GetProperty("text").GetString() == reply, "Unexpected speech request.");
+            var audio = new ByteArrayContent([1, 2, 3]);
+            audio.Headers.ContentType = new("audio/mpeg");
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = audio };
+        }
     }
 
     private static void Require(bool condition, string message)
@@ -339,7 +412,7 @@ public static class VllmAiChecks
     {
         public bool SawBearerAuth;
         public bool FallbackTriggered;
-        public bool SawMultiTurnMessages;
+        public int RequestsWithFullHistory;
         private int _callCount;
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
@@ -350,8 +423,13 @@ public static class VllmAiChecks
 
             using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
             var rfType = body.RootElement.GetProperty("response_format").GetProperty("type").GetString();
-            if (body.RootElement.TryGetProperty("messages", out var msgs) && msgs.GetArrayLength() > 2)
-                SawMultiTurnMessages = true;
+            var messages = body.RootElement.GetProperty("messages");
+            if (messages.GetArrayLength() == AiChatClient.HistoryMessageLimit + 2 &&
+                messages[1].GetProperty("content").GetString() == "Prior question 1" &&
+                messages[11].GetProperty("content").GetString() == "Which page has the reports?" &&
+                messages[12].GetProperty("role").GetString() == "assistant" &&
+                messages[12].GetProperty("content").GetString() == new string('x', 800) + " Open Combined Reports.")
+                RequestsWithFullHistory++;
 
             if (_callCount == 1 && rfType == "json_schema")
             {
@@ -379,10 +457,10 @@ public static class VllmAiChecks
         }
     }
 
-    private sealed class GroqRotationMockHandler : HttpMessageHandler
+    private sealed class GroqRateLimitMockHandler(bool recover = false, bool outsideScope = false) : HttpMessageHandler
     {
         public bool SawQwenEffortNone;
-        public bool SawGptOssEffortLow;
+        public int Calls;
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
@@ -390,40 +468,33 @@ public static class VllmAiChecks
             var model = body.RootElement.GetProperty("model").GetString() ?? "";
             var effort = body.RootElement.TryGetProperty("reasoning_effort", out var e) ? e.GetString() : null;
 
-            if (model.Contains("qwen3", StringComparison.OrdinalIgnoreCase))
-            {
+            Require(model == (Calls == 0 ? "qwen/qwen3.8-27b" : "openai/gpt-oss-120b"),
+                "Unexpected model or fallback order.");
+            Calls++;
+            if (Calls == 1)
                 SawQwenEffortNone = effort == "none";
-                var rateLimited = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
-                rateLimited.Headers.TryAddWithoutValidation("x-ratelimit-reset-tokens", "8.5s");
-                return rateLimited;
-            }
-
-            if (model.Contains("gpt-oss-120b", StringComparison.OrdinalIgnoreCase))
-            {
-                SawGptOssEffortLow = effort == "low";
+            else if (recover)
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StringContent(JsonSerializer.Serialize(new
+                    Content = JsonContent.Create(new
                     {
-                        choices = new[]
+                        choices = new[] { new
                         {
-                            new
-                            {
-                                finish_reason = "stop",
-                                message = new { content = "{\"mode\":\"reply\",\"reply\":\"Queue is clear right now.\",\"toolCalls\":[]}" }
-                            }
-                        }
-                    }), Encoding.UTF8, "application/json")
+                            finish_reason = "stop",
+                            message = new { content = outsideScope
+                                ? """{"mode":"out_of_scope","reply":"","toolCalls":[]}"""
+                                : """{"mode":"reply","reply":"Queue is clear.","toolCalls":[]}""" }
+                        } }
+                    })
                 };
-            }
-
-            throw new InvalidOperationException($"Unexpected model: {model}");
+            var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+            response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromMinutes(1));
+            return response;
         }
     }
 
-    private sealed class Groq413And400MockHandler : HttpMessageHandler
+    private sealed class GroqFormatMockHandler : HttpMessageHandler
     {
-        public bool Saw413OnPrimary;
         public bool Saw400JsonObjectFallback;
         public bool SawNoResponseFormatRetry;
 
@@ -433,13 +504,8 @@ public static class VllmAiChecks
             var model = body.RootElement.GetProperty("model").GetString() ?? "";
             var hasResponseFormat = body.RootElement.TryGetProperty("response_format", out _);
 
-            if (model.Contains("qwen3", StringComparison.OrdinalIgnoreCase))
-            {
-                Saw413OnPrimary = true;
-                return new HttpResponseMessage(HttpStatusCode.RequestEntityTooLarge);
-            }
-
-            if (model.Contains("gpt-oss-120b", StringComparison.OrdinalIgnoreCase) && hasResponseFormat)
+            Require(model == "qwen/qwen3.8-27b", "Unexpected response-format retry model.");
+            if (hasResponseFormat)
             {
                 Saw400JsonObjectFallback = true;
                 return new HttpResponseMessage(HttpStatusCode.BadRequest)
@@ -448,7 +514,7 @@ public static class VllmAiChecks
                 };
             }
 
-            if (model.Contains("gpt-oss-120b", StringComparison.OrdinalIgnoreCase) && !hasResponseFormat)
+            if (!hasResponseFormat)
             {
                 SawNoResponseFormatRetry = true;
                 return new HttpResponseMessage(HttpStatusCode.OK)

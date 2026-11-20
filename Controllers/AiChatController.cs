@@ -42,10 +42,74 @@ public sealed class AiChatController(
 
         return File(file.Bytes, file.ContentType, file.FileName);
     }
+    [HttpPost("Speak")]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("AiChat")]
+    [RequestSizeLimit(32 * 1024)]
+    public async Task<IActionResult> Speak(AiChatSpeechInput input, [FromServices] AiChatSpeechClient speech, CancellationToken ct)
+    {
+        if (!await CanUseSpeechAsync(input.Workspace))
+            return Forbid();
+
+        try
+        {
+            var audio = await speech.SpeakAsync(input.Text.Trim(), ct);
+            if (audio is null)
+                return StatusCode(503);
+            Response.Headers["X-Safi-Speech-Provider"] = audio.Provider;
+            return File(audio.Bytes, audio.ContentType);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException ||
+                                   (ex is OperationCanceledException && !ct.IsCancellationRequested))
+        {
+            logger.LogWarning("Safi speech unavailable ({ErrorType}).", ex.GetType().Name);
+            return StatusCode(503);
+        }
+    }
+
+    [HttpPost("Transcribe")]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("AiChat")]
+    [RequestSizeLimit(2 * 1024 * 1024)]
+    public async Task<IActionResult> Transcribe([FromForm] string workspace, [FromForm] IFormFile audio,
+        [FromServices] AiChatSpeechClient speech, CancellationToken ct)
+    {
+        if (!await CanUseSpeechAsync(workspace))
+            return Forbid();
+
+        var extension = Path.GetExtension(audio.FileName).ToLowerInvariant();
+        if (audio.Length is <= 0 or > 1024 * 1024 || extension is not (".webm" or ".ogg" or ".mp4"))
+            return BadRequest();
+
+        try
+        {
+            await using var stream = audio.OpenReadStream();
+            var text = await speech.TranscribeAsync(stream, "turn" + extension, ct);
+            return text is null ? StatusCode(503) : Ok(new { text });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or JsonException ||
+                                   (ex is OperationCanceledException && !ct.IsCancellationRequested))
+        {
+            logger.LogWarning("Safi transcription unavailable ({ErrorType}).", ex.GetType().Name);
+            return StatusCode(503);
+        }
+    }
+
+    private async Task<bool> CanUseSpeechAsync(string workspace)
+    {
+        if (!PageNavigation.Menus.ContainsKey(workspace) || !User.IsInRole(workspace))
+            return false;
+        var user = await users.GetUserAsync(User);
+        if (user?.IsActive != true || !await users.IsInRoleAsync(user, workspace))
+            return false;
+        return workspace != RoleNames.Supplier ||
+            (await authorization.AuthorizeAsync(User, HttpContext, "ApprovedSupplier")).Succeeded;
+    }
+
     [HttpPost("Ask")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]
-    [RequestSizeLimit(65536)]
+    [RequestSizeLimit(384 * 1024)] // Allow 12 full history messages even when Unicode is JSON-escaped.
     public async Task<IActionResult> Ask(AiChatInput input, CancellationToken ct)
     {
         var workspace = input.Workspace?.Trim() ?? "";
@@ -86,6 +150,7 @@ public sealed class AiChatController(
             return Ok(new
             {
                 answer = result.Answer,
+                workspaceOnly = result.WorkspaceOnly,
                 mutated = result.Mutated,
                 actionSummaries = result.ActionSummaries,
                 navigateUrl = result.NavigateUrl,
@@ -98,7 +163,7 @@ public sealed class AiChatController(
             KeyNotFoundException || (ex is OperationCanceledException && !ct.IsCancellationRequested))
         {
             logger.LogWarning(ex, "AiChat request failed for workspace {Workspace} (page={Page}, recordId={RecordId}).", workspace, input.Page, input.RecordId);
-            return StatusCode(503, new { error = "The assistant could not complete this request right now. Check your AI endpoint/API key or try again in a moment." });
+            return StatusCode(503, new { error = "Safi could not confirm the result. Check your workspace before resending any action." });
         }
     }
 
@@ -107,7 +172,7 @@ public sealed class AiChatController(
         var list = new List<AiChatHistoryTurn>();
         if (input.History is { Length: > 0 })
         {
-            if (input.History.Length > 12) return null;
+            if (input.History.Length > AiChatClient.HistoryMessageLimit) return null;
             foreach (var item in input.History)
             {
                 if (item == null || string.IsNullOrWhiteSpace(item.Content) || item.Content.Length > 4500)
@@ -133,6 +198,10 @@ public sealed class AiChatController(
 public sealed record AiChatTurnInput(
     [Required, StringLength(16)] string Role,
     [Required, StringLength(4500)] string Content);
+
+public sealed record AiChatSpeechInput(
+    [Required, StringLength(40)] string Workspace,
+    [Required, StringLength(AiChatSpeechClient.InputLimit)] string Text);
 
 public sealed record AiChatInput(
     [Required, StringLength(1500)] string Question,

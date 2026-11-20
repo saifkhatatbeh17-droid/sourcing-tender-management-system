@@ -1,5 +1,10 @@
 
 # Canonical Tiryaq project
+
+## First run after pulling
+
+When asked to set up or run Tiryaq after pulling, execute the [agent setup checklist](LOCAL-SETUP.md) from this checkout. Reuse existing local settings and services. Carry out the setup and verification directly, and ask the teammate only for prerequisites or credentials you cannot supply. Leave the app and requested voice worker running.
+
 This directory (MVC Project-main) is the user's sole active project as of 16 November 2026. Run localhost:7130 from here. Do not edit or synchronize the other sourcing-tender-management-system-develop checkout unless explicitly requested. Preserve current local changes; do not push or finalize merges without authorization.
 
 Resume checkpoint: read PROJECT-STATE.md for role coverage, preserved UX/workflow decisions and latest verification. The latest user-authorized checkpoint is on branch ghaith; do not merge it into develop without a new instruction.

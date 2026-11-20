@@ -2,6 +2,7 @@
 @using System.Text.Json
 @using SourcingTenderManagement.Data
 @using SourcingTenderManagement.Services.Chat
+@inject AiChatSpeechClient SpeechClient
 @{
     var workspace = ViewData["WorkspaceController"]?.ToString() ?? "";
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
@@ -29,7 +30,7 @@
     }
 }
 <div class="ai-chat" data-ai-chat data-user="@userId" data-workspace="@workspace" data-page="@chatPage"
-     data-record-id="@recordId" data-greetings="@greetingsJson">
+     data-record-id="@recordId" data-greetings="@greetingsJson" data-history-limit="@AiChatClient.HistoryMessageLimit">
 
     <div class="ai-chat-dock" data-safi-dock>
         <div class="ai-chat-speech" data-safi-speech role="region" aria-label="Safi assistant greeting">
@@ -157,10 +158,9 @@
             </header>
             <div class="ai-chat-body">
                 <div class="ai-chat-start" data-chat-start>
+                    <h3>How can I help?</h3>
                     <p class="ai-chat-intro">
-                        @(workspace == RoleNames.Admin
-                            ? "Hi! I'm Safi (صافي), Tiryaq's apothecary co-pilot. Ask for a live cross-role overview, manage Admin records, or tell me which page to open."
-                            : $"Hi! I'm Safi (صافي), your {roleDisplay} co-pilot. Ask about your live queue, let me run authorized actions, or tell me which page to transfer you to.")
+                        Ask about your workspace, find a record, or tell me which page to open.
                     </p>
                     @foreach (var prompt in starters)
                     {
@@ -168,21 +168,75 @@
                     }
                 </div>
                 <div class="ai-chat-messages" role="log" aria-label="Conversation with Safi" tabindex="-1"></div>
+                <button class="ai-chat-latest" type="button" data-chat-latest hidden>Latest <span aria-hidden="true">↓</span></button>
             </div>
-            <form class="ai-chat-form" asp-controller="AiChat" asp-action="Ask" method="post">
+            <form class="ai-chat-form" asp-controller="AiChat" asp-action="Ask" method="post" data-voice-dictation
+                  data-speech-url="@Url.Action("Speak", "AiChat")" data-speech-clip-limit="@SpeechClient.ClipLimit"
+                  data-transcribe-url="@Url.Action("Transcribe", "AiChat")" data-workspace="@workspace">
                 <p class="ai-chat-status" role="status" aria-atomic="true"></p>
                 <label class="visually-hidden" for="ai-chat-question">Message Safi</label>
                 <div class="ai-chat-composer">
-                    <textarea id="ai-chat-question" name="question" rows="2" maxlength="1500" required
-                              dir="auto" enterkeyhint="send" placeholder="Ask Safi a question, run an action, or jump to a page…" aria-describedby="ai-chat-shortcuts"></textarea>
+                    <textarea id="ai-chat-question" name="question" rows="2" maxlength="1500" required data-voice-search
+                              dir="auto" enterkeyhint="send" placeholder="Message Safi…" aria-describedby="ai-chat-shortcuts"></textarea>
+                    <button type="button" class="ai-chat-mic" data-chat-voice-toggle
+                            aria-label="Start voice conversation" title="Start voice conversation"
+                            aria-controls="ai-chat-voice-panel" aria-expanded="false" aria-describedby="ai-chat-voice-status">
+                        <svg class="ai-chat-icon-mic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M12 19v3M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>
+                        </svg>
+                        <svg class="ai-chat-icon-end" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                    </button>
+                    <button type="button" data-voice-search-button hidden></button>
                     <button class="ai-chat-send" type="submit" disabled>
                         <span>Send</span>
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-6 6 6-6 6 6" /></svg>
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
                     </button>
                 </div>
-                <p class="ai-chat-shortcuts" id="ai-chat-shortcuts">Enter to send · Shift+Enter for a new line</p>
+                <div class="ai-chat-composer-help">
+                    <p class="ai-chat-shortcuts" id="ai-chat-shortcuts">Enter to send · Shift+Enter for a new line</p>
+                    <label class="ai-chat-voice-settings">
+                        Voice language
+                        <select class="ai-chat-voice-language" data-voice-search-language>
+                            <option value="auto" title="Auto sends each recorded turn to Groq for transcription">Auto</option>
+                            <option value="en-US">English</option>
+                            <option value="ar-JO">العربية</option>
+                        </select>
+                    </label>
+                </div>
+                <p id="ai-chat-voice-status" class="ai-chat-voice-status" data-voice-search-status role="status"></p>
             </form>
         </div>
     </dialog>
+    <section id="ai-chat-voice-panel" class="ai-chat-voice-panel" data-chat-voice-panel
+             aria-label="Safi voice conversation" data-state="ready" hidden>
+        <button class="ai-chat-voice-orb" type="button" data-chat-voice-orb aria-label="Start speaking">
+            <span class="ai-chat-orb-core" aria-hidden="true"></span>
+            <svg class="ai-chat-icon-stop" aria-hidden="true" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+            </svg>
+        </button>
+        <div class="ai-chat-voice-copy">
+            <p class="ai-chat-voice-prompt" data-chat-voice-prompt role="status" aria-atomic="true">Tap to speak</p>
+            <small class="ai-chat-voice-disclosure" data-chat-voice-source>AI-generated voice</small>
+        </div>
+        <button class="ai-chat-voice-mute" type="button" data-chat-voice-mute aria-pressed="false">
+            <svg class="ai-chat-icon-mute" aria-hidden="true" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m2 2 20 20M9 9v3a3 3 0 0 0 5.12 2.12M9 5a3 3 0 0 1 6 0v3"/>
+                <path d="M5 10v2a7 7 0 0 0 12 4.9M19 10v2q0 1-.27 1.9M12 19v3"/>
+            </svg>
+            <svg class="ai-chat-icon-unmute" aria-hidden="true" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 19v3M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>
+            </svg>
+            <span data-chat-voice-mute-label>Mute mic</span>
+        </button>
+        <button class="ai-chat-voice-end" type="button" data-chat-voice-end aria-label="End voice conversation" title="End voice conversation">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+        </button>
+    </section>
 </div>

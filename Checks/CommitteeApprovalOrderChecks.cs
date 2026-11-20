@@ -50,7 +50,7 @@ public static class CommitteeApprovalOrderChecks
         Check(tender.Status == "AwaitingOfficerSummary" && tender.EvaluationReport.Status == "CommitteeApproved", "Completed scored report must send with all four approvals.");
 
         using var client = new HttpClient(new ReportHandler());
-        var ai = new BidRecommendationService(client, new ConfigurationBuilder().Build());
+        var ai = new BidRecommendationService(client, VllmAiChecks.LocalFixtureConfiguration());
         var report = await ai.Recommend(page, 60, CancellationToken.None, 47);
         Check(report.Scenarios.Single().RecommendedBidId == 47, "Report generation substituted another offer.");
         Console.WriteLine("PASS: explicit selection, approvals before report, no premature handoff, preserved approvals, report constrained to selected offer.");

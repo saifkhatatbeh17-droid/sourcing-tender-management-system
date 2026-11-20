@@ -37,7 +37,7 @@ public static class RankedReportChecks
         {
             var handler = new Handler(mode);
             using var http = new HttpClient(handler);
-            var service = new BidRecommendationService(http, new ConfigurationBuilder().Build());
+            var service = new BidRecommendationService(http, VllmAiChecks.LocalFixtureConfiguration());
             var result = await service.FinalReport(page, 50, default);
             var report = result.Report!;
             Check(result.Scenarios.Single().RecommendedBidId == 1, "AI changed the winner.");
@@ -52,7 +52,7 @@ public static class RankedReportChecks
         page.Offers[1].Currency = "JOD";
         using (var http = new HttpClient(new Handler("referral")))
         {
-            await new BidRecommendationService(http, new ConfigurationBuilder().Build()).DraftReferral(new { offer = new { supplier = "Supplier 1" } }, default);
+            await new BidRecommendationService(http, VllmAiChecks.LocalFixtureConfiguration()).DraftReferral(new { offer = new { supplier = "Supplier 1" } }, default);
         }
         Console.WriteLine("PASS: top-three report, fixed winner, accurate comparisons, invalid/offline AI fallback and winner-only manager instructions.");
     }
