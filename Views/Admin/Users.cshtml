@@ -185,6 +185,30 @@ else
                             <input type="hidden" name="IsActive" value="false" />
                         </div>
                     }
+                    @if (!isCurrentUser && !account.Roles.Contains(RoleNames.Admin) && !account.Roles.Contains(RoleNames.Supplier))
+                    {
+                        @* Sent with fetch, not as part of the edit form, so a reset never saves other unsaved edits. *@
+                        <section class="admin-password-reset mt-3 pt-3 border-top" data-password-reset aria-labelledby="reset-title-@account.Id"
+                                 data-reset-url="@Url.Action("ResetUserPassword")" data-user-id="@account.Id" data-user-name="@account.FullName">
+                            <h3 class="fs-6 mb-1" id="reset-title-@account.Id">Password</h3>
+                            <p class="form-text mb-2">Use this if they forgot their password or the import's password file was lost. They choose a new password when they next sign in.</p>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-reset-start>Reset password</button>
+                            <div class="admin-password-reset-confirm" data-reset-confirm hidden>
+                                <p class="mb-2">Reset the password for @account.FullName? Their current password stops working and they are signed out.</p>
+                                <button type="button" class="btn btn-sm btn-danger" data-reset-go>Reset password</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-reset-cancel>Keep current password</button>
+                            </div>
+                            <div class="admin-password-reset-result" data-reset-result hidden>
+                                <label class="form-label" for="reset-password-@account.Id">Temporary password for @account.FullName</label>
+                                <div class="input-group">
+                                    <input id="reset-password-@account.Id" class="form-control font-monospace" readonly autocomplete="off" data-reset-password />
+                                    <button type="button" class="btn btn-outline-primary" data-reset-copy>Copy</button>
+                                </div>
+                                <p class="form-text mb-0">Shown only now. Give it to @account.FullName privately; they must change it when they sign in.</p>
+                            </div>
+                            <p class="text-danger small mb-0" role="alert" data-reset-error hidden></p>
+                        </section>
+                    }
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -201,6 +225,7 @@ else
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/admin-password-reset.js" asp-append-version="true"></script>
     <script>
         const createForm = document.getElementById('create-user-form');
         const roleSelect = createForm.querySelector('[name="Role"]');

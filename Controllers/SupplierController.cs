@@ -146,7 +146,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         ViewData["IsOfferRevision"] = bid is { Status: not "Draft" };
         return View(new OfferFormViewModel { InvitationId = inv.InvitationId, TenderId = inv.TenderId, BidId = bid?.BidId,
             TenderTitle = inv.Tender.Title, ClosesAt = inv.Tender.ClosesAt, Currency = bid?.Currency ?? "JOD",
-            DeliveryDays = bid?.DeliveryDays ?? 0, TaxPercentage = bid != null && bid.BidItems.Sum(i => i.Quantity * i.UnitPrice) > 0 ? bid.TaxAmount / bid.BidItems.Sum(i => i.Quantity * i.UnitPrice) * 100m : 0, AdditionalCosts = bid?.AdditionalCosts ?? 0, PaymentTerms = bid?.PaymentTerms, TechnicalDetails = bid?.TechnicalDetails,
+            DeliveryDays = bid?.DeliveryDays ?? 0, TaxPercentage = OfferTax.RatePercent, AdditionalCosts = bid?.AdditionalCosts ?? 0, PaymentTerms = bid?.PaymentTerms, TechnicalDetails = bid?.TechnicalDetails,
             Items = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(i => new OfferLineViewModel { PurchaseRequestItemId = i.PurchaseRequestItemId,
                 ItemName = i.ItemName, Unit = i.Unit, RequestedQuantity = i.Quantity, RequestedSpecifications = i.Specifications,
                 Quantity = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.Quantity ?? i.Quantity,
@@ -185,12 +185,13 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         try
         {
             var amount = model.Items.Aggregate(0m, (sum, line) => checked(sum + checked(line.Quantity * line.UnitPrice)));
-            model.TaxAmount = decimal.Round(checked(amount * model.TaxPercentage / 100m), 2, MidpointRounding.AwayFromZero);
+            // Tax is fixed at 16% of the item subtotal (OfferTax); suppliers cannot set it.
+            model.TaxPercentage = OfferTax.RatePercent;
+            model.TaxAmount = OfferTax.Amount(amount);
             if (checked(amount + model.TaxAmount + model.AdditionalCosts) > 9999999999999999.99m) ModelState.AddModelError(nameof(model.Items), "The total offer amount is above the supported limit.");
         }
         catch (OverflowException) { ModelState.AddModelError(nameof(model.Items), "The total offer amount is above the supported limit."); }
         if (model.Currency?.Length != 3) ModelState.AddModelError(nameof(model.Currency), "Use a 3-letter currency code.");
-        if (model.TaxPercentage < 0 || model.TaxPercentage > 100) ModelState.AddModelError(nameof(model.TaxPercentage), "Enter a tax percentage between 0 and 100.");
         if (model.DeliveryDays < 0) ModelState.AddModelError(nameof(model.DeliveryDays), "Delivery days cannot be negative.");
         if (documents?.Any(f => f.Length > 10_000_000 || !AllowedFile(f.FileName)) == true) ModelState.AddModelError(nameof(documents), "Files must be PDF, DOCX, XLSX, JPG, or PNG and no larger than 10 MB each.");
         if (!ModelState.IsValid)

@@ -4,7 +4,8 @@
 @using SourcingTenderManagement.Services.Chat
 @inject AiChatSpeechClient SpeechClient
 @{
-    var workspace = ViewData["WorkspaceController"]?.ToString() ?? "";
+    var isPublic = ViewData["SafiPublic"] is true;
+    var workspace = isPublic ? "Public" : ViewData["WorkspaceController"]?.ToString() ?? "";
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var chatPage = controller == workspace && AiChatPage.Record(workspace, action) != null ? action : null;
@@ -13,10 +14,14 @@
         ?? ViewContext.RouteData.Values["id"]?.ToString()
         ?? FirstQuery(query["id"], query["tenderId"], query["invitationId"], query["reportId"]);
     var recordId = chatPage != null && int.TryParse(rawId, out var id) && id > 0 ? (int?)id : null;
-    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anon";
-    var roleDisplay = RoleNames.DisplayName(workspace);
-    var starters = AiChatPage.StarterPrompts(workspace, recordId.HasValue);
-    var greetings = AiChatPage.CharacterGreetings(workspace, action, recordId.HasValue);
+    var userId = isPublic ? "visitor" : User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anon";
+    var roleDisplay = isPublic ? "Visitor guide" : RoleNames.DisplayName(workspace);
+    var starters = isPublic
+        ? new[] { "What is Tiryaq?", "How do I register my company?", "Where do I sign in?" }
+        : AiChatPage.StarterPrompts(workspace, recordId.HasValue);
+    var greetings = isPublic
+        ? new[] { "Ask me about Tiryaq, registration, or sign-in." }
+        : AiChatPage.CharacterGreetings(workspace, action, recordId.HasValue);
     var greetingsJson = JsonSerializer.Serialize(greetings);
 
     static string? FirstQuery(params Microsoft.Extensions.Primitives.StringValues[] values)
@@ -29,7 +34,7 @@
         return null;
     }
 }
-<div class="ai-chat" data-ai-chat data-user="@userId" data-workspace="@workspace" data-page="@chatPage"
+<div class="ai-chat" data-ai-chat data-public="@(isPublic ? "true" : "false")" data-user="@userId" data-workspace="@workspace" data-page="@chatPage"
      data-record-id="@recordId" data-greetings="@greetingsJson" data-history-limit="@AiChatClient.HistoryMessageLimit">
 
     <div class="ai-chat-dock" data-safi-dock>
@@ -148,7 +153,7 @@
                         <h2 id="ai-chat-title">Safi</h2>
                         <span class="ai-chat-persona-pill" data-safi-state>Ready</span>
                     </div>
-                    <p>Tiryaq Co-Pilot · @roleDisplay</p>
+                    <p>@(isPublic ? "Tiryaq visitor guide" : $"Tiryaq Co-Pilot · {roleDisplay}")</p>
                 </div>
                 <button class="ai-chat-reset" type="button" data-chat-clear hidden title="Start a fresh chat">Clear</button>
                 <button class="ai-chat-close" type="button" aria-label="Close Safi chat" autofocus>
@@ -160,7 +165,7 @@
                 <div class="ai-chat-start" data-chat-start>
                     <h3>How can I help?</h3>
                     <p class="ai-chat-intro">
-                        Ask about your workspace, find a record, or tell me which page to open.
+                        @(isPublic ? "Get help with Tiryaq, supplier registration, or signing in." : "Ask about your workspace, find a record, or tell me which page to open.")
                     </p>
                     @foreach (var prompt in starters)
                     {
@@ -170,14 +175,27 @@
                 <div class="ai-chat-messages" role="log" aria-label="Conversation with Safi" tabindex="-1"></div>
                 <button class="ai-chat-latest" type="button" data-chat-latest hidden>Latest <span aria-hidden="true">↓</span></button>
             </div>
-            <form class="ai-chat-form" asp-controller="AiChat" asp-action="Ask" method="post" data-voice-dictation
+            <form class="ai-chat-form" asp-controller="@(isPublic ? "PublicSafi" : "AiChat")" asp-action="Ask" method="post" data-voice-dictation
                   data-speech-url="@Url.Action("Speak", "AiChat")" data-speech-clip-limit="@SpeechClient.ClipLimit"
                   data-transcribe-url="@Url.Action("Transcribe", "AiChat")" data-workspace="@workspace">
                 <p class="ai-chat-status" role="status" aria-atomic="true"></p>
                 <label class="visually-hidden" for="ai-chat-question">Message Safi</label>
                 <div class="ai-chat-composer">
-                    <textarea id="ai-chat-question" name="question" rows="2" maxlength="1500" required data-voice-search
+                    <textarea id="ai-chat-question" name="question" rows="2" maxlength="@(isPublic ? 800 : 1500)" required data-voice-search
                               dir="auto" enterkeyhint="send" placeholder="Message Safi…" aria-describedby="ai-chat-shortcuts"></textarea>
+                    @if (!isPublic && workspace == RoleNames.Admin)
+                    {
+                        @* Admin only: create employee accounts from an Excel sheet. The file is checked on the server and never sent to the AI. *@
+                        <button type="button" class="ai-chat-attach" data-account-import
+                                data-preview-url="@Url.Action("UserImportPreview", "Admin")"
+                                data-confirm-url="@Url.Action("UserImportConfirm", "Admin")"
+                                data-template-url="@Url.Action("UserImportTemplate", "Admin")"
+                                aria-label="Create accounts from an Excel file" title="Create accounts from an Excel file">
+                            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>
+                        </button>
+                        <input type="file" accept=".xlsx" hidden data-account-import-file aria-hidden="true" tabindex="-1" />
+                    }
                     <button type="button" class="ai-chat-mic" data-chat-voice-toggle
                             aria-label="Start voice conversation" title="Start voice conversation"
                             aria-controls="ai-chat-voice-panel" aria-expanded="false" aria-describedby="ai-chat-voice-status">
@@ -240,3 +258,8 @@
         </button>
     </section>
 </div>
+@if (!isPublic && workspace == RoleNames.Admin)
+{
+    <link rel="stylesheet" href="~/css/ai-chat-import.css" asp-append-version="true" />
+    <script src="~/js/ai-chat-import.js" asp-append-version="true" defer></script>
+}

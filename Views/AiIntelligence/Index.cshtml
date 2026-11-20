@@ -1,5 +1,12 @@
 @model SourcingTenderManagement.Models.AiIntelligencePageModel
 @using System.Text.Json
+@using SourcingTenderManagement.Services.Intelligence
+@functions {
+    static string StatusText(string status) => AiIntelligenceService.FormatStatusLabel(status);
+
+    // Long text values ("No awarded cycle yet") get a smaller size than numbers.
+    static bool IsTextValue(string value) => value.Count(char.IsLetter) > 4;
+}
 @{
     var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
     var initialTenderJson = JsonSerializer.Serialize(Model.SelectedTenderReport, jsonOptions);
@@ -7,6 +14,60 @@
     var maxCatVal = Model.CategoryBreakdown.Count > 0 ? Math.Max(1m, Model.CategoryBreakdown.Max(x => x.Value)) : 1m;
     var maxSupVal = Model.SupplierPerformance.Count > 0 ? Math.Max(1m, Model.SupplierPerformance.Max(x => x.Value)) : 1m;
     var maxTurnVal = Model.TurnaroundTimeline.Count > 0 ? Math.Max(1m, Model.TurnaroundTimeline.Max(x => x.Value)) : 1m;
+    var tenderColumnCount = Model.CanViewSupplierPricing ? 10 : 8;
+
+    // Chart legends show display labels; the table filter works on stored status values.
+    var statusValueByLabel = Model.Tenders
+        .Select(t => t.Status)
+        .Distinct()
+        .GroupBy(StatusText)
+        .ToDictionary(g => g.Key, g => g.First());
+
+    // Each role gets questions it can act on, answerable from the tenders in its own scope.
+    var suggestions = Model.Workspace switch
+    {
+        "Admin" => new[]
+        {
+            "Which stage holds the most tenders right now?",
+            "Which suppliers are invited but rarely submit offers?",
+            "Where are offers being lost to compliance problems?"
+        },
+        "Department" => new[]
+        {
+            "Which of my department's tenders are waiting longest?",
+            "What stage is each of our tenders at?",
+            "Which of our tenders have no offers yet?"
+        },
+        "SourcingOfficer" => new[]
+        {
+            "Which of my tenders are closest to closing?",
+            "Which tenders need more invited suppliers?",
+            "Where are offers failing compliance?"
+        },
+        "EvaluationCommittee" => new[]
+        {
+            "Which tenders are waiting for our evaluation?",
+            "How close are the leading offers on price?",
+            "Which offers have the strongest delivery terms?"
+        },
+        "SourcingManager" => new[]
+        {
+            "Which recommendations are waiting for my review?",
+            "How much do offer prices differ on each tender?",
+            "Which tenders are taking longest to reach a decision?"
+        },
+        "TopCommittee" => new[]
+        {
+            "Which tenders are waiting for our vote?",
+            "Summarize the recommended offer for each tender.",
+            "What risks should we weigh before approving?"
+        },
+        _ => new[]
+        {
+            "Which tenders are waiting longest?",
+            "What stage is each tender at?"
+        }
+    };
 }
 
 @section Styles {
@@ -17,316 +78,270 @@
      data-initial-tender="@initialTenderJson" data-status-chart="@statusChartJson">
     @Html.AntiForgeryToken()
 
-    <!-- 1. HERO & EXPORT / AI TOOLBAR -->
-    <section class="ai-intel-hero" aria-labelledby="ai-intel-heading">
-        <div class="ai-intel-hero-top">
-            <div>
-                <div class="ai-intel-badges">
-                    <span class="ai-intel-pill">✦ Tiryaq AI Intelligence</span>
-                    <span class="ai-intel-pill is-secure">Role Scope: @Model.WorkspaceDisplayName</span>
-                </div>
-                <h1 id="ai-intel-heading">Procurement &amp; Supplier Intelligence Hub</h1>
-                <p class="ai-intel-scope">@Model.DataScopeDescription · Live snapshot @Model.GeneratedUtc UTC</p>
-            </div>
-            <div class="ai-intel-toolbar">
-                <button type="button" class="ai-intel-btn is-gold" data-generate-portfolio>
-                    ✦ Generate Live AI Brief
-                </button>
-                <a class="ai-intel-btn" asp-controller="AiIntelligence" asp-action="ExportDashboard"
-                   asp-route-workspace="@Model.Workspace" asp-route-format="pdf">
-                    ⬇ Download PDF
-                </a>
-                <a class="ai-intel-btn" asp-controller="AiIntelligence" asp-action="ExportDashboard"
-                   asp-route-workspace="@Model.Workspace" asp-route-format="excel">
-                    ⬇ Download Excel (.xlsx)
-                </a>
-            </div>
+    <header class="ai-intel-hero">
+        <div class="ai-intel-hero-main">
+            <p class="ai-intel-workspace">@Model.WorkspaceDisplayName workspace</p>
+            <h1 id="ai-intel-heading">AI Intelligence</h1>
+            <p class="ai-intel-scope">@Model.DataScopeDescription</p>
+            <p class="ai-intel-stamp">Live snapshot, @Model.GeneratedUtc UTC</p>
         </div>
-        <div class="ai-intel-advisory-note">
-            <span>🔒</span>
-            <span>@SourcingTenderManagement.Services.Intelligence.AiIntelligenceService.AdvisoryBannerText</span>
+        <div class="ai-intel-toolbar" aria-label="Download this page">
+            <a class="ai-intel-btn" asp-controller="AiIntelligence" asp-action="ExportDashboard"
+               asp-route-workspace="@Model.Workspace" asp-route-format="pdf" download>Download PDF</a>
+            <a class="ai-intel-btn" asp-controller="AiIntelligence" asp-action="ExportDashboard"
+               asp-route-workspace="@Model.Workspace" asp-route-format="excel" download>Download Excel</a>
         </div>
-    </section>
+        <p class="ai-intel-advisory-note">@AiIntelligenceService.AdvisoryBannerText</p>
+    </header>
 
-    <!-- 2. LIVE KPI CARDS -->
-    <section class="ai-intel-kpi-grid" aria-label="Key Performance Indicators">
-        @foreach (var kpi in Model.Kpis)
+    <nav class="ai-intel-nav" aria-label="On this page" data-section-nav>
+        <a href="#overview">Overview</a>
+        <a href="#ask-ai">Ask AI</a>
+        <a href="#tenders">Tenders</a>
+        @if (Model.CanViewSupplierPricing)
         {
-            <article class="ai-intel-kpi" data-tone="@kpi.Tone">
-                <div class="ai-intel-kpi-label">@kpi.Label</div>
-                <div class="ai-intel-kpi-value">@kpi.Value</div>
-                <div class="ai-intel-kpi-sub">@kpi.Subtext</div>
-            </article>
+            <a href="#suppliers">Suppliers</a>
         }
-    </section>
+        <a href="#documents">Documents</a>
+    </nav>
 
-    <!-- 3. INTERACTIVE VISUAL CHARTS -->
-    <section class="ai-intel-charts-grid" aria-label="Interactive Procurement Charts">
-        <!-- Chart A: Tender Status Donut -->
-        <article class="ai-intel-chart-card">
-            <div>
-                <h3>Tender Status Distribution</h3>
-                <p class="ai-intel-section-sub">Click a status segment to filter the Tenders table below</p>
-            </div>
-            @if (Model.StatusDistribution.Count == 0)
-            {
-                <p class="ai-intel-status-msg">No tenders in your current workspace scope yet.</p>
-            }
-            else
-            {
-                <div class="ai-intel-donut-wrap">
-                    <svg class="ai-intel-donut-svg" viewBox="0 0 120 120" data-status-donut aria-label="Tender status donut chart"></svg>
-                    <div class="ai-intel-legend">
-                        @foreach (var seg in Model.StatusDistribution)
-                        {
-                            <button type="button" class="ai-intel-legend-item" data-filter-status="@seg.Label">
-                                <span><span class="ai-intel-swatch" style="background:@seg.Color"></span>@seg.Label</span>
-                                <strong>@seg.ValueFormatted (@seg.SecondaryFormatted)</strong>
-                            </button>
-                        }
-                    </div>
-                </div>
-            }
-        </article>
-
-        <!-- Chart B: Category Breakdown -->
-        <article class="ai-intel-chart-card">
-            <div>
-                <h3>Procurement Categories &amp; Offer Volume</h3>
-                <p class="ai-intel-section-sub">Distribution of scoped tenders and supplier quotations by category</p>
-            </div>
-            @if (Model.CategoryBreakdown.Count == 0)
-            {
-                <p class="ai-intel-status-msg">No category activity recorded yet.</p>
-            }
-            else
-            {
-                <div class="ai-intel-bars">
-                    @foreach (var cat in Model.CategoryBreakdown)
-                    {
-                        var pct = Math.Clamp(Math.Round(100m * cat.Value / maxCatVal, 1), 6m, 100m);
-                        <div class="ai-intel-bar-row">
-                            <div class="ai-intel-bar-top">
-                                <span class="ai-intel-bar-label">@cat.Label</span>
-                                <span class="ai-intel-bar-meta">@cat.ValueFormatted · @cat.SecondaryFormatted</span>
-                            </div>
-                            <div class="ai-intel-bar-track">
-                                <div class="ai-intel-bar-fill" style="width:@(pct)%;background:@cat.Color"></div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-        </article>
-
-        <!-- Chart C: Supplier Participation & Win Performance -->
-        <article class="ai-intel-chart-card">
-            <div>
-                <h3>Supplier Participation &amp; Awards</h3>
-                <p class="ai-intel-section-sub">Submitted offers, compliance rates, and awarded tenders</p>
-            </div>
-            @if (!Model.CanViewSupplierPricing)
-            {
-                <p class="ai-intel-status-msg">Individual supplier quotation analytics are restricted in the Department workspace per Tiryaq confidentiality rules.</p>
-            }
-            else if (Model.SupplierPerformance.Count == 0)
-            {
-                <p class="ai-intel-status-msg">No supplier quotation activity recorded in scope yet.</p>
-            }
-            else
-            {
-                <div class="ai-intel-bars">
-                    @foreach (var sup in Model.SupplierPerformance)
-                    {
-                        var pct = Math.Clamp(Math.Round(100m * sup.Value / maxSupVal, 1), 6m, 100m);
-                        <div class="ai-intel-bar-row">
-                            <div class="ai-intel-bar-top">
-                                <span class="ai-intel-bar-label">@sup.Label</span>
-                                <span class="ai-intel-bar-meta">@sup.ValueFormatted · @sup.SecondaryFormatted</span>
-                            </div>
-                            <div class="ai-intel-bar-track">
-                                <div class="ai-intel-bar-fill" style="width:@(pct)%;background:@sup.Color"></div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-        </article>
-
-        <!-- Chart D: Tender Turnaround Duration -->
-        <article class="ai-intel-chart-card">
-            <div>
-                <h3>Tender Lifecycle Duration (Creation → Award Notification)</h3>
-                <p class="ai-intel-section-sub">Completed award turnaround vs. active elapsed time</p>
-            </div>
-            @if (Model.TurnaroundTimeline.Count == 0)
-            {
-                <p class="ai-intel-status-msg">No tender timeline records available yet.</p>
-            }
-            else
-            {
-                <div class="ai-intel-bars">
-                    @foreach (var item in Model.TurnaroundTimeline)
-                    {
-                        var pct = Math.Clamp(Math.Round(100m * item.Value / maxTurnVal, 1), 6m, 100m);
-                        <div class="ai-intel-bar-row">
-                            <div class="ai-intel-bar-top">
-                                <span class="ai-intel-bar-label">@item.Label</span>
-                                <span class="ai-intel-bar-meta">@item.ValueFormatted · @item.SecondaryFormatted</span>
-                            </div>
-                            <div class="ai-intel-bar-track">
-                                <div class="ai-intel-bar-fill" style="width:@(pct)%;background:@item.Color"></div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-        </article>
-    </section>
-
-    <!-- 4. ANALYSIS CARDS & CUSTOM AI ADVISORY STUDIO -->
-    <section class="ai-intel-section" aria-labelledby="ai-cards-heading">
+    <section class="ai-intel-section" id="overview" aria-labelledby="overview-heading">
         <div class="ai-intel-section-head">
             <div>
-                <h2 id="ai-cards-heading">Analysis Cards &amp; AI Advisory Recommendations</h2>
-                <p class="ai-intel-section-sub">Grounded in live database metrics — ask for custom comparisons or bottleneck diagnostics</p>
+                <h2 id="overview-heading">Overview</h2>
+                <p class="ai-intel-section-sub">Current figures for the tenders in your workspace.</p>
             </div>
         </div>
 
-        <form class="ai-intel-prompt-bar" data-portfolio-form>
-            <input type="text" class="ai-intel-input" name="question" maxlength="1000" dir="auto"
-                   placeholder="Ask AI for a custom analysis (e.g., Compare open tenders, identify compliance risks, or summarize supplier participation)…" />
-            <button type="submit" class="ai-intel-btn is-primary" data-portfolio-submit>✦ Analyze Live Data</button>
-        </form>
-        <p class="ai-intel-status-msg" data-portfolio-status hidden></p>
-
-        <div data-ai-portfolio-output hidden style="margin-bottom:1.15rem"></div>
-
-        <div class="ai-intel-cards-grid">
-            @foreach (var card in Model.AnalysisCards)
+        <div class="ai-intel-kpi-grid">
+            @foreach (var kpi in Model.Kpis)
             {
-                <article class="ai-intel-card">
-                    <div class="ai-intel-card-head">
-                        <span class="ai-intel-card-cat">@card.Category</span>
-                        <span class="ai-intel-card-metric">@card.Metric</span>
-                    </div>
-                    <h4>@card.Title</h4>
-                    <p>@card.Summary</p>
+                <article class="ai-intel-kpi" data-tone="@kpi.Tone">
+                    <div class="ai-intel-kpi-label">@kpi.Label</div>
+                    <div class="ai-intel-kpi-value @(IsTextValue(kpi.Value) ? "is-text" : null)">@kpi.Value</div>
+                    <div class="ai-intel-kpi-sub">@kpi.Subtext</div>
                 </article>
             }
         </div>
-    </section>
 
-    <!-- 5. PER-TENDER INTERACTIVE VISUAL ANALYTICAL REPORT (DOC ITEM 4) -->
-    <section class="ai-intel-section" id="tender-explorer" aria-labelledby="tender-report-heading">
-        <div class="ai-intel-section-head">
-            <div>
-                <h2 id="tender-report-heading">Interactive Tender Analytical Report</h2>
-                <p class="ai-intel-section-sub">Select any tender to inspect its visual lifecycle, requirements, offer comparisons, scores, and AI recommendation</p>
-            </div>
-            @if (Model.TenderOptions.Count > 0)
-            {
-                <div class="ai-intel-toolbar">
-                    <label class="visually-hidden" for="ai-tender-selector">Select Tender</label>
-                    <select id="ai-tender-selector" class="ai-intel-select" data-tender-select>
-                        @foreach (var opt in Model.TenderOptions)
-                        {
-                            <option value="@opt.TenderId" selected="@(Model.SelectedTenderId == opt.TenderId)">
-                                #@opt.TenderId — @opt.Title (@opt.Status · @opt.Category)
-                            </option>
-                        }
-                    </select>
-                    <button type="button" class="ai-intel-btn is-primary" data-analyze-tender>
-                        ✦ AI Tender Recommendation
-                    </button>
-                    <a class="ai-intel-btn is-surface" data-export-tender-pdf
-                       href="/AiIntelligence/ExportTender?tenderId=@Model.SelectedTenderId&amp;workspace=@Model.Workspace&amp;format=pdf">
-                        ⬇ Tender PDF
-                    </a>
-                    <a class="ai-intel-btn is-surface" data-export-tender-excel
-                       href="/AiIntelligence/ExportTender?tenderId=@Model.SelectedTenderId&amp;workspace=@Model.Workspace&amp;format=excel">
-                        ⬇ Tender Excel
-                    </a>
+        <div class="ai-intel-charts-grid">
+            <article class="ai-intel-chart-card">
+                <div>
+                    <h3>Tenders by status</h3>
+                    <p class="ai-intel-section-sub">Select a status to filter the tenders table.</p>
                 </div>
-            }
-        </div>
+                @if (Model.StatusDistribution.Count == 0)
+                {
+                    <p class="ai-intel-status-msg">No tenders in your workspace yet.</p>
+                }
+                else
+                {
+                    <div class="ai-intel-donut-wrap">
+                        <svg class="ai-intel-donut-svg" viewBox="0 0 120 120" data-status-donut role="img" aria-label="Tender status donut chart"></svg>
+                        <div class="ai-intel-legend">
+                            @foreach (var seg in Model.StatusDistribution)
+                            {
+                                var statusValue = statusValueByLabel.TryGetValue(seg.Label, out var raw) ? raw : seg.Label;
+                                <button type="button" class="ai-intel-legend-item" data-filter-status="@statusValue" aria-pressed="false">
+                                    <span><span class="ai-intel-swatch" style="background:@seg.Color"></span>@seg.Label</span>
+                                    <strong>@seg.ValueFormatted (@seg.SecondaryFormatted)</strong>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </article>
 
-        <p class="ai-intel-status-msg" data-tender-status hidden></p>
-        <div data-tender-ai-box hidden style="margin-bottom:1rem"></div>
-        <div data-tender-report-container>
-            @if (Model.TenderOptions.Count == 0)
+            <article class="ai-intel-chart-card">
+                <div>
+                    <h3>Categories and offer volume</h3>
+                    <p class="ai-intel-section-sub">Tenders and supplier quotations per procurement category.</p>
+                </div>
+                @if (Model.CategoryBreakdown.Count == 0)
+                {
+                    <p class="ai-intel-status-msg">No category activity recorded yet.</p>
+                }
+                else
+                {
+                    <div class="ai-intel-bars">
+                        @foreach (var cat in Model.CategoryBreakdown)
+                        {
+                            var pct = Math.Clamp(Math.Round(100m * cat.Value / maxCatVal, 1), 6m, 100m);
+                            <div class="ai-intel-bar-row">
+                                <div class="ai-intel-bar-top">
+                                    <span class="ai-intel-bar-label" title="@cat.Label">@cat.Label</span>
+                                    <span class="ai-intel-bar-meta">@cat.ValueFormatted · @cat.SecondaryFormatted</span>
+                                </div>
+                                <div class="ai-intel-bar-track">
+                                    <div class="ai-intel-bar-fill" style="width:@(pct)%;background:@cat.Color"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </article>
+
+            @if (Model.CanViewSupplierPricing)
             {
-                <p class="ai-intel-status-msg">No tenders available in your authorized workspace yet.</p>
+                <article class="ai-intel-chart-card">
+                    <div>
+                        <h3>Supplier participation and awards</h3>
+                        <p class="ai-intel-section-sub">Submitted offers, compliance and awarded tenders.</p>
+                    </div>
+                    @if (Model.SupplierPerformance.Count == 0)
+                    {
+                        <p class="ai-intel-status-msg">No supplier quotation activity in scope yet.</p>
+                    }
+                    else
+                    {
+                        <div class="ai-intel-bars">
+                            @foreach (var sup in Model.SupplierPerformance)
+                            {
+                                var pct = Math.Clamp(Math.Round(100m * sup.Value / maxSupVal, 1), 6m, 100m);
+                                <div class="ai-intel-bar-row">
+                                    <div class="ai-intel-bar-top">
+                                        <span class="ai-intel-bar-label" title="@sup.Label">@sup.Label</span>
+                                        <span class="ai-intel-bar-meta">@sup.ValueFormatted · @sup.SecondaryFormatted</span>
+                                    </div>
+                                    <div class="ai-intel-bar-track">
+                                        <div class="ai-intel-bar-fill" style="width:@(pct)%;background:@sup.Color"></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </article>
             }
+
+            <article class="ai-intel-chart-card">
+                <div>
+                    <h3>Time from creation to award</h3>
+                    <p class="ai-intel-section-sub">Awarded tenders show their full time; active tenders show time so far.</p>
+                </div>
+                @if (Model.TurnaroundTimeline.Count == 0)
+                {
+                    <p class="ai-intel-status-msg">No tender timeline records yet.</p>
+                }
+                else
+                {
+                    <div class="ai-intel-bars">
+                        @foreach (var item in Model.TurnaroundTimeline)
+                        {
+                            var pct = Math.Clamp(Math.Round(100m * item.Value / maxTurnVal, 1), 6m, 100m);
+                            <div class="ai-intel-bar-row">
+                                <div class="ai-intel-bar-top">
+                                    <span class="ai-intel-bar-label" title="@item.Label">@item.Label</span>
+                                    <span class="ai-intel-bar-meta">@item.ValueFormatted · @item.SecondaryFormatted</span>
+                                </div>
+                                <div class="ai-intel-bar-track">
+                                    <div class="ai-intel-bar-fill" style="width:@(pct)%;background:@item.Color"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </article>
         </div>
+        @if (!Model.CanViewSupplierPricing)
+        {
+            <p class="ai-intel-note">Supplier names and prices are hidden in the Department workspace to keep competing quotations confidential.</p>
+        }
     </section>
 
-    <!-- 6. EXCEL (.XLSX) & PDF (.PDF) UPLOAD & AI EXTRACTION STUDIO -->
-    <section class="ai-intel-section" aria-labelledby="upload-studio-heading">
+    <section class="ai-intel-section" id="ask-ai" aria-labelledby="ask-ai-heading">
         <div class="ai-intel-section-head">
             <div>
-                <h2 id="upload-studio-heading">Excel &amp; PDF Document Intelligence (Upload &amp; Export)</h2>
-                <p class="ai-intel-section-sub">Upload any procurement spreadsheet (.xlsx) or document (.pdf) to extract tables, cross-reference live Tiryaq data, and download an analyzed report</p>
+                <h2 id="ask-ai-heading">Ask AI</h2>
+                <p class="ai-intel-section-sub">Ask a question about your tenders, or leave it empty for a general brief. Answers use only the data you are allowed to see.</p>
             </div>
         </div>
 
-        <form class="ai-intel-dropzone" data-upload-form enctype="multipart/form-data">
-            <div class="ai-intel-prompt-bar" style="margin-bottom:0.65rem">
-                <input type="file" class="ai-intel-input" name="file" accept=".xlsx,.pdf" required data-upload-file />
-                <input type="text" class="ai-intel-input" name="prompt" maxlength="1000" dir="auto"
-                       placeholder="Optional instruction (e.g., Extract lowest unit prices and compare against our suppliers)…" />
-                <button type="submit" class="ai-intel-btn is-primary" data-upload-submit>✦ Upload &amp; Analyze File</button>
+        <form class="ai-intel-ask" data-portfolio-form>
+            <div class="ai-intel-prompt-bar">
+                <label class="visually-hidden" for="ai-portfolio-question">Question for the AI</label>
+                <input type="text" id="ai-portfolio-question" class="ai-intel-input" name="question" maxlength="1000" dir="auto"
+                       autocomplete="off" placeholder="Ask about your tenders" />
+                <button type="submit" class="ai-intel-btn is-primary" data-portfolio-submit data-busy-label="Generating…">Generate AI brief</button>
             </div>
-            <p class="ai-intel-status-msg" style="margin:0">Supports Excel workbooks (<code>.xlsx</code>) and PDF files (<code>.pdf</code>) up to 10 MB · Generates downloadable PDF &amp; Excel analysis reports.</p>
+            <div class="ai-intel-suggestions" role="group" aria-label="Suggested questions">
+                <span class="ai-intel-suggestions-label">Try:</span>
+                @foreach (var suggestion in suggestions)
+                {
+                    <button type="button" class="ai-intel-chip" data-suggestion="@suggestion">@suggestion</button>
+                }
+            </div>
         </form>
+        <p class="ai-intel-status-msg" data-portfolio-status role="status" aria-live="polite" hidden></p>
+        <div class="ai-intel-live" data-ai-portfolio-output hidden tabindex="-1"></div>
 
-        <p class="ai-intel-status-msg" data-upload-status hidden></p>
-        <div data-upload-results hidden style="margin-top:1.1rem"></div>
+        @if (Model.AnalysisCards.Count > 0)
+        {
+            <h3 class="ai-intel-subhead">Highlights from your data</h3>
+            <div class="ai-intel-cards-grid">
+                @foreach (var card in Model.AnalysisCards)
+                {
+                    <article class="ai-intel-card" data-tone="@card.Tone">
+                        <div class="ai-intel-card-head">
+                            <span class="ai-intel-card-cat">@card.Category</span>
+                            <span class="ai-intel-card-metric">@card.Metric</span>
+                        </div>
+                        <h4>@card.Title</h4>
+                        <p>@card.Summary</p>
+                    </article>
+                }
+            </div>
+        }
     </section>
 
-    <!-- 7. INTERACTIVE TENDERS ANALYTICAL TABLE -->
-    <section class="ai-intel-section" aria-labelledby="tenders-table-heading">
+    <section class="ai-intel-section" id="tenders" aria-labelledby="tenders-heading">
         <div class="ai-intel-section-head">
             <div>
-                <h2 id="tenders-table-heading">Tenders Analytical Table</h2>
-                <p class="ai-intel-section-sub">Click any row to open its full visual analytical report above</p>
+                <h2 id="tenders-heading">Tenders</h2>
+                <p class="ai-intel-section-sub">Choose a tender to open its full report below the table.</p>
             </div>
         </div>
 
-        <div class="ai-intel-table-controls">
-            <input type="search" class="ai-intel-input" placeholder="Search by Tender ID, title, department, or category…" data-tender-search style="min-width:280px" />
-            <select class="ai-intel-select" data-tender-status-filter>
-                <option value="">All Statuses</option>
+        <div class="ai-intel-table-controls" hidden="@(Model.Tenders.Count == 0)">
+            <label class="visually-hidden" for="ai-tender-search">Search tenders</label>
+            <input type="search" id="ai-tender-search" class="ai-intel-input is-wide" placeholder="Search tenders" title="Search by tender number, title, department or category"
+                   autocomplete="off" data-tender-search />
+            <label class="visually-hidden" for="ai-tender-status-filter">Filter by status</label>
+            <select id="ai-tender-status-filter" class="ai-intel-select" data-tender-status-filter>
+                <option value="">All statuses</option>
                 @foreach (var st in Model.Tenders.Select(t => t.Status).Distinct())
                 {
-                    <option value="@st">@st</option>
+                    <option value="@st">@StatusText(st)</option>
                 }
             </select>
+            <button type="button" class="ai-intel-btn is-surface" data-tender-clear hidden>Clear filters</button>
+            <p class="ai-intel-count" data-tender-count aria-live="polite">
+                @Model.Tenders.Count @(Model.Tenders.Count == 1 ? "tender" : "tenders")
+            </p>
         </div>
 
         <div class="ai-intel-table-wrap">
             <table class="ai-intel-table" data-tenders-table>
                 <thead>
                     <tr>
-                        <th>Tender</th>
-                        <th>Category</th>
-                        <th>Department</th>
-                        <th>Status</th>
-                        <th>Round</th>
-                        <th>Invited / Offers / Compliant</th>
+                        <th scope="col">Tender</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Department</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Round</th>
+                        <th scope="col">Invited / offers / compliant</th>
                         @if (Model.CanViewSupplierPricing)
                         {
-                            <th>Price Range</th>
-                            <th>Winner</th>
+                            <th scope="col">Price range</th>
+                            <th scope="col">Winner</th>
                         }
-                        <th>Lifecycle Duration</th>
-                        <th>Action</th>
+                        <th scope="col">Duration</th>
+                        <th scope="col"><span class="visually-hidden">Action</span></th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (Model.Tenders.Count == 0)
                     {
-                        <tr><td colspan="10">No tenders found in your workspace scope.</td></tr>
+                        <tr><td colspan="@tenderColumnCount" class="ai-intel-empty-cell">No tenders in your workspace yet. Tenders appear here once they reach your stage of the process.</td></tr>
                     }
                     else
                     {
@@ -334,11 +349,11 @@
                         {
                             <tr class="is-clickable @(Model.SelectedTenderId == row.TenderId ? "is-selected" : null)"
                                 data-tender-row="@row.TenderId" data-status="@row.Status">
-                                <td><strong>#@row.TenderId</strong> — @row.Title</td>
+                                <td><strong>#@row.TenderId</strong> @row.Title</td>
                                 <td>@row.Category</td>
                                 <td>@row.Department</td>
                                 <td>
-                                    <span class="ai-intel-tag @(row.Status == "Awarded" ? "is-win" : row.SubmittedOffersCount == 0 ? "is-warn" : "")">@row.Status</span>
+                                    <span class="ai-intel-tag @(row.Status == "Awarded" ? "is-win" : row.SubmittedOffersCount == 0 ? "is-warn" : "")">@StatusText(row.Status)</span>
                                 </td>
                                 <td>R@(row.Round)</td>
                                 <td>@row.InvitedCount / @row.SubmittedOffersCount / @row.CompliantOffersCount</td>
@@ -351,65 +366,109 @@
                                         }
                                         else
                                         {
-                                            <span class="text-muted">No bids</span>
+                                            <span class="ai-intel-muted">No offers</span>
                                         }
                                     </td>
-                                    <td>@(row.WinningSupplier ?? "—")</td>
+                                    <td>@(row.WinningSupplier ?? "–")</td>
                                 }
                                 <td>@row.LifecycleFormatted</td>
                                 <td>
-                                    <button type="button" class="ai-intel-btn is-surface" style="padding:0.25rem 0.6rem;font-size:0.77rem"
-                                            data-inspect-tender="@row.TenderId">Inspect</button>
+                                    <button type="button" class="ai-intel-btn is-surface is-small" data-inspect-tender="@row.TenderId"
+                                            aria-label="Open report for tender #@row.TenderId">Open</button>
                                 </td>
                             </tr>
                         }
+                        <tr data-tender-empty hidden>
+                            <td colspan="@tenderColumnCount" class="ai-intel-empty-cell">No tenders match your search. Clear the filters to see all tenders.</td>
+                        </tr>
                     }
                 </tbody>
             </table>
         </div>
-    </section>
 
-    <!-- 8. INTERACTIVE SUPPLIERS ANALYTICAL TABLE -->
-    @if (Model.CanViewSupplierPricing)
-    {
-        <section class="ai-intel-section" aria-labelledby="suppliers-table-heading">
+        <div class="ai-intel-report" id="tender-explorer" aria-labelledby="tender-report-heading">
             <div class="ai-intel-section-head">
                 <div>
-                    <h2 id="suppliers-table-heading">Suppliers Performance &amp; Compliance Table</h2>
-                    <p class="ai-intel-section-sub">Live participation, technical/document compliance, and procurement award metrics</p>
+                    <h3 id="tender-report-heading" tabindex="-1">Tender report</h3>
+                    <p class="ai-intel-section-sub">Lifecycle stage, requirements, offer comparison, committee scores and AI recommendation.</p>
+                </div>
+                @if (Model.TenderOptions.Count > 0)
+                {
+                    <div class="ai-intel-toolbar">
+                        <label class="visually-hidden" for="ai-tender-selector">Tender</label>
+                        <select id="ai-tender-selector" class="ai-intel-select" data-tender-select>
+                            @foreach (var opt in Model.TenderOptions)
+                            {
+                                <option value="@opt.TenderId" selected="@(Model.SelectedTenderId == opt.TenderId)">
+                                    #@opt.TenderId @opt.Title (@StatusText(opt.Status), @opt.Category)
+                                </option>
+                            }
+                        </select>
+                        <button type="button" class="ai-intel-btn is-primary" data-analyze-tender data-busy-label="Preparing…">Get AI recommendation</button>
+                        <a class="ai-intel-btn is-surface" data-export-tender-pdf download
+                           href="/AiIntelligence/ExportTender?tenderId=@Model.SelectedTenderId&amp;workspace=@Model.Workspace&amp;format=pdf">Tender PDF</a>
+                        <a class="ai-intel-btn is-surface" data-export-tender-excel download
+                           href="/AiIntelligence/ExportTender?tenderId=@Model.SelectedTenderId&amp;workspace=@Model.Workspace&amp;format=excel">Tender Excel</a>
+                    </div>
+                }
+            </div>
+
+            <p class="ai-intel-status-msg" data-tender-status role="status" aria-live="polite" hidden></p>
+            <div class="ai-intel-live" data-tender-ai-box hidden tabindex="-1"></div>
+            <div class="ai-intel-report-body" data-tender-report-container aria-busy="false">
+                @if (Model.TenderOptions.Count == 0)
+                {
+                    <p class="ai-intel-status-msg">No tenders available in your workspace yet.</p>
+                }
+            </div>
+        </div>
+    </section>
+
+    @if (Model.CanViewSupplierPricing)
+    {
+        <section class="ai-intel-section" id="suppliers" aria-labelledby="suppliers-heading">
+            <div class="ai-intel-section-head">
+                <div>
+                    <h2 id="suppliers-heading">Suppliers</h2>
+                    <p class="ai-intel-section-sub">Participation, compliance and awards per supplier.</p>
                 </div>
             </div>
 
             <div class="ai-intel-table-controls">
-                <input type="search" class="ai-intel-input" placeholder="Search supplier company, category, or status…" data-supplier-search style="min-width:280px" />
+                <label class="visually-hidden" for="ai-supplier-search">Search suppliers</label>
+                <input type="search" id="ai-supplier-search" class="ai-intel-input is-wide" placeholder="Search suppliers" title="Search by company, category or status"
+                       autocomplete="off" data-supplier-search />
+                <p class="ai-intel-count" data-supplier-count aria-live="polite">
+                    @Model.Suppliers.Count @(Model.Suppliers.Count == 1 ? "supplier" : "suppliers")
+                </p>
             </div>
 
             <div class="ai-intel-table-wrap">
                 <table class="ai-intel-table" data-suppliers-table>
                     <thead>
                         <tr>
-                            <th>Supplier</th>
-                            <th>Category</th>
-                            <th>Account Status</th>
-                            <th>Invitations</th>
-                            <th>Submitted Offers</th>
-                            <th>Compliant Offers</th>
-                            <th>Participation Rate</th>
-                            <th>Compliance Rate</th>
-                            <th>Awarded Wins</th>
+                            <th scope="col">Supplier</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Account status</th>
+                            <th scope="col">Invitations</th>
+                            <th scope="col">Offers submitted</th>
+                            <th scope="col">Compliant offers</th>
+                            <th scope="col">Participation</th>
+                            <th scope="col">Compliance</th>
+                            <th scope="col">Awards won</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (Model.Suppliers.Count == 0)
                         {
-                            <tr><td colspan="9">No suppliers recorded in scope.</td></tr>
+                            <tr><td colspan="9" class="ai-intel-empty-cell">No suppliers recorded in scope.</td></tr>
                         }
                         else
                         {
                             @foreach (var s in Model.Suppliers)
                             {
-                                <tr>
-                                    <td><strong>#@s.SupplierId</strong> — @s.CompanyName</td>
+                                <tr data-supplier-row>
+                                    <td><strong>#@s.SupplierId</strong> @s.CompanyName</td>
                                     <td>@s.Category</td>
                                     <td><span class="ai-intel-tag @(s.Status == "Approved" ? "is-win" : "")">@s.Status</span></td>
                                     <td>@s.InvitationsCount</td>
@@ -420,12 +479,42 @@
                                     <td><strong>@s.AwardedCount</strong></td>
                                 </tr>
                             }
+                            <tr data-supplier-empty hidden>
+                                <td colspan="9" class="ai-intel-empty-cell">No suppliers match your search.</td>
+                            </tr>
                         }
                     </tbody>
                 </table>
             </div>
         </section>
     }
+
+    <section class="ai-intel-section" id="documents" aria-labelledby="documents-heading">
+        <div class="ai-intel-section-head">
+            <div>
+                <h2 id="documents-heading">Document analysis</h2>
+                <p class="ai-intel-section-sub">Upload a spreadsheet or PDF. The AI extracts its tables, compares them with your Tiryaq data and prepares downloadable reports.</p>
+            </div>
+        </div>
+
+        <form class="ai-intel-dropzone" data-upload-form enctype="multipart/form-data" novalidate>
+            <label class="ai-intel-drop-target" for="ai-upload-file">
+                <input type="file" id="ai-upload-file" class="ai-intel-file-input" name="file" accept=".xlsx,.pdf" data-upload-file
+                       aria-describedby="ai-upload-hint" />
+                <span class="ai-intel-drop-title" data-upload-filename>Drop an Excel or PDF file here, or choose a file</span>
+                <span class="ai-intel-drop-hint" id="ai-upload-hint">.xlsx or .pdf, under 10 MB</span>
+            </label>
+            <div class="ai-intel-prompt-bar">
+                <label class="visually-hidden" for="ai-upload-prompt">Instruction for the AI</label>
+                <input type="text" id="ai-upload-prompt" class="ai-intel-input" name="prompt" maxlength="1000" dir="auto"
+                       autocomplete="off" placeholder="Optional: what should the AI look for?" />
+                <button type="submit" class="ai-intel-btn is-primary" data-upload-submit data-busy-label="Analyzing…" disabled>Upload and analyze</button>
+            </div>
+        </form>
+
+        <p class="ai-intel-status-msg" data-upload-status role="status" aria-live="polite" hidden></p>
+        <div class="ai-intel-live" data-upload-results hidden tabindex="-1"></div>
+    </section>
 </div>
 
 @section Scripts {

@@ -25,11 +25,27 @@ builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidR
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHttpClient<AiChatClient>(client => client.Timeout = TimeSpan.FromSeconds(90))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient(nameof(SourcingTenderManagement.Controllers.PublicSafiController),
+        client => client.Timeout = TimeSpan.FromSeconds(12))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHttpClient<AiChatSpeechClient>(client => client.Timeout = TimeSpan.FromSeconds(40))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHttpClient<AiIntelligenceService>(client => client.Timeout = TimeSpan.FromSeconds(90))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+// Every AI model call goes through AiGateway: one client path, daily limits and the AiInteractions log.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<SourcingTenderManagement.Services.Ai.IAiInteractionStore, SourcingTenderManagement.Services.Ai.EfAiInteractionStore>();
+builder.Services.AddSingleton<SourcingTenderManagement.Services.Ai.AiGateway>();
 builder.Services.AddSingleton<AiChatDownloadStore>();
+// Offer pre-check for the Sourcing Officer: code checks plus an optional AI document review.
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Compliance.OfferPreCheck>(client => client.Timeout = TimeSpan.FromSeconds(90))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+// Employee accounts: shared creation rules, spreadsheet import, and the forced first-sign-in password change.
+builder.Services.AddScoped<SourcingTenderManagement.Services.Admin.EmployeeAccounts>();
+builder.Services.AddScoped<SourcingTenderManagement.Services.Admin.EmployeeImport>();
+builder.Services.AddSingleton<SourcingTenderManagement.Services.Admin.EmployeeImportPreviewStore>();
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
+    options.Filters.Add<SourcingTenderManagement.Services.Admin.PasswordChangeRequiredFilter>());
 builder.Services.AddScoped<AiChatContext>();
 builder.Services.AddScoped<AiChatExportService>();
 builder.Services.AddScoped<AiChatWorkspaceActions>();
@@ -42,7 +58,7 @@ builder.Services.AddRateLimiter(options =>
 {
     options.OnRejected = (context, _) =>
     {
-        if (context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName == "AiChat")
+        if (context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName is "AiChat" or "PublicSafi")
             context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         return ValueTask.CompletedTask;
     };
@@ -51,6 +67,14 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("PublicSafi", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 8,
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
@@ -113,6 +137,17 @@ if (args.Contains("--top-committee-foundation-check"))
 if (args.Contains("--vllm-ai-checks"))
 {
     await SourcingTenderManagement.Checks.VllmAiChecks.RunAsync();
+    return;
+}
+if (args.Contains("--account-import-checks"))
+{
+    SourcingTenderManagement.Checks.EmployeeImportChecks.Run();
+    return;
+}
+// Known-answer checks against the real configured model. Sends made-up data to that provider.
+if (args.Contains("--ai-eval"))
+{
+    await SourcingTenderManagement.Checks.AiEvalChecks.RunAsync(app.Configuration);
     return;
 }
 using (var scope = app.Services.CreateScope())

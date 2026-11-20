@@ -30,6 +30,7 @@
 }
 
 .ai-chat-dock > * { pointer-events: auto; }
+.ai-chat[data-public="true"] :is(.ai-chat-mic, .ai-chat-speech, .ai-chat-voice-panel) { display: none; }
 
 .ai-chat-speech {
     position: relative;

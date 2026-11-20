@@ -28,7 +28,8 @@ public class OfferFormViewModel
     [Required, StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = "JOD";
     [Range(0, 3650)] public int DeliveryDays { get; set; }
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever] public decimal TaxAmount { get; set; }
-    [Range(typeof(decimal), "0", "100")] public decimal TaxPercentage { get; set; }
+    // Fixed rate shown on the form; never read from the request, so a posted value cannot change it.
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever] public decimal TaxPercentage { get; set; } = OfferTax.RatePercent;
     [Range(typeof(decimal), "0", "9999999999999999.99")] public decimal AdditionalCosts { get; set; }
     [StringLength(1000)] public string? PaymentTerms { get; set; }
     public DateOnly? ValidUntil { get; set; }

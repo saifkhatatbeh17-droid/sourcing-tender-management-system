@@ -25,12 +25,18 @@ var database="TiryaqCommitteeChecks_"+Guid.NewGuid().ToString("N");connection.In
 var token=Guid.NewGuid().ToString("N");var actors=new Dictionary<string,ApplicationUser>();
 var builder=WebApplication.CreateBuilder(new WebApplicationOptions{Args=[],ContentRootPath=repo,ApplicationName=typeof(EvaluationCommitteeController).Assembly.FullName,EnvironmentName="Development"});
 builder.Logging.SetMinimumLevel(LogLevel.Warning);builder.WebHost.UseUrls("http://127.0.0.1:5094");
+// Point AI calls at a local placeholder model so the fixture never needs, or uses, a real provider key. NoAi answers every call.
+builder.Configuration.AddInMemoryCollection(new Dictionary<string,string?>{["Vllm:BaseUrl"]="http://127.0.0.1:9/v1",["Vllm:Model"]="fixture/model",["Vllm:ApiKey"]=""});
 builder.Services.AddDbContext<ApplicationDbContext>(o=>o.UseSqlServer(connection.ConnectionString));
 builder.Services.AddControllersWithViews().AddApplicationPart(typeof(EvaluationCommitteeController).Assembly);
 builder.Services.AddIdentity<ApplicationUser,IdentityRole>(o=>o.Stores.SchemaVersion=IdentitySchemaVersions.Version3).AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
 builder.Services.AddAuthentication(o=>{o.DefaultAuthenticateScheme="ScoringFixture";o.DefaultChallengeScheme="ScoringFixture";o.DefaultForbidScheme="ScoringFixture";}).AddScheme<AuthenticationSchemeOptions,FixtureAuthentication>("ScoringFixture",_=>{});
 builder.Services.AddSingleton(new FixtureActors(actors,token));builder.Services.AddAuthorization(o=>o.AddPolicy("ApprovedSupplier",p=>p.RequireRole(RoleNames.Supplier).RequireAssertion(async context=>context.Resource is HttpContext http && await http.RequestServices.GetRequiredService<ApplicationDbContext>().SupplierProfiles.AnyAsync(p=>p.UserId==context.User.FindFirstValue(ClaimTypes.NameIdentifier)&&p.Status=="Approved"))));builder.Services.AddPdfWatermarks();builder.Services.AddTopCommitteeFoundation();
 builder.Services.AddHttpClient<BidRecommendationService>().ConfigurePrimaryHttpMessageHandler(()=>new NoAi());
+// The shared layout's Safi panel injects the speech client; the fixture never calls it.
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Chat.AiChatSpeechClient>().ConfigurePrimaryHttpMessageHandler(()=>new NoAi());
+// The officer offer popup injects the pre-check service; the fixture never runs the AI review.
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Compliance.OfferPreCheck>().ConfigurePrimaryHttpMessageHandler(()=>new NoAi());
 await using var app=builder.Build();
 app.UseStaticFiles();app.UseRouting();app.UseAuthentication();app.UseAuthorization();
 app.MapGet("/qa/login/{key}/{secret}",(string key,string secret,HttpContext ctx)=>{if(secret!=token||!actors.ContainsKey(key))return Results.NotFound();ctx.Response.Cookies.Append("CommitteeScoringFixture",token+"."+key,new CookieOptions{HttpOnly=true,SameSite=SameSiteMode.Strict});return Results.Redirect(key=="manager"?"/SourcingManager/Submissions":key=="officer"?"/SourcingOfficer/Offers":key=="topmember"?"/TopCommittee/Decisions":key.StartsWith("supplier-",StringComparison.Ordinal)?"/Supplier/Offers":"/EvaluationCommittee/Evaluations");});
@@ -130,7 +136,10 @@ try{
  var officerOffers=await officerClient.GetStringAsync($"/SourcingOfficer/Offers?tenderId={first}&tab=report");Check(officerOffers.Contains("Winning offer")&&officerOffers.Contains("Download full report")&&officerOffers.Contains("data-report-approve")&&!officerOffers.Contains("Second offer review member 4"),"officer report shows compact winner/PDF summary and preserves review actions");
  int popupReportId=0;await WithDb(async db=>popupReportId=(await db.EvaluationReports.SingleAsync(r=>r.TenderId==first)).EvaluationReportId);
  var popup=await officerClient.GetStringAsync($"/SourcingOfficer/Reports/{popupReportId}?review=true");
- Check(popup.Contains("Review evaluation report")&&popup.Contains("Offer score comparison")&&popup.Contains("Second offer review member 4")&&popup.Contains("data-report-decision=\"Approve\"")&&popup.Contains("name=\"fromReports\"")&&popup.Contains("__RequestVerificationToken"),"officer review popup contains full scored report and protected inline decision form");
+ // Since the 16 Nov redesign the popup summarizes the recommendation and links the full scored report as a PDF.
+ Check(popup.Contains("Review recommendation")&&popup.Contains("Recommended supplier")&&popup.Contains($"/SourcingOfficer/ReportPdf/{popupReportId}")&&popup.Contains("4 / 4 approved")&&popup.Contains("data-report-decision=\"Approve\"")&&popup.Contains("name=\"fromReports\"")&&popup.Contains("__RequestVerificationToken"),"officer review popup shows recommendation, full-report PDF link, four approvals and protected inline decision form");
+ var popupPdf=await officerClient.GetAsync($"/SourcingOfficer/ReportPdf/{popupReportId}");var popupPdfBytes=await popupPdf.Content.ReadAsByteArrayAsync();
+ Check(popupPdf.StatusCode==HttpStatusCode.OK&&popupPdf.Content.Headers.ContentType?.MediaType=="application/pdf"&&popupPdfBytes.Length>1000&&System.Text.Encoding.ASCII.GetString(popupPdfBytes,0,4)=="%PDF","officer can download the full scored report PDF from the review popup");
  await WithDb(async db=>{var winning=await db.Bids.Include(b=>b.BidItems).SingleAsync(b=>b.BidId==offers[0]);Check(popup.Contains(CommitteeEvaluationPage.Total(winning).ToString("N2")),"report popup quote includes winning offer item totals, tax and extras");});
  var missingPopup=await officerClient.GetAsync("/SourcingOfficer/Reports/2147483647?review=true");Check(missingPopup.StatusCode==HttpStatusCode.NotFound,"report popup rejects unavailable report IDs");
  async Task OfficerReview(string decision){var html=await officerClient.GetStringAsync("/SourcingOfficer/Reports");string version="";await WithDb(async db=>version=SourcingOfficerController.ReportReviewVersion(await db.EvaluationReports.SingleAsync(r=>r.TenderId==first)));var response=await officerClient.PostAsync("/SourcingOfficer/ReviewCommitteeReport",new FormUrlEncodedContent(new Dictionary<string,string>{{"fromReports","true"},{"tenderId",first.ToString()},{"decision",decision},{"reason","Recheck delivery evidence."},{"version",version},{"__RequestVerificationToken",Value(html,"__RequestVerificationToken")}}));Check(response.StatusCode==HttpStatusCode.Redirect && response.Headers.Location?.OriginalString == "/SourcingOfficer/Reports","officer popup decision returns to evaluation reports");}
@@ -228,10 +237,12 @@ class NoAi:HttpMessageHandler{
   Interlocked.Increment(ref Calls);
   if(!AllowFinal)throw new Exception("MVC scoring tests must not call a real AI service.");
   using var input=System.Text.Json.JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
-  var props=input.RootElement.GetProperty("format").GetProperty("properties");
+  // OpenAI-compatible chat request: the schema is in response_format and the evidence is the last message.
+  var props=input.RootElement.GetProperty("response_format").GetProperty("json_schema").GetProperty("schema").GetProperty("properties");
+  var messages=input.RootElement.GetProperty("messages");var prompt=messages[messages.GetArrayLength()-1].GetProperty("content").GetString()!;
   object report;
   if(props.TryGetProperty("summary",out _)){
-   using var evidence=System.Text.Json.JsonDocument.Parse(input.RootElement.GetProperty("prompt").GetString()!);
+   using var evidence=System.Text.Json.JsonDocument.Parse(prompt);
    if(evidence.RootElement.TryGetProperty("committeeSummary",out _)||evidence.RootElement.TryGetProperty("officerSummary",out _)||evidence.RootElement.GetRawText().Contains("Levant Medicine Supply"))throw new Exception("Manager AI received alternative supplier evidence.");
    var purchase=evidence.RootElement.GetProperty("purchaseRequest");
    if(!purchase.GetProperty("reason").GetString()!.Contains("Replenish Tiryaq")||purchase.GetProperty("items")[0].GetProperty("itemName").GetString()!="Sterile gauze swabs"||purchase.GetProperty("items")[0].GetProperty("quantity").GetDecimal()!=120||!evidence.RootElement.GetProperty("offer").TryGetProperty("items",out _))throw new Exception("Manager AI lost purchase requirements or winning offer line items.");
@@ -239,7 +250,7 @@ class NoAi:HttpMessageHandler{
    report=new{summary=$"{supplier} is recommended on the recorded committee score. Final committee review is requested."+(InvalidReferral?" Levant Medicine Supply is an alternative.":"")};
   }else if(props.TryGetProperty("winnerBidId",out var winnerSchema)){
    var winner=winnerSchema.GetProperty("enum")[0].GetInt32();
-   using var evidence=System.Text.Json.JsonDocument.Parse(input.RootElement.GetProperty("prompt").GetString()!.Split("\nCorrect the previous response:")[0]);
+   using var evidence=System.Text.Json.JsonDocument.Parse(prompt.Split("\nCorrect the previous response:")[0]);
    var ids=evidence.RootElement.GetProperty("topOffers").EnumerateArray().Select(o=>o.GetProperty("bidId").GetInt32()).ToArray();
    report=new{winnerBidId=winner,offers=ids.Select(id=>new{bidId=id,assessment="The supplier states that the proposed packaging and quantities follow the request. Committee marks establish its recorded position in the review.",caveats="Verify the supplier documentation against the requested specification before purchase; screening is not a guarantee of future performance."}).ToArray()};
   }else{
@@ -247,6 +258,6 @@ class NoAi:HttpMessageHandler{
    var alternative=props.GetProperty("comparison").GetProperty("items").GetProperty("properties").GetProperty("bidId").GetProperty("enum")[0].GetInt32();
    report=new {selectedBidId=chosen,whyChosen="The selected offer matches the requested sterile packaging and quantities, with documented delivery terms for the pharmacy.",comparison=new[]{new{bidId=alternative,strengths="The alternative also documents sterile packaging and complete quantities for the requested pharmacy supplies.",tradeoffs="The alternative has a higher total cost and a longer stated delivery timeframe than the selected offer."}},observations="No non-compliance is recorded. Supplier packaging and traceability statements remain subject to verification before delivery.",conclusion="Recommend the committee-selected offer based on the documented packaging, quantity and delivery terms for these pharmacy supplies."};
   }
-  return new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent(System.Text.Json.JsonSerializer.Serialize(new{done=true,done_reason="stop",response=System.Text.Json.JsonSerializer.Serialize(report)}),System.Text.Encoding.UTF8,"application/json")};
+  return new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent(System.Text.Json.JsonSerializer.Serialize(new{choices=new[]{new{message=new{content=System.Text.Json.JsonSerializer.Serialize(report)}}}}),System.Text.Encoding.UTF8,"application/json")};
  }
 }

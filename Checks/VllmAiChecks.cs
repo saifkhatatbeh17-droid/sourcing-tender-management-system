@@ -31,6 +31,8 @@ public static class VllmAiChecks
 
     public static async Task RunAsync()
     {
+        await AiGatewayChecks.RunAsync();
+        await OfferPreCheckChecks.RunAsync();
         await CheckElevenLabsSpeechAsync();
         await CommitteeApprovalOrderChecks.RunAsync();
         await FinalReportChecks.RunAsync();

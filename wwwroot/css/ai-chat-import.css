@@ -1,0 +1,61 @@
+/* Admin account import inside Safi's panel. Uses the chat panel's own tokens from ai-chat.css. */
+.ai-chat-attach {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 44px;
+    block-size: 44px;
+    padding: 0;
+    border: 1px solid var(--ai-chat-rule);
+    border-radius: 10px;
+    background: var(--ai-chat-surface);
+    color: inherit;
+    cursor: pointer;
+}
+.ai-chat-attach svg { inline-size: 19px; block-size: 19px; }
+.ai-chat-attach:hover:not(:disabled) { border-color: var(--ai-chat-focus); }
+.ai-chat-attach:focus-visible { outline: 3px solid var(--ai-chat-focus); outline-offset: 2px; }
+.ai-chat-attach:disabled { opacity: .5; cursor: progress; }
+
+.ai-import-bubble > * + * { margin-block-start: .6rem; }
+.ai-import-bubble p { margin: 0; }
+.ai-import-notice { color: var(--ai-chat-muted); font-size: .84rem; }
+
+.ai-import-table-wrap {
+    max-block-size: 16rem;
+    overflow: auto;
+    border: 1px solid var(--ai-chat-rule);
+    border-radius: 8px;
+}
+.ai-import-table { inline-size: 100%; border-collapse: collapse; font-size: .82rem; }
+.ai-import-table caption {
+    caption-side: top;
+    padding: .45rem .6rem;
+    font-weight: 650;
+    color: var(--ai-chat-ink);
+}
+.ai-import-table th,
+.ai-import-table td {
+    padding: .4rem .6rem;
+    border-block-start: 1px solid var(--ai-chat-rule);
+    text-align: start;
+    vertical-align: top;
+}
+.ai-import-table th { background: var(--ai-chat-subtle); font-weight: 650; }
+.ai-import-table :is(th, td):first-child { inline-size: 3rem; white-space: nowrap; }
+.ai-import-table td:nth-child(2) { overflow-wrap: anywhere; }
+
+.ai-import-ready summary { cursor: pointer; font-weight: 600; }
+.ai-import-ready ul { margin: .4rem 0 0; padding-inline-start: 1.1rem; font-size: .84rem; }
+.ai-import-ready li { overflow-wrap: anywhere; }
+
+.ai-import-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+.ai-import-actions .btn { min-block-size: 2.4rem; }
+.ai-import-template { font-size: .86rem; }
+.ai-import-done { color: var(--ai-chat-muted); }
+
+.ai-chat-download-link[aria-disabled="true"] { opacity: .6; pointer-events: none; }

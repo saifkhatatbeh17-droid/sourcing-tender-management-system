@@ -114,7 +114,7 @@
 
     const supportsVoiceInput = window.SpeechRecognition || window.webkitSpeechRecognition ||
         (window.MediaRecorder && (window.AudioContext || window.webkitAudioContext) && navigator.mediaDevices?.getUserMedia);
-    voiceToggle.disabled = !supportsVoiceInput || !window.isSecureContext;
+    voiceToggle.disabled = chat.dataset.public === "true" || !supportsVoiceInput || !window.isSecureContext;
 
     function openVoice(focusOrb) {
         if (voiceToggle.disabled) return;

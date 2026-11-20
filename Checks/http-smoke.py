@@ -137,7 +137,7 @@ try:
     assert '/Account/Login' in request(department_client,'/Department/Dashboard')[1]
     supplier=session()
     supplier_email=tag+'-supplier@example.invalid'
-    data={'CompanyName':'Temporary supplier','RegistrationNumber':tag,'ContactName':'Verification Contact','Email':supplier_email,'Password':password}
+    data={'CompanyName':'Temporary supplier','RegistrationNumber':tag,'TaxNumber':'12345678','PhoneNumber':'+962 790 000 000','ContactName':'Verification Contact','Email':supplier_email,'Password':password}
     status,url,text=post(supplier,'/Account/Register',data)
     assert status==200 and url.endswith('/Account/RegistrationStatus'),(status,url,text[:1000])
     assert 'Pending' in text
@@ -145,7 +145,7 @@ try:
     supplier_id=sql(f"SELECT SupplierProfileId FROM SupplierProfiles WHERE RegistrationNumber=N'{tag}';")
     status,_,_=post(admin,'/Admin/ReviewSupplier',{'id':supplier_id,'status':'ChangesRequested','notes':'Please update the company name.'},'/Admin/SupplierApplications')
     assert status==200
-    status,_,_=post(supplier,'/Account/EditRegistration',{'CompanyName':'Corrected supplier','RegistrationNumber':tag,'ContactName':'Verification Contact'})
+    status,_,_=post(supplier,'/Account/EditRegistration',{'CompanyName':'Corrected supplier','RegistrationNumber':tag,'TaxNumber':'12345678','ContactName':'Verification Contact'})
     assert status==200
     assert sql(f'SELECT Status FROM SupplierProfiles WHERE SupplierProfileId={supplier_id};')=='Pending'
     post(admin,'/Admin/ReviewSupplier',{'id':supplier_id,'status':'Approved'},'/Admin/SupplierApplications')

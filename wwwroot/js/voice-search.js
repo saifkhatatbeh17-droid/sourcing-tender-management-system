@@ -189,6 +189,7 @@
 
     controls.forEach(input => {
         const group = input.closest('[data-voice-dictation], .voice-search-control, .ev-tender-search-field');
+        if (group?.closest('[data-ai-chat][data-public="true"]')) return;
         const button = group?.querySelector('[data-voice-search-button]');
         const status = group?.querySelector('[data-voice-search-status]');
         const language = group?.querySelector('[data-voice-search-language]');

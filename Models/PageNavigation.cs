@@ -3,7 +3,7 @@ public static class PageNavigation
 {
     public static readonly Dictionary<string, (string Action, string Title)[]> Menus = new()
     {
-        ["Admin"] = [("Dashboard", "Dashboard"), ("AiIntelligence", "AI Intelligence"), ("Users", "Users"), ("Departments", "Departments"), ("SupplierApplications", "Supplier Applications"), ("Suppliers", "Suppliers"), ("SupplierActivity", "Supplier activity report"), ("ContactMessages", "Contact Messages")],
+        ["Admin"] = [("Dashboard", "Dashboard"), ("AiIntelligence", "AI Intelligence"), ("AiLog", "AI log"), ("Users", "Users"), ("Departments", "Departments"), ("SupplierApplications", "Supplier Applications"), ("Suppliers", "Suppliers"), ("SupplierActivity", "Supplier activity report"), ("ContactMessages", "Contact Messages")],
         ["Department"] = [("Dashboard", "Dashboard"), ("AiIntelligence", "AI Intelligence"), ("Create", "New request"), ("Requests", "Requests history"), ("Clarifications", "Clarifications")],
         ["SourcingOfficer"] = [("Dashboard", "Dashboard"), ("AiIntelligence", "AI Intelligence"), ("Requests", "Request Review"), ("Offers", "Tender workspace"), ("Clarifications", "Clarifications"), ("Reports", "Evaluation reports")],
         ["EvaluationCommittee"] = [("Dashboard", "Dashboard"), ("AiIntelligence", "AI Intelligence"), ("Evaluations", "Evaluations"), ("Reports", "Combined Reports"), ("Clarifications", "Clarifications")],

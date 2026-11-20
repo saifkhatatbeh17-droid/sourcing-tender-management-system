@@ -294,6 +294,12 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             return RedirectToProfileSecurity();
         }
 
+        // A temporary password from the account import is now replaced; lift the forced-change restriction.
+        var temporary = (await users.GetClaimsAsync(account))
+            .Where(claim => claim.Type == SourcingTenderManagement.Services.Admin.EmployeeAccounts.PasswordChangeRequiredClaim)
+            .ToList();
+        if (temporary.Count > 0) await users.RemoveClaimsAsync(account, temporary);
+
         await signIn.RefreshSignInAsync(account);
         TempData["PasswordChangeSuccess"] = "Password changed successfully.";
         return RedirectToProfileSecurity();
@@ -320,6 +326,10 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     public async Task<IActionResult> Register(RegisterViewModel model, List<IFormFile>? officialDocuments)
     {
         if (User.Identity?.IsAuthenticated == true) return BadRequest("Sign out before registering a supplier.");
+        // Trim and collapse spaces first so the duplicate check and saved values are consistent.
+        model.Normalize();
+        if (model.PhoneNumber.Count(char.IsDigit) is < 7 or > 15)
+            ModelState.AddModelError(nameof(model.PhoneNumber), "Enter a phone number with 7–15 digits, for example +962 7X XXX XXXX.");
         if (await db.SupplierProfiles.AnyAsync(s => s.RegistrationNumber == model.RegistrationNumber))
             ModelState.AddModelError(nameof(model.RegistrationNumber), "This registration number is already registered.");
         if (officialDocuments == null || officialDocuments.Count == 0)
@@ -384,9 +394,10 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         var id = users.GetUserId(User);
         var profile = await db.SupplierProfiles.SingleOrDefaultAsync(s => s.UserId == id);
         if (profile?.Status != "ChangesRequested") return Forbid();
-        if (!ModelState.IsValid) return View(input);
+        input.NormalizeCompany();
         if (await db.SupplierProfiles.AnyAsync(s => s.RegistrationNumber == input.RegistrationNumber && s.UserId != id))
-            return BadRequest("This registration number is already registered.");
+            ModelState.AddModelError(nameof(input.RegistrationNumber), "This registration number is already registered.");
+        if (!ModelState.IsValid) return View(input);
         profile.Category = input.SelectedCategory;
         profile.CompanyName = input.CompanyName; profile.RegistrationNumber = input.RegistrationNumber;
         profile.TaxNumber = input.TaxNumber; profile.ContactName = input.ContactName; profile.Address = input.Address;

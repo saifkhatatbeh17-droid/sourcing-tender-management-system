@@ -8,6 +8,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     : IdentityDbContext<ApplicationUser>(options)
 {
     public DbSet<AiAnalysis> AiAnalyses { get; set; }
+    public DbSet<AiInteraction> AiInteractions { get; set; }
     public DbSet<Bid> Bids { get; set; }
     public DbSet<BidDocument> BidDocuments { get; set; }
     public DbSet<BidItem> BidItems { get; set; }
@@ -49,6 +50,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         });
         modelBuilder.Entity<ApplicationUser>().Property(user => user.PhoneNumber).Metadata.SetMaxLength(null);
         modelBuilder.ApplyConfiguration(new Configurations.UserFaceCredentialConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.AiInteractionConfiguration());
         modelBuilder.Entity<CommitteeWeightProposal>(entity =>
         {
             entity.Property(p => p.FinancialWeight).HasPrecision(5, 2);

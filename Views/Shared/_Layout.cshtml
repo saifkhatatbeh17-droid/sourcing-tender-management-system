@@ -26,6 +26,10 @@
         && ViewData["HideWorkspaceSidebar"] is not true && PageNavigation.Menus.ContainsKey(workspaceController)
         && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "AiIntelligence" or "Clarification" or "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
     var showAdminSidebar = showWorkspace && workspaceController == "Admin";
+    var showPublicSafi = !showWorkspace &&
+        ((currentController == "Home" && currentAction is "Index" or "About" or "HowItWorks" or "Team" or "Contact") ||
+         (currentController == "Account" && currentAction is "Login" or "Register"));
+    ViewData["SafiPublic"] = showPublicSafi;
     ViewData["WorkspaceController"] = workspaceController;
     ViewData["WorkspaceLabel"] = workspaceController == "Admin" ? "Administration" : RoleNames.DisplayName(workspaceController);
     var activeAction = ViewData["ActivePage"]?.ToString() ?? currentAction;
@@ -69,7 +73,7 @@
     @if (showWorkspace) { <link rel="stylesheet" href="~/css/workspace-shell.css" asp-append-version="true" /> }
     @if (showWorkspace && currentAction == "Dashboard") { <link rel="stylesheet" href="~/css/workspace-dashboard.css" asp-append-version="true" /> }
     <link rel="stylesheet" href="~/css/workflow-ux.css" asp-append-version="true" />
-    @if (showWorkspace)
+    @if (showWorkspace || showPublicSafi)
     {
         <link rel="stylesheet" href="~/css/ai-chat.css" asp-append-version="true" />
     }
@@ -96,7 +100,7 @@ else if (!standaloneLogin && ViewData["HidePublicNavigation"] is not true)
 </div>
 @if (!standaloneLogin) { @await RenderSectionAsync("Footer", required: false) }
 <partial name="_ActionConfirmation" />
-@if (showWorkspace)
+@if (showWorkspace || showPublicSafi)
 {
     <partial name="_AiChat" />
     <script src="~/js/ai-chat.js" asp-append-version="true" defer></script>

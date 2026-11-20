@@ -35,7 +35,7 @@
             document.querySelector('#offer-total').textContent = format.format(sum + tax + extras);
             document.querySelector('#offer-currency').textContent = (currency.value.toUpperCase() === 'JOD' ? 'JD' : currency.value.toUpperCase());
         };
-        form.querySelectorAll('.line-quantity,.line-price,#Currency,#TaxPercentage,#AdditionalCosts').forEach(input => input.addEventListener('input', update));
+        form.querySelectorAll('.line-quantity,.line-price,#Currency,#AdditionalCosts').forEach(input => input.addEventListener('input', update));
         update();
         const panels = [...form.querySelectorAll('[data-offer-step]')];
         const steps = form.querySelector('[data-offer-steps]');
@@ -62,7 +62,7 @@
                 add('Technical response', item.querySelector('textarea').value);
             });
             add('Currency', displayCurrency());
-            add('Tax', `${form.querySelector('#TaxPercentage').value}% of the item subtotal`);
+            add('Sales tax', `${form.querySelector('#TaxPercentage').value}% of the item subtotal (fixed)`);
             add('Extra costs', `${form.querySelector('#AdditionalCosts').value} ${displayCurrency()}`);
             add('Delivery', `${form.querySelector('#DeliveryDays').value} days`);
             add('Payment terms', form.querySelector('#PaymentTerms').value || 'Not specified');

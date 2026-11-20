@@ -26,7 +26,7 @@ function boot() {
         [
             'Bring supplier offers together.',
             'Submit offers',
-            'Invited suppliers submit JD item prices, tax percentage, delivery terms, and supporting certificates before the closing deadline.',
+            'Invited suppliers submit JD item prices (16% sales tax is added automatically), delivery terms, and supporting certificates before the closing deadline.',
             [['Suppliers', 'qualified bidders'], ['3', 'sample offers']],
             [0, 12],
             '3 sealed quotations (JD + Tax %)',

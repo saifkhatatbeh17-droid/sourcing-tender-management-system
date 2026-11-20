@@ -3,6 +3,8 @@
     var errors = TempData["PasswordChangeErrors"] as IEnumerable<string> ?? [];
     var hasErrors = errors.Any();
     var success = TempData["PasswordChangeSuccess"] as string;
+    // Set on accounts created by the spreadsheet import until the temporary password is replaced.
+    var mustChange = User.HasClaim(SourcingTenderManagement.Services.Admin.EmployeeAccounts.PasswordChangeRequiredClaim, "true");
 }
 
 <section class="ap-card ap-security" id="profile-security" aria-labelledby="profile-security-title">
@@ -11,7 +13,11 @@
     {
         <p class="alert alert-success" role="status">@success</p>
     }
-    <details class="ap-password-details" open="@hasErrors">
+    @if (mustChange)
+    {
+        <p class="alert alert-warning" role="alert">Your account was created with a temporary password. Choose your own password below to start using Tiryaq.</p>
+    }
+    <details class="ap-password-details" open="@(hasErrors || mustChange)">
         <summary>
             <span>Change password</span>
             <span class="ap-chevron" aria-hidden="true"></span>

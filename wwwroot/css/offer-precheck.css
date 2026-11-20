@@ -1,0 +1,51 @@
+/* Offer pre-check inside the Sourcing Officer's offer popup. */
+.ow-precheck {
+    margin-block: 1.25rem 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--color-border, #dce3e9);
+    border-radius: 12px;
+    background: var(--color-surface-alt, #f5f7fa);
+}
+.ow-precheck-head h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.ow-precheck-head p,
+.ow-precheck-note { margin: .2rem 0 0; font-size: .85rem; color: var(--color-text-secondary, #4b5563); }
+.ow-precheck-ok { margin: .75rem 0 0; font-weight: 600; color: var(--pharma-positive-text, #185735); }
+
+.ow-precheck-list { list-style: none; margin: .75rem 0 0; padding: 0; display: grid; gap: .45rem; }
+.ow-precheck-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    padding: .55rem .7rem;
+    border-radius: 8px;
+    background: var(--color-surface, #fff);
+    border-inline-start: 3px solid #1d5560;
+    font-size: .9rem;
+    line-height: 1.45;
+}
+.ow-precheck-list li[data-severity="issue"] { border-inline-start-color: #b8323f; }
+.ow-precheck-list li[data-severity="warning"] { border-inline-start-color: #c98b2e; }
+.ow-precheck-badge {
+    flex: 0 0 auto;
+    min-inline-size: 4.4rem;
+    padding: .1rem .5rem;
+    border-radius: 999px;
+    font-size: .74rem;
+    font-weight: 700;
+    text-align: center;
+    background: #e7eef0;
+    color: #1d5560;
+}
+[data-severity="issue"] .ow-precheck-badge { background: #f8e3e5; color: #8f1f2a; }
+[data-severity="warning"] .ow-precheck-badge { background: #fff1d8; color: #774500; }
+.ow-precheck-evidence { font-style: italic; overflow-wrap: anywhere; }
+
+.ow-precheck-ai { margin-top: 1rem; padding-top: .9rem; border-top: 1px solid var(--color-border, #dce3e9); }
+.ow-precheck-result h4 { margin: .9rem 0 0; font-size: .98rem; font-weight: 700; }
+.ow-precheck-summary { margin: .35rem 0 0; }
+.ow-precheck-status { margin: .75rem 0 0; color: var(--color-text-secondary, #4b5563); }
+.ow-precheck-status.is-error { color: var(--pharma-danger-text, #a52a35); font-weight: 600; }
+
+[data-theme="dark"] .ow-precheck-badge { background: rgba(95, 197, 201, .16); color: #5fc5c9; }
+[data-theme="dark"] [data-severity="issue"] .ow-precheck-badge { background: rgba(184, 50, 63, .25); color: #ffb3ba; }
+[data-theme="dark"] [data-severity="warning"] .ow-precheck-badge { background: rgba(201, 139, 46, .25); color: #ffd590; }
