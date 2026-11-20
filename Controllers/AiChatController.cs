@@ -14,7 +14,7 @@ namespace SourcingTenderManagement.Controllers;
 [Authorize]
 [Route("AiChat")]
 [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
-public sealed class AiChatController(
+public sealed partial class AiChatController(
     UserManager<ApplicationUser> users,
     IAuthorizationService authorization,
     AiChatContext context,

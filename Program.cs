@@ -30,6 +30,13 @@ builder.Services.AddHttpClient<AiChatSpeechClient>(client => client.Timeout = Ti
 builder.Services.AddHttpClient<AiIntelligenceService>(client => client.Timeout = TimeSpan.FromSeconds(90))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddSingleton<AiChatDownloadStore>();
+builder.Services.AddScoped<AiChatAccountImport>();
+builder.Services.AddHttpClient<AiChatImageClient>(client => client.Timeout = TimeSpan.FromSeconds(90))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<AiChatPdfClient>(client => client.Timeout = TimeSpan.FromSeconds(90))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<AiChatSpreadsheetClient>(client => client.Timeout = TimeSpan.FromSeconds(90))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddScoped<AiChatContext>();
 builder.Services.AddScoped<AiChatExportService>();
 builder.Services.AddScoped<AiChatWorkspaceActions>();
@@ -103,6 +110,11 @@ builder.Services.AddAuthorization(o => o.AddPolicy("ApprovedSupplier", policy =>
     })));
 
 var app = builder.Build();
+if (args.Contains("--chat-attachment-checks"))
+{
+    await SourcingTenderManagement.Checks.ChatAttachmentChecks.RunAsync(app.Services);
+    return;
+}
 // This dedicated check path runs before startup role seeding and performs no database writes.
 if (args.Contains("--top-committee-foundation-check"))
 {

@@ -28,6 +28,46 @@
     const voiceMuteLabel = voiceMute.querySelector("[data-chat-voice-mute-label]");
     const voiceEnd = chat.querySelector("[data-chat-voice-end]");
     const microphone = form.querySelector("[data-voice-search-button]");
+    const attachmentInput = form.querySelector("[data-chat-attachment]");
+    const attachButton = form.querySelector("[data-chat-attach]");
+    attachButton?.addEventListener("click", () => { if (!pending) attachmentInput.click(); });
+    const attachmentName = form.querySelector("[data-chat-file-name]");
+    const removeAttachment = form.querySelector("[data-chat-remove-file]");
+    const importOptions = form.querySelector("[data-chat-import-options]");
+    const importRole = form.querySelector("[data-chat-import-role]");
+    const excelMode = form.querySelector("[data-chat-excel-mode]");
+    const excelModeOptions = form.querySelector("[data-chat-excel-mode-options]");
+    const attachmentHelp = form.querySelector("[data-chat-file-help]");
+    let importReady = false;
+    function resetAttachment() {
+        attachmentInput.value = ""; importReady = false;
+        attachmentName.textContent = ""; removeAttachment.hidden = true;
+        attachmentHelp.hidden = true;
+        if (importOptions) importOptions.hidden = true;
+        if (excelModeOptions) excelModeOptions.hidden = true;
+    }
+    attachmentInput.addEventListener("change", () => {
+        importReady = false;
+        const file = attachmentInput.files[0];
+        if (!file) { resetAttachment(); updateComposer(); return; }
+        closeVoice(); // File import confirmation must be an explicit composer action, never an automatic voice turn.
+        if (file.size > 5 * 1024 * 1024) {
+            resetAttachment(); status.textContent = "Attach a file up to 5 MB."; updateComposer(); return;
+        }
+        const workbook = /\.xlsx$/i.test(file.name);
+        attachmentName.textContent = file.name; removeAttachment.hidden = false;
+        if (excelModeOptions) excelModeOptions.hidden = !workbook;
+        if (importOptions) importOptions.hidden = !workbook || excelMode?.value !== "accounts";
+        attachmentHelp.textContent = workbook
+            ? excelMode?.value === "accounts" ? "Email and Password are required. Passwords stay local. Preview and confirm before creating accounts (Admin only)."
+                : "Analyze this workbook without creating accounts. Sensitive password columns are omitted from AI analysis. Only Admin can switch to account creation."
+            : "PDF text or your image and question are sent to the configured AI provider for analysis. Remove private details before attaching. PDFs: up to 30 pages; scans can be attached as images.";
+        attachmentHelp.hidden = false;
+        updateComposer();
+    });
+    removeAttachment.addEventListener("click", () => { if (!pending) { resetAttachment(); updateComposer(); } });
+    importRole?.addEventListener("change", () => { importReady = false; updateComposer(); });
+    excelMode?.addEventListener("change", () => { importReady = false; attachmentInput.dispatchEvent(new Event("change")); });
 
     const storageKey = `tiryaq.aiChat.v3.${chat.dataset.user || "anon"}.${chat.dataset.workspace || "default"}`;
     const openFlagKey = `${storageKey}.open`;
@@ -504,6 +544,7 @@
         status.textContent = "";
         failedQuestion = "";
         questionInput.value = "";
+        resetAttachment();
         updateComposer();
         try { sessionStorage.removeItem(storageKey); } catch { /* ignore */ }
         questionInput.focus();
@@ -536,9 +577,15 @@
 
     function updateComposer() {
         const text = questionInput.value.trim();
-        send.disabled = pending || text.length === 0;
+        send.disabled = pending || (text.length === 0 && !attachmentInput.files.length);
+        questionInput.required = attachmentInput.files.length === 0;
+        attachmentInput.disabled = pending;
+        if (attachButton) attachButton.disabled = pending;
+        removeAttachment.disabled = pending;
+        if (importRole) importRole.disabled = pending;
+        if (excelMode) excelMode.disabled = pending;
         if (clearButton) clearButton.disabled = pending;
-        sendLabel.textContent = !pending && failedQuestion && text === failedQuestion ? "Retry" : "Send";
+        sendLabel.textContent = importReady ? "Confirm account creation" : !pending && failedQuestion && text === failedQuestion ? "Retry" : "Send";
     }
 
     questionInput.addEventListener("input", updateComposer);
@@ -695,6 +742,29 @@
             : buildFormattedBubble(entry.text);
 
         message.append(headerRow, bubble);
+        if (Array.isArray(entry.importRows)) {
+            const wrap = document.createElement("div");
+            wrap.className = "ai-chat-import-preview";
+            wrap.tabIndex = 0;
+            const table = document.createElement("table");
+            const caption = document.createElement("caption");
+            caption.textContent = "Account import · " + entry.importRows.length + " rows";
+            table.append(caption);
+            const head = document.createElement("tr");
+            for (const title of ["Row", "Email", "Name", "Role", "Validation"]) {
+                const th = document.createElement("th"); th.scope = "col"; th.textContent = title; head.append(th);
+            }
+            const thead = document.createElement("thead"); thead.append(head); table.append(thead);
+            const tbody = document.createElement("tbody");
+            for (const row of entry.importRows.slice(0, 100)) {
+                const tr = document.createElement("tr");
+                for (const text of [row.row, row.email, row.fullName, row.role, row.errors?.length ? row.errors.join(" ") : "✓ Valid"]) {
+                    const td = document.createElement("td"); td.textContent = String(text ?? ""); tr.append(td);
+                }
+                tbody.append(tr);
+            }
+            table.append(tbody); wrap.append(table); message.append(wrap);
+        }
 
         const hasSafeSource = typeof entry.source === "string" && entry.source.startsWith("/") && !entry.source.startsWith("//");
         if (safeDownloads.length > 0 || hasSafeSource || entry.mutated) {
@@ -765,9 +835,11 @@
 
     form.addEventListener("submit", async event => {
         event.preventDefault();
-        const question = questionInput.value.trim();
+        const attachedFile = attachmentInput.files[0];
+        const question = questionInput.value.trim() || (attachedFile ? (/\.xlsx$/i.test(attachedFile.name)
+            ? (importReady ? "تأكيد إنشاء الحسابات من الملف" : excelMode?.value === "accounts" ? "راجع ملف الحسابات قبل إنشائها" : "حلّل ملف الإكسل واشرح أهم النتائج والملاحظات.") : /\.pdf$/i.test(attachedFile.name) ? "لخّص هذا الملف واشرح أهم المعلومات فيه." : "اشرح الصورة وساعدني أفهم المشكلة الظاهرة.") : "");
         if (pending || !question) return;
-        const useVoice = voiceEnabled;
+        const useVoice = voiceEnabled && !attachedFile;
         window.clearTimeout(listenTimer);
         listenTimer = undefined;
         stopSpeech?.();
@@ -806,13 +878,22 @@
         let waitingForVoice = false;
 
         try {
-            const response = await fetch(form.action, {
+            const upload = attachedFile ? new FormData() : null;
+            if (upload) {
+                upload.append("workspace", chat.dataset.workspace);
+                upload.append("question", question);
+                upload.append("file", attachedFile);
+                upload.append("defaultRole", importRole?.value || "SourcingOfficer");
+                upload.append("confirmImport", String(importReady));
+                upload.append("intent", importReady ? "accounts" : excelMode?.value || "analyze");
+            }
+            const response = await fetch(attachedFile ? "/AiChat/Attachment" : form.action, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
+                    ...(!attachedFile ? { "Content-Type": "application/json" } : {}),
                     "RequestVerificationToken": form.elements.__RequestVerificationToken.value
                 },
-                body: JSON.stringify({
+                body: upload || JSON.stringify({
                     workspace: chat.dataset.workspace,
                     page: chat.dataset.page || null,
                     recordId: Number(chat.dataset.recordId) || null,
@@ -820,13 +901,20 @@
                     question
                 })
             });
-            if (response.redirected || response.status === 401 || response.status === 403) {
+            if (response.redirected || response.status === 401) {
                 throw new Error("Session access changed. Reload the page to continue.");
             }
             if (response.status === 429) throw new Error("Give Safi a quick breath — try again in a few seconds.");
             const result = await response.json().catch(() => null);
             if (!response.ok || !result?.answer) {
                 throw new Error(result?.error ?? "Safi could not complete that right now. Try again.");
+            }
+            if (attachedFile) {
+                if (result.previewReady) {
+                    importReady = true;
+                    if (importOptions) importOptions.hidden = false;
+                    attachmentHelp.textContent = "Preview is ready. Click Confirm account creation to save all accounts, or × to cancel.";
+                } else resetAttachment();
             }
 
             if (result.workspaceOnly) {
@@ -854,7 +942,8 @@
                 navigated: Boolean(safeNavigateUrl),
                 source: result.source || null,
                 sourceLabel: result.sourceLabel || null,
-                downloads: Array.isArray(result.downloads) ? result.downloads : []
+                downloads: Array.isArray(result.downloads) ? result.downloads : [],
+                importRows: Array.isArray(result.importRows) ? result.importRows : null
             };
             saveEntry(replyEntry);
             delete status.dataset.state;

@@ -178,6 +178,10 @@
                 <div class="ai-chat-composer">
                     <textarea id="ai-chat-question" name="question" rows="2" maxlength="1500" required data-voice-search
                               dir="auto" enterkeyhint="send" placeholder="Message Safi…" aria-describedby="ai-chat-shortcuts"></textarea>
+                    <button type="button" class="ai-chat-mic ai-chat-attach" data-chat-attach aria-label="Attach image or file" title="Attach image or file">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                    </button>
+                    <input type="file" data-chat-attachment hidden accept=".xlsx,.pdf,.png,.jpg,.jpeg,.webp" />
                     <button type="button" class="ai-chat-mic" data-chat-voice-toggle
                             aria-label="Start voice conversation" title="Start voice conversation"
                             aria-controls="ai-chat-voice-panel" aria-expanded="false" aria-describedby="ai-chat-voice-status">
@@ -193,6 +197,27 @@
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
                     </button>
+                </div>
+                <div class="ai-chat-attachments">
+                    <span data-chat-file-name aria-live="polite"></span>
+                    <button type="button" data-chat-remove-file hidden aria-label="Remove attachment">×</button>
+                    @if (workspace == RoleNames.Admin)
+                    {
+                        <a href="/AiChat/AccountTemplate" class="ai-chat-template">Accounts template ↓</a>
+                        <label data-chat-excel-mode-options hidden>Excel action
+                            <select data-chat-excel-mode>
+                                <option value="analyze">Analyze workbook</option>
+                                <option value="accounts">Create accounts (Admin)</option>
+                            </select>
+                        </label>
+                        <label data-chat-import-options hidden>Default role (if Role column is blank)
+                            <select data-chat-import-role>
+                                @foreach (var importRole in RoleNames.Primary.OrderBy(r => r == RoleNames.SourcingOfficer ? 0 : 1))
+                                { <option value="@importRole">@RoleNames.DisplayName(importRole)</option> }
+                            </select>
+                        </label>
+                    }
+                    <small data-chat-file-help hidden></small>
                 </div>
                 <div class="ai-chat-composer-help">
                     <p class="ai-chat-shortcuts" id="ai-chat-shortcuts">Enter to send · Shift+Enter for a new line</p>
