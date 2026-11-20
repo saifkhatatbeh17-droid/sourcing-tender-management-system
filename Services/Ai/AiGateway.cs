@@ -22,7 +22,9 @@ public sealed record AiRequest(
     bool Interactive = false,
     string? Workspace = null,
     string? RecordType = null,
-    int? RecordId = null);
+    int? RecordId = null,
+    string? ImageDataUrl = null,
+    bool LogOutput = true);
 
 public sealed record AiCompletion(string Content, string Model);
 
@@ -98,7 +100,7 @@ public sealed class AiGateway(
         {
             var (content, model) = await VllmSettings.CompleteJsonWithModelAsync(
                 http, modelConfiguration, request.SystemPrompt, request.UserPrompt, request.SchemaName,
-                request.Schema, request.MaxTokens, ct, request.History, request.RetryWithSchema);
+                request.Schema, request.MaxTokens, ct, request.History, request.RetryWithSchema, request.ImageDataUrl);
 
             var (conforms, issues) = AiSchemaConformance.Check(content, request.Schema);
             entry.Outcome = AiInteraction.Succeeded;
@@ -106,7 +108,7 @@ public sealed class AiGateway(
             entry.SchemaConforms = conforms;
             entry.SchemaIssues = issues is null ? null : Limit(issues, 1000);
             entry.OutputChars = content.Length;
-            entry.OutputPreview = Limit(content, OutputPreviewLimit);
+            if (request.LogOutput) entry.OutputPreview = Limit(content, OutputPreviewLimit);
             entry.DurationMs = (int)clock.ElapsedMilliseconds;
             await RecordAsync(entry);
             return new AiCompletion(content, model);

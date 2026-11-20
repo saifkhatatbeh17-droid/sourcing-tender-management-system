@@ -11,6 +11,12 @@
     const stateBadge = chat.querySelector("[data-safi-state]");
     const clearButton = chat.querySelector("[data-chat-clear]");
     const form = chat.querySelector("form");
+    const attach = form.querySelector("[data-analysis-attach]");
+    const attachmentInput = form.querySelector("[data-analysis-file]");
+    const attachmentChip = form.querySelector("[data-analysis-file-chip]");
+    const attachmentName = form.querySelector("[data-analysis-file-name]");
+    const attachmentMeta = form.querySelector("[data-analysis-file-meta]");
+    const removeAttachment = form.querySelector("[data-analysis-file-remove]");
     const questionInput = form.elements.question;
     const send = form.querySelector("button[type='submit']");
     const sendLabel = send.querySelector("span");
@@ -504,6 +510,7 @@
         status.textContent = "";
         failedQuestion = "";
         questionInput.value = "";
+        clearAttachment();
         updateComposer();
         try { sessionStorage.removeItem(storageKey); } catch { /* ignore */ }
         questionInput.focus();
@@ -538,8 +545,55 @@
         const text = questionInput.value.trim();
         send.disabled = pending || text.length === 0;
         if (clearButton) clearButton.disabled = pending;
+        if (attach) attach.disabled = pending;
+        if (removeAttachment) removeAttachment.disabled = pending;
+        if (attach && supportsVoiceInput && window.isSecureContext)
+            voiceToggle.disabled = Boolean(attachmentInput?.files[0]);
         sendLabel.textContent = !pending && failedQuestion && text === failedQuestion ? "Retry" : "Send";
     }
+
+    function clearAttachment() {
+        if (!attachmentInput) return;
+        attachmentInput.value = "";
+        attachmentChip.hidden = true;
+        attachmentName.textContent = "";
+        attachmentName.removeAttribute("title");
+        attachmentMeta.textContent = "";
+    }
+
+    attach?.addEventListener("click", () => {
+        if (pending) return;
+        if (voiceEnabled) closeVoice();
+        attachmentInput.click();
+    });
+    attachmentInput?.addEventListener("change", () => {
+        delete status.dataset.state;
+        status.textContent = "";
+        const file = attachmentInput.files[0];
+        if (!file || file.size <= 0 || file.size > 5 * 1024 * 1024 || !/\.(pdf|xlsx|png|jpe?g|webp)$/i.test(file.name)) {
+            clearAttachment();
+            if (file) {
+                status.dataset.state = "error";
+                status.textContent = "Choose a PDF, Excel workbook, or image up to 5 MB.";
+            }
+        } else {
+            attachmentChip.hidden = false;
+            attachmentName.textContent = file.name;
+            attachmentName.title = file.name;
+            const extension = file.name.split(".").pop().toUpperCase();
+            const size = file.size >= 1024 * 1024
+                ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+            attachmentMeta.textContent = `${extension} · ${size} · For analysis`;
+            questionInput.focus({ preventScroll: true });
+        }
+        updateComposer();
+    });
+    removeAttachment?.addEventListener("click", () => {
+        clearAttachment();
+        updateComposer();
+        attach.focus();
+    });
 
     questionInput.addEventListener("input", updateComposer);
     questionInput.addEventListener("keydown", event => {
@@ -660,6 +714,13 @@
         const name = document.createElement("strong");
         name.textContent = entry.sender === "you" ? "You" : "Safi";
         headerRow.append(name);
+        if (entry.sender === "you" && entry.attachmentLabel) {
+            const fileLabel = document.createElement("span");
+            fileLabel.className = "ai-chat-badge ai-chat-file-badge";
+            fileLabel.dir = "auto";
+            fileLabel.textContent = entry.attachmentLabel;
+            headerRow.append(fileLabel);
+        }
 
         const safeDownloads = Array.isArray(entry.downloads)
             ? entry.downloads.filter(d => d && typeof d.url === "string" && d.url.startsWith("/AiChat/Download/"))
@@ -767,13 +828,14 @@
         event.preventDefault();
         const question = questionInput.value.trim();
         if (pending || !question) return;
+        const attachment = attachmentInput?.files[0];
         const useVoice = voiceEnabled;
         window.clearTimeout(listenTimer);
         listenTimer = undefined;
         stopSpeech?.();
 
         const historyPayload = storedEntries
-            .filter(item => !item.failed && !item.pending)
+            .filter(item => !item.failed && !item.pending && !item.attachment)
             .slice(-historyLimit)
             .map(item => ({
                 role: item.sender === "assistant" ? "assistant" : "user",
@@ -783,14 +845,16 @@
         if (!useVoice) questionInput.focus({ preventScroll: true });
         let currentUserEntry = null;
         if (question === failedQuestion) {
-            currentUserEntry = [...storedEntries].reverse().find(item => item.sender === "you" && item.text === question);
+            currentUserEntry = [...storedEntries].reverse().find(item => item.sender === "you" && item.failed &&
+                item.text === question && item.attachmentLabel === attachment?.name);
             if (currentUserEntry) {
                 currentUserEntry.pending = true;
                 delete currentUserEntry.failed;
             }
         }
         if (!currentUserEntry) {
-            currentUserEntry = { sender: "you", text: question, pending: true };
+            currentUserEntry = { sender: "you", text: question, pending: true,
+                attachment: Boolean(attachment), attachmentLabel: attachment?.name };
             renderEntry(currentUserEntry, true);
         }
         scrollToLatest(true);
@@ -801,24 +865,32 @@
         questionInput.value = "";
         updateComposer();
         status.dataset.state = "pending";
-        status.textContent = "Safi is preparing a reply…";
+        status.textContent = attachment ? "Safi is analyzing the attachment…" : "Safi is preparing a reply…";
         if (useVoice) setVoiceState("thinking", "Preparing a reply…");
         let waitingForVoice = false;
 
         try {
-            const response = await fetch(form.action, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "RequestVerificationToken": form.elements.__RequestVerificationToken.value
-                },
-                body: JSON.stringify({
+            const headers = { "RequestVerificationToken": form.elements.__RequestVerificationToken.value };
+            let body;
+            if (attachment) {
+                body = new FormData();
+                body.append("workspace", chat.dataset.workspace);
+                body.append("question", question);
+                body.append("file", attachment);
+            } else {
+                headers["Content-Type"] = "application/json";
+                body = JSON.stringify({
                     workspace: chat.dataset.workspace,
                     page: chat.dataset.page || null,
                     recordId: Number(chat.dataset.recordId) || null,
                     history: historyPayload,
                     question
-                })
+                });
+            }
+            const response = await fetch(attachment ? attach.dataset.url : form.action, {
+                method: "POST",
+                headers,
+                body
             });
             if (response.redirected || response.status === 401 || response.status === 403) {
                 throw new Error("Session access changed. Reload the page to continue.");
@@ -841,6 +913,7 @@
 
             delete currentUserEntry.pending;
             delete currentUserEntry.failed;
+            if (attachment) clearAttachment();
 
             const safeNavigateUrl = typeof result.navigateUrl === "string" &&
                 result.navigateUrl.startsWith("/") && !result.navigateUrl.startsWith("//")
@@ -850,6 +923,7 @@
             const replyEntry = {
                 sender: "assistant",
                 text: result.answer,
+                attachment: Boolean(attachment),
                 mutated: Boolean(result.mutated),
                 navigated: Boolean(safeNavigateUrl),
                 source: result.source || null,

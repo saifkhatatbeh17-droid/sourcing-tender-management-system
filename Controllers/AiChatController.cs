@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models;
+using SourcingTenderManagement.Services.Ai;
 using SourcingTenderManagement.Services.Chat;
 
 namespace SourcingTenderManagement.Controllers;
@@ -48,7 +49,7 @@ public sealed class AiChatController(
     [RequestSizeLimit(32 * 1024)]
     public async Task<IActionResult> Speak(AiChatSpeechInput input, [FromServices] AiChatSpeechClient speech, CancellationToken ct)
     {
-        if (!await CanUseSpeechAsync(input.Workspace))
+        if (!await CanUseWorkspaceAsync(input.Workspace))
             return Forbid();
 
         try
@@ -74,7 +75,7 @@ public sealed class AiChatController(
     public async Task<IActionResult> Transcribe([FromForm] string workspace, [FromForm] IFormFile audio,
         [FromServices] AiChatSpeechClient speech, CancellationToken ct)
     {
-        if (!await CanUseSpeechAsync(workspace))
+        if (!await CanUseWorkspaceAsync(workspace))
             return Forbid();
 
         var extension = Path.GetExtension(audio.FileName).ToLowerInvariant();
@@ -95,7 +96,49 @@ public sealed class AiChatController(
         }
     }
 
-    private async Task<bool> CanUseSpeechAsync(string workspace)
+    [HttpPost("AnalyzeAttachment")]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("AiChat")]
+    [RequestSizeLimit(6 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 6 * 1024 * 1024)]
+    public async Task<IActionResult> AnalyzeAttachment([FromForm] AiChatAttachmentInput input,
+        [FromServices] AiChatAttachmentAnalysis analysis, CancellationToken ct)
+    {
+        if (!await CanUseWorkspaceAsync(input.Workspace))
+            return Forbid();
+        if (input.File.Length is <= 0 or > AiChatAttachmentAnalysis.MaxFileBytes)
+            return BadRequest(new { error = "Attach a file up to 5 MB." });
+
+        try
+        {
+            await using var stream = new MemoryStream((int)input.File.Length);
+            await input.File.CopyToAsync(stream, ct);
+            stream.Position = 0;
+            var extension = Path.GetExtension(input.File.FileName).ToLowerInvariant();
+            var answer = await analysis.AnalyzeAsync(stream, extension, input.Question.Trim(), input.Workspace, ct);
+            return Ok(new { answer });
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex) when (ex is InvalidDataException or ClosedXML.Excel.Exceptions.ClosedXMLException or ArgumentException)
+        {
+            return BadRequest(new { error = "The attachment could not be read. Check its file type and try again." });
+        }
+        catch (AiLimitReachedException ex)
+        {
+            return StatusCode(429, new { error = ex.Message });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or JsonException ||
+                                   (ex is OperationCanceledException && !ct.IsCancellationRequested))
+        {
+            logger.LogWarning("Safi attachment analysis unavailable ({ErrorType}).", ex.GetType().Name);
+            return StatusCode(503, new { error = "File analysis is temporarily unavailable. Your attachment was not saved." });
+        }
+    }
+
+    private async Task<bool> CanUseWorkspaceAsync(string workspace)
     {
         if (!PageNavigation.Menus.ContainsKey(workspace) || !User.IsInRole(workspace))
             return false;
@@ -198,6 +241,11 @@ public sealed class AiChatController(
 public sealed record AiChatTurnInput(
     [Required, StringLength(16)] string Role,
     [Required, StringLength(4500)] string Content);
+
+public sealed record AiChatAttachmentInput(
+    [Required, StringLength(40)] string Workspace,
+    [Required, StringLength(1500)] string Question,
+    [Required] IFormFile File);
 
 public sealed record AiChatSpeechInput(
     [Required, StringLength(40)] string Workspace,
