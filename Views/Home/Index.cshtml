@@ -3,17 +3,20 @@
     ViewData["HomeLanding"] = true;
     var signedIn = User.Identity?.IsAuthenticated == true;
 }
-@* Tiryaq Pharma — The Genesis Line (Lot TQ-0417):
-   Synthesizes the intimate single-bottle scroll-instrument storytelling of Lot TQ-0417 with a progressive Three.js 3D world
-   that begins on one serene studio rail, passes through sourcing convergence, diving-nozzle filling, torque sealing, and dark-field
-   vision, blooms into a sunlit 12-rail cleanroom atrium, and arrives quietly on a morning windowsill at home.
+@* Tiryaq Pharma homepage: follow one bottle, lot TQ-0417, from the production line to someone's home.
+   One scroll drives three acts on one sticky stage (wwwroot/js/tiryaq-home-stage.js):
+     1. the illustrated production line, hero to packaging   (wwwroot/js/tiryaq-line.js, wwwroot/css/tiryaq-line.css)
+     2. the 3D twelve-line cleanroom                          (wwwroot/js/tiryaq-journey.js, wwwroot/css/tiryaq-journey.css)
+     3. the illustrated windowsill ending                     (tiryaq-line.js again)
+   Line cards use beats of tiryaq-line.js in data-in/data-out; the cleanroom card uses beats of tiryaq-journey.js.
    Section id "contact" is preserved on the closing section for legacy anchor compatibility. *@
 <div class="tj-root" id="top">
   <div id="track">
-    <section id="stage" aria-label="The making of Lot TQ-0417, controlled by scrolling">
-      <canvas id="gl-canvas" role="img" aria-label="Interactive 3D pharmaceutical journey following bottle TQ-0417 from a single cleanroom rail through verified sourcing, filling, sealing, optical inspection, a twelve-rail cleanroom atrium, and arrival on a sunlit home windowsill."></canvas>
+    <section id="stage" aria-label="The making of one medicine, controlled by scrolling">
+      <canvas id="line-canvas" role="img" aria-label="An illustrated pharmaceutical production line. One bottle, lot TQ-0417, travels on a conveyor through formulation, filling, capping, labelling, inspection and packaging."></canvas>
+      <canvas id="gl-canvas" role="img" aria-label="A 3D twelve-line cleanroom where the same care is repeated across oral solutions, tablets, sterile injectables and topicals."></canvas>
 
-      <!-- Graceful illustrated fallback if WebGL is unavailable -->
+      <!-- Illustrated fallback for the cleanroom if WebGL is unavailable -->
       <div id="gl-fallback" hidden role="status">
         <svg viewBox="0 0 960 540" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <rect width="960" height="540" fill="#0a2129"/>
@@ -23,160 +26,128 @@
         </svg>
       </div>
 
-      <!-- Soft editorial left vignette during Hero & warm sunlight threshold veil before Home -->
-      <div class="tj-hero-scrim" id="hero-scrim" aria-hidden="true"></div>
-      <div class="tj-sun-veil" id="sun-veil" aria-hidden="true"></div>
-
-      <!-- ==================== BEAT 0: INTIMATE SINGLE-RAIL STUDIO HERO ==================== -->
-      <div class="tj-beat tj-hero is-on" id="b-hero" data-in="-0.5" data-out="0.80">
-        <p class="tj-kicker"><span>LOT TQ-0417</span>Line 04 · Sourcing to Patient</p>
-        <h1>From the smallest detail to <em>every trusted line.</em></h1>
-        <p class="tj-hero-lead">Tiryaq Pharma unites verified sourcing and precision manufacturing. Follow one crystal vessel—lot TQ-0417—as qualified suppliers converge, instruments measure to the millimetre, and one quiet rail opens into a twelve-line cleanroom.</p>
-        <div class="tj-actions">
-          <button type="button" class="tj-btn solid" data-goto-beat="1.62">Follow the bottle <span aria-hidden="true">↓</span></button>
-          <button type="button" class="tj-btn ghost" data-cruise-toggle>Auto-run line <span aria-hidden="true">▶</span></button>
+      <!-- ==================== ACT 1: THE PRODUCTION LINE ==================== -->
+      <div class="ln-card" id="c-hero" data-in="-1" data-out=".72">
+        <h1>From the smallest detail to the <em>greatest human impact.</em></h1>
+        <p>Tiryaq Pharma develops and manufactures medicines. This is one bottle, lot TQ-0417, and the care it receives on its way to someone’s home.</p>
+        <div class="ln-btns">
+          <button class="ln-btn solid" type="button" data-go-d="1.6">Follow the bottle <b aria-hidden="true">↓</b></button>
           @if (signedIn)
           {
-            <a class="tj-btn ghost" asp-controller="Account" asp-action="GoToDashboard">Open workspace</a>
+            <a class="ln-btn" asp-controller="Account" asp-action="GoToDashboard">Go to my dashboard</a>
           }
           else
           {
-            <a class="tj-btn ghost" asp-controller="Account" asp-action="Register">Become a supplier</a>
+            <a class="ln-btn" asp-controller="Account" asp-action="Register">Become a supplier</a>
           }
         </div>
       </div>
 
-      <!-- ==================== BEAT 1: SOURCING CONVERGENCE & 4-TOWER GATE ==================== -->
-      <article class="tj-beat tj-card pos-L" id="b-source" data-in="1.08" data-out="2.22" aria-labelledby="t-source">
-        <header class="tj-card-head">
-          <span class="tj-eyebrow"><i></i>01 · Sourcing &amp; Governance</span>
-          <span class="tj-badge">TND-0417 · 4/4</span>
-        </header>
-        <h2 id="t-source">Three verified streams. <em>One released rail.</em></h2>
-        <p>Before formulation starts, three compliant supplier streams—borosilicate glass, bio-actives, and closures—converge through our four-tower committee gate while non-compliant lots divert.</p>
+      <div class="ln-card" id="c-reveal" data-in="1.05" data-out="1.75">
+        <h2>One line. One bottle. <em>Every detail.</em></h2>
+        <p>Line 04 joins formulation, filling, capping, labelling, inspection and packaging in a single continuous rail. Our bottle has just stepped onto it.</p>
+      </div>
 
-        <div class="tj-stream-list" role="listbox" aria-label="Select supplier feeder stream to highlight in 3D">
-          <button type="button" class="tj-stream is-selected" role="option" aria-selected="true" data-stream="0">
-            <span class="tj-stream-dot"></span>
-            <span class="tj-stream-main">
-              <strong>Al-Hikma Pharmaceutical Glass</strong>
-              <small>Type III vessel · 14,200 JD + 16% tax</small>
-            </span>
-            <b class="tj-stream-score">94.2</b>
-          </button>
-          <button type="button" class="tj-stream" role="option" aria-selected="false" data-stream="1">
-            <span class="tj-stream-dot"></span>
-            <span class="tj-stream-main">
-              <strong>Levant Bio-Active Solutions</strong>
-              <small>Purified oral active · COA verified</small>
-            </span>
-            <b class="tj-stream-score">95.1</b>
-          </button>
-          <button type="button" class="tj-stream" role="option" aria-selected="false" data-stream="2">
-            <span class="tj-stream-dot"></span>
-            <span class="tj-stream-main">
-              <strong>Amman Precision Closures</strong>
-              <small>28 mm tamper-ring cap · 13,850 JD</small>
-            </span>
-            <b class="tj-stream-score">91.8</b>
-          </button>
-        </div>
-
-        <dl class="tj-mini-grid">
-          <div><dt>Evaluation</dt><dd id="r-eval-seat">4/4 scored · Rank 1</dd></div>
-          <div><dt>CEO &amp; Chiefs</dt><dd>4/4 award signed</dd></div>
-        </dl>
+      <article class="ln-card ln-L ln-ins" id="c-form" data-tab="01 · Formulation" data-in="1.95" data-out="3.0">
+        <h2>Where science becomes <em>medicine.</em></h2>
+        <p>Before a bottle is filled, the solution is prepared: ingredients are weighed, dissolved in purified water and mixed under controlled conditions, then sampled and released for filling.</p>
+        <ol class="ln-steps" id="form-steps">
+          <li data-at="1.98">Weigh each ingredient <span>dispensary</span></li>
+          <li data-at="2.12">Dissolve in purified water <span>vessel</span></li>
+          <li data-at="2.3">Mix to a uniform solution <span>agitator</span></li>
+          <li data-at="2.5">Sample &amp; release <span>QC</span></li>
+          <li data-at="2.75">Transfer to the filler <span>line</span></li>
+        </ol>
+        <small class="ln-note">Illustrative, simplified sequence. Process parameters are product-specific.</small>
       </article>
 
-      <!-- ==================== BEAT 2: FORMULATION & DIVING-NOZZLE FILLING ==================== -->
-      <article class="tj-beat tj-card pos-R" id="b-fill" data-in="2.48" data-out="3.68" aria-labelledby="t-fill">
-        <header class="tj-card-head">
-          <span class="tj-eyebrow"><i></i>02 · Formulation &amp; Filling</span>
-          <span class="tj-badge">STATION F-02</span>
-        </header>
-        <h2 id="t-fill">Measured to <em>the meniscus.</em></h2>
-        <p>Homogenized solution feeds from the jacketed vessel to the diving nozzle, dosing from inside the neck so the stream stays calm and the level exact.</p>
-
-        <div class="tj-burette-wrap">
-          <div class="tj-burette" aria-hidden="true">
-            <span class="tj-burette-stream" id="inst-stream"></span>
-            <span class="tj-burette-fill" id="inst-fill"></span>
-            <u style="top:22%"></u>
-            <u style="top:44%"></u>
-            <u style="top:66%"></u>
-            <u style="top:84%"></u>
-          </div>
-          <dl class="tj-readout">
-            <div><dt>Nozzle</dt><dd id="r-nozzle">raised</dd></div>
-            <div><dt>Volume</dt><dd id="r-volume">0.0 mL</dd></div>
-            <div><dt>Meniscus</dt><dd id="r-meniscus">awaiting</dd></div>
-            <div><dt>Specimen</dt><dd>TQ-0417</dd></div>
+      <article class="ln-card ln-R ln-inst" id="c-fill" data-in="3.2" data-out="4.02">
+        <p class="ln-eyebrow"><i></i>02 · Filling</p>
+        <h2>Measured to <em>the line.</em></h2>
+        <p>The nozzle enters the neck, doses, and withdraws. Filling from inside the neck keeps the stream calm and the level exact.</p>
+        <div class="ln-gauge">
+          <div class="ln-tube" id="ln-tube"><i></i><b></b><u style="top:30%"></u><u style="top:45%"></u><u style="top:60%"></u><u style="top:75%"></u></div>
+          <dl class="ln-readout">
+            <div><dt>Nozzle</dt><dd id="ln-noz">raised</dd></div>
+            <div><dt>Dose</dt><dd id="ln-dose">0%</dd></div>
+            <div><dt>Level</dt><dd id="ln-lvl">—</dd></div>
+            <div><dt>Bottle</dt><dd>TQ-0417</dd></div>
           </dl>
         </div>
       </article>
 
-      <!-- ==================== BEAT 3: TORQUE SEALING & WRAP IDENTITY ==================== -->
-      <article class="tj-beat tj-card pos-L" id="b-seal" data-in="3.96" data-out="5.18" aria-labelledby="t-seal">
-        <header class="tj-card-head">
-          <span class="tj-eyebrow"><i></i>03 · Sealing &amp; Identity</span>
-          <span class="tj-badge">STATION C-03</span>
-        </header>
-        <h2 id="t-seal">Sealed tight, then <em>given a name.</em></h2>
-        <p>A ribbed closure seats on the neck and turns into the calibrated torque window before the rotary drum wraps the Velmira batch label in one clean revolution.</p>
-
-        <div class="tj-dial-wrap">
-          <svg class="tj-dial-svg" viewBox="0 0 120 120" aria-hidden="true">
-            <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(10,31,38,0.11)" stroke-width="8"/>
-            <path d="M26 94 A48 48 0 1 1 94 94" fill="none" stroke="rgba(10,31,38,0.18)" stroke-width="2"/>
-            <path id="inst-dial-arc" d="M26 94 A48 48 0 1 1 94 94" fill="none" stroke="#d98a2b" stroke-width="8" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/>
-            <path d="M82 28 A48 48 0 0 1 102 56" fill="none" stroke="#1b8a6b" stroke-width="3.5" stroke-linecap="round"/>
-            <g id="inst-needle" style="transform-origin:60px 60px; transform:rotate(-125deg)">
-              <line x1="60" y1="60" x2="60" y2="20" stroke="#0a1f26" stroke-width="2.4" stroke-linecap="round"/>
-              <circle cx="60" cy="60" r="5" fill="#0a1f26"/>
-            </g>
+      <article class="ln-card ln-L ln-inst" id="c-cap" data-in="4.45" data-out="5.1">
+        <p class="ln-eyebrow"><i></i>03 · Capping</p>
+        <h2>Sealed, then <em>secured.</em></h2>
+        <p>Caps travel from the feeder bowl down a chute. The capping head picks one, seats it on the neck and turns it to a controlled torque.</p>
+        <div class="ln-dial">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="var(--ln-line)" stroke-width="8"/>
+            <path d="M23 97 A52 52 0 1 1 97 97" fill="none" stroke="var(--ln-line)" stroke-width="2"/>
+            <path id="ln-dial-arc" d="M23 97 A52 52 0 1 1 97 97" fill="none" stroke="#efb85c" stroke-width="8" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/>
+            <path d="M84 30 A52 52 0 0 1 100 52" fill="none" stroke="var(--ln-accent)" stroke-width="3"/>
+            <g class="ln-needle" id="ln-needle"><line x1="60" y1="60" x2="60" y2="18" stroke="currentColor" stroke-width="2"/><circle cx="60" cy="60" r="5" fill="currentColor"/></g>
           </svg>
-          <dl class="tj-readout">
-            <div><dt>Closure</dt><dd id="r-cap">in chute</dd></div>
-            <div><dt>Torque</dt><dd id="r-torque">0.00 N·m</dd></div>
-            <div><dt>Wrap label</dt><dd id="r-label">standby</dd></div>
-            <div><dt>Identity</dt><dd>Velmira · 100 mL</dd></div>
+          <dl class="ln-readout">
+            <div><dt>Cap</dt><dd id="ln-capst">in chute</dd></div>
+            <div><dt>Torque</dt><dd id="ln-tq">—</dd></div>
+            <div><dt>Window</dt><dd>green band</dd></div>
           </dl>
         </div>
       </article>
 
-      <!-- ==================== BEAT 4: 5-POINT DARK-FIELD VISION INSPECTION ==================== -->
-      <article class="tj-beat tj-card pos-R" id="b-qc" data-in="5.46" data-out="6.66" aria-labelledby="t-qc">
-        <header class="tj-card-head">
-          <span class="tj-eyebrow"><i></i>04 · Optical Inspection</span>
-          <span class="tj-badge">VISION V-05</span>
-        </header>
-        <h2 id="t-qc">Five checks. <em>One decision.</em></h2>
-        <p>Dark-field cameras scan cap, meniscus, label, batch code, and clarity. A unit advances only when all five checks agree—the unlabelled unit ahead was diverted.</p>
+      <article class="ln-card ln-R ln-ins" id="c-label" data-tab="04 · Labelling" data-in="5.5" data-out="6.15">
+        <h2>Giving it an <em>identity.</em></h2>
+        <p>The label peels from its roll and wraps the bottle in one turn. Everything a pharmacist and a patient need sits in a clear order.</p>
+        <ul class="ln-anat">
+          <li><span><b>Brand &amp; product</b> · Tiryaq · Velmira</span></li>
+          <li><span><b>Strength &amp; form</b> · 5 mg / 5 mL oral solution</span></li>
+          <li><span><b>Volume</b> · 100 mL</span></li>
+          <li><span><b>Batch &amp; expiry</b> · TQ-0417, printed on line</span></li>
+          <li><span><b>Barcode</b> · scanned again at inspection</span></li>
+        </ul>
+        <small class="ln-note">Velmira is a fictional, illustrative product. It is not a real medicine.</small>
+      </article>
 
-        <ol class="tj-qc-list" id="inst-qc">
-          <li data-qc-step="0"><span>Meniscus fill band (100 mL ±0.2%)</span><em>queued</em></li>
-          <li data-qc-step="1"><span>Closure seated · tamper ring intact</span><em>queued</em></li>
-          <li data-qc-step="2"><span>Velmira label aligned &amp; verified</span><em>queued</em></li>
-          <li data-qc-step="3"><span>Batch &amp; expiry OCR · TQ-0417</span><em>queued</em></li>
-          <li data-qc-step="4"><span>Zero suspended particulates</span><em>queued</em></li>
+      <article class="ln-card ln-L ln-inst" id="c-qc" data-in="6.45" data-out="7.32">
+        <p class="ln-eyebrow"><i></i>05 · Inspection</p>
+        <h2>Five checks. <em>One decision.</em></h2>
+        <p>Cameras and lighting check every unit. A bottle moves on only when every check agrees. The one ahead of ours did not.</p>
+        <ol class="ln-qc" id="ln-qc">
+          <li data-at="6.6">Fill level within band <em></em></li>
+          <li data-at="6.72">Cap seated · tamper ring intact <em></em></li>
+          <li data-at="6.84">Label present &amp; aligned <em></em></li>
+          <li data-at="6.96">Batch code read · TQ-0417 <em></em></li>
+          <li data-at="7.08">No visible particles <em></em></li>
         </ol>
       </article>
 
-      <!-- ==================== BEAT 5: DAYLIGHT BLOOM & 12-RAIL CLEANROOM ATRIUM ==================== -->
-      <aside class="tj-beat tj-dock" id="b-scale" data-in="6.98" data-out="8.42" aria-labelledby="t-scale">
+      <article class="ln-card ln-R ln-ins" id="c-pack" data-tab="06 · Packaging" data-in="7.7" data-out="8.5">
+        <h2>Folded around <em>it.</em></h2>
+        <p>A flat carton blank opens into a box. The bottle is lowered in, the flaps fold and tuck, and the carton carries the same identity as the label.</p>
+        <ol class="ln-steps" id="pack-steps">
+          <li data-at="7.74">Bottle picked from the line <span>gripper</span></li>
+          <li data-at="7.94">Carton erected from a flat blank <span>magazine</span></li>
+          <li data-at="8.08">Lowered into the carton <span>insert</span></li>
+          <li data-at="8.24">Flaps folded &amp; tucked <span>closing</span></li>
+        </ol>
+      </article>
+
+      <!-- ==================== ACT 2: THE TWELVE-LINE CLEANROOM (3D) ==================== -->
+      <aside class="tj-beat tj-dock" id="b-scale" data-in="6.98" data-out="8.1" aria-labelledby="t-scale">
         <div class="tj-dock-top">
           <div>
-            <span class="tj-eyebrow"><i></i>05 · Twelve-Line Cleanroom Atrium · Drag Scene to Orbit</span>
+            <span class="tj-eyebrow"><i></i>07 · Twelve-line cleanroom · Drag to look around</span>
             <h2 id="t-scale">The same care, multiplied across <em>every form.</em></h2>
           </div>
-          <div class="tj-cam-pills" role="group" aria-label="Atrium 3D camera angle">
+          <div class="tj-cam-pills" role="group" aria-label="Cleanroom camera angle">
             <button type="button" class="is-on" data-atrium-cam="crane">Atrium crane</button>
             <button type="button" data-atrium-cam="chase">Chase TQ-0417</button>
             <button type="button" data-atrium-cam="zenith">Aerial blueprint</button>
           </div>
         </div>
 
-        <div class="tj-form-pills" role="tablist" aria-label="Highlight dosage form lines in the 3D atrium">
+        <div class="tj-form-pills" role="tablist" aria-label="Highlight dosage form lines in the cleanroom">
           <button type="button" class="tj-form-pill is-on" role="tab" aria-selected="true" data-form-focus="oral">
             <strong>Oral solutions</strong>
             <span>Line 04 spine · Dosing &amp; torque</span>
@@ -196,38 +167,23 @@
         </div>
       </aside>
 
-      <!-- ==================== BEAT 6: SUNLIT MORNING WINDOWSILL AT HOME ==================== -->
-      <div class="tj-beat tj-home" id="b-home" data-in="8.82" data-out="10.5">
-        <p class="tj-eyebrow"><i></i>Lot TQ-0417 · Delivered Home</p>
+      <!-- ==================== ACT 3: ON THE WINDOWSILL AT HOME ==================== -->
+      <div class="ln-card" id="c-end" data-in="9.8" data-out="11">
+        <p class="ln-eyebrow"><i></i>Lot TQ-0417 · delivered</p>
         <h2>Every detail matters, because every medicine <em>reaches a person.</em></h2>
-        <p>From verified supplier tenders and dual four-member governance to twelve synchronized cleanroom lines—every safeguard exists so a quiet morning at home can stay quiet.</p>
-        <div class="tj-actions">
-          <a class="tj-btn solid" asp-controller="Home" asp-action="Contact">Partner with Tiryaq</a>
-          <a class="tj-btn outline-teal" asp-controller="Home" asp-action="HowItWorks">Explore 6-step campus ↗</a>
-          <button type="button" class="tj-btn outline-teal" data-goto-beat="0">Watch it again ↑</button>
+        <p>Tiryaq Pharma brings scientific precision, careful manufacturing and quality checks to every unit, so a quiet morning can stay quiet.</p>
+        <div class="ln-btns">
+          <a class="ln-btn solid" asp-controller="Home" asp-action="Contact">Partner with Tiryaq</a>
+          <button class="ln-btn" type="button" data-go-d="0">Watch it again <span aria-hidden="true">↑</span></button>
         </div>
       </div>
 
-      <!-- ==================== UNIFIED BOTTOM BOTTLE TIMELINE RAIL ==================== -->
-      <div class="tj-rail-bar" id="journey-rail">
-        <div class="tj-rail-track" id="rail-track" role="navigation" aria-label="Production journey stations">
-          <div class="tj-rail-line"></div>
-          <div class="tj-rail-done" id="rail-done"></div>
-          <div class="tj-rail-nodes" id="rail-nodes"></div>
-          <svg class="tj-mini-bottle" id="mini-bottle" viewBox="0 0 16 28" aria-hidden="true">
-            <rect id="mb-cap" x="5" y="0.5" width="6" height="4.2" rx="1" fill="#1d5560" opacity="0.22"/>
-            <path d="M5.5 4.8h5v2.6c3 .9 4.5 2.7 4.5 5.6V24.5a2.3 2.3 0 0 1-2.3 2.3H3.3A2.3 2.3 0 0 1 1 24.5V13c0-2.9 1.5-4.7 4.5-5.6z" fill="rgba(244,238,226,0.88)" stroke="#0a1f26" stroke-width="0.9"/>
-            <path id="mb-liq" d="M1.6 15.2h12.8v9a1.8 1.8 0 0 1-1.8 1.8H3.4a1.8 1.8 0 0 1-1.8-1.8z" fill="#efb85c" opacity="0"/>
-            <rect id="mb-lbl" x="1.5" y="15.5" width="13" height="6.2" fill="#fbf7ef" opacity="0"/>
-            <rect id="mb-lbl-band" x="1.5" y="15.5" width="13" height="1.6" fill="#1d5560" opacity="0"/>
-          </svg>
-        </div>
-
-        <div class="tj-rail-meta">
-          <span class="tj-orbit-hint" id="orbit-hint">Scroll to advance · Drag scene to inspect</span>
-          <button type="button" class="tj-autorun" id="autorun-btn" data-cruise-toggle aria-pressed="false">▶ Auto-run</button>
-        </div>
+      <!-- ==================== ONE PROGRESS RAIL (stops added by tiryaq-home-stage.js) ==================== -->
+      <div id="home-rail" aria-label="Journey progress">
+        <div class="ln-rail-line"></div><div class="ln-rail-done"></div>
+        <svg class="ln-mini" viewBox="0 0 14 24" aria-hidden="true"><rect x="4.5" y="0" width="5" height="4" rx="1" fill="#1d5560"/><path d="M5 4h4v2.4c2.6.8 4 2.4 4 5V21a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-9.6c0-2.6 1.4-4.2 4-5z" fill="#f4eee2"/><path d="M1.2 14h11.6v7a1.6 1.6 0 0 1-1.6 1.6H2.8A1.6 1.6 0 0 1 1.2 21z" fill="#d98a2b"/></svg>
       </div>
+      <p class="ln-hint" id="ln-hint" aria-hidden="true"><i></i>Scroll to run the line</p>
     </section>
   </div>
 
@@ -359,7 +315,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@@0;1&family=Geist:wght@@400;500;600;700&family=JetBrains+Mono:wght@@400;500;600&display=swap" />
     <link rel="stylesheet" href="~/css/tiryaq-journey.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tiryaq-line.css" asp-append-version="true" />
 }
 @section Scripts {
+    <script src="~/js/tiryaq-home-stage.js" asp-append-version="true"></script>
+    <script src="~/js/tiryaq-line.js" asp-append-version="true"></script>
     <script type="module" src="~/js/tiryaq-journey.js" asp-append-version="true"></script>
 }

@@ -1462,7 +1462,9 @@ function activateFallback() {
       }
     }
 
-    tgtBeat = cl(((scrollY - topOff) / span) * 10, 0, 10);
+    // On the homepage the controller (tiryaq-home-stage.js) owns the scroll and hands us only the cleanroom beats.
+    const homeStage = window.TiryaqStage;
+    tgtBeat = homeStage ? homeStage.glBeat() : cl(((scrollY - topOff) / span) * 10, 0, 10);
     const prevBeat = curBeat;
     curBeat = RM ? tgtBeat : curBeat + (tgtBeat - curBeat) * (1 - Math.exp(-dt * 7.2));
     if (!RM) time += dt;
@@ -1783,7 +1785,8 @@ function activateFallback() {
         cam.clearViewOffset();
       }
 
-      renderer.render(scene, cam);
+      // Skip GPU work while the illustrated line covers the stage.
+      if (!homeStage || homeStage.glVisible()) renderer.render(scene, cam);
     } catch (err) {
       if (renderErrors++ < 3) console.error('Tiryaq Genesis Line error:', err);
       if (renderErrors > 20) activateFallback();
