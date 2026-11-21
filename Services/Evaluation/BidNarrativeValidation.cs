@@ -6,6 +6,35 @@ namespace SourcingTenderManagement.Services.Evaluation;
 // Validate comparative prose using saved quotes, including comparisons without explicit numbers.
 public static class BidNarrativeValidation
 {
+    private const string SentencePattern = @"((?<=[.!?;])\s+|\n+)";
+    public const string EmptySectionText = "See the offer comparison table for the saved prices, delivery days and terms.";
+
+    /// <summary>
+    /// Free-text claims are checked by pattern matching, which will sometimes misread an accurate sentence.
+    /// Rather than discarding a whole AI answer over one sentence, drop only the sentences that contradict the
+    /// saved quotes and keep the rest. Facts shown elsewhere in the app come from the database, not from this text.
+    /// Returns the cleaned text and how many sentences were removed.
+    /// </summary>
+    public static (string Text, int Removed) Sanitize(CommitteeEvaluationPage page, int subjectId, string text, bool directComparison = false)
+    {
+        if (string.IsNullOrWhiteSpace(text) || page.Offers.All(b => b.BidId != subjectId)) return (text, 0);
+        var parts = Regex.Split(text, SentencePattern);
+        var kept = new System.Text.StringBuilder();
+        var removed = 0;
+        for (var i = 0; i < parts.Length; i += 2)
+        {
+            var sentence = parts[i];
+            var delimiter = i + 1 < parts.Length ? parts[i + 1] : "";
+            try
+            {
+                Check(page, subjectId, kept + sentence, directComparison);
+                kept.Append(sentence).Append(delimiter);
+            }
+            catch (InvalidOperationException) { removed++; }
+        }
+        return (kept.ToString().Trim(), removed);
+    }
+
     public static void Check(CommitteeEvaluationPage page, int subjectId, string text, bool directComparison = false)
     {
         var offers = page.Offers;
@@ -19,6 +48,11 @@ public static class BidNarrativeValidation
                 @"\bfaster\b|\bquicker\b|\bslower\b|\bfastest\b|\bslowest\b|\bcheaper\b|\bmore expensive\b|\bless expensive\b|\b(?:higher|lower|lowest|highest) (?:total )?(?:cost|price)\b", RegexOptions.IgnoreCase))
             {
                 var prefix = sentence[..claim.Index];
+                // "slower than the fastest offers" names the yardstick, not a claim that the subject is the fastest.
+                // The comparative word in the same sentence ("slower") is still checked.
+                if (Regex.IsMatch(claim.Value, @"^(?:fastest|slowest|lowest|highest)", RegexOptions.IgnoreCase) &&
+                    Regex.IsMatch(prefix, @"\b(?:than|compared\s+(?:with|to)|versus|vs\.?|behind|against)\s+(?:the\s+|all\s+)?(?:other\s+)?$", RegexOptions.IgnoreCase))
+                    continue;
                 var postClaim = sentence[(claim.Index + claim.Length)..];
                 var before = mentions.LastOrDefault(m => m.Index < claim.Index);
                 var after = mentions.FirstOrDefault(m => m.Index > claim.Index);

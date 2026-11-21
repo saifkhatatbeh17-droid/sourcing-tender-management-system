@@ -186,6 +186,7 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
             "reports.recommendation", system, prompt, "bid_recommendation", schema, 2200, page.Tender?.TenderId, cancellationToken);
         var structured = JsonSerializer.Deserialize<StructuredRecommendation>(output, Json);
         if (structured?.Scenarios == null) throw new InvalidOperationException("The AI did not return a structured explanation. Try again.");
+        var removedSentences = 0;
         var scenarios = structured.Scenarios.Select(s => {
             var sections = s.Reason == null ? [] : new[] { s.Reason.DecisionBasis, s.Reason.CostAndTerms, s.Reason.TechnicalFitAndDelivery, s.Reason.TradeoffsAndLimitations };
             if (sections.Length != 4 || sections.Any(t => string.IsNullOrWhiteSpace(t) || t.Length < 100 || t.Length > 1200))
@@ -199,9 +200,30 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
                     $@"(?:faster|quicker)\s+delivery\s+(?:of\s+|in\s+)?{longest}\s*[- ]?\s*days?\b|\b{longest}\s*[- ]?\s*days?\s+delivery\s*(?:,\s*which\s+)?is\s+(?:also\s+)?(?:faster|quicker)|delivery\s+terms\s+are\s+{longest}\s+days,?\s+which\s+is\s+(?:faster|quicker)",
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase))
                 throw new InvalidOperationException($"The {longest}-day offer is the slowest, not faster. Follow objectiveFacts.comparisonStatements exactly for cost, delivery and additional charges.");
-            return new BidScenario(s.FinancialWeight, s.RecommendedBidId, string.Join("\n\n", sections.Select((t, index) => headings[index] + "\n" + t.Trim())));
+            var reason = string.Join("\n\n", sections.Select((t, index) => headings[index] + "\n" + t.Trim()));
+            // Drop only the sentences that contradict the saved quotes; a misread sentence must not sink the whole answer.
+            // Sanitize the exact text Validate will check (all sections joined), because the check carries the
+            // "current offer" from one sentence to the next and so reads sections differently from the whole.
+            if (s.RecommendedBidId is int chosen)
+            {
+                var (clean, removed) = BidNarrativeValidation.Sanitize(page, chosen, reason);
+                removedSentences += removed;
+                reason = clean;
+            }
+            return new BidScenario(s.FinancialWeight, s.RecommendedBidId, reason);
         }).ToArray();
-        var result = new BidRecommendation(scenarios, structured.MissingInformation, structured.Comparisons, structured.Report)
+        var comparisons = structured.Comparisons?.Select(c => {
+            if (c == null || string.IsNullOrWhiteSpace(c.Strengths) || string.IsNullOrWhiteSpace(c.Tradeoffs)) return c;
+            var (strengths, removedStrengths) = BidNarrativeValidation.Sanitize(page, c.BidId, c.Strengths, true);
+            var (tradeoffs, removedTradeoffs) = BidNarrativeValidation.Sanitize(page, c.BidId, c.Tradeoffs, true);
+            removedSentences += removedStrengths + removedTradeoffs;
+            return new BidComparison(c.BidId,
+                string.IsNullOrWhiteSpace(strengths) ? BidNarrativeValidation.EmptySectionText : strengths,
+                string.IsNullOrWhiteSpace(tradeoffs) ? BidNarrativeValidation.EmptySectionText : tradeoffs);
+        }).ToArray();
+        var missing = removedSentences == 0 || structured.MissingInformation == null ? structured.MissingInformation
+            : [.. structured.MissingInformation, $"{removedSentences} AI sentence(s) that contradicted the saved quotes were removed from this comparison."];
+        var result = new BidRecommendation(scenarios, missing!, comparisons!, structured.Report)
         {
             ModelName = model
         };
@@ -266,16 +288,20 @@ public partial class BidRecommendationService(HttpClient http, IConfiguration co
                 var comparisons = report.GetProperty("comparison").EnumerateArray().ToArray();
                 if (comparisons.Length != alternatives.Count || !alternatives.Select(b => b.BidId).ToHashSet().SetEquals(comparisons.Select(c => c.GetProperty("bidId").GetInt32())))
                     throw new InvalidOperationException("Missing or duplicated alternatives.");
-                var why = Read(report, "whyChosen", 60, 900);
-                var observations = Read(report, "observations", 60, 900);
-                var conclusion = Read(report, "conclusion", 60, 900);
-                BidNarrativeValidation.Check(page, selected.BidId, why + "\n" + observations + "\n" + conclusion);
+                // Contradicting sentences are dropped, not the whole report (see BidNarrativeValidation.Sanitize).
+                string Clean(string value, int subject, bool direct = false)
+                {
+                    var (text, _) = BidNarrativeValidation.Sanitize(page, subject, value, direct);
+                    return string.IsNullOrWhiteSpace(text) ? BidNarrativeValidation.EmptySectionText : text;
+                }
+                var why = Clean(Read(report, "whyChosen", 60, 900), selected.BidId);
+                var observations = Clean(Read(report, "observations", 60, 900), selected.BidId);
+                var conclusion = Clean(Read(report, "conclusion", 60, 900), selected.BidId);
                 string Facts(SourcingTenderManagement.Models.Entities.Bid b) => $"{b.Invitation.SupplierProfile.CompanyName} — Offer #{b.BidId}; {CommitteeEvaluationPage.Total(b):N2} {b.Currency}; {b.DeliveryDays}-day delivery";
                 var comparison = alternatives.Count == 0 ? "No alternative eligible offers were available." : string.Join("\n\n", comparisons.Select(c => {
                     var bid = alternatives.Single(b => b.BidId == c.GetProperty("bidId").GetInt32());
-                    var strengths = Read(c, "strengths", 25, 500);
-                    var tradeoffs = Read(c, "tradeoffs", 25, 500);
-                    BidNarrativeValidation.Check(page, bid.BidId, strengths + "\n" + tradeoffs, true);
+                    var strengths = Clean(Read(c, "strengths", 25, 500), bid.BidId, true);
+                    var tradeoffs = Clean(Read(c, "tradeoffs", 25, 500), bid.BidId, true);
                     var claims = strengths + " " + tradeoffs;
                     if (bid.DeliveryDays >= selected.DeliveryDays && claims.Contains("faster delivery", StringComparison.OrdinalIgnoreCase)
                         || bid.DeliveryDays <= selected.DeliveryDays && claims.Contains("slower delivery", StringComparison.OrdinalIgnoreCase)

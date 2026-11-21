@@ -90,7 +90,6 @@
                     </details>
                 }
                 </div><div class="ev-offers-tools"><span class="ev-subtle">Totals include tax &amp; fees</span>
-                @if (Model.AiRecommendation?.Scenarios.Any() == true && Model.AiRecommendation.Comparisons.Any()) { <button type="button" class="btn ev-button-secondary" data-bs-toggle="collapse" data-bs-target="#offer-comparison" aria-expanded="true" aria-controls="offer-comparison">Advantages &amp; disadvantages <span aria-hidden="true">↔</span></button> }
                 </div></div>
                 <partial name="_AiOfferComparison" model="Model" />
                 @if (offers.Count == 0) { <div class="ev-empty"><h4>No eligible offers yet</h4><p>The sourcing officer needs to complete compliance review.</p></div> }

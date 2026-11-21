@@ -64,6 +64,27 @@ public static class ReportContentChecks
         BidNarrativeValidation.Check(page, 2, "Cedar Pharmacy Wholesale is cheapest; Levant Medicine Supply is cheaper than Rimal Pharmaceutical Distribution.");
         BidNarrativeValidation.Check(page, 3, "Higher total cost (1,105.00 vs 1,092.00 JOD) than Bid #2. Slower delivery.", true);
         BidNarrativeValidation.Check(page, 3, "Slower than the 3-day offer, yet faster than the 7-day offer.", true);
+        // "than the fastest bids" names the yardstick; it must not be read as "this offer is the fastest".
+        BidNarrativeValidation.Check(page, 3, "Delivery of 5 days is slower than the fastest bids; cost is above the cheapest offer.", true);
+        BidNarrativeValidation.Check(page, 3, "The 5-day delivery is 2 days slower than the fastest offer from Rimal Pharmaceutical Distribution.");
+        try { BidNarrativeValidation.Check(page, 1, "Delivery of 3 days is slower than the fastest bids.", true); throw new Exception("Wrong 'slower than the fastest' accepted."); }
+        catch (InvalidOperationException) { }
+        // A sentence the validator rejects is removed on its own; accurate sentences around it survive.
+        var (cleaned, removedCount) = BidNarrativeValidation.Sanitize(page, 2,
+            "Cedar Pharmacy Wholesale is cheapest. Rimal Pharmaceutical Distribution is cheaper than Cedar Pharmacy Wholesale. The warranty is stated by the supplier.");
+        Check(removedCount == 1 && cleaned.Contains("is cheapest") && cleaned.Contains("warranty is stated")
+            && !cleaned.Contains("Rimal Pharmaceutical Distribution is cheaper"), $"Sanitize must drop only the contradicting sentence, got '{cleaned}' ({removedCount} removed).");
+        // Validate checks the sections joined, where the "current offer" carries from one sentence to the next.
+        // Text that passes section by section can fail joined, so Sanitize must work on the joined text.
+        const string joined = "Recommendation\nCedar Pharmacy Wholesale is the best fit.\n\nCost\nThe price is close to the offer from Levant Medicine Supply.\n\nTechnical fit & delivery\nThe delivery time is 7 days, which is the slowest among all offers.";
+        BidNarrativeValidation.Check(page, 2, "The delivery time is 7 days, which is the slowest among all offers.");
+        try { BidNarrativeValidation.Check(page, 2, joined); throw new Exception("Joined text was expected to trip the carried-over subject."); }
+        catch (InvalidOperationException) { }
+        var (joinedClean, joinedRemoved) = BidNarrativeValidation.Sanitize(page, 2, joined);
+        BidNarrativeValidation.Check(page, 2, joinedClean);
+        Check(joinedRemoved >= 1 && joinedClean.Contains("best fit"), "Sanitized joined text must pass the same check Validate runs.");
+        var (untouched, none) = BidNarrativeValidation.Sanitize(page, 3, "Delivery of 5 days is slower than the fastest bids.", true);
+        Check(none == 0 && untouched.Contains("fastest bids"), "Sanitize must keep accurate text unchanged.");
         foreach (var threeOfferContradiction in new[] {
             "Higher total cost than Bid #1.",
             "Slower delivery than Cedar Pharmacy Wholesale." })
