@@ -559,6 +559,8 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             .Include(b => b.BidDocuments).OrderBy(b => b.BidId).ToListAsync();
         var selectedTender = tenders.SingleOrDefault(t => t.TenderId == tenderId);
         ViewData["AiChatRecordId"] = selectedTender?.TenderId;
+        // Used by the offer pre-check to compare uploaded documents with the tender's mandatory documents.
+        ViewBag.MandatoryDocuments = tenderId.HasValue ? await db.TenderDocuments.CountAsync(d => d.TenderId == tenderId && d.IsMandatory) : 0;
         if (selectedTender != null)
             selectedTender.PurchaseRequest = await db.PurchaseRequests.AsNoTracking()
                 .Include(r => r.PurchaseRequestItems).SingleAsync(r => r.PurchaseRequestId == selectedTender.PurchaseRequestId);

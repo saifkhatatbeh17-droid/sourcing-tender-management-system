@@ -3,8 +3,9 @@
 @{
  ViewData["Title"] = "Reports";
  var selected = ViewBag.SelectedReport as EvaluationReport;
- bool NeedsReview(EvaluationReport report) => report.Status == "CommitteeApproved" && report.Tender.Status == "AwaitingOfficerSummary";
- string StatusLabel(string status) => status switch { "Draft" => "In preparation", "CommitteeApproved" => "Committee approved", "OfficerSubmitted" => "With sourcing manager", "ManagerApproved" => "Manager approved", "TopApproved" => "CEO & Chiefs approved", "ReturnedForReview" => "Returned to committee", "ManagerRejected" => "Manager rejected", _ => status };
+ // Shared with the PDF exports so downloaded reports use the same wording as this page.
+ bool NeedsReview(EvaluationReport report) => SourcingTenderManagement.Services.Reports.OfficerReportLabels.NeedsReview(report);
+ string StatusLabel(string status) => SourcingTenderManagement.Services.Reports.OfficerReportLabels.StatusLabel(status);
 }
 @section Styles {
  <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" />
@@ -50,7 +51,7 @@
    <section class="rp-panel"><h3>Committee recommendation</h3>@if(string.IsNullOrWhiteSpace(selected.CommitteeSummary)){<p class="rp-muted">The committee is still preparing this report.</p>}else{<partial name="_FormattedReport" model="selected.CommitteeSummary" />}</section>
    <section class="rp-panel"><h3>Sourcing officer review</h3>@if(string.IsNullOrWhiteSpace(selected.OfficerSummary)){<p class="rp-muted">No officer decision recorded yet.</p>}else{<partial name="_FormattedReport" model="selected.OfficerSummary" />}</section>
    <section class="rp-panel"><h3>Sourcing manager review</h3>@if(string.IsNullOrWhiteSpace(selected.ManagerSummary)){<p class="rp-muted">No manager review recorded yet.</p>}else{<partial name="_FormattedReport" model="selected.ManagerSummary" />}</section>
-  </div><aside class="rp-panel rp-facts"><h3>Report record</h3><dl><div><dt>Prepared by</dt><dd>@(selected.PreparedByUser?.FullName ?? "Not recorded")</dd></div><div><dt>Submitted</dt><dd>@(selected.SubmittedAt?.ToString("dd MMM yyyy, HH:mm") ?? "Not submitted")@(selected.SubmittedAt.HasValue?" UTC":"")</dd></div><div><dt>Recommended supplier</dt><dd>@(selected.Bid?.Invitation.SupplierProfile.CompanyName ?? "Not recorded")</dd></div></dl><a asp-action="Offers" asp-route-id="" asp-route-tenderId="@selected.TenderId">Open tender workspace →</a></aside></div>
+  </div><aside class="rp-panel rp-facts"><h3>Report record</h3><dl><div><dt>Prepared by</dt><dd>@(selected.PreparedByUser?.FullName ?? "Not recorded")</dd></div><div><dt>Submitted</dt><dd>@SourcingTenderManagement.Services.Reports.OfficerReportLabels.SubmittedDetail(selected.SubmittedAt)</dd></div><div><dt>Recommended supplier</dt><dd>@(selected.Bid?.Invitation.SupplierProfile.CompanyName ?? "Not recorded")</dd></div></dl><a asp-action="Offers" asp-route-id="" asp-route-tenderId="@selected.TenderId">Open tender workspace →</a></aside></div>
  }
  <div class="modal fade rp-review-modal" id="report-review-modal" tabindex="-1" aria-labelledby="report-review-title" aria-hidden="true"><div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"></div></div></div>
 </div>

@@ -90,7 +90,6 @@
                     </details>
                 }
                 </div><div class="ev-offers-tools"><span class="ev-subtle">Totals include tax &amp; fees</span>
-                @if (Model.AiRecommendation?.Scenarios.Any() == true && Model.AiRecommendation.Comparisons.Any()) { <button type="button" class="btn ev-button-secondary" data-bs-toggle="collapse" data-bs-target="#offer-comparison" aria-expanded="true" aria-controls="offer-comparison">Advantages &amp; disadvantages <span aria-hidden="true">↔</span></button> }
                 </div></div>
                 <partial name="_AiOfferComparison" model="Model" />
                 @if (offers.Count == 0) { <div class="ev-empty"><h4>No eligible offers yet</h4><p>The sourcing officer needs to complete compliance review.</p></div> }
@@ -106,6 +105,7 @@
                         { <p class="ev-personal-review @(Model.MyReviewApproved(offer) ? "is-approved" : "is-pending")"><span aria-hidden="true">@(Model.MyReviewApproved(offer) ? "✓" : "○")</span> @(Model.MyReviewApproved(offer) ? "Your review approved" : "Not reviewed yet")</p> }
                         <div class="ev-offer-top"><span class="ev-subtle">Offer #@offer.BidId</span><span class="ev-offer-label">@(lowest ? "Lowest price" : "Compliant")</span></div>
                         <h4>@offer.Invitation.SupplierProfile.CompanyName</h4>
+                        @await Component.InvokeAsync("OfferProductPhotos", new { bidId = offer.BidId })
                         <p class="ev-price">@CommitteeEvaluationPage.Total(offer).ToString("N2") <span>@offer.Currency</span></p>
                         <dl class="ev-offer-facts"><div><dt>Delivery</dt><dd>@offer.DeliveryDays days</dd></div><div><dt>Payment</dt><dd>@(offer.PaymentTerms ?? "Not specified")</dd></div></dl>
                         <div class="ev-specification"><h5>Technical details</h5><p>@(offer.TechnicalDetails ?? "No technical details provided.")</p></div>

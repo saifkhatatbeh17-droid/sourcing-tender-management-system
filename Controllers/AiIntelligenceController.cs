@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Services.Ai;
 using SourcingTenderManagement.Services.Intelligence;
 
 namespace SourcingTenderManagement.Controllers;
@@ -78,6 +79,10 @@ public sealed class AiIntelligenceController(
             var result = await intelligence.GeneratePortfolioInsightsAsync(resolvedWorkspace, User, user, input?.Question, ct);
             return Ok(result);
         }
+        catch (AiLimitReachedException ex)
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { error = ex.Message });
+        }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException ||
                                    (ex is OperationCanceledException && !ct.IsCancellationRequested))
         {
@@ -104,6 +109,10 @@ public sealed class AiIntelligenceController(
             if (result == null)
                 return NotFound(new { error = "Tender not found in your authorized workspace." });
             return Ok(result);
+        }
+        catch (AiLimitReachedException ex)
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { error = ex.Message });
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException ||
                                    (ex is OperationCanceledException && !ct.IsCancellationRequested))

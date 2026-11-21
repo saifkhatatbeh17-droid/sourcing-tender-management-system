@@ -15,14 +15,14 @@ public sealed partial class AiChatController
     [HttpGet("AccountTemplate"), Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> AccountTemplate()
     {
-        if (!await CanUseSpeechAsync(RoleNames.Admin)) return Forbid();
+        if (!await CanUseWorkspaceAsync(RoleNames.Admin)) return Forbid();
         return File(AiChatAccountImport.Template(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Tiryaq-Accounts-Template.xlsx");
     }
 
     [HttpPost("Attachment"), ValidateAntiForgeryToken, EnableRateLimiting("AiChat")]
     [RequestSizeLimit(6 * 1024 * 1024)]
     [RequestFormLimits(MultipartBodyLengthLimit = 6 * 1024 * 1024)]
-    public async Task<IActionResult> Attachment([FromForm] AiChatAttachmentInput input,
+    public async Task<IActionResult> Attachment([FromForm] AiChatLegacyAttachmentInput input,
         [FromServices] AiChatAccountImport importer, [FromServices] AiChatImageClient images,
         [FromServices] AiChatPdfClient pdfs, [FromServices] AiChatSpreadsheetClient spreadsheets, CancellationToken ct)
     {
@@ -96,7 +96,7 @@ public sealed partial class AiChatController
     }
 }
 
-public sealed class AiChatAttachmentInput
+public sealed class AiChatLegacyAttachmentInput
 {
     [Required, StringLength(40)] public string Workspace { get; set; } = "";
     [StringLength(1500)] public string? Question { get; set; }

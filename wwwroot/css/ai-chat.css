@@ -30,6 +30,7 @@
 }
 
 .ai-chat-dock > * { pointer-events: auto; }
+.ai-chat[data-public="true"] :is(.ai-chat-mic, .ai-chat-speech, .ai-chat-voice-panel) { display: none; }
 
 .ai-chat-speech {
     position: relative;
@@ -722,15 +723,68 @@
 .ai-chat-status[data-state="error"] { color: var(--pharma-danger-text, #b42318); }
 .ai-chat-shortcuts { margin: .35rem 0 0; color: var(--ai-chat-muted); font-size: .75rem; }
 .ai-chat-composer {
-    display: flex;
-    align-items: flex-end;
-    gap: .38rem;
-    padding: .3rem;
+    display: grid;
+    gap: .18rem;
+    padding: .38rem;
     border: 1px solid var(--ai-chat-rule);
     border-radius: 14px;
     background: var(--ai-chat-surface);
 }
 .ai-chat-composer:focus-within { border-color: var(--ai-chat-focus); }
+.ai-chat-tools {
+    display: flex;
+    align-items: center;
+    gap: .28rem;
+}
+.ai-chat-tools .ai-chat-send { margin-inline-start: auto; }
+.ai-chat-tools :is(.ai-chat-mic, .ai-chat-attach) {
+    border-color: transparent;
+    background: transparent;
+    color: var(--ai-chat-muted);
+}
+.ai-chat-tools :is(.ai-chat-mic, .ai-chat-attach):hover:not(:disabled) {
+    color: var(--ai-chat-ink);
+    background: var(--ai-chat-subtle);
+}
+.ai-chat-tools .ai-chat-mic[aria-expanded="true"] { background: #24525d; color: #fff; }
+.ai-chat-composer:has(.ai-chat-file-chip:not([hidden])) [data-analysis-attach] {
+    color: var(--ai-chat-ink);
+    background: var(--ai-chat-subtle);
+}
+.ai-chat-file-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    gap: .55rem;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    padding: .35rem .3rem .35rem .65rem;
+    border: 1px solid var(--ai-chat-rule);
+    border-radius: 10px;
+    background: var(--ai-chat-subtle);
+    color: var(--ai-chat-ink);
+    font-size: .8rem;
+}
+.ai-chat-file-chip[hidden] { display: none; }
+.ai-chat-file-chip > svg { flex: 0 0 17px; inline-size: 17px; block-size: 17px; color: var(--ai-chat-muted); }
+.ai-chat-file-copy { min-inline-size: 0; }
+.ai-chat-file-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
+.ai-chat-file-copy small { display: block; color: var(--ai-chat-muted); font-size: .7rem; }
+.ai-chat-file-chip button {
+    display: grid;
+    place-items: center;
+    flex: 0 0 34px;
+    min-block-size: 34px;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ai-chat-muted);
+    cursor: pointer;
+}
+.ai-chat-file-chip button:hover:not(:disabled) { background: var(--ai-chat-surface); color: var(--ai-chat-ink); }
+.ai-chat-file-chip button svg { inline-size: 16px; block-size: 16px; }
+.ai-chat-file-badge { max-inline-size: 100%; overflow-wrap: anywhere; }
 
 .ai-chat-mic {
     display: inline-grid;
@@ -773,7 +827,7 @@
 .ai-chat-voice-status:empty { margin: 0; }
 
 .ai-chat-composer textarea {
-    flex: 1;
+    inline-size: 100%;
     min-inline-size: 0;
     min-block-size: 44px;
     max-block-size: 124px;

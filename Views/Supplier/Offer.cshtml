@@ -102,6 +102,7 @@
 
     <section class="supplier-card supplier-offer-pricing" aria-labelledby="offer-pricing-title">
         <h2 id="offer-pricing-title">Items and pricing</h2>
+        @await Component.InvokeAsync("OfferProductPhotos", new { bidId = Model.BidId })
         @if (Model.BidItems.Any())
         {
             <div class="table-responsive" tabindex="0" role="region" aria-label="Itemized pricing">

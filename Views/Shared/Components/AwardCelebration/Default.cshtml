@@ -1,0 +1,53 @@
+@using System.Globalization
+@model SourcingTenderManagement.ViewComponents.AwardCelebrationViewModel
+@{
+    var total = $"{Model.Currency} {Model.Total.ToString("N2", CultureInfo.InvariantCulture)}";
+}
+<link rel="stylesheet" href="~/css/award-celebration.css" asp-append-version="true" />
+<dialog class="aw" data-award aria-labelledby="aw-title">
+    <div class="aw-scrim"></div>
+    <div class="aw-rays" aria-hidden="true"></div>
+    <div class="aw-confetti" data-aw-confetti aria-hidden="true"></div>
+
+    <div class="aw-stage">
+        <div class="aw-env" data-aw-env>
+            <span class="aw-inner"></span>
+            <article class="aw-letter" data-aw-letter>
+                <header class="aw-letter-head">
+                    <span class="aw-brand">Tiryaq</span>
+                    <span>Award notice · Tender #@Model.TenderId</span>
+                </header>
+                <p class="aw-congrats">Congratulations,</p>
+                <h2 id="aw-title">@Model.CompanyName</h2>
+                <p class="aw-lede">Your offer <strong>#@Model.BidId</strong> has been selected as the winning offer.</p>
+                <dl class="aw-facts">
+                    <div class="aw-fact-wide"><dt>Tender</dt><dd>#@Model.TenderId · @Model.TenderTitle</dd></div>
+                    <div><dt>Contract value</dt><dd>@total</dd></div>
+                    @if (Model.AwardedAt is { } awardedAt)
+                    {
+                        <div><dt>Awarded</dt><dd>@awardedAt.ToString("d MMM yyyy", CultureInfo.InvariantCulture)</dd></div>
+                    }
+                </dl>
+                @if (Model.MoreCount > 0)
+                {
+                    <p class="aw-more">You have @Model.MoreCount more award @(Model.MoreCount == 1 ? "notice" : "notices") waiting.</p>
+                }
+                <div class="aw-actions">
+                    <form method="post" asp-controller="Account" asp-action="OpenNotification" asp-route-id="@Model.NotificationId">
+                        <button type="submit" class="aw-primary">View awarded offer</button>
+                    </form>
+                    <form method="post" asp-controller="Supplier" asp-action="AcknowledgeAward" asp-route-id="@Model.NotificationId" data-aw-dismiss>
+                        <button type="submit" class="aw-secondary">Close</button>
+                    </form>
+                </div>
+                <span class="aw-stamp" aria-hidden="true">Awarded</span>
+            </article>
+            <span class="aw-pocket"><span class="aw-pocket-label">Sealed award notice</span></span>
+            <span class="aw-flap"></span>
+            <span class="aw-seal"><span class="aw-half aw-l"></span><span class="aw-half aw-r"></span><span class="aw-sparks" data-aw-sparks></span></span>
+            <button type="button" class="aw-open" data-aw-open aria-label="Open your award notice"></button>
+        </div>
+        <p class="aw-hint" data-aw-hint>You have mail. Tap the seal to open it.</p>
+    </div>
+</dialog>
+<script src="~/js/award-celebration.js" asp-append-version="true" defer></script>

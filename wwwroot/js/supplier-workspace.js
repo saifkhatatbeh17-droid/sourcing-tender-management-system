@@ -1,6 +1,27 @@
 /* Supplier-only enhancements; routes and validation remain server controlled. */
 (() => {
     'use strict';
+    document.querySelectorAll('[data-product-photo]').forEach(group => {
+        const input = group.querySelector('[data-product-photo-input]');
+        const preview = group.querySelector('[data-product-photo-preview]');
+        const status = group.querySelector('[data-product-photo-status]');
+        const savedSource = preview.getAttribute('src');
+        let objectUrl;
+        input.addEventListener('change', () => {
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+            input.setCustomValidity('');
+            const file = input.files[0];
+            if (!file) { preview.src = savedSource || ''; preview.hidden = !savedSource; status.textContent = savedSource ? 'Saved product photo retained.' : ''; return; }
+            if (file.size > 5 * 1024 * 1024 || !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+                input.setCustomValidity('Choose a JPG, PNG or WebP product photo up to 5 MB.');
+                status.textContent = input.validationMessage; preview.hidden = true; return;
+            }
+            objectUrl = URL.createObjectURL(file); preview.src = objectUrl; preview.hidden = false;
+            status.textContent = file.name + ' · Will be saved with this offer.';
+        });
+        window.addEventListener('pagehide', () => { if (objectUrl) URL.revokeObjectURL(objectUrl); });
+    });
     document.querySelectorAll('[data-supplier-search]').forEach(input => {
         const records = [...document.querySelectorAll(input.dataset.supplierSearch)];
         const status = input.parentElement.querySelector('[data-supplier-search-status]');
@@ -35,7 +56,7 @@
             document.querySelector('#offer-total').textContent = format.format(sum + tax + extras);
             document.querySelector('#offer-currency').textContent = (currency.value.toUpperCase() === 'JOD' ? 'JD' : currency.value.toUpperCase());
         };
-        form.querySelectorAll('.line-quantity,.line-price,#Currency,#TaxPercentage,#AdditionalCosts').forEach(input => input.addEventListener('input', update));
+        form.querySelectorAll('.line-quantity,.line-price,#Currency,#AdditionalCosts').forEach(input => input.addEventListener('input', update));
         update();
         const panels = [...form.querySelectorAll('[data-offer-step]')];
         const steps = form.querySelector('[data-offer-steps]');
@@ -60,9 +81,11 @@
             form.querySelectorAll('.supplier-price-item').forEach(item => {
                 add(item.querySelector('h3').textContent, `${item.querySelector('.line-quantity').value} × ${item.querySelector('.line-price').value} ${displayCurrency()} = ${item.querySelector('.line-total').textContent} ${displayCurrency()}`);
                 add('Technical response', item.querySelector('textarea').value);
+                const productPhoto = item.querySelector('[data-product-photo-input]');
+                add('Product photo', productPhoto?.files[0]?.name || (item.querySelector('[data-product-photo-preview]')?.getAttribute('src') ? 'Saved product photo' : 'Not provided'));
             });
             add('Currency', displayCurrency());
-            add('Tax', `${form.querySelector('#TaxPercentage').value}% of the item subtotal`);
+            add('Sales tax', `${form.querySelector('#TaxPercentage').value}% of the item subtotal (fixed)`);
             add('Extra costs', `${form.querySelector('#AdditionalCosts').value} ${displayCurrency()}`);
             add('Delivery', `${form.querySelector('#DeliveryDays').value} days`);
             add('Payment terms', form.querySelector('#PaymentTerms').value || 'Not specified');

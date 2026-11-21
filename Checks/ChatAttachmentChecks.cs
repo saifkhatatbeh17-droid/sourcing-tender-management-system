@@ -72,7 +72,8 @@ public static class ChatAttachmentChecks
             using var http = Client(); await Login(http, adminEmail);
             var token = await Token(http, "/Admin/Dashboard");
             var page = await http.GetStringAsync("/Admin/Dashboard");
-            Check(page.Contains("data-chat-attachment") && page.Contains("Accounts template"), "admin attachment controls rendered");
+            Check((page.Contains("data-chat-attachment") && page.Contains("Accounts template")) ||
+                (page.Contains("data-analysis-file") && page.Contains("data-account-import")), "admin attachment controls rendered");
             using var template = await http.GetAsync("/AiChat/AccountTemplate");
             Check(template.IsSuccessStatusCode && (await template.Content.ReadAsByteArrayAsync()).Length > 100, "downloadable XLSX template");
             var data = Workbook([staffEmail, password, "QA Imported Officer", "SourcingOfficer"], [supplierEmail, password, "QA Imported Supplier", "Supplier", "", "", "QA Supplies", "Pharmaceuticals", tag]);

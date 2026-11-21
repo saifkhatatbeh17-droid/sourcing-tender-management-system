@@ -41,7 +41,7 @@ public sealed class AiChatWorkspaceActions(
             RoleNames.SourcingManager => "Dashboard | AiIntelligence | Submissions (Officer Submissions, optional recordId=reportId) | ChosenOffers (Chosen Offers) | Reports | Clarifications | Profile",
             RoleNames.TopCommittee => "Dashboard | AiIntelligence | Decisions | TenderDetails (needs recordId=tenderId) | History (Tender History) | Reports | Clarifications | Profile",
             RoleNames.Supplier => "Dashboard | Invitations | Invitation (needs recordId) | CreateOffer (needs recordId=invitationId) | Offers (My Offers) | Offer (needs recordId=bidId) | History | Clarifications | Profile",
-            RoleNames.Admin => "Dashboard | AiIntelligence | Users | Departments | SupplierApplications | Suppliers | SupplierDetails (needs recordId) | SupplierActivity | ContactMessages | ContactMessageDetails (needs recordId) | Profile",
+            RoleNames.Admin => "Dashboard | AiIntelligence | AiLog | Users | Departments | SupplierApplications | Suppliers | SupplierDetails (needs recordId) | SupplierActivity | ContactMessages | ContactMessageDetails (needs recordId) | Profile",
             _ => "Dashboard | Profile"
         };
 

@@ -15,12 +15,16 @@ public sealed record AiChatStoredFile(
     string FileName,
     string ContentType,
     byte[] Bytes,
-    DateTime CreatedUtc);
+    DateTime CreatedUtc,
+    bool OneTime = false);
 
 public sealed class AiChatDownloadStore
 {
     private const int MaxEntries = 120;
     private static readonly TimeSpan Retention = TimeSpan.FromMinutes(60);
+
+    // Sensitive files (such as new-account passwords) can be fetched once and expire sooner.
+    private static readonly TimeSpan OneTimeRetention = TimeSpan.FromMinutes(15);
 
     private readonly ConcurrentDictionary<string, AiChatStoredFile> _files = new(StringComparer.Ordinal);
 
@@ -31,7 +35,8 @@ public sealed class AiChatDownloadStore
         string contentType,
         string label,
         string format,
-        byte[] bytes)
+        byte[] bytes,
+        bool oneTime = false)
     {
         PruneExpired();
 
@@ -43,7 +48,8 @@ public sealed class AiChatDownloadStore
             fileName,
             contentType,
             bytes,
-            DateTime.UtcNow);
+            DateTime.UtcNow,
+            oneTime);
 
         _files[token] = entry;
 
@@ -68,20 +74,22 @@ public sealed class AiChatDownloadStore
         if (string.IsNullOrWhiteSpace(token)) return null;
         if (!_files.TryGetValue(token, out var entry)) return null;
         if (!string.Equals(entry.UserId, userId, StringComparison.Ordinal)) return null;
-        if (DateTime.UtcNow - entry.CreatedUtc > Retention)
+        if (DateTime.UtcNow - entry.CreatedUtc > (entry.OneTime ? OneTimeRetention : Retention))
         {
             _files.TryRemove(token, out _);
             return null;
         }
+        // A one-time file is removed as it is handed out, so a second request finds nothing.
+        if (entry.OneTime && !_files.TryRemove(token, out _)) return null;
         return entry;
     }
 
     private void PruneExpired()
     {
-        var cutoff = DateTime.UtcNow - Retention;
+        var now = DateTime.UtcNow;
         foreach (var pair in _files)
         {
-            if (pair.Value.CreatedUtc < cutoff)
+            if (now - pair.Value.CreatedUtc > (pair.Value.OneTime ? OneTimeRetention : Retention))
                 _files.TryRemove(pair.Key, out _);
         }
     }

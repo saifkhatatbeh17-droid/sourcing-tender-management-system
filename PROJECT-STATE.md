@@ -45,5 +45,5 @@ Credentials remain outside Git in the existing encrypted DPAPI file; follow the 
 
 ## Latest UI follow-up — 16 November 2026
 Implemented the user-requested three-stage registration and supplier offer entry, two-stage department request form, Admin review stages, corrected authentication/confirmation actions,10-row request pagination/search/Clear/voice, row QR dialogs, offer detail popups, JD display and percentage-tax contract. Removed At a glance/open-round copy/empty tender-documents UI; transient notices dismiss after about3seconds; replacement indicators cover all applicable owned tenders. See UI-FOLLOWUP-2026-11-16.md for exact scope and verification.
-Tax is now entered as TaxPercentage (0–100); server derives stored Bid.TaxAmount from item subtotal. Raw TaxAmount posts are not trusted. ISO storage stays JOD, displayed as JD.
+Tax is fixed at 16% of the item subtotal (Models/OfferTax.cs, since 20 Nov 2026); suppliers no longer enter it and posted TaxPercentage/TaxAmount values are ignored. Offers saved earlier keep their recorded tax. ISO storage stays JOD, displayed as JD.
 Current app is running on7130 from this canonical project. No shutdown should be carried over from the earlier overnight task. No new push/merge is authorized by this follow-up.

@@ -62,7 +62,7 @@ public partial class BidRecommendationService
                     Return only JSON conforming to the schema. No HTML, Markdown headings, colors or CSS.
                     """;
                 var prompt = input + (correction == null ? "" : "\nCorrect the previous response: " + correction);
-                var rawJson = await VllmSettings.CompleteJsonAsync(http, configuration, system, prompt, "shortlist_report", schema, 1600, ct);
+                var rawJson = (await CompleteAsync("reports.shortlist", system, prompt, "shortlist_report", schema, 1600, page.Tender?.TenderId, ct)).Content;
                 var candidate = JsonSerializer.Deserialize<ShortlistDraft>(rawJson, Json);
                 if (candidate?.WinnerBidId != shortlist[0].BidId || candidate.Offers == null || candidate.Offers.Length != shortlist.Count
                     || candidate.Offers.Any(o => o == null)

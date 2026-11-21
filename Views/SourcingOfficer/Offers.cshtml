@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="~/css/officer-workspace-polish.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/offers-simple.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/offers-workspace.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/offer-precheck.css" asp-append-version="true" />
 }
 <div class="so-page offer-review offer-simple offer-redesign">
 <header class="so-page-header"><div><h1>Supplier offers</h1><p class="so-page-description">Review supplier offers and move your tender forward.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-primary officer-prepare" asp-action="Create">Prepare tender ＋</a></div></header>
@@ -162,4 +163,4 @@ else
 @if (ViewBag.OpenCreateModal == true) { <partial name="_CreateTenderModal" /> }
 </div>
 
-@section Scripts { <script src="~/js/offers-workspace.js" asp-append-version="true"></script> <script src="~/js/procurement-categories.js" asp-append-version="true"></script><script src="~/js/tender-edit-modal.js" asp-append-version="true"></script> <script src="~/js/offer-read-state.js" asp-append-version="true"></script> <script src="~/js/officer-workspace-polish.js" asp-append-version="true"></script> <script src="~/js/officer-report-review.js" asp-append-version="true"></script> }
+@section Scripts { <script src="~/js/offers-workspace.js" asp-append-version="true"></script> <script src="~/js/offer-precheck.js" asp-append-version="true"></script> <script src="~/js/procurement-categories.js" asp-append-version="true"></script><script src="~/js/tender-edit-modal.js" asp-append-version="true"></script> <script src="~/js/offer-read-state.js" asp-append-version="true"></script> <script src="~/js/officer-workspace-polish.js" asp-append-version="true"></script> <script src="~/js/officer-report-review.js" asp-append-version="true"></script> }

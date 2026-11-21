@@ -87,7 +87,8 @@ internal static partial class VllmSettings
         int maxTokens,
         CancellationToken ct,
         IReadOnlyList<(string Role, string Content)>? conversationHistory = null,
-        bool retryWithSchema = false)
+        bool retryWithSchema = false,
+        string? imageDataUrl = null)
     {
         var (endpoint, isLoopback, apiKey) = ResolveEndpoint(configuration);
         var enableThinking = EnableThinking(configuration);
@@ -100,8 +101,9 @@ internal static partial class VllmSettings
 
         const int maxRounds = 3;
         var formatMode = isGroq ? ResponseFormatMode.JsonObject : ResponseFormatMode.JsonSchema;
-        var primaryModel = Model(configuration);
-        var fallbackModel = configuration["Vllm:FallbackModel"]?.Trim();
+        var primaryModel = imageDataUrl is not null && configuration["Vllm:VisionModel"]?.Trim() is { Length: > 0 } vision
+            ? vision : Model(configuration);
+        var fallbackModel = imageDataUrl is null ? configuration["Vllm:FallbackModel"]?.Trim() : null;
         var activeModel = primaryModel;
 
         for (var round = 0; round < maxRounds; round++)
@@ -112,7 +114,7 @@ internal static partial class VllmSettings
                 attempt = await SendWithFormatFallbacksAsync(
                     http, endpoint, apiKey, activeModel, systemPrompt, schemaInstruction,
                     userPrompt, schemaName, schema, maxTokens, enableThinking,
-                    formatMode, isLoopback, retryWithSchema, round, conversationHistory, ct);
+                    formatMode, isLoopback, retryWithSchema, round, conversationHistory, imageDataUrl, ct);
             }
             catch (HttpRequestException ex) when (ex.HttpRequestError == HttpRequestError.ConnectionError &&
                                                    round < maxRounds - 1)
@@ -171,6 +173,7 @@ internal static partial class VllmSettings
         bool retryWithSchema,
         int round,
         IReadOnlyList<(string Role, string Content)>? conversationHistory,
+        string? imageDataUrl,
         CancellationToken ct)
     {
         var steps = new List<ResponseFormatMode> { initialMode };
@@ -192,7 +195,7 @@ internal static partial class VllmSettings
 
             using var request = BuildRequest(
                 endpoint, apiKey, model, effectiveSystem, userPrompt, schemaName, schema,
-                maxTokens, enableThinking, isLoopback, mode, conversationHistory);
+                maxTokens, enableThinking, isLoopback, mode, conversationHistory, imageDataUrl);
             using var response = await http.SendAsync(request, ct);
 
             if (IsRetryableOrRateLimited(response.StatusCode))
@@ -291,7 +294,8 @@ internal static partial class VllmSettings
         bool enableThinking,
         bool includeVllmExtensions,
         ResponseFormatMode formatMode,
-        IReadOnlyList<(string Role, string Content)>? conversationHistory = null)
+        IReadOnlyList<(string Role, string Content)>? conversationHistory,
+        string? imageDataUrl)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
         if (!string.IsNullOrWhiteSpace(apiKey))
@@ -309,7 +313,12 @@ internal static partial class VllmSettings
                     messages.Add(new { role = turn.Role, content = turn.Content });
             }
         }
-        messages.Add(new { role = "user", content = userPrompt });
+        object userContent = imageDataUrl is null ? userPrompt : new object[]
+        {
+            new { type = "text", text = userPrompt },
+            new { type = "image_url", image_url = new { url = imageDataUrl } }
+        };
+        messages.Add(new { role = "user", content = userContent });
 
         var payload = new Dictionary<string, object?>
         {

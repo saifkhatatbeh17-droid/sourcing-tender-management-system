@@ -13,7 +13,7 @@ using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Controllers;
 
 [Authorize(Roles = RoleNames.EvaluationCommittee)]
-public partial class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users, BidRecommendationService ai) : Controller
+public partial class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users, BidRecommendationService ai, ILogger<EvaluationCommitteeController> logger) : Controller
 {
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
@@ -139,9 +139,15 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
-        catch (InvalidOperationException ex) { TempData["AiError"] = ex.Message; }
+        catch (InvalidOperationException ex)
+        {
+            // The user-facing text hides which check failed; keep the real reason in the server log.
+            logger.LogWarning("AI comparison for tender {TenderId} rejected: {Reason}", id, ex.InnerException?.Message ?? ex.Message);
+            TempData["AiError"] = ex.Message;
+        }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException or KeyNotFoundException)
-        { TempData["AiError"] = "Could not reach the vLLM / AI endpoint or finish the comparison. Check your Vllm configuration or API key, then try again."; }
+        { logger.LogWarning(ex, "AI comparison for tender {TenderId} failed to reach the model or read its answer", id);
+          TempData["AiError"] = "Could not reach the vLLM / AI endpoint or finish the comparison. Check your Vllm configuration or API key, then try again."; }
         return RedirectToAction(nameof(Evaluations), new { id });
     }
 

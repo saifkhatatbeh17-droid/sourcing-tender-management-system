@@ -1,68 +1,12 @@
 @model CommitteeEvaluationPage
-@{
-    var result = Model.AiRecommendation;
-    var scenario = result?.Scenarios.FirstOrDefault();
-    var currenciesMatch = Model.Offers.Select(b => b.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1;
-    var lowestTotal = currenciesMatch && Model.Offers.Count > 0 ? Model.Offers.Min(CommitteeEvaluationPage.Total) : (decimal?)null;
-}
-    @if (scenario != null && result!.Comparisons.Length > 0)
-    {
-        <div class="collapse show ev-ai-tradeoffs" id="offer-comparison">
-            <div class="ev-ai-tradeoffs-header">
-                <div>
-                    <h4>Offer advantages &amp; disadvantages</h4>
-                    <p>Side-by-side strengths and tradeoffs for each eligible bid under @scenario.FinancialWeight.ToString("0.##")% financial / @((100 - scenario.FinancialWeight).ToString("0.##"))% technical weights.</p>
-                </div>
-                <div class="ev-ai-tradeoff-legend" aria-hidden="true">
-                    <span class="ev-legend-pill is-pros">Advantages</span>
-                    <span class="ev-legend-pill is-cons">Disadvantages</span>
-                </div>
-            </div>
-            <div class="ev-ai-tradeoff-grid">
-            @foreach (var comparison in result!.Comparisons)
-            {
-                var offer = Model.Offers.FirstOrDefault(b => b.BidId == comparison.BidId);
-                if (offer == null) continue;
-                var total = CommitteeEvaluationPage.Total(offer);
-                var isSuggested = scenario.RecommendedBidId == offer.BidId;
-                var isLowest = lowestTotal.HasValue && total == lowestTotal.Value;
-                <article class="ev-ai-tradeoff-card @(isSuggested ? "is-suggested" : "")">
-                    <header class="ev-ai-tradeoff-card-head">
-                        <div class="ev-ai-tradeoff-badges">
-                            <span>Offer #@offer.BidId</span>
-                            @if (isSuggested) { <span class="ev-tradeoff-badge is-suggested">AI suggested</span> }
-                            @if (isLowest) { <span class="ev-tradeoff-badge is-lowest">Lowest price</span> }
-                        </div>
-                        <h4>@offer.Invitation.SupplierProfile.CompanyName</h4>
-                        <p class="ev-ai-tradeoff-meta">
-                            <strong>@total.ToString("N2") @offer.Currency</strong>
-                            <span aria-hidden="true">·</span>
-                            <span>@offer.DeliveryDays-day delivery</span>
-                        </p>
-                    </header>
-                    <div class="ev-ai-pros">
-                        <h5>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.4 2.4 4.8-5.1"/></svg>
-                            Advantages
-                        </h5>
-                        <p>@comparison.Strengths</p>
-                    </div>
-                    <div class="ev-ai-cons">
-                        <h5>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8.2v4.5M12 15.8h.01"/></svg>
-                            Disadvantages
-                        </h5>
-                        <p>@comparison.Tradeoffs</p>
-                    </div>
-                </article>
-            }
-            </div>
-            @if (result!.MissingInformation.Length > 0)
-            {
-                <div class="ev-ai-missing">
-                    <h4>Information to verify</h4>
-                    <ul>@foreach (var item in result.MissingInformation) { <li>@item</li> }</ul>
-                </div>
-            }
+@* Per-offer advantages and disadvantages are shown inside each offer card. This partial keeps only the
+   AI "information to verify" list, which has no other place on the page. *@
+@if (Model.AiRecommendation is { Scenarios.Length: > 0, MissingInformation.Length: > 0 } result)
+{
+    <div class="ev-ai-tradeoffs" id="offer-comparison">
+        <div class="ev-ai-missing">
+            <h4>Information to verify</h4>
+            <ul>@foreach (var item in result.MissingInformation) { <li>@item</li> }</ul>
         </div>
-    }
+    </div>
+}

@@ -1,4 +1,5 @@
 @model CommitteeBid
+@await Component.InvokeAsync("OfferProductPhotos", new { bidId = Model.BidId })
 
 <dl class="tc-dialog-overview">
     <div><dt>Offer total</dt><dd>@CommitteeDisplay.Money(Model.Total) @Model.Currency</dd></div>

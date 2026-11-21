@@ -221,10 +221,11 @@ These runners require Python 3, .NET and a local SQL Server account allowed to c
 | Team member | Role |
 |---|---|
 | **Saif Khatatbeh** | Scrum Master |
-| **Taimaa Frehat** | Product Owner |
+| **Taimaa Freahat** | Product Owner |
 | **Anas Ghawanmeh** | Quality Assurance (QA) |
 | **Mohammad Mustafa** | Developer |
 | **Gaith Ammoureh** | Developer |
 | **Yasmeen Talafha** | Developer |
+| **Amani Azzam** | Developer |
 
 Together, we are building TIRYAQ to give procurement teams a clear process from the first request to the final supplier decision.

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Services.Ai;
 
 namespace SourcingTenderManagement.Services.Chat;
 
@@ -21,8 +22,10 @@ public sealed record AiChatRunResult(
     bool WorkspaceOnly = false);
 
 public sealed partial class AiChatClient(
-    HttpClient http, IConfiguration configuration, ILogger<AiChatClient>? logger = null)
+    HttpClient http, IConfiguration configuration, ILogger<AiChatClient>? logger = null, AiGateway? gateway = null)
 {
+    private AiGateway Ai => gateway ?? AiGateway.Detached;
+
     public const int HistoryMessageLimit = 12;
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
@@ -146,7 +149,7 @@ public sealed partial class AiChatClient(
         AiChatDecisionEnvelope decision;
         try
         {
-            decision = await DecideAsync(stepContext, formattedHistory, ct);
+            decision = await DecideAsync(stepContext, formattedHistory, ct, workspace);
             if (decision.Mode == "out_of_scope")
             {
                 var scopeReply = replyLanguage == "Arabic"
@@ -158,6 +161,14 @@ public sealed partial class AiChatClient(
             if ((decision.Mode == "reply" && string.IsNullOrWhiteSpace(decision.Reply)) ||
                 (decision.Mode == "tool_calls" && decision.ToolCalls.Length == 0))
                 throw new InvalidOperationException("The assistant returned an incomplete decision.");
+        }
+        catch (AiLimitReachedException ex)
+        {
+            var limitReply = replyLanguage == "Arabic"
+                ? "وصلت إلى الحد اليومي لطلبات الذكاء الاصطناعي. يتجدد الحد عند منتصف الليل بالتوقيت العالمي. يمكنك متابعة عملك من صفحات مساحة العمل."
+                : ex.Message + " You can continue from your workspace pages.";
+            return new AiChatRunResult(limitReply, false, [], snapshot.CurrentRecordUrl,
+                snapshot.CurrentRecordLabel, null, WorkspaceOnly: true);
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException ||
                                    (ex is OperationCanceledException && !ct.IsCancellationRequested))
@@ -236,7 +247,7 @@ public sealed partial class AiChatClient(
         string finalAnswer;
         try
         {
-            finalAnswer = await SynthesizeAsync(synthesisPayload, formattedHistory, ct);
+            finalAnswer = await SynthesizeAsync(synthesisPayload, formattedHistory, ct, workspace);
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException ||
                                    (ex is OperationCanceledException && !ct.IsCancellationRequested))
@@ -258,19 +269,20 @@ public sealed partial class AiChatClient(
     internal async Task<AiChatDecisionEnvelope> DecideAsync(
         object payload,
         IReadOnlyList<(string Role, string Content)>? history,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? workspace = null)
     {
-        var raw = await VllmSettings.CompleteJsonAsync(
-            http,
-            configuration,
+        var raw = (await Ai.CompleteJsonAsync(http, configuration, new AiRequest(
+            "safi.decision",
             AgentSystemPrompt,
             JsonSerializer.Serialize(payload, Json),
             "tiryaq_agent_decision",
             DecisionSchema,
             900,
-            ct,
             history,
-            retryWithSchema: true);
+            RetryWithSchema: true,
+            Interactive: true,
+            Workspace: workspace), ct)).Content;
 
         using var doc = JsonDocument.Parse(raw);
         var root = doc.RootElement;
@@ -311,18 +323,19 @@ public sealed partial class AiChatClient(
     internal async Task<string> SynthesizeAsync(
         object payload,
         IReadOnlyList<(string Role, string Content)>? history,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? workspace = null)
     {
-        var raw = await VllmSettings.CompleteJsonAsync(
-            http,
-            configuration,
+        var raw = (await Ai.CompleteJsonAsync(http, configuration, new AiRequest(
+            "safi.synthesis",
             SynthesisSystemPrompt,
             JsonSerializer.Serialize(payload, Json),
             "tiryaq_agent_synthesis",
             SynthesisSchema,
             700,
-            ct,
-            history);
+            history,
+            Interactive: true,
+            Workspace: workspace), ct)).Content;
 
         using var doc = JsonDocument.Parse(raw);
         var answer = doc.RootElement.TryGetProperty("answer", out var a) ? a.GetString()?.Trim() : null;
