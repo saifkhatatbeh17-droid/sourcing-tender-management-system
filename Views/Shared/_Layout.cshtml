@@ -100,6 +100,10 @@ else if (!standaloneLogin && ViewData["HidePublicNavigation"] is not true)
 </div>
 @if (!standaloneLogin) { @await RenderSectionAsync("Footer", required: false) }
 <partial name="_ActionConfirmation" />
+@if (showWorkspace && User.IsInRole(RoleNames.Supplier))
+{
+    @await Component.InvokeAsync("AwardCelebration")
+}
 @if (showWorkspace || showPublicSafi)
 {
     <partial name="_AiChat" />

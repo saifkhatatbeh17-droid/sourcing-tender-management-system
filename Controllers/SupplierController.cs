@@ -396,6 +396,16 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return RedirectToAction(nameof(Clarifications));
     }
 
+    // Dismisses the award celebration popup by marking its winner notification read.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AcknowledgeAward(int id)
+    {
+        await db.Notifications
+            .Where(n => n.NotificationId == id && n.UserId == UserId && !n.IsRead && n.Title == ViewComponents.AwardCelebrationViewComponent.WinTitle)
+            .ExecuteUpdateAsync(update => update.SetProperty(n => n.IsRead, true));
+        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? NoContent() : RedirectToAction(nameof(Dashboard));
+    }
+
     public async Task<IActionResult> Notifications()
     {
         return View(await db.Notifications.AsNoTracking().Where(n => n.UserId == UserId)

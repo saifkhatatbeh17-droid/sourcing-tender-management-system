@@ -15,6 +15,12 @@ public class HomeController(ApplicationDbContext db, ILogger<HomeController> log
     public IActionResult About() => View();
     public IActionResult HowItWorks() => View();
     public IActionResult Team() => View(TeamMember.Roster);
+    // Alternative Team page design for side-by-side review; not linked from navigation.
+    public IActionResult TeamSpotlight() => View(TeamMember.Roster);
+    // Second alternative: sealed-bid envelopes that open into profile cards.
+    public IActionResult TeamBids() => View(TeamMember.Roster);
+    // Third alternative: crates on a conveyor belt that open to reveal each member.
+    public IActionResult TeamConveyor() => View(TeamMember.Roster);
     [HttpGet, AllowAnonymous]
     public IActionResult Contact() => View(new ContactMessageInput());
 
