@@ -1,0 +1,18 @@
+@model List<SourcingTenderManagement.Services.ProductPhotoView>
+@if (Model.Count > 0)
+{
+    <section class="offer-product-gallery" aria-label="Product photos">
+        <h3>Product photos</h3>
+        <div class="d-flex flex-wrap gap-3">
+            @foreach (var photo in Model)
+            {
+                <figure style="margin:0;max-width:180px">
+                    <a href="/OfferProductPhotos/@photo.DocumentId" target="_blank" rel="noopener" aria-label="View product photo: @photo.ItemName (opens in a new tab)">
+                        <img src="/OfferProductPhotos/@photo.DocumentId" alt="Supplier's product photo for @photo.ItemName" loading="lazy" width="160" height="140" style="object-fit:contain;background:#fff;border:1px solid #d4e1e4;border-radius:12px;padding:6px" />
+                    </a>
+                    <figcaption>@photo.ItemName</figcaption>
+                </figure>
+            }
+        </div>
+    </section>
+}

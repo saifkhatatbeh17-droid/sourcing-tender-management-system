@@ -128,7 +128,13 @@ builder.Services.AddAuthorization(o => o.AddPolicy("ApprovedSupplier", policy =>
         return await db.SupplierProfiles.AnyAsync(s => s.UserId == userId && s.Status == "Approved");
     })));
 
+builder.Services.AddScoped<SourcingTenderManagement.Services.OfferProductPhotos>();
 var app = builder.Build();
+if (args.Contains("--product-photo-checks"))
+{
+    await SourcingTenderManagement.Checks.ProductPhotoChecks.RunAsync(app.Services);
+    return;
+}
 // This dedicated check path runs before startup role seeding and performs no database writes.
 if (args.Contains("--top-committee-foundation-check"))
 {

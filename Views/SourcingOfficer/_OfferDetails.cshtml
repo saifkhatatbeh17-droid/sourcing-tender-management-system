@@ -13,6 +13,7 @@
             <div class="modal-body">
             <div class="os-detail-content" id="offer-content-@bid.BidId" tabindex="-1">
                 <header class="oi-heading"><h3>Items &amp; pricing</h3><span>@bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems.Count @(bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems.Count == 1 ? "requested item" : "requested items")</span></header>
+                @await Component.InvokeAsync("OfferProductPhotos", new { bidId = bid.BidId })
                 <div class="oi-items">
                 @foreach (var requested in bid.Invitation.Tender.PurchaseRequest.PurchaseRequestItems)
                 {
