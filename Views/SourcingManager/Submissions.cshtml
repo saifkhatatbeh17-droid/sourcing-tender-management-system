@@ -213,6 +213,7 @@
                                     var marks = offer.Evaluations.Where(e => e.Status == "Approved" && e.ApprovedAt != null && e.FinancialMark.HasValue && e.TechnicalMark.HasValue).ToList();
                                     <tr class="@(offer == recommendedOffer ? "mr-recommended-row" : null)">
                                         <th scope="row">@offer.Invitation.SupplierProfile.CompanyName
+                                            @await Component.InvokeAsync("OfferProductPhotos", new { bidId = offer.BidId })
                                             @if (offer == recommendedOffer) { <span class="mr-status d-block" data-state="Approved">Recommended</span> }
                                         </th>
                                         <td>@total.ToString("N2") @offer.Currency</td>

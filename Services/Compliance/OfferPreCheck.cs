@@ -86,10 +86,11 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
                 : new(PreCheckSeverity.Info, "tax", $"Recorded with {rate:0.##}% tax before the fixed 16% rule; this is expected for older offers."));
         }
 
-        if (mandatoryDocuments > 0 && bid.BidDocuments.Count < mandatoryDocuments)
+        var supportingCount = bid.BidDocuments.Count(d => !d.DocumentType.StartsWith(SourcingTenderManagement.Services.OfferProductPhotos.Prefix, StringComparison.Ordinal));
+        if (mandatoryDocuments > 0 && supportingCount < mandatoryDocuments)
             flags.Add(new(PreCheckSeverity.Issue, "document",
-                $"{bid.BidDocuments.Count} {Plural(bid.BidDocuments.Count, "document")} uploaded; the tender requires {mandatoryDocuments}."));
-        else if (bid.BidDocuments.Count == 0)
+                $"{supportingCount} {Plural(supportingCount, "document")} uploaded; the tender requires {mandatoryDocuments}."));
+        else if (supportingCount == 0)
             flags.Add(new(PreCheckSeverity.Warning, "document", "No supporting documents were uploaded."));
         foreach (var document in bid.BidDocuments.Where(d => !fileExists(d)))
             flags.Add(new(PreCheckSeverity.Issue, "document", $"“{document.OriginalFileName}” is listed but the file is missing. Ask the supplier to upload it again."));

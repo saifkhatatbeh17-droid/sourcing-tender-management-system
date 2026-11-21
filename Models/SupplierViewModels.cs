@@ -39,6 +39,8 @@ public class OfferFormViewModel
 
 public class OfferLineViewModel
 {
+    public IFormFile? ProductPhoto { get; set; }
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever] public int? ProductPhotoDocumentId { get; set; }
     public int PurchaseRequestItemId { get; set; }
     public string ItemName { get; set; } = "";
     public string Unit { get; set; } = "";
