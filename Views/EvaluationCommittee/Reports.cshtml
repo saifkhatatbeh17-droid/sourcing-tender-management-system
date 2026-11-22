@@ -1,9 +1,9 @@
 @model CommitteeEvaluationPage
-@{ ViewData["Title"] = "Evaluation reports"; }
+@{ ViewData["Title"] = "Committee report"; }
 @section Styles { <partial name="_CommitteePageStyles" /><link rel="stylesheet" href="~/css/committee-report-summary.css" asp-append-version="true" /> }
 @section Scripts { <script src="~/js/committee-reports.js" asp-append-version="true"></script> }
 <div class="evaluation-page committee-workspace">
-    <header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Evaluation reports</h1><p>Read the recommendation, agreed weights, and approval record for each tender.</p></div><a class="cw-button cw-button-secondary" asp-action="Evaluations">Back to evaluations <span aria-hidden="true">↗</span></a></header>
+    <header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Committee report</h1><p>Read the recommendation, agreed weights, and approval record for each tender.</p></div><a class="cw-button cw-button-secondary" asp-action="Evaluations">Back to evaluations <span aria-hidden="true">↗</span></a></header>
     @if(Model.Tenders.Count == 0)
     { <section class="cw-panel cw-empty"><partial name="_AdminSidebarIcon" model='@("Reports")' /><h2>No reports to show yet</h2><p>Your tender reports will appear here as evaluations get started.</p><a class="cw-text-link" asp-action="Evaluations">Go to evaluations <span aria-hidden="true">→</span></a></section> }
     else

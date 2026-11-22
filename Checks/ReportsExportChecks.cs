@@ -14,6 +14,47 @@ namespace SourcingTenderManagement.Checks;
 
 public static class ReportsExportChecks
 {
+    // Supply only the isolated loopback clients created by the Reports checks host.
+    public static async Task RunCompatibilityHttpChecksAsync(HttpClient admin, HttpClient officer, HttpClient committee)
+    {
+        foreach (var client in new[] { admin, officer, committee })
+            if (client.BaseAddress is not { IsLoopback: true } ||
+                !client.DefaultRequestHeaders.Contains("X-Reports-Check-Token"))
+                throw new InvalidOperationException("Compatibility checks require the isolated Reports host.");
+        var checks = 0;
+        foreach (var path in new[] { "/Reports/top-committee", "/Reports/top-committee/export?format=pdf", "/Reports/top-committee/export?format=xlsx" })
+        {
+            using var denied = await officer.GetAsync(path);
+            if ((int)denied.StatusCode != 403) throw new Exception("Incompatible committee grant did not return 403: " + path);
+            checks++;
+            foreach (var client in new[] { admin, committee })
+            {
+                using var allowed = await client.GetAsync(path);
+                allowed.EnsureSuccessStatusCode();
+                checks++;
+            }
+        }
+        var html = await admin.GetStringAsync("/Reports/Access");
+        var row = System.Text.RegularExpressions.Regex.Match(html, @"<tr><th scope=""row"">Top Committee statistics</th>(.*?)</tr>",
+            System.Text.RegularExpressions.RegexOptions.Singleline).Value;
+        var input = System.Text.RegularExpressions.Regex.Match(row, @"<input[^>]*data-report-role=""SourcingOfficer""[^>]*>").Value;
+        if (!input.Contains("disabled") || input.Contains("checked") || !row.Contains("Unavailable"))
+            throw new Exception("Unsupported committee access must be unavailable in rendered Admin UI.");
+        checks++;
+        var token = System.Text.RegularExpressions.Regex.Match(html, @"name=""__RequestVerificationToken""[^>]*value=""([^""]+)""").Groups[1].Value;
+        if (token.Length == 0) throw new Exception("Missing Admin antiforgery token.");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/Reports/Access")
+        {
+            Content = System.Net.Http.Json.JsonContent.Create(new[] { new { ReportKey = "top-committee", Role = RoleNames.SourcingOfficer, Allowed = true } })
+        };
+        request.Headers.Add("RequestVerificationToken", System.Net.WebUtility.HtmlDecode(token));
+        using var response = await admin.SendAsync(request);
+        if ((int)response.StatusCode != 400 || !(await response.Content.ReadAsStringAsync()).Contains("supported editable role"))
+            throw new Exception("Authenticated, antiforgery-valid unsupported permission POST must fail validation.");
+        checks++;
+        Console.WriteLine($"Reports compatibility HTTP checks passed: {checks}. Real Top Committee report, isolated loopback only.");
+    }
+
     public static async Task RunAsync(ApplicationDbContext db, string outputDirectory)
     {
         if (db.Database.ProviderName != "Microsoft.EntityFrameworkCore.Sqlite" ||
@@ -108,7 +149,8 @@ public static class ReportsExportChecks
         }
         catch (InvalidOperationException) { checks++; }
 
-        var registry = new ReportRegistry([report], db);
+        var committee = new ExportFixture("top-committee");
+        var registry = new ReportRegistry([report, committee], db);
         var serviceCollection = new ServiceCollection().AddLogging();
         serviceCollection.AddControllersWithViews();
         using var services = serviceCollection.BuildServiceProvider();
@@ -122,6 +164,29 @@ public static class ReportsExportChecks
             }}
         };
         var officer = Controller(RoleNames.SourcingOfficer);
+        var oldRule = await db.ReportAccessRules.SingleAsync(rule => rule.ReportKey == committee.Key && rule.Role == RoleNames.SourcingOfficer);
+        oldRule.Allowed = true;
+        await db.SaveChangesAsync();
+        Require(await officer.Show(committee.Key, new(), default) is StatusCodeResult { StatusCode: 403 },
+            "direct committee URL rejects incompatible stored Allow without executing report");
+        foreach (var format in new[] { "pdf", "xlsx" })
+            Require(await officer.Export(committee.Key, new(), format, default) is StatusCodeResult { StatusCode: 403 },
+                "committee " + format + " rejects incompatible stored Allow without HTTP 500");
+        Require(committee.LastScope == null, "incompatible role never reaches committee implementation");
+        foreach (var role in new[] { RoleNames.Admin, RoleNames.TopCommittee })
+        {
+            Require(await Controller(role).Show(committee.Key, new(), default) is ViewResult, "supported committee page " + role);
+            foreach (var format in new[] { "pdf", "xlsx" })
+                Require(await Controller(role).Export(committee.Key, new(), format, default) is FileContentResult,
+                    "supported committee export " + role + " " + format);
+        }
+        committee.RefuseAccess = true;
+        Require(await Controller(RoleNames.TopCommittee).Show(committee.Key, new(), default) is StatusCodeResult { StatusCode: 403 },
+            "committee service denial is mapped to 403 on page");
+        foreach (var format in new[] { "pdf", "xlsx" })
+            Require(await Controller(RoleNames.TopCommittee).Export(committee.Key, new(), format, default) is StatusCodeResult { StatusCode: 403 },
+                "committee service denial is mapped to 403 on " + format);
+        committee.RefuseAccess = false;
         Require(await officer.Export("missing", query, "xlsx", default) is NotFoundResult, "unknown export key returns 404");
         Require(await Controller(RoleNames.Department).Export(report.Key, query, "xlsx", default) is StatusCodeResult { StatusCode: 403 },
             "unauthorized export returns 403");
@@ -152,19 +217,21 @@ public static class ReportsExportChecks
         Console.WriteLine($"Reports export checks passed: {checks}. SQLite in-memory only.");
     }
 
-    private sealed class ExportFixture : IReport
+    private sealed class ExportFixture(string key = "checks-export") : IReport
     {
+        public bool RefuseAccess { get; set; }
         public ReportQuery? LastQuery { get; private set; }
         public ReportScope? LastScope { get; private set; }
-        public string Key => "checks-export";
+        public string Key => key;
         public string Title => "Generic export checks";
         public string Description => "Isolated export fixture";
         public string Icon => "file";
-        public IReadOnlyList<string> DefaultRoles => [RoleNames.SourcingOfficer];
+        public IReadOnlyList<string> DefaultRoles => key == "top-committee" ? [RoleNames.TopCommittee] : [RoleNames.SourcingOfficer];
         public IReadOnlyList<string> Filters => ["date", "status", "search"];
         public IReadOnlyList<string> StatusOptions => ["Approved"];
         public Task<ReportResult> RunAsync(ReportQuery query, ReportScope scope, CancellationToken ct)
         {
+            if (RefuseAccess) throw new SourcingTenderManagement.Contracts.TopCommittee.CommitteeAccessDeniedException();
             LastQuery = query;
             LastScope = scope;
             var rows = Enumerable.Range(1, 51).Select(index => new ReportRow([scope.UserId, index.ToString()])).ToList();

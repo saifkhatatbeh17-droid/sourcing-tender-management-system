@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.Data.Common;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services;
@@ -100,6 +102,11 @@ public static class TendersReportChecks
         Require(officer.Table.Rows.Count == 25 && officer.Table.Rows.All(row => row.Link!.StartsWith("/SourcingOfficer/Offers?tenderId=")), "pagination and officer links");
         Require((await report.RunAsync(query with { Page = 2 }, officerScope, default)).Table.Rows.Count == 7, "second page contains remaining rows");
         var exported = await report.RunAsync(query with { ForExport = true, Page = 55 }, officerScope, default);
+        var secondPage = await report.RunAsync(query with { Page = 2 }, officerScope, default);
+        Require(officer.Table.Rows.Concat(secondPage.Table.Rows).Select(row => string.Join("|", row.Cells)).SequenceEqual(
+            exported.Table.Rows.Select(row => string.Join("|", row.Cells))), "SQL pages preserve exact export ordering and values");
+        Require(officer.Kpis.SequenceEqual(secondPage.Kpis) && officer.Kpis.SequenceEqual(exported.Kpis) &&
+            officer.Chart!.Points.SequenceEqual(exported.Chart!.Points), "SQL pagination does not alter KPIs or chart values");
         Require(exported.Table.Rows.Count == 32 && exported.Table.Rows.Select(row => row.Cells[0]).ToHashSet().SetEquals(tenders.Select(tender => "#" + tender.TenderId)),
             "export ignores normal page and retains exact officer ownership");
         var awardRow = exported.Table.Rows.Single(row => row.Cells[0] == "#" + tenders[7].TenderId);
@@ -173,6 +180,34 @@ public static class TendersReportChecks
             await File.WriteAllBytesAsync(Path.Combine(outputDirectory, "tenders-" + label + ".xlsx"), xlsx);
             await File.WriteAllBytesAsync(Path.Combine(outputDirectory, "tenders-" + label + ".pdf"), pdf);
         }
-        Console.WriteLine($"Tender report checks passed: {checks}. SQLite in-memory only.");
+        // SQL Server translation check only: intercept and refuse connection opening.
+        // No SQL Server connection or command is allowed by this probe.
+        var blockedConnection = new BlockSqlConnection();
+        var sqlOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlServer("Server=reports-translation.invalid;Database=NeverConnect;Integrated Security=true")
+            .AddInterceptors(blockedConnection).Options;
+        await using var sqlContext = new ApplicationDbContext(sqlOptions);
+        try
+        {
+            await new TendersReport(sqlContext, new ConfigurationBuilder().Build()).RunAsync(query, adminScope, default);
+            throw new Exception("SQL translation probe did not block the connection.");
+        }
+        catch (TranslationCompleteException)
+        {
+            Require(blockedConnection.Blocked, "SQL Server aggregate query translates before connection is refused");
+        }
+        Console.WriteLine($"Tender report checks passed: {checks}. SQLite data only; SQL Server translation probe blocks connection opening.");
+    }
+
+    private sealed class TranslationCompleteException : Exception;
+    private sealed class BlockSqlConnection : DbConnectionInterceptor
+    {
+        public bool Blocked { get; private set; }
+        public override ValueTask<InterceptionResult> ConnectionOpeningAsync(DbConnection connection,
+            ConnectionEventData eventData, InterceptionResult result, CancellationToken cancellationToken = default)
+        {
+            Blocked = true;
+            throw new TranslationCompleteException();
+        }
     }
 }

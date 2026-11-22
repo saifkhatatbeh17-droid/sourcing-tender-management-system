@@ -1,7 +1,7 @@
 @using SourcingTenderManagement.Models.Entities
 @model List<EvaluationReport>
 @{
- ViewData["Title"] = "Reports";
+ ViewData["Title"] = "Report review";
  var selected = ViewBag.SelectedReport as EvaluationReport;
  // Shared with the PDF exports so downloaded reports use the same wording as this page.
  bool NeedsReview(EvaluationReport report) => SourcingTenderManagement.Services.Reports.OfficerReportLabels.NeedsReview(report);
@@ -14,7 +14,7 @@
 <div class="so-page reports-page">
  @if(TempData["EvaluationSuccess"] is string success){<div data-flash-message class="alert alert-success" role="status">@success</div>}
  @if(TempData["EvaluationError"] is string error){<div data-flash-message class="alert alert-danger" role="alert">@error</div>}
- <header class="so-page-header"><div><h1>@(selected == null ? "Reports" : "Report details")</h1><p class="so-page-description">@(selected == null ? "Committee recommendations and the decisions that follow." : "Read the recommendation and follow its review history.")</p></div>
+ <header class="so-page-header"><div><h1>Report review</h1><p class="so-page-description">@(selected == null ? "Committee recommendations and the decisions that follow." : "Read the recommendation and follow its review history.")</p></div>
  @if(selected == null){<a class="btn btn-outline-primary" asp-action="ReportPdf" asp-route-id=""><partial name="_ReportDownloadIcon" />Export reports</a>}
  else{<a class="btn btn-outline-primary" asp-action="Reports" asp-route-id="">← All reports</a>}
  </header>

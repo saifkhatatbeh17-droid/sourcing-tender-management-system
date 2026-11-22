@@ -78,6 +78,11 @@ public static class ReportsNavigationChecks
         Require(typeof(SourcingOfficerController).GetMethod("Reports") != null && typeof(EvaluationCommitteeController).GetMethod("Reports") != null &&
             typeof(SourcingManagerController).GetMethod("Reports") != null && typeof(TopCommitteeController).GetMethod("Reports") != null,
             "all legacy report actions remain");
+        foreach (var (controller, role) in new[] { (typeof(SourcingOfficerController), RoleNames.SourcingOfficer),
+            (typeof(EvaluationCommitteeController), RoleNames.EvaluationCommittee) })
+            Require(controller.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>()?.Roles == role &&
+                controller.GetMethod("Reports")!.GetCustomAttribute<Microsoft.AspNetCore.Mvc.NonActionAttribute>() == null,
+                "workflow action remains exposed with its existing role protection " + role);
 
         // Simulate SQL Server error 208 without connecting to SQL Server or changing any schema.
         var errors = (SqlErrorCollection)Activator.CreateInstance(typeof(SqlErrorCollection), nonPublic: true)!;

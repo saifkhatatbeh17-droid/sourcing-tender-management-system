@@ -31,6 +31,18 @@ public sealed class ReportRegistry
         return key != null && reports.TryGetValue(key, out var report) ? report : null;
     }
 
+    // These reports have narrower authorization inside their existing implementation.
+    // A stored permission must never widen that boundary.
+    public bool CanConfigure(string key, string role) => Find(key) is { } report &&
+        EditableRoles.Contains(role, StringComparer.Ordinal) && SupportsRole(report, role);
+
+    private static bool SupportsRole(IReport report, string role) => report.Key.ToLowerInvariant() switch
+    {
+        "top-committee" => role is RoleNames.Admin or RoleNames.TopCommittee,
+        "audit-log" => role == RoleNames.Admin,
+        _ => true
+    };
+
     public async Task<IReadOnlyList<IReport>> GetAvailableAsync(string role, CancellationToken ct = default)
     {
         if (role == RoleNames.Admin) return reports.Values.ToList();
@@ -63,7 +75,7 @@ public sealed class ReportRegistry
             RoleNames.Primary.Select(role =>
             {
                 var rule = FindRule(rules, report.Key, role);
-                var editable = EditableRoles.Contains(role, StringComparer.Ordinal);
+                var editable = CanConfigure(report.Key, role);
                 return new ReportRoleAccess(role, ResolveAccess(report, role, rule?.Allowed),
                     !editable || rule == null, editable);
             }).ToList())).ToList();
@@ -75,7 +87,7 @@ public sealed class ReportRegistry
     private static bool ResolveAccess(IReport report, string role, bool? allowed)
     {
         if (role == RoleNames.Admin) return true;
-        if (!EditableRoles.Contains(role, StringComparer.Ordinal)) return false;
+        if (!EditableRoles.Contains(role, StringComparer.Ordinal) || !SupportsRole(report, role)) return false;
 
         return allowed ?? report.DefaultRoles.Contains(role, StringComparer.Ordinal);
     }

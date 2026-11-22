@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using SourcingTenderManagement.Contracts.TopCommittee;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.Reports;
 using SourcingTenderManagement.Services.Reports;
@@ -57,7 +58,7 @@ public sealed class ReportsController(ApplicationDbContext db, ReportRegistry re
             return View(new ReportPageModel(report, scope, normalized, result, choices,
                 messages.Distinct().ToList(), Request.PathBase + "/Reports/" + Uri.EscapeDataString(report.Key)));
         }
-        catch (UnauthorizedAccessException)
+        catch (Exception exception) when (exception is UnauthorizedAccessException or CommitteeAccessDeniedException)
         {
             return StatusCode(StatusCodes.Status403Forbidden);
         }
@@ -109,7 +110,7 @@ public sealed class ReportsController(ApplicationDbContext db, ReportRegistry re
                     Detail = "No partial workbook was returned. Check the report and try again." });
             }
         }
-        catch (UnauthorizedAccessException)
+        catch (Exception exception) when (exception is UnauthorizedAccessException or CommitteeAccessDeniedException)
         {
             return StatusCode(StatusCodes.Status403Forbidden);
         }

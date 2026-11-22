@@ -49,8 +49,8 @@ public sealed class ReportAccessController(ApplicationDbContext db, ReportRegist
         {
             var report = registry.Find(change?.ReportKey);
             if (report == null || change?.Allowed is not bool allowed ||
-                !ReportRegistry.EditableRoles.Contains(change.Role, StringComparer.Ordinal))
-                return BadRequest("Choose a registered report, an eligible role, and an allow or deny value.");
+                !registry.CanConfigure(report.Key, change.Role))
+                return BadRequest("Choose a registered report, a supported editable role, and an allow or deny value. Fixed permissions cannot be changed.");
 
             if (!selected.TryAdd((report.Key, change.Role), allowed))
                 return BadRequest("A report and role can appear only once per submission.");

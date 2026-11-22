@@ -32,7 +32,9 @@ public static class ReportsAccessChecks
         var standard = new CheckReport("standard", [RoleNames.SourcingOfficer, RoleNames.SourcingManager]);
         var restricted = new CheckReport("restricted", []);
         var supplierDefault = new CheckReport("supplier-default", [RoleNames.Supplier]);
-        var registry = new ReportRegistry([standard, restricted, supplierDefault], db);
+        var committee = new CheckReport("top-committee", [RoleNames.TopCommittee]);
+        var audit = new CheckReport("audit-log", []);
+        var registry = new ReportRegistry([standard, restricted, supplierDefault, committee, audit], db);
         Require(registry.Find("STANDARD") == standard && registry.Find("missing") == null, "key lookup");
         foreach (var role in RoleNames.Primary)
         {
@@ -57,6 +59,25 @@ public static class ReportsAccessChecks
         };
         ReportAccessChange Change(string key, string role, bool? allowed) =>
             new() { ReportKey = key, Role = role, Allowed = allowed };
+
+        foreach (var role in RoleNames.Primary.Where(role => role != RoleNames.TopCommittee))
+            Require(await controller.Save([Change(committee.Key, role, true)], default) is BadRequestObjectResult,
+                "unsupported committee permission rejected for " + role);
+        Require(await controller.Save([Change(audit.Key, RoleNames.SourcingOfficer, true)], default) is BadRequestObjectResult,
+            "audit report remains Admin-only");
+        Require(await controller.Save([Change(committee.Key, RoleNames.TopCommittee, true)], default) is OkObjectResult,
+            "supported committee permission accepted");
+        db.ReportAccessRules.Add(new ReportAccessRule { ReportKey = committee.Key, Role = RoleNames.SourcingOfficer,
+            Allowed = true, UpdatedByUserId = "checks-admin" });
+        await db.SaveChangesAsync();
+        Require(!await registry.CanAccessAsync(committee.Key, RoleNames.SourcingOfficer), "old incompatible Allow fails closed");
+        Require(await registry.CanAccessAsync(committee.Key, RoleNames.TopCommittee), "supported committee role remains allowed");
+        Require(await registry.CanAccessAsync(committee.Key, RoleNames.Admin), "Admin remains allowed on fixed report");
+        var committeePermissions = (await registry.GetPermissionsAsync()).Single(entry => entry.Key == committee.Key).Permissions;
+        Require(committeePermissions.Single(permission => permission.Role == RoleNames.SourcingOfficer) is
+            { Allowed: false, CanEdit: false }, "matrix disables unsupported grant even with stored Allow");
+        Require(committeePermissions.Single(permission => permission.Role == RoleNames.TopCommittee).CanEdit,
+            "matrix keeps supported committee role editable");
 
         Require(await controller.Save([
             Change("RESTRICTED", RoleNames.Department, true),
