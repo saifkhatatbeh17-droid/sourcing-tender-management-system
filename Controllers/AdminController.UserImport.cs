@@ -1,3 +1,4 @@
+using SourcingTenderManagement.Services.Reports.Data;
 using Microsoft.AspNetCore.Mvc;
 using SourcingTenderManagement.Services.Admin;
 
@@ -59,6 +60,8 @@ public partial class AdminController
         var (password, error, account) = await accounts.ResetPasswordAsync(id, adminId);
         if (error != null) return BadRequest(new { error });
 
+        await HttpContext.RequestServices.GetRequiredService<IAuditLog>().WriteAsync("Account.PasswordReset",
+            "ApplicationUser", account!.Id, "Administrator reset an employee password.");
         logger.LogInformation("Administrator {AdminId} reset the password for account {UserId}.", adminId, account!.Id);
         return Ok(new { name = account.FullName, email = account.Email, password });
     }
@@ -73,6 +76,8 @@ public partial class AdminController
         if (result == null)
             return BadRequest(new { error = "This preview has expired or was already used. Upload the file again." });
 
+        await HttpContext.RequestServices.GetRequiredService<IAuditLog>().WriteAsync("Account.Import",
+            "ApplicationUser", "", $"Employee import created {result.CreatedCount} accounts.", ct: ct);
         // Passwords are only in the one-time credentials file, never in this response.
         return Ok(new
         {

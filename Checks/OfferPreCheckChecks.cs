@@ -26,7 +26,7 @@ public static class OfferPreCheckChecks
         {
             BidId = 9, CreatedAt = now, SubmittedAt = now, DeliveryDays = 0, PaymentTerms = null, ValidUntil = null, TaxAmount = 1m,
             BidItems = { new BidItem { PurchaseRequestItemId = 1, Quantity = 80, UnitPrice = 0m } },
-            BidDocuments = { new BidDocument { OriginalFileName = "iso.pdf", StoredFileName = "x.pdf" } }
+            BidDocuments = { new BidDocument { DocumentType = "Supporting", OriginalFileName = "iso.pdf", StoredFileName = "x.pdf" } }
         };
         var flags = OfferPreCheck.CodeChecks(bid, tender, requested, mandatoryDocuments: 2, _ => false, now);
         string[] expected = ["“Gloves” is not quoted", "offers 80 box, but 100 box", "zero unit price", "Payment terms are not stated",
@@ -38,7 +38,7 @@ public static class OfferPreCheckChecks
         // 2. Tax: offers after the fixed-rate date must carry 16%; older offers are only noted.
         var priced = new Bid { CreatedAt = now, SubmittedAt = now, DeliveryDays = 3, PaymentTerms = "30 days", ValidUntil = new DateOnly(2027, 1, 1),
             BidItems = { new BidItem { PurchaseRequestItemId = 1, Quantity = 100, UnitPrice = 1m }, new BidItem { PurchaseRequestItemId = 2, Quantity = 50, UnitPrice = 2m } },
-            TaxAmount = 32m, BidDocuments = { new BidDocument { OriginalFileName = "a.pdf", StoredFileName = "a.pdf" } } };
+            TaxAmount = 32m, BidDocuments = { new BidDocument { DocumentType = "Supporting", OriginalFileName = "a.pdf", StoredFileName = "a.pdf" } } };
         Require(OfferPreCheck.CodeChecks(priced, tender, requested, 1, _ => true, now).Count == 0, "A complete offer at 16% must raise no flags.");
         priced.TaxAmount = 8m;
         Require(OfferPreCheck.CodeChecks(priced, tender, requested, 1, _ => true, now).Single().Severity == PreCheckSeverity.Warning,

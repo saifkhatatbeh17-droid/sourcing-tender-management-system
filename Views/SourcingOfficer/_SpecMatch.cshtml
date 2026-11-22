@@ -1,0 +1,104 @@
+@using SourcingTenderManagement.Controllers
+@model OfficerSpecMatchPage
+@{
+    var result = Model.Result;
+    var items = Model.Input.Items;
+    var offers = Model.Input.Offers;
+    var canRun = items.Count > 0 && offers.Count > 0;
+    var cells = result?.Cells.ToDictionary(c => (c.BidId, c.ItemId));
+    var statuses = new Dictionary<string, (string Label, string Symbol)>
+    {
+        ["Match"] = ("Match", "✓"),
+        ["Partial"] = ("Partial", "△"),
+        ["Missing"] = ("Missing", "×"),
+        ["NeedsCheck"] = ("Needs check", "?"),
+        ["NotAssessed"] = ("Not assessed", "–")
+    };
+}
+<section class="workspace-section spec-match" data-spec-match aria-labelledby="spec-match-title">
+    <header class="spec-match-header">
+        <div>
+            <h2 id="spec-match-title">Spec match</h2>
+            <p>Compare requested items and specifications across compliant offers.</p>
+        </div>
+        @if (canRun && result is null)
+        {
+            <form asp-action="RunSpecMatch" asp-route-id="@Model.Input.TenderId" method="post" data-spec-form>
+                <button type="submit" class="btn btn-primary">@(Model.Outdated ? "Run again" : "Run spec match")</button>
+                <span class="visually-hidden" data-spec-progress role="status"></span>
+            </form>
+        }
+    </header>
+    @if (Model.CreatedAt is DateTime updated)
+    {
+        <p class="spec-match-meta">Updated <time datetime="@(DateTime.SpecifyKind(updated, DateTimeKind.Utc).ToString("O"))">@updated.ToString("dd MMM yyyy, HH:mm") UTC</time>
+            @if (Model.Outdated) { <strong> · Outdated — offers or requested items changed</strong> }
+        </p>
+    }
+    @if (!canRun)
+    {
+        <p class="spec-match-meta">A requested item and a compliant offer are needed to run spec match.</p>
+    }
+    else if (result is not null)
+    {
+        @if (!result.AiAvailable)
+        {
+            <p class="spec-match-meta" role="status">AI matching unavailable. Showing quantity and coverage checks only.</p>
+        }
+        <ul class="spec-match-legend" aria-label="Spec match legend">
+            @foreach (var (verdict, status) in statuses)
+            {
+                <li><span class="spec-match-key" data-verdict="@verdict" aria-hidden="true">@status.Symbol</span> @status.Label</li>
+            }
+        </ul>
+        <div class="spec-match-scroll" tabindex="0" role="region" aria-label="Spec match comparison">
+            <table class="spec-match-table" aria-labelledby="spec-match-title">
+                <thead><tr>
+                    <th scope="col">Requested item</th>
+                    @foreach (var bid in offers)
+                    {
+                        <th scope="col">@bid.Invitation.SupplierProfile.CompanyName <small>#@bid.BidId</small></th>
+                    }
+                </tr></thead>
+                <tbody>
+                    @for (var row = 0; row < items.Count; row++)
+                    {
+                        var item = items[row];
+                        <tr>
+                            <th scope="row">@item.ItemName <small>@item.Quantity.ToString("0.###") @item.Unit</small><small>@item.Specifications</small></th>
+                            @for (var column = 0; column < offers.Count; column++)
+                            {
+                                var bid = offers[column];
+                                var supplier = bid.Invitation.SupplierProfile.CompanyName;
+                                var cell = cells!.GetValueOrDefault((bid.BidId, item.PurchaseRequestItemId));
+                                var verdict = cell?.Verdict ?? "NotAssessed";
+                                var status = statuses[verdict];
+                                <td><button type="button" class="spec-match-cell" data-verdict="@verdict"
+                                    data-row="@row" data-column="@column" data-title="@($"{supplier} · {item.ItemName} · {status.Label}")"
+                                    data-reason="@cell?.Reason" data-evidence="@cell?.Evidence" aria-pressed="false"
+                                    aria-label="@($"{supplier}, {item.ItemName}: {status.Label}. {cell?.Reason}")"
+                                    title="@($"{status.Label}. {cell?.Reason} {cell?.Evidence}".Trim())">
+                                    <span aria-hidden="true">@status.Symbol</span>
+                                </button></td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+                <tfoot><tr>
+                    <th scope="row">Coverage</th>
+                    @foreach (var bid in offers)
+                    {
+                        var score = items.Sum(item => cells!.GetValueOrDefault((bid.BidId, item.PurchaseRequestItemId))?.Verdict switch
+                        { "Match" => 1m, "Partial" => .5m, _ => 0m });
+                        <td>@score.ToString("0.#") / @items.Count</td>
+                    }
+                </tr></tfoot>
+            </table>
+        </div>
+        <div class="spec-match-detail" aria-live="polite" aria-atomic="true">
+            <strong data-spec-title>Select a cell to see why.</strong>
+            <p data-spec-reason hidden></p>
+            <blockquote data-spec-evidence hidden></blockquote>
+        </div>
+    }
+</section>

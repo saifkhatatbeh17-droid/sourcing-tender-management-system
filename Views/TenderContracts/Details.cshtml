@@ -1,0 +1,33 @@
+@model SourcingTenderManagement.Controllers.TenderContractPage
+@{ ViewData["Title"] = "Award contract"; }
+<section class="workspace-section">
+    <h1>Award contract</h1>
+    <p>@Model.Tender · Tender #@Model.TenderId</p>
+    @if (Model.GeneratedAt is { } generated)
+    {
+        <p>Generated @generated.ToString("dd MMM yyyy HH:mm") UTC</p>
+        <a class="btn btn-outline-primary" asp-action="Download" asp-route-id="@Model.TenderId">Download award contract</a>
+    }
+    @if (Model.SignedFileName is { } signed)
+    {
+        <p>Signed copy uploaded @Model.SignedAt?.ToString("dd MMM yyyy HH:mm") UTC</p>
+        <a class="btn btn-outline-primary" asp-action="Download" asp-route-id="@Model.TenderId" asp-route-signed="true">Download signed copy · @signed</a>
+        <p>@Model.Notes</p>
+    }
+    @if (Model.CanEdit)
+    {
+        <form asp-action="Generate" asp-route-id="@Model.TenderId" method="post" class="my-3">
+            <button class="btn btn-primary" type="submit">@(Model.GeneratedAt is null ? "Generate contract" : "Regenerate contract")</button>
+        </form>
+        @if (Model.GeneratedAt is not null)
+        {
+            <form asp-action="UploadSigned" asp-route-id="@Model.TenderId" method="post" enctype="multipart/form-data" class="my-3">
+                <label for="signed-file">Signed PDF (up to 10 MB)</label>
+                <input class="form-control mb-2" type="file" name="signedFile" id="signed-file" accept=".pdf,application/pdf" required />
+                <label for="contract-notes">Notes</label>
+                <textarea class="form-control mb-2" name="notes" id="contract-notes" maxlength="1000"></textarea>
+                <button class="btn btn-primary" type="submit">Upload signed copy</button>
+            </form>
+        }
+    }
+</section>

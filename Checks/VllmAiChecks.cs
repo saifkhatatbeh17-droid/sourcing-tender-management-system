@@ -34,6 +34,7 @@ public static class VllmAiChecks
         await AiChatAttachmentChecks.RunAsync();
         await AiGatewayChecks.RunAsync();
         await OfferPreCheckChecks.RunAsync();
+        await SpecMatchChecks.RunAsync();
         await CheckElevenLabsSpeechAsync();
         await CommitteeApprovalOrderChecks.RunAsync();
         await FinalReportChecks.RunAsync();

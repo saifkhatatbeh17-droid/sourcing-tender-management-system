@@ -1,3 +1,4 @@
+using SourcingTenderManagement.Services.Reports.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ namespace SourcingTenderManagement.Controllers;
 
 [Route("Account/Passkeys")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public class PasskeysController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn) : Controller
+public class PasskeysController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, IAuditLog? audit = null) : Controller
 {
     [HttpGet, Authorize]
     public IActionResult Index() => RedirectToAction("Index", "FaceEnrollment", null, "passkey");
@@ -69,12 +70,14 @@ public class PasskeysController(UserManager<ApplicationUser> users, SignInManage
         }
         catch (InvalidOperationException ex) when (ex.Message.StartsWith("No passkey assertion is underway.", StringComparison.Ordinal))
         {
+            if (audit is not null) await audit.WriteAsync("Account.SignInFailure", "ApplicationUser", "", "Passkey sign-in expired.");
             return Unauthorized(new { message = "Your passkey sign-in attempt expired. Please start again or sign in with your password." });
         }
         if (!result.Succeeded || !result.User.IsActive ||
             !await signIn.CanSignInAsync(result.User) || await users.IsLockedOutAsync(result.User) ||
             await users.GetTwoFactorEnabledAsync(result.User))
         {
+            if (audit is not null) await audit.WriteAsync("Account.SignInFailure", "ApplicationUser", "", "Passkey sign-in failed.");
             return Unauthorized(new { message = "Passkey sign-in failed. Try again or sign in with your password." });
         }
 
@@ -83,6 +86,11 @@ public class PasskeysController(UserManager<ApplicationUser> users, SignInManage
             return Unauthorized(new { message = "Passkey sign-in failed. Please try again." });
 
         await signIn.SignInAsync(result.User, isPersistent: false, authenticationMethod: "Passkey");
+        if (audit is not null)
+        {
+            HttpContext.User = await signIn.CreateUserPrincipalAsync(result.User);
+            await audit.WriteAsync("Account.SignInSuccess", "ApplicationUser", result.User.Id, "Passkey sign-in succeeded.");
+        }
         return Ok(new { redirect = Url.Action("GoToDashboard", "Account", new { returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null }) });
     }
 }

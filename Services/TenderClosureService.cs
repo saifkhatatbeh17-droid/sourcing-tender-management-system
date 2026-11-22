@@ -6,9 +6,15 @@ namespace SourcingTenderManagement.Services;
 public sealed class TenderClosureService(IServiceScopeFactory scopes, ILogger<TenderClosureService> logger) : BackgroundService
 {
     public static Task<int> CloseExpired(ApplicationDbContext db, DateTime now, CancellationToken ct = default, string? ownerId = null) =>
-        db.Tenders.Where(t => (t.Status == "Published" || t.Status == "Open") && t.ClosesAt <= now &&
-            (ownerId == null || t.CreatedByUserId == ownerId))
-            .ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, "Closed"), ct);
+        db.Database.ExecuteSqlInterpolatedAsync($$"""
+            UPDATE dbo.Tenders SET Status = N'Closed'
+            OUTPUT {{now}}, N'System', N'Modified', N'Tender', CONVERT(nvarchar(450), inserted.TenderId),
+                inserted.TenderId, N'Tender closed at its deadline.',
+                CONCAT(N'{"Status":{"Before":"', deleted.Status, N'","After":"Closed"}' + N'}')
+            INTO dbo.AuditEntries (OccurredAt, UserName, Action, EntityType, EntityId, TenderId, Summary, ChangesJson)
+            WHERE Status IN (N'Published',N'Open') AND ClosesAt <= {{now}}
+                AND ({{ownerId}} IS NULL OR CreatedByUserId = {{ownerId}});
+            """, ct);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

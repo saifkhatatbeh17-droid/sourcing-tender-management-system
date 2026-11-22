@@ -16,6 +16,7 @@
     var activeOfferCount = Model.Count(b => b.Status != "Withdrawn");
 }
 @section Styles {
+    <link rel="stylesheet" href="~/css/spec-match.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/offer-review.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/officer-workspace-polish.css" asp-append-version="true" />
@@ -121,6 +122,10 @@ else
     {
         @await Component.InvokeAsync("SupplierLinksBanner", new { tenderId = tender.TenderId, advice = "Check them before you send offers to the committee." })
     }
+    @if (ViewBag.SpecMatch is SourcingTenderManagement.Controllers.OfficerSpecMatchPage specMatch)
+    {
+        <partial name="_SpecMatch" model="specMatch" />
+    }
     <form asp-action="ReviewAndSend" method="post">
         <input type="hidden" name="tenderId" value="@tender.TenderId" />
         @if (Model.Count == 0)
@@ -167,4 +172,4 @@ else
 @if (ViewBag.OpenCreateModal == true) { <partial name="_CreateTenderModal" /> }
 </div>
 
-@section Scripts { <script src="~/js/offers-workspace.js" asp-append-version="true"></script> <script src="~/js/offer-precheck.js" asp-append-version="true"></script> <script src="~/js/procurement-categories.js" asp-append-version="true"></script><script src="~/js/tender-edit-modal.js" asp-append-version="true"></script> <script src="~/js/offer-read-state.js" asp-append-version="true"></script> <script src="~/js/officer-workspace-polish.js" asp-append-version="true"></script> <script src="~/js/officer-report-review.js" asp-append-version="true"></script> }
+@section Scripts { <script src="~/js/spec-match.js" asp-append-version="true"></script> <script src="~/js/offers-workspace.js" asp-append-version="true"></script> <script src="~/js/offer-precheck.js" asp-append-version="true"></script> <script src="~/js/procurement-categories.js" asp-append-version="true"></script><script src="~/js/tender-edit-modal.js" asp-append-version="true"></script> <script src="~/js/offer-read-state.js" asp-append-version="true"></script> <script src="~/js/officer-workspace-polish.js" asp-append-version="true"></script> <script src="~/js/officer-report-review.js" asp-append-version="true"></script> }

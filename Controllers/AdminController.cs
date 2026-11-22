@@ -1,3 +1,4 @@
+using SourcingTenderManagement.Services.Reports.Data;
 using System.Globalization;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
@@ -329,6 +330,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         var reviewedAt = DateTime.UtcNow;
         var notes = review.Notes.Trim();
         var previousReview = review.ReviewedAtTicks is long ticks ? (DateTime?)new DateTime(ticks) : null;
+        await using var auditTransaction = await db.Database.BeginTransactionAsync();
         var updated = await db.SupplierProfiles
             .Where(item => item.SupplierProfileId == review.Id &&
                 item.Status == review.PreviousStatus && item.ReviewedAt == previousReview)
@@ -343,6 +345,9 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
             return RedirectToAction(nameof(SupplierDetails), new { id = review.Id });
         }
 
+        await HttpContext.RequestServices.GetRequiredService<IAuditLog>().WriteAsync("Modified", "SupplierProfile", review.Id.ToString(),
+            "Supplier application reviewed.", changesJson: System.Text.Json.JsonSerializer.Serialize(new { Before = supplier.Status, After = review.Status }));
+        await auditTransaction.CommitAsync();
         TempData["SupplierReviewFeedback"] = "Supplier decision saved.";
         return RedirectToAction(nameof(SupplierDetails), new { id = review.Id });
     }
@@ -384,6 +389,8 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
             var result = await users.UpdateAsync(user);
             if (result.Succeeded)
             {
+                await HttpContext.RequestServices.GetRequiredService<IAuditLog>().WriteAsync("Account.Edit",
+                    "ApplicationUser", user.Id, "Administrator updated an account.");
                 await transaction.CommitAsync();
                 TempData["UsersFeedback"] = "Account updated.";
                 return RedirectToAction(nameof(Users));

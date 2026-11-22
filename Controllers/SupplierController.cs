@@ -10,12 +10,12 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
-[Authorize(Policy = "ApprovedSupplier")]
+[Authorize(Policy = "SupplierHistory")]
 public class SupplierController(ApplicationDbContext db, UserManager<ApplicationUser> users, IWebHostEnvironment env) : Controller
 {
     private string UserId => users.GetUserId(User)!;
     private Task<SupplierProfile?> MyProfile() => db.SupplierProfiles.Include(p => p.User)
-        .SingleOrDefaultAsync(p => p.UserId == UserId);
+        .SingleOrDefaultAsync(p => p.UserId == UserId && (p.Status == "Approved" || p.Status == "Suspended"));
 
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
 
@@ -47,6 +47,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return View(vm);
     }
 
+    [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> Invitations(string? status)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
@@ -62,6 +63,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return View(await query.OrderByDescending(i => i.SentAt).ToListAsync());
     }
 
+    [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> Invitation(int id)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
@@ -73,6 +75,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return invitation == null ? NotFound() : View(invitation);
     }
 
+    [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> DownloadTenderDocument(int id)
     {
         var profile=await MyProfile();if(profile==null)return NotFound();
@@ -83,6 +86,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> Respond(int id, string response)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
@@ -127,6 +131,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     }
 
     [HttpGet]
+    [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> CreateOffer(int invitationId, int? bidId)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
@@ -157,6 +162,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     }
 
     [HttpPost, ValidateAntiForgeryToken, RequestSizeLimit(20_000_000)]
+    [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> SaveOffer(OfferFormViewModel model, string submissionCommand, List<IFormFile>? documents)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
@@ -219,6 +225,9 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         {
             // Serialize submission with deadline closure and concurrent draft edits.
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {inv.TenderId};");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = SupplierProfileId FROM dbo.SupplierProfiles WITH (UPDLOCK,HOLDLOCK) WHERE SupplierProfileId = {profile.SupplierProfileId};");
+            if (!await db.SupplierProfiles.AnyAsync(s => s.SupplierProfileId == profile.SupplierProfileId && s.Status == "Approved"))
+                return Forbid();
             var deadline = await db.Tenders.Where(t => t.TenderId == inv.TenderId &&
                 (t.Status == "Published" || t.Status == "Open") && t.OpensAt <= DateTime.UtcNow && t.ClosesAt > DateTime.UtcNow)
                 .Select(t => (DateTime?)t.ClosesAt).SingleOrDefaultAsync();
@@ -325,6 +334,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> CancelOffer(int id)
     {
         var tenderId = await db.Bids.AsNoTracking()
@@ -386,15 +396,16 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
 
     public async Task<IActionResult> Profile()
     {
-        var profile = await db.SupplierProfiles.AsNoTracking().Include(p => p.User).Include(p => p.SupplierDocuments).SingleOrDefaultAsync(p => p.UserId == UserId);
+        var profile = await db.SupplierProfiles.AsNoTracking().Include(p => p.User).Include(p => p.SupplierDocuments).SingleOrDefaultAsync(p => p.UserId == UserId && (p.Status == "Approved" || p.Status == "Suspended"));
         return profile == null ? NotFound() : View(profile);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> UpdateCategory(ProcurementCategoryInput input)
     {
         var profile = await db.SupplierProfiles.Include(p => p.User).Include(p => p.SupplierDocuments)
-            .SingleOrDefaultAsync(p => p.UserId == UserId);
+            .SingleOrDefaultAsync(p => p.UserId == UserId && (p.Status == "Approved" || p.Status == "Suspended"));
         if (profile == null) return NotFound();
         if (profile.Status != "Approved") return Forbid();
         if (!ModelState.IsValid)
@@ -422,6 +433,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     public IActionResult Clarifications(int? id) => RedirectToAction("Index", "Clarification", new { id });
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> Reply(int id, string message)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
@@ -442,6 +454,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
 
     // Dismisses the award celebration popup by marking its winner notification read.
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> AcknowledgeAward(int id)
     {
         await db.Notifications

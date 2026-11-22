@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
+using SourcingTenderManagement.Services.Reports.Data;
+using SourcingTenderManagement.Services.Reports.Hub;
 using SourcingTenderManagement.Services.TopCommittee;
 using SourcingTenderManagement.Services.FaceEnrollment;
 using SourcingTenderManagement.Services.FaceVerification;
@@ -42,6 +44,8 @@ builder.Services.AddSingleton<AiChatDownloadStore>();
 // Offer pre-check for the Sourcing Officer: code checks plus an optional AI document review.
 builder.Services.AddHttpClient<SourcingTenderManagement.Services.Compliance.OfferPreCheck>(client => client.Timeout = TimeSpan.FromSeconds(90))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.SpecMatchService>(client => client.Timeout = TimeSpan.FromSeconds(90))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 // Supplier links: bid-rigging warning signs computed in code, with an optional AI brief per pair.
 builder.Services.AddScoped<SourcingTenderManagement.Services.Integrity.SupplierLinks>();
 builder.Services.AddHttpClient<SourcingTenderManagement.Services.Integrity.SupplierLinkExplainer>(client => client.Timeout = TimeSpan.FromSeconds(60))
@@ -55,7 +59,16 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
 builder.Services.AddScoped<AiChatContext>();
 builder.Services.AddScoped<AiChatExportService>();
 builder.Services.AddScoped<AiChatWorkspaceActions>();
-builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
+builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+builder.Services.AddScoped<IAuditLog, AuditLog>();
+builder.Services.AddScoped<SupplierActivityQuery>();
+builder.Services.AddScoped<IReport, SuppliersReport>();
+builder.Services.AddScoped<IReport, BidsEvaluationReport>();
+builder.Services.AddScoped<IReport, ApprovalsReport>();
+builder.Services.AddScoped<IReport, AuditLogReport>();
+builder.Services.AddScoped<IReport, TopCommitteeHubReport>();
+builder.Services.AddDbContext<ApplicationDbContext>((services, o) =>
+    o.UseSqlServer(connection).AddInterceptors(services.GetRequiredService<AuditSaveChangesInterceptor>()));
 builder.Services.AddTopCommitteeFoundation();
 builder.Services.AddFaceEnrollment();
 builder.Services.AddFaceVerification(builder.Configuration);
@@ -122,6 +135,14 @@ builder.Services.ConfigureApplicationCookie(o =>
         }
     };
 });
+builder.Services.AddAuthorization(o => o.AddPolicy("SupplierHistory", policy =>
+    policy.RequireRole(RoleNames.Supplier).RequireAssertion(async context =>
+    {
+        if (context.Resource is not HttpContext http) return false;
+        var userId = http.RequestServices.GetRequiredService<UserManager<ApplicationUser>>().GetUserId(context.User);
+        return await http.RequestServices.GetRequiredService<ApplicationDbContext>().SupplierProfiles.AnyAsync(
+            s => s.UserId == userId && (s.Status == "Approved" || s.Status == "Suspended"), http.RequestAborted);
+    })));
 builder.Services.AddAuthorization(o => o.AddPolicy("ApprovedSupplier", policy =>
     policy.RequireRole(RoleNames.Supplier).RequireAssertion(async context =>
     {
@@ -134,6 +155,11 @@ builder.Services.AddAuthorization(o => o.AddPolicy("ApprovedSupplier", policy =>
 
 builder.Services.AddScoped<SourcingTenderManagement.Services.OfferProductPhotos>();
 var app = builder.Build();
+if (args.Contains("--reports-data-checks"))
+{
+    await SourcingTenderManagement.Checks.ReportsDataChecks.RunAsync(connection);
+    return;
+}
 if (args.Contains("--supplier-link-checks"))
 {
     SourcingTenderManagement.Checks.SupplierLinkChecks.Run();

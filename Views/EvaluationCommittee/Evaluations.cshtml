@@ -105,6 +105,10 @@
                         { <p class="ev-personal-review @(Model.MyReviewApproved(offer) ? "is-approved" : "is-pending")"><span aria-hidden="true">@(Model.MyReviewApproved(offer) ? "✓" : "○")</span> @(Model.MyReviewApproved(offer) ? "Your review approved" : "Not reviewed yet")</p> }
                         <div class="ev-offer-top"><span class="ev-subtle">Offer #@offer.BidId</span><span class="ev-offer-label">@(lowest ? "Lowest price" : "Compliant")</span></div>
                         <h4>@offer.Invitation.SupplierProfile.CompanyName</h4>
+                        @if (offer.Invitation.SupplierProfile.Status == "Suspended")
+                        {
+                            <span class="badge text-bg-warning">Supplier suspended</span>
+                        }
                         @await Component.InvokeAsync("OfferProductPhotos", new { bidId = offer.BidId })
                         <p class="ev-price">@CommitteeEvaluationPage.Total(offer).ToString("N2") <span>@offer.Currency</span></p>
                         <dl class="ev-offer-facts"><div><dt>Delivery</dt><dd>@offer.DeliveryDays days</dd></div><div><dt>Payment</dt><dd>@(offer.PaymentTerms ?? "Not specified")</dd></div></dl>

@@ -1,0 +1,11 @@
+@model SourcingTenderManagement.Models.Entities.AuditEntry
+@{ ViewData["Title"] = "Audit entry"; }
+<section class="workspace-section">
+    <h1>Audit entry #@Model.AuditEntryId</h1>
+    <p>@Model.OccurredAt.ToString("dd MMM yyyy HH:mm:ss") UTC · @Model.UserName</p>
+    <p>@Model.Summary</p>
+    @if (Model.ChangesJson is { } changes)
+    {
+        <details open><summary>Recorded changes</summary><pre class="text-wrap">@changes</pre></details>
+    }
+</section>

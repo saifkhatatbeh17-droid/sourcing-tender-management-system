@@ -13,7 +13,7 @@ public sealed class TopCommitteeReportExport
 {
     private static readonly object FontLock = new();
     public const string AwardDefinition = "Awarded Tenders counts distinct tenders with Awarded status and a valid winning bid linked to the supplier. These are procurement awards, not confirmed completed purchases; delivery and payment are not tracked.";
-    public const string Scope = "System-wide statistics and supplier awards cover all records, unfiltered. Tender details and decision summaries cover only your assigned tenders matching the active filters. Dates are UTC.";
+    public const string Scope = "System-wide totals cover all records. Tender details, supplier activity and decision summaries cover assigned tenders matching the active filters. Dates are UTC.";
     public static string Filters(CommitteeReportFilter f) => $"Title: {f.Search ?? "All"}; Status: {f.Status ?? "All"}; My decision: {f.Decision ?? "All"}; Created UTC: {f.FromDate?.ToString("yyyy-MM-dd") ?? "Any"} to {f.ToDate?.ToString("yyyy-MM-dd") ?? "Any"}";
     public static string Outcome(CommitteeReportRow r) => r.Rejected ? "Rejected" : r.Status == "Awarded" ? "Awarded" : r.Status == "AwaitingManagerReview" ? "Manager review" : "Not final";
     private static readonly string[] Headers = ["Tender ID","Tender title","Status","Nominated bid ID","Awarded bid ID","Approvals / 4","Final outcome","My decision","My decision date (UTC)"];
@@ -51,6 +51,15 @@ public sealed class TopCommitteeReportExport
         }
         else summary.Cell(15,1).Value="System-wide statistics unavailable.";
         summary.Cell(19,1).Value=Scope; summary.Range(19,1,19,6).Merge().Style.Alignment.WrapText=true; summary.Row(19).Height=48;
+        if (p.SystemStatistics is { } registered)
+        {
+            var statusRow = 21;
+            foreach (var pair in registered.SuppliersByStatus.OrderBy(x => x.Key))
+            {
+                summary.Cell(statusRow, 1).Value = "Suppliers · " + pair.Key;
+                summary.Cell(statusRow++, 2).Value = pair.Value;
+            }
+        }
         summary.Columns(1,6).Width=22; summary.Column(1).Width=44; summary.Column(2).Width=24;
         foreach(var n in new[]{1,14}) summary.Row(n).Style.Font.Bold=true;
 
@@ -78,15 +87,22 @@ public sealed class TopCommitteeReportExport
         tenders.Columns(9,11).Style.DateFormat.Format="yyyy-mm-dd hh:mm";
 
         var suppliers=book.AddWorksheet("Supplier Statistics");
-        WriteHeader(suppliers,["Supplier ID","Supplier name","Awarded Tenders"]);
+        WriteHeader(suppliers,["Supplier ID","Supplier name","Awarded Tenders","Status","Invited","Dealings","Win rate","Dealings per month"]);
         row=2;
         foreach(var s in p.Suppliers)
         {
             suppliers.Cell(row,1).Value=s.SupplierId; suppliers.Cell(row,2).Value=s.SupplierName;
-            suppliers.Cell(row++,3).Value=s.AwardedTenders;
+            suppliers.Cell(row,3).Value=s.AwardedTenders;
+            suppliers.Cell(row,4).Value=s.Status;
+            suppliers.Cell(row,5).Value=s.Invited;
+            suppliers.Cell(row,6).Value=s.Dealings;
+            suppliers.Cell(row,7).Value=s.WinRate;
+            suppliers.Cell(row,7).Style.NumberFormat.Format="0.0%";
+            suppliers.Cell(row,8).Value=s.Frequency;
+            suppliers.Cell(row++,8).Style.NumberFormat.Format="0.0";
         }
         if(p.Suppliers.Count==0)suppliers.Cell(2,1).Value="No suppliers recorded.";
-        FormatTable(suppliers,Math.Max(row-1,2),3); suppliers.Column(2).Width=60;
+        FormatTable(suppliers,Math.Max(row-1,2),8); suppliers.Column(2).Width=60;
         suppliers.Column(2).Style.Alignment.WrapText=true;
         var noteRow=Math.Max(row,3)+1;
         suppliers.Cell(noteRow,1).Value=AwardDefinition;
@@ -144,14 +160,16 @@ public sealed class TopCommitteeReportExport
                 Outcome(r),r.MyDecision??"Not voted",CommitteeDisplay.Utc(r.DecisionAt)]);
         }
 
+        if (p.SystemStatistics is { } registered && registered.SuppliersByStatus.Count > 0)
+            section.AddParagraph("Registered suppliers by status: " + string.Join(" · ", registered.SuppliersByStatus.OrderBy(x => x.Key).Select(x => $"{x.Key}: {x.Value:N0}")));
         if(p.Rows.Count>12)section.AddPageBreak(); Heading(section,"C · Supplier statistics");
         section.AddParagraph("System-wide · all suppliers, including those with zero awards · independent of tender filters.").Format.SpaceAfter=6;
         section.AddParagraph(AwardDefinition).Format.SpaceAfter=12;
         if(p.Suppliers.Count==0)section.AddParagraph("No suppliers recorded.");
         else
         {
-            var table=Table(section,["Supplier ID","Supplier name","Awarded Tenders"],[2.5,18.2,5]);
-            foreach(var s in p.Suppliers)AddRow(table,[s.SupplierId.ToString(),s.SupplierName,s.AwardedTenders.ToString("N0")]);
+            var table=Table(section,["Supplier ID","Supplier name","Awarded Tenders","Status","Invited","Dealings","Win rate","Per month"],[2.2,7,3,3.3,2.2,2.3,2.7,3]);
+            foreach(var s in p.Suppliers)AddRow(table,[s.SupplierId.ToString(),s.SupplierName,s.AwardedTenders.ToString("N0"),s.Status,s.Invited.ToString("N0"),s.Dealings.ToString("N0"),s.WinRate.ToString("P1"),s.Frequency.ToString("N1")]);
         }
 
         if(p.Suppliers.Count>12)section.AddPageBreak(); Heading(section,"D · Decision and audit summary");

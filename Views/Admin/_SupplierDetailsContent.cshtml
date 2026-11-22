@@ -1,7 +1,10 @@
+@using SourcingTenderManagement.Services.Reports.Data
+@inject IConfiguration Configuration
 @model SupplierDetailsViewModel
 @{
     var supplier = Model.Supplier;
     var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var warning = Configuration.GetValue("Reports:DocumentExpiryWarningDays", 30);
 }
 
 <div data-review-flow>
@@ -57,10 +60,14 @@
                             <td>@document.OriginalFileName</td>
                             <td>
                                 @(document.ExpiresOn?.ToString("dd MMM yyyy") ?? "Not provided")
-                                @if (document.ExpiresOn < today)
-                                {
-                                    <span class="badge text-bg-danger">Expired</span>
-                                }
+                                <span class="badge text-bg-secondary">@DocumentExpiry.State(document.ExpiresOn, today, warning)</span>
+                                <p>@document.VerificationStatus @document.VerificationNote</p>
+                                <form asp-action="VerifySupplierDocument" asp-route-id="@document.SupplierDocumentId" method="post" data-supplier-popup-form>
+                                    <label for="verify-@document.SupplierDocumentId">Verification note</label>
+                                    <input id="verify-@document.SupplierDocumentId" class="form-control" name="note" maxlength="1000" />
+                                    <button class="btn btn-outline-primary" name="status" value="Verified">Verify</button>
+                                    <button class="btn btn-outline-danger" name="status" value="Rejected">Reject</button>
+                                </form>
                             </td>
                             <td>
                                 @if (Model.DocumentsConfigured)
@@ -99,6 +106,23 @@
 
 </div>
 
+@if (supplier.Status is "Approved" or "Suspended")
+{
+    <section class="workspace-section" data-review-step="Decision">
+        <h2>Supplier access</h2>
+        <form asp-action="SetSupplierSuspension" asp-route-id="@supplier.SupplierProfileId" method="post" data-supplier-popup-form>
+            <input type="hidden" name="suspend" value="@(supplier.Status == "Approved" ? "true" : "false")" />
+            @if (supplier.Status == "Approved")
+            {
+                <label for="suspension-reason">Suspension reason</label>
+                <input class="form-control" name="reason" id="suspension-reason" maxlength="1000" required />
+            }
+            <button class="btn btn-outline-primary mt-2">@(supplier.Status == "Approved" ? "Suspend supplier" : "Reactivate supplier")</button>
+        </form>
+    </section>
+}
+else
+{
 <section class="workspace-section" data-review-step="Decision" aria-labelledby="review-heading">
     <h2 id="review-heading">Record a decision</h2>
     <p class="text-secondary">Approval gives this company access to supplier tenders. Your reason is shared with the supplier and recorded with this review.</p>
@@ -127,6 +151,7 @@
         <div class="admin-review-controls" data-decision-actions><button type="submit" class="btn btn-primary" data-review-decision-submit>Save decision</button></div>
     </form>
 </section>
+}
 
 
 

@@ -20,5 +20,15 @@ public sealed record CommitteeReportPage(CommitteeReportFilter Filter,CommitteeR
  public CommitteeSystemStatistics? SystemStatistics { get; init; }
  public IReadOnlyList<CommitteeSupplierStatistics> Suppliers { get; init; } = [];
 }
-public sealed record CommitteeSystemStatistics(int Suppliers, int Tenders, int AwardedTenders);
-public sealed record CommitteeSupplierStatistics(int SupplierId, string SupplierName, int AwardedTenders);
+public sealed record CommitteeSystemStatistics(int Suppliers, int Tenders, int AwardedTenders)
+{
+    public IReadOnlyDictionary<string, int> SuppliersByStatus { get; init; } = new Dictionary<string, int>();
+}
+public sealed record CommitteeSupplierStatistics(int SupplierId, string SupplierName, int AwardedTenders)
+{
+    public string Status { get; init; } = "";
+    public int Invited { get; init; }
+    public int Dealings { get; init; }
+    public decimal Frequency { get; init; }
+    public decimal WinRate => Dealings == 0 ? 0 : (decimal)AwardedTenders / Dealings;
+}

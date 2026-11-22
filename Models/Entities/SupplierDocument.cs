@@ -20,6 +20,11 @@ public class SupplierDocument
 
     public long FileSizeBytes { get; set; }
 
+    public string VerificationStatus { get; set; } = "Pending";
+    public string? VerifiedByUserId { get; set; }
+    public DateTime? VerifiedAt { get; set; }
+    public string? VerificationNote { get; set; }
+
     public DateOnly? ExpiresOn { get; set; }
 
     public DateTime UploadedAt { get; set; }

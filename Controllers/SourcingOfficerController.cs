@@ -1,3 +1,4 @@
+using SourcingTenderManagement.Services.Reports.Data;
 using Microsoft.AspNetCore.Authorization;
 using SourcingTenderManagement.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -110,6 +111,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return Forbid();
 
+        await using var auditTransaction = await db.Database.BeginTransactionAsync();
         var updatedRows = await db.PurchaseRequests
             .Where(r => r.PurchaseRequestId == id && r.Status == "Submitted" &&
                 (r.ReviewedByUserId == null || r.ReviewedByUserId == userId))
@@ -126,6 +128,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             return RedirectToAction(nameof(Requests), new { id, status = "Submitted" });
         }
 
+        await HttpContext.RequestServices.GetRequiredService<IAuditLog>().WriteAsync("Modified", "PurchaseRequest", id.ToString(),
+            "Purchase request review started.", changesJson: "{\"Before\":\"Submitted\",\"After\":\"UnderReview\"}");
+        await auditTransaction.CommitAsync();
         TempData["RequestSuccess"] = "The request is now assigned to you for review.";
         return RedirectToAction(nameof(Requests), new { id });
     }
@@ -169,6 +174,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         }
 
         var reviewedAt = DateTime.UtcNow;
+        await using var auditTransaction = await db.Database.BeginTransactionAsync();
         var updatedRows = await db.PurchaseRequests
             .Where(r => r.PurchaseRequestId == id && ((r.Status == "UnderReview" && r.ReviewedByUserId == userId) || (r.Status == "Submitted" && r.ReviewedByUserId == null)) &&
                 !r.Clarifications.Any(c => c.Status != "Resolved"))
@@ -184,6 +190,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
                 : "This request changed before your decision was saved. Review its current status.";
             return RedirectToAction(nameof(Requests), new { id });
         }
+        await HttpContext.RequestServices.GetRequiredService<IAuditLog>().WriteAsync("Modified", "PurchaseRequest", id.ToString(),
+            "Purchase request review decision recorded.", changesJson: System.Text.Json.JsonSerializer.Serialize(new { Before = request.Status, After = decision }));
+        await auditTransaction.CommitAsync();
 
         TempData["RequestSuccess"] = $"Purchase Request {decision.ToLowerInvariant()} successfully.";
         return RedirectToAction(nameof(Requests), new { id, status = decision });
@@ -501,6 +510,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             return RedirectToAction(nameof(Invitations), new { tenderId });
         }
         var selectedIds = (supplierProfileIds ?? []).Distinct().ToList();
+        await using var invitationTransaction = db.Database.CurrentTransaction is null
+            ? await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
+            : null;
         var approvedIds = await SuppliersForCategory(tender.Category)
             .Where(s => allSuppliers || selectedIds.Contains(s.SupplierProfileId))
             .Select(s => s.SupplierProfileId).ToListAsync();
@@ -532,6 +544,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             TempData["InvitationError"] = "The invitations could not be saved. Refresh and try again; a supplier may have just been invited.";
             return RedirectToAction(nameof(Invitations), new { tenderId });
         }
+        if (invitationTransaction is not null) await invitationTransaction.CommitAsync();
         TempData["InvitationSuccess"] = $"Sent {invitations.Count} invitation(s). Suppliers already invited were skipped.";
         return RedirectToAction(nameof(Invitations), new { tenderId });
     }
@@ -564,6 +577,8 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         if (selectedTender != null)
             selectedTender.PurchaseRequest = await db.PurchaseRequests.AsNoTracking()
                 .Include(r => r.PurchaseRequestItems).SingleAsync(r => r.PurchaseRequestId == selectedTender.PurchaseRequestId);
+        if (selectedTender != null)
+            ViewBag.SpecMatch = await LoadSpecMatchAsync(selectedTender, bids, HttpContext.RequestAborted);
         ViewBag.LaunchSuppliers = await SuppliersForCategory(selectedTender?.Category)
             .AsNoTracking().OrderBy(s => s.CompanyName).ToListAsync();
         ViewBag.WorkspaceInvitations = tenderId.HasValue ? await db.Invitations.AsNoTracking()

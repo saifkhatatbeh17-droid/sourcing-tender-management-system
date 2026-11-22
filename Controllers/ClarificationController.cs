@@ -1,3 +1,4 @@
+using SourcingTenderManagement.Services.Reports.Data;
 using System.Data;
 using System.ComponentModel.DataAnnotations;
 using SourcingTenderManagement.Contracts.TopCommittee;
@@ -223,6 +224,9 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
             TempData["ClarificationError"] = "The conversation changed. Review the latest messages and try again.";
             return RedirectToAction(nameof(Index), new { id });
         }
+        await HttpContext.RequestServices.GetRequiredService<IAuditLog>().WriteAsync("Modified", "Clarification", id.ToString(),
+            resolve ? "Clarification resolution confirmed." : "Clarification replied to.", thread.TenderId,
+            System.Text.Json.JsonSerializer.Serialize(new { Before = thread.Status, After = nextStatus }), ct);
         if (!resolve)
         {
             db.ClarificationResponses.Add(new ClarificationResponse

@@ -347,7 +347,7 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
     [GeneratedRegex(@"--- Page \d+ ---")]
     private static partial Regex PageMarkerRegex();
 
-    private static string Normalize(string text) => WhitespaceRegex().Replace(text, " ").Trim().ToLowerInvariant();
+    internal static string Normalize(string text) => WhitespaceRegex().Replace(text, " ").Trim().ToLowerInvariant();
     private static string Trim(string text, int max) => text.Length <= max ? text : text[..max].TrimEnd() + "…";
     private static string Num(decimal value) => value.ToString("0.###", CultureInfo.InvariantCulture);
     private static string Plural(int count, string word) => count == 1 ? word : word + "s";

@@ -7,7 +7,10 @@ namespace SourcingTenderManagement.Data;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : IdentityDbContext<ApplicationUser>(options)
 {
+    public DbSet<AuditEntry> AuditEntries { get; set; }
+    public DbSet<TenderContract> TenderContracts { get; set; }
     public DbSet<AiAnalysis> AiAnalyses { get; set; }
+    public DbSet<SpecMatchAnalysis> SpecMatchAnalyses { get; set; }
     public DbSet<AiInteraction> AiInteractions { get; set; }
     public DbSet<Bid> Bids { get; set; }
     public DbSet<BidDocument> BidDocuments { get; set; }
@@ -51,6 +54,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<ApplicationUser>().Property(user => user.PhoneNumber).Metadata.SetMaxLength(null);
         modelBuilder.ApplyConfiguration(new Configurations.UserFaceCredentialConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.AiInteractionConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.SpecMatchAnalysisConfiguration());
+        var reportsData = new Configurations.ReportsDataConfiguration();
+        modelBuilder.ApplyConfiguration<AuditEntry>(reportsData);
+        modelBuilder.ApplyConfiguration<TenderContract>(reportsData);
+        modelBuilder.ApplyConfiguration<SupplierDocument>(reportsData);
         modelBuilder.Entity<CommitteeWeightProposal>(entity =>
         {
             entity.Property(p => p.FinancialWeight).HasPrecision(5, 2);

@@ -136,6 +136,10 @@
             <h3>Delivery, payment and notes</h3><p>@Model.DeliveryDays days for delivery</p>
             <dl class="supplier-offer-terms">
                 <div><dt>Supplier</dt><dd>@Model.Invitation.SupplierProfile.CompanyName</dd></div>
+                @if (tender.Status == "Awarded" && tender.AwardedBidId == Model.BidId)
+                {
+                    <div><dt>Contract</dt><dd><a asp-controller="TenderContracts" asp-action="Details" asp-route-id="@tender.TenderId">View award contract</a></dd></div>
+                }
                 <div><dt>Payment terms</dt><dd>@(Model.PaymentTerms ?? "Not specified")</dd></div>
                 <div><dt>Technical notes</dt><dd>@(Model.TechnicalDetails ?? "Not provided")</dd></div>
             </dl>

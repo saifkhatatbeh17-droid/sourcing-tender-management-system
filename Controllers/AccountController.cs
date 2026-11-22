@@ -1,3 +1,4 @@
+using SourcingTenderManagement.Services.Reports.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Controllers;
 public class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
-    ApplicationDbContext db) : Controller
+    ApplicationDbContext db, IAuditLog? audit = null) : Controller
 {
     [Authorize, HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> OpenNotification(int id, CancellationToken ct)
@@ -62,9 +63,16 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             {
                 Response.Cookies.Delete(SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieName,
                     SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieOptions(Request));
+                if (audit is not null)
+                {
+                    HttpContext.User = await signIn.CreateUserPrincipalAsync(user);
+                    await audit.WriteAsync("Account.SignInSuccess", "ApplicationUser", user.Id, "Password sign-in succeeded.");
+                }
                 return PasswordLoginSuccess(model);
             }
         }
+        if (audit is not null)
+            await audit.WriteAsync("Account.SignInFailure", "ApplicationUser", user?.Id ?? "", "Password sign-in failed.");
         ModelState.AddModelError("", "Unable to sign in. Check your email and password, or try again later.");
         return PasswordLoginFailure(model, StatusCodes.Status401Unauthorized);
     }
@@ -79,23 +87,28 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     {
         Response.Headers.CacheControl = "no-store";
         const string failure = "Unable to sign in. Your password and enrolled face must both match. Check your details and try again.";
+        async Task<IActionResult> RecordFailure(string? userId = null, string? code = null)
+        {
+            if (audit is not null) await audit.WriteAsync("Account.SignInFailure", "ApplicationUser", userId ?? "", "Face sign-in failed.", ct: ct);
+            return BadRequest(new { message = failure, code });
+        }
         if (User.Identity?.IsAuthenticated == true)
             return Conflict(new { message = "You are already signed in. Sign out before using Face ID." });
         if (!ModelState.IsValid || model.Password.Length > 1024 ||
             !SourcingTenderManagement.Services.FaceVerification.FaceVerificationService.ValidDescriptor(model.Descriptor) ||
             model.ModelIdentifier != SourcingTenderManagement.Services.FaceEnrollment.FaceEnrollmentService.ModelIdentifier)
-            return BadRequest(new { message = failure });
+            return await RecordFailure();
 
         var user = await users.FindByEmailAsync(model.Email);
         if (user == null || !user.IsActive || !await signIn.CanSignInAsync(user) ||
             (users.SupportsUserLockout && await users.IsLockedOutAsync(user)))
-            return BadRequest(new { message = failure });
+            return await RecordFailure();
         // Do not reset failed face attempts merely because the password is correct.
         if (!await users.CheckPasswordAsync(user, model.Password))
         {
             if (users.SupportsUserLockout && await users.GetLockoutEnabledAsync(user))
                 await users.AccessFailedAsync(user);
-            return BadRequest(new { message = failure });
+            return await RecordFailure();
         }
         SourcingTenderManagement.Models.FaceVerification.FaceVerificationResult match;
         try
@@ -105,13 +118,13 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
                 Descriptor = model.Descriptor, ModelIdentifier = model.ModelIdentifier
             }, ct);
         }
-        catch (UnauthorizedAccessException) { return BadRequest(new { message = failure }); }
+        catch (UnauthorizedAccessException) { return await RecordFailure(); }
         if (match.Status != "Matched")
         {
             // Wrong-face attempts share the account's Identity lockout protection.
             if (users.SupportsUserLockout && await users.GetLockoutEnabledAsync(user))
                 await users.AccessFailedAsync(user);
-            return BadRequest(new { message = failure, code = match.Status == "Not Matched" ? "face_not_matched" : "face_unavailable" });
+            return await RecordFailure(user.Id, match.Status == "Not Matched" ? "face_not_matched" : "face_unavailable");
         }
 
         // Recheck account/password/lockout immediately before issuing the cookie;
@@ -119,7 +132,12 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         user = await users.FindByIdAsync(user.Id);
         if (user == null || !user.IsActive ||
             !(await signIn.PasswordSignInAsync(user, model.Password, false, lockoutOnFailure: true)).Succeeded)
-            return BadRequest(new { message = failure });
+            return await RecordFailure();
+        if (audit is not null)
+        {
+            HttpContext.User = await signIn.CreateUserPrincipalAsync(user);
+            await audit.WriteAsync("Account.SignInSuccess", "ApplicationUser", user.Id, "Face sign-in succeeded.", ct: ct);
+        }
         Response.Cookies.Delete(SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieName,
             SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieOptions(Request));
         return Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) });
@@ -166,6 +184,11 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             || (users.SupportsUserLockout && await users.IsLockedOutAsync(matched))
             || await users.GetTwoFactorEnabledAsync(matched)) return BadRequest(new { message = "Account unavailable." });
         await signIn.SignInAsync(matched, isPersistent: false, authenticationMethod: "LocalDemoFace");
+        if (audit is not null)
+        {
+            HttpContext.User = await signIn.CreateUserPrincipalAsync(matched);
+            await audit.WriteAsync("Account.SignInSuccess", "ApplicationUser", matched.Id, "Local face sign-in succeeded.", ct: ct);
+        }
         return Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) });
     }
 
@@ -175,7 +198,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         if (User.IsInRole(RoleNames.Supplier))
         {
             var userId = users.GetUserId(User);
-            if (!await db.SupplierProfiles.AnyAsync(s => s.UserId == userId && s.Status == "Approved"))
+            if (!await db.SupplierProfiles.AnyAsync(s => s.UserId == userId && (s.Status == "Approved" || s.Status == "Suspended")))
                 return RedirectToAction(nameof(RegistrationStatus));
         }
         if (SafeReturnUrl(returnUrl) is { } destination)

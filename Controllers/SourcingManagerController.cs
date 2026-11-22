@@ -399,21 +399,7 @@ public partial class SourcingManagerController : Controller
     [HttpGet]
     public IActionResult Reports(string? search, string? decision)
     {
-        var managerApprovals = _context.TenderApprovals.AsNoTracking()
-            .Where(approval => approval.Stage == "Manager");
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            search = search.Trim();
-            managerApprovals = managerApprovals.Where(approval => approval.Tender.Title.Contains(search));
-        }
-
-        if (decision == "Approved" || decision == "Rejected" || decision == ReturnedForReview)
-        {
-            managerApprovals = managerApprovals.Where(approval => approval.Decision == decision);
-        }
-
-        var managerDecisions = managerApprovals
+        var managerDecisions = SourcingTenderManagement.Services.Reports.Data.ApprovalsReport.ManagerDecisions(_context, search, decision, ManagerId)
             .Include(approval => approval.User)
             .Include(approval => approval.Tender)
             .OrderByDescending(approval => approval.DecidedAt)

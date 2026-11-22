@@ -71,7 +71,7 @@ if (reviewDialog) {
         const pending = new AbortController();
         request = pending;
         const button = event.submitter;
-        const data = new FormData(form);
+        const data = button ? new FormData(form, button) : new FormData(form);
         if (button) button.disabled = true;
         content.setAttribute('aria-busy', 'true');
         form.querySelector('[data-supplier-save-error]')?.remove();

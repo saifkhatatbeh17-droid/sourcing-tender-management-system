@@ -401,6 +401,72 @@ namespace SourcingTenderManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.AuditEntry", b =>
+                {
+                    b.Property<long>("AuditEntryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AuditEntryId"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ChangesJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntityId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Role")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("TenderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("AuditEntryId");
+
+                    b.HasIndex("OccurredAt");
+
+                    b.HasIndex("TenderId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.ToTable("AuditEntries", "dbo");
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.Bid", b =>
                 {
                     b.Property<int>("BidId")
@@ -1286,6 +1352,50 @@ namespace SourcingTenderManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.SpecMatchAnalysis", b =>
+                {
+                    b.Property<int>("SpecMatchAnalysisId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SpecMatchAnalysisId"));
+
+                    b.Property<bool>("AiAvailable")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ModelName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ResultJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TenderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("SpecMatchAnalysisId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("TenderId", "SpecMatchAnalysisId");
+
+                    b.ToTable("SpecMatchAnalyses", "dbo");
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.SupplierDocument", b =>
                 {
                     b.Property<int>("SupplierDocumentId")
@@ -1328,13 +1438,35 @@ namespace SourcingTenderManagement.Data.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("(sysutcdatetime())");
 
+                    b.Property<string>("VerificationNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("VerificationStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("VerifiedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("SupplierDocumentId");
 
                     b.HasIndex("SupplierProfileId");
 
+                    b.HasIndex("VerifiedByUserId");
+
                     b.ToTable("SupplierDocuments", null, t =>
                         {
                             t.HasCheckConstraint("CK_SupplierDocuments_1", "([FileSizeBytes]>(0))");
+
+                            t.HasCheckConstraint("CK_SupplierDocuments_VerificationStatus", "[VerificationStatus] IN ('Pending','Verified','Rejected')");
                         });
                 });
 
@@ -1615,6 +1747,68 @@ namespace SourcingTenderManagement.Data.Migrations
 
                             t.HasCheckConstraint("CK_TenderApprovals_4", "([Decision]='ReturnedForReview' OR [Decision]='Rejected' OR [Decision]='Approved')");
                         });
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.TenderContract", b =>
+                {
+                    b.Property<int>("TenderContractId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TenderContractId"));
+
+                    b.Property<int>("BidId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("GeneratedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<byte[]>("GeneratedPdf")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("SignedContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SignedFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<long?>("SignedSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SignedStoredFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("SignedUploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SignedUploadedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("TenderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TenderContractId");
+
+                    b.HasIndex("BidId");
+
+                    b.HasIndex("TenderId")
+                        .IsUnique();
+
+                    b.ToTable("TenderContracts");
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.TenderDocument", b =>
@@ -2209,6 +2403,21 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("PurchaseRequest");
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.SpecMatchAnalysis", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Tender", null)
+                        .WithMany()
+                        .HasForeignKey("TenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.SupplierDocument", b =>
                 {
                     b.HasOne("SourcingTenderManagement.Models.Entities.SupplierProfile", "SupplierProfile")
@@ -2216,6 +2425,11 @@ namespace SourcingTenderManagement.Data.Migrations
                         .HasForeignKey("SupplierProfileId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("SourcingTenderManagement.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("VerifiedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("SupplierProfile");
                 });
@@ -2310,6 +2524,21 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("Tender");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.TenderContract", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Bid", null)
+                        .WithMany()
+                        .HasForeignKey("BidId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Tender", null)
+                        .WithMany()
+                        .HasForeignKey("TenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.TenderDocument", b =>

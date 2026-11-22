@@ -109,4 +109,22 @@ else
     </nav>
 }
 
+@if (Model.Suppliers.Count > 0)
+{
+    <section class="workspace-section" aria-labelledby="supplier-statistics-title">
+        <h2 id="supplier-statistics-title">Supplier statistics</h2>
+        <div class="table-responsive">
+            <table class="table">
+                <thead><tr><th>Supplier</th><th>Status</th><th>Invited</th><th>Dealings</th><th>Awarded</th><th>Win rate</th><th>Dealings per month</th></tr></thead>
+                <tbody>
+                    @foreach (var supplier in Model.Suppliers)
+                    {
+                        <tr><th scope="row">@supplier.SupplierName</th><td>@supplier.Status</td><td>@supplier.Invited</td><td>@supplier.Dealings</td>
+                            <td>@supplier.AwardedTenders</td><td>@supplier.WinRate.ToString("P1")</td><td>@supplier.Frequency.ToString("N1")</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
 </div>

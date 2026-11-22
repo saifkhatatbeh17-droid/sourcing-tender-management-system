@@ -1,3 +1,4 @@
+using SourcingTenderManagement.Services.Reports.Data;
 using System.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -26,7 +27,7 @@ public sealed record EmployeeAccountResult(ApplicationUser? User, string? Positi
 /// The single set of rules for creating employee accounts. Used by the Users page form and by the
 /// spreadsheet import, so both enforce the same role, department and committee-position checks.
 /// </summary>
-public sealed class EmployeeAccounts(ApplicationDbContext db, UserManager<ApplicationUser> users)
+public sealed class EmployeeAccounts(ApplicationDbContext db, UserManager<ApplicationUser> users, IAuditLog? audit = null)
 {
     /// <summary>Claim added to accounts created with a temporary password; cleared when the user changes it.</summary>
     public const string PasswordChangeRequiredClaim = "tiryaq:password_change_required";
@@ -103,6 +104,7 @@ public sealed class EmployeeAccounts(ApplicationDbContext db, UserManager<Applic
         if (!result.Succeeded)
             return new EmployeeAccountResult(null, null, result.Errors.Select(e => e.Description).ToArray());
 
+        if (audit is not null) await audit.WriteAsync("Account.Create", "ApplicationUser", user.Id, "Employee account created.", ct: ct);
         await transaction.CommitAsync(ct);
         return new EmployeeAccountResult(user, null, []);
     }

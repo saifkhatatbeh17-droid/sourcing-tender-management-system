@@ -34,6 +34,10 @@
         <li><a href="#voting"><span aria-hidden="true">2</span> @decisionLabel</a></li>
     </ol>
 </nav>
+@if (tender.Status == "Awarded")
+{
+    <a class="btn btn-outline-primary mb-3" asp-controller="TenderContracts" asp-action="Details" asp-route-id="@tender.TenderId">Contract</a>
+}
 @if (tender.OpenClarifications > 0 && tender.Status != "Awarded" && !tender.Readiness.HasRejection)
 {
     <div class="tc-review-notice" role="status">

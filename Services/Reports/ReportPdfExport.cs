@@ -13,6 +13,34 @@ namespace SourcingTenderManagement.Services.Reports;
 // No database access, AI calls, workflow writes, or watermark application here.
 public static class ReportPdfExport
 {
+    public static byte[] AwardContract(Tender tender, Bid winner)
+    {
+        var supplier = winner.Invitation.SupplierProfile;
+        var report = new Report("Award contract", "Tiryaq");
+        report.Field("Tender", $"#{tender.TenderId} · {tender.Title}");
+        report.Field("Award date", Date(tender.AwardedAt));
+        report.Field("Buyer", "Tiryaq");
+        report.Field("Supplier", supplier.CompanyName);
+        report.Field("Registration number", supplier.RegistrationNumber);
+        report.Field("Tax number", supplier.TaxNumber);
+        report.Rows(["Item", "Requested", "Awarded", "Unit price", "Line total"], [9, 4, 4, 4.5, 5],
+            winner.BidItems.OrderBy(i => i.PurchaseRequestItemId).Select(i => new[]
+            {
+                i.PurchaseRequestItem.ItemName, $"{i.PurchaseRequestItem.Quantity:0.###} {i.PurchaseRequestItem.Unit}",
+                $"{i.Quantity:0.###} {i.PurchaseRequestItem.Unit}", $"{i.UnitPrice:N2} {winner.Currency}",
+                $"{i.Quantity * i.UnitPrice:N2} {winner.Currency}"
+            }), "No awarded items recorded.");
+        var subtotal = winner.BidItems.Sum(i => i.Quantity * i.UnitPrice);
+        report.Field("Subtotal", $"{subtotal:N2} {winner.Currency}");
+        report.Field("Tax", $"{winner.TaxAmount:N2} {winner.Currency}");
+        report.Field("Extra costs", $"{winner.AdditionalCosts:N2} {winner.Currency}");
+        report.Field("Total", $"{subtotal + winner.TaxAmount + winner.AdditionalCosts:N2} {winner.Currency}");
+        report.Field("Delivery", $"{winner.DeliveryDays} days");
+        report.Field("Payment terms", winner.PaymentTerms);
+        report.Field("Offer validity", winner.ValidUntil?.ToString("dd MMM yyyy"));
+        return report.Pdf();
+    }
+
     public static byte[] SupplierActivity(SupplierActivityRow supplier)
     {
         var report = new Report("Supplier activity report", "Administration");
