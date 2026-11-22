@@ -1,0 +1,28 @@
+@model GuaranteeInput
+@{
+    var title = ViewData["GuaranteeTitle"]?.ToString() ?? "Guarantee";
+    var bank = ViewData["GuaranteeKind"]?.ToString() == "Bank";
+    var prefix = ViewData.TemplateInfo.HtmlFieldPrefix;
+}
+<article class="guarantee-editor" data-guarantee-editor data-title="@title">
+    <header class="guarantee-editor-heading">
+        <div><h3>@title</h3><p>@(bank ? "Attach the bank document and record its reference and validity." : "Record the legal undertaking and attach the supporting document.")</p></div>
+        <label class="guarantee-toggle"><input asp-for="Enabled" class="form-check-input" data-guarantee-toggle /> Include</label>
+    </header>
+    <div data-guarantee-fields>
+        <div class="guarantee-fields">
+            <div><label asp-for="ReferenceNumber" class="form-label">Reference number</label><input asp-for="ReferenceNumber" class="form-control" maxlength="100" data-guarantee-required autocomplete="off" /><span asp-validation-for="ReferenceNumber" class="text-danger"></span></div>
+            <div><label asp-for="Issuer" class="form-label">@(bank ? "Issuing bank" : "Issuing legal authority")</label><input asp-for="Issuer" class="form-control" maxlength="150" data-guarantee-required placeholder="@(bank ? "For example, Housing Bank" : "Name on the legal document")" /><span asp-validation-for="Issuer" class="text-danger"></span></div>
+            <div><label asp-for="Coverage" class="form-label">Covers</label><select asp-for="Coverage" class="form-select"><option value="Product">Product</option><option value="Service">Service</option></select><span asp-validation-for="Coverage" class="text-danger"></span></div>
+            <div><label asp-for="Scope" class="form-label">Product or service covered</label><input asp-for="Scope" class="form-control" maxlength="500" data-guarantee-required placeholder="Name and scope of the guaranteed supply" /><span asp-validation-for="Scope" class="text-danger"></span></div>
+            <div><label asp-for="StartsOn" class="form-label">Valid from</label><input asp-for="StartsOn" type="date" class="form-control" data-guarantee-start data-guarantee-required /><span asp-validation-for="StartsOn" class="text-danger"></span></div>
+            <div><label asp-for="ExpiresOn" class="form-label">Valid until</label><input asp-for="ExpiresOn" type="date" class="form-control" data-guarantee-end data-guarantee-required /><span asp-validation-for="ExpiresOn" class="text-danger"></span></div>
+        </div>
+        <p class="guarantee-duration" data-guarantee-duration role="status">Set the validity period required for this product or service.</p>
+        <label asp-for="Document" class="form-label">@(bank ? "Bank guarantee document" : "Legal warranty document")</label>
+        <input asp-for="Document" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" data-guarantee-document data-existing-file="@Model.ExistingFileName" aria-describedby="@(prefix)-document-help" />
+        <span asp-validation-for="Document" class="text-danger"></span>
+        <p class="form-text" id="@(prefix)-document-help">PDF, JPG or PNG, up to 5 MB. @if (Model.ExistingFileName is not null) { <span>Saved document: <strong>@Model.ExistingFileName</strong>. Choose a file to replace it.</span> } Select new files again after a validation error.</p>
+        @if (bank) { <p class="guarantee-note">After saving, your offer includes a QR code for an independent Tiryaq demo verification page.</p> }
+    </div>
+</article>

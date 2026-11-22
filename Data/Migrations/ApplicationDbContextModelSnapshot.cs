@@ -550,6 +550,92 @@ namespace SourcingTenderManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.BidGuarantee", b =>
+                {
+                    b.Property<int>("BidGuaranteeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BidGuaranteeId"));
+
+                    b.Property<int>("BidId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Coverage")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateOnly>("ExpiresOn")
+                        .HasColumnType("date");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Issuer")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("ReferenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateOnly>("StartsOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("StoredFileName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("VerificationToken")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("BidGuaranteeId");
+
+                    b.HasIndex("VerificationToken")
+                        .IsUnique();
+
+                    b.HasIndex("BidId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("BidGuarantees", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BidGuarantees_Coverage", "[Coverage] IN ('Product', 'Service')");
+
+                            t.HasCheckConstraint("CK_BidGuarantees_Dates", "[ExpiresOn] >= [StartsOn]");
+
+                            t.HasCheckConstraint("CK_BidGuarantees_Kind", "[Kind] IN ('Legal', 'Bank')");
+                        });
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.BidItem", b =>
                 {
                     b.Property<int>("BidItemId")
@@ -1902,6 +1988,17 @@ namespace SourcingTenderManagement.Data.Migrations
                 {
                     b.HasOne("SourcingTenderManagement.Models.Entities.Bid", "Bid")
                         .WithMany("BidDocuments")
+                        .HasForeignKey("BidId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Bid");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.BidGuarantee", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Bid", "Bid")
+                        .WithMany()
                         .HasForeignKey("BidId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();

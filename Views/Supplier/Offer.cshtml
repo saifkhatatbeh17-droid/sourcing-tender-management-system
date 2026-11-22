@@ -100,6 +100,8 @@
 
     </section>
 
+    @await Component.InvokeAsync("OfferGuarantees", new { bidId = Model.BidId })
+
     <section class="supplier-card supplier-offer-pricing" aria-labelledby="offer-pricing-title">
         <h2 id="offer-pricing-title">Items and pricing</h2>
         @await Component.InvokeAsync("OfferProductPhotos", new { bidId = Model.BidId })

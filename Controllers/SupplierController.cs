@@ -152,6 +152,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
                 Quantity = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.Quantity ?? i.Quantity,
                 UnitPrice = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.UnitPrice ?? 0,
                 Specifications = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.OfferedSpecifications ?? i.Specifications }).ToList() };
+        await HttpContext.RequestServices.GetRequiredService<SourcingTenderManagement.Services.OfferGuarantees>().LoadAsync(form);
         await LoadProductPhotoReferences(form);
         return View(form);
     }
@@ -204,6 +205,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             try { preparedPhotos[line.PurchaseRequestItemId] = await SourcingTenderManagement.Services.OfferProductPhotos.PrepareAsync(line.ProductPhoto, HttpContext.RequestAborted); }
             catch (System.ComponentModel.DataAnnotations.ValidationException error) { ModelState.AddModelError($"Items[{index}].ProductPhoto", error.Message); }
         }
+        await HttpContext.RequestServices.GetRequiredService<SourcingTenderManagement.Services.OfferGuarantees>().ValidateAsync(model, submissionCommand == "Submit", ModelState);
         if (!ModelState.IsValid)
         {
             model.TenderId = inv.TenderId; model.TenderTitle = inv.Tender.Title; model.ClosesAt = inv.Tender.ClosesAt;
@@ -265,6 +267,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             }
             await db.SaveChangesAsync();
         }
+        await HttpContext.RequestServices.GetRequiredService<SourcingTenderManagement.Services.OfferGuarantees>().SaveAsync(model, bid, createdFiles, replacedFiles);
         if (submissionCommand == "Submit")
         {
             var submittedAt = DateTime.UtcNow;

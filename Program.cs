@@ -133,6 +133,7 @@ builder.Services.AddAuthorization(o => o.AddPolicy("ApprovedSupplier", policy =>
     })));
 
 builder.Services.AddScoped<SourcingTenderManagement.Services.OfferProductPhotos>();
+builder.Services.AddScoped<SourcingTenderManagement.Services.OfferGuarantees>();
 var app = builder.Build();
 if (args.Contains("--supplier-link-checks"))
 {

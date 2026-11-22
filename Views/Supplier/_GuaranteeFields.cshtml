@@ -1,0 +1,6 @@
+@model OfferFormViewModel
+<div class="guarantee-section">
+    <header><h2>Warranties &amp; guarantees</h2><p>Include the documents required for this supply. Set each validity period according to the product or service and the tender terms.</p></header>
+    @Html.EditorFor(m => m.LegalWarranty, "GuaranteeInput", new { GuaranteeTitle = "Legal warranty", GuaranteeKind = "Legal" })
+    @Html.EditorFor(m => m.BankGuarantee, "GuaranteeInput", new { GuaranteeTitle = "Bank guarantee", GuaranteeKind = "Bank" })
+</div>
