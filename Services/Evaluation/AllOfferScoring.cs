@@ -71,6 +71,8 @@ public static class AllOfferScoring
         lines.Add("\nMember reviews");
         foreach (var offer in page.Offers) foreach (var member in page.Members)
         { var review = page.Evaluation(member, offer)!; lines.Add($"\nOffer #{offer.BidId} — {CommitteeEvaluationPage.MemberName(member.Position)}\nFinancial: {review.FinancialMark:0} / {page.FinancialWeight:0}; technical: {review.TechnicalMark:0} / {page.TechnicalWeight:0}\nComment: {review.Notes ?? "No comment provided."}"); }
+        var rounds = SourcingTenderManagement.Services.Reports.OfferRoundContext.Describe(page.Tender!);
+        if (rounds.Length > 0) lines.Add("\n" + rounds);
         return string.Join("\n", lines);
     }
 }

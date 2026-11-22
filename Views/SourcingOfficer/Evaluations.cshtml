@@ -23,11 +23,11 @@
 <p class="so-page-description">Follow committee approvals and review completed recommendations.</p></div>@if (selectedTenderId is int referenceId) { <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender" asp-route-recordId="@referenceId" class="btn btn-outline-primary">Ask for clarification ↗</a> }</header>
 @if (TempData["EvaluationSuccess"] is string evaluationSuccess)
 {
-    <div class="alert alert-success" role="status">@evaluationSuccess</div>
+    <div data-flash-message class="alert alert-success" role="status">@evaluationSuccess</div>
 }
 @if (TempData["EvaluationError"] is string evaluationError)
 {
-    <div class="alert alert-danger" role="alert">@evaluationError</div>
+    <div data-flash-message class="alert alert-danger" role="alert">@evaluationError</div>
 }
 <section class="so-summary-grid" aria-label="Evaluation summary">
     <article class="so-summary-card"><span class="so-summary-label">Committee assignments</span><strong>@assignments.Count</strong></article>
@@ -183,7 +183,7 @@
                             <form asp-action="ReviewCommitteeReport" method="post" data-report-approve>
                                 <input type="hidden" name="tenderId" value="@selectedTenderId.Value" />
                                 <input type="hidden" name="version" value="@SourcingTenderManagement.Controllers.SourcingOfficerController.ReportReviewVersion(report)" />
-                                <button type="submit" name="decision" value="Approve" class="btn btn-primary">Approve and forward</button>
+                                <button type="submit" name="decision" value="Approve" class="btn btn-primary pharma-action-approve">Approve and forward</button>
                             </form>
                             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#officer-decision-modal" data-review-decision="RequestEdits">Request edits</button>
                             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#officer-decision-modal" data-review-decision="Reject">Reject</button>

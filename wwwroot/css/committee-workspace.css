@@ -4,8 +4,8 @@
 .cw-eyebrow { margin:0 0 8px; color:var(--color-link); font-size:12px; font-weight:600; }
 .cw-page-header > div > p:last-child { margin:10px 0 0; font-size:14px; color:var(--color-text-secondary); line-height:1.6; }
 .cw-button { display:inline-flex; justify-content:center; align-items:center; gap:16px; min-height:44px; padding:11px 18px; border:1px solid transparent; border-radius:18px; font-size:14px; font-weight:600; text-decoration:none; white-space:nowrap; }
-.cw-button-primary { background:var(--brand-highlight,#ff6b4a); color:#123032; }
-.cw-button-primary:hover { background:#f05c3c; color:#123032; }
+.cw-button-primary { background:var(--brand-highlight,#efb85c); color:#0c252d; }
+.cw-button-primary:hover { background:#e5a23e; color:#0c252d; }
 .cw-button-secondary { background:var(--color-surface); color:var(--color-link); border-color:var(--color-border); }
 .cw-button-secondary:hover { background:var(--color-selection); color:var(--color-link); border-color:var(--accent); }
 .cw-text-link { display:inline-flex; gap:16px; align-items:center; color:var(--color-link); font-size:14px; font-weight:600; text-decoration:none; }
@@ -119,16 +119,16 @@
  .cw-dashboard-aside > .cw-process-note { order:2; }
 }
 /* Solid brand surfaces, with white supporting panels. */
-.cw-metrics .cw-metric-primary { overflow:hidden; background:#00a3a6; border-color:#00a3a6; color:#002e30; }
-.cw-metric-primary dt,.cw-metric-primary > span { color:#003f42; position:relative; z-index:1; }
+.cw-metrics .cw-metric-primary { overflow:hidden; background:var(--pharma-primary); border-color:var(--pharma-primary); color:var(--pharma-on-primary); }
+.cw-metric-primary dt,.cw-metric-primary > span { color:var(--pharma-on-primary); position:relative; z-index:1; }
 .cw-metric-primary dd { font-size:38px; position:relative; z-index:1; }
 .cw-brand-watermark { position:absolute; width:96px; height:110px; bottom:-12px; right:14px; opacity:.16; filter:brightness(0); pointer-events:none; }
 .cw-metrics .cw-metric-attention { background:var(--color-surface); }
 .cw-metric-attention::after { display:none; }
 .cw-next-action { background:var(--color-surface); border:1px solid var(--color-border); }
-.cw-aside-icon { background:#00a3a6; color:#002e30; }
-.cw-recommended { background:var(--color-surface-alt); border-left:3px solid #00a3a6; }
-.cw-report-link.is-current { background:var(--color-surface-alt); border-color:var(--color-border); box-shadow:inset 3px 0 #00a3a6; }
+.cw-aside-icon { background:var(--pharma-primary); color:var(--pharma-on-primary); }
+.cw-recommended { background:var(--color-surface-alt); border-left:3px solid var(--pharma-primary); }
+.cw-report-link.is-current { background:var(--color-surface-alt); border-color:var(--color-border); box-shadow:inset 3px 0 var(--pharma-primary); }
 .cw-empty-illustration { background:var(--color-surface-alt); }
 .cw-page-header .cw-eyebrow { display:none; }
 @media(max-width:650px) { .cw-brand-watermark { width:54px; height:65px; right:0; bottom:-8px; } .cw-metric-primary dd { font-size:28px; } }
@@ -155,6 +155,6 @@
  .cw-button,.cw-text-link,.cw-tender-row,.cw-report-link,.cw-tender-row .cw-row-arrow { transition:none; }
  .cw-tender-row:hover .cw-row-arrow { transform:none; }
 }/* Dashboard entry action matches the evaluation workspace. */
-.committee-workspace.unified-dashboard .cw-page-header > .cw-button-primary { background:var(--brand-highlight,#ff6b4a); color:#000000; border-radius:10px; min-height:42px; padding:10px 16px; gap:12px; }
-.committee-workspace.unified-dashboard .cw-page-header > .cw-button-primary:hover { background:#f05c3c; color:#000000; }
+.committee-workspace.unified-dashboard .cw-page-header > .cw-button-primary { background:var(--brand-highlight,#efb85c); color:#000000; border-radius:10px; min-height:42px; padding:10px 16px; gap:12px; }
+.committee-workspace.unified-dashboard .cw-page-header > .cw-button-primary:hover { background:#e5a23e; color:#000000; }
 .committee-workspace.unified-dashboard .cw-page-header > .cw-button-primary:focus-visible { outline:2px solid var(--color-text); outline-offset:3px; }

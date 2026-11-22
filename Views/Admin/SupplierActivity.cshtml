@@ -1,0 +1,23 @@
+@model IReadOnlyList<SourcingTenderManagement.Models.SupplierActivityRow>
+@{ ViewData["Title"] = "Supplier activity report"; }
+
+<section class="workspace-section">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+        <h1 class="h3 mb-0">Supplier activity report</h1>
+    </div>
+    <p class="text-secondary">One submitted entry per supplier and tender. Accepted means the tender was awarded to that supplier.</p>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead><tr><th scope="col">Supplier</th><th scope="col">Account status</th><th scope="col">Submitted</th><th scope="col">Accepted</th><th scope="col">Rejected</th><th scope="col">Report</th></tr></thead>
+            <tbody>
+            @foreach (var supplier in Model)
+            {
+                <tr>
+                    <th scope="row">@supplier.Company</th><td>@supplier.Status</td><td>@supplier.History.Count</td><td>@supplier.Awarded</td><td>@supplier.Rejected</td>
+                    <td><a class="btn btn-outline-primary text-nowrap" asp-action="SupplierActivity" asp-route-supplierId="@supplier.SupplierId" aria-label="Download PDF for @supplier.Company">Download PDF</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

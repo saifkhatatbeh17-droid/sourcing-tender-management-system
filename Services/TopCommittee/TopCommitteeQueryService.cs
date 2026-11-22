@@ -87,11 +87,11 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
             a.Decision == "Rejected"), cancellationToken);
         var open = await RelevantClarifications().CountAsync(c => c.Status != "Resolved" &&
             tenders.Any(t => t.TenderId == c.TenderId), cancellationToken);
-        var pendingRows = await Rows(pending.OrderBy(t => t.CreatedAt).ThenBy(t => t.TenderId).Take(10))
+        var pendingRows = await Rows(pending.OrderBy(t => t.CreatedAt).ThenBy(t => t.TenderId).Take(5))
             .ToListAsync(cancellationToken);
         var recent = await Rows(completed.OrderByDescending(t => t.AwardedAt ??
                 t.TenderApprovals.Where(a => a.Stage == "Top").Max(a => (DateTime?)a.DecidedAt) ?? t.CreatedAt)
-                .ThenByDescending(t => t.TenderId).Take(10)).ToListAsync(cancellationToken);
+                .ThenByDescending(t => t.TenderId).Take(3)).ToListAsync(cancellationToken);
         var pendingIds = pendingRows.Select(t => t.TenderId).ToArray();
         var progress = await db.CommitteeAssignments.AsNoTracking()
             .Where(a => a.CommitteeType == "Top" && pendingIds.Contains(a.TenderId))
@@ -102,7 +102,17 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
                 a.TenderApprovalCommitteeAssignmentNavigations.Where(v => v.Stage == "Top")
                     .Select(v => v.Decision).FirstOrDefault()))
             .ToListAsync(cancellationToken);
-        return new CommitteeDashboard(total, awaiting, awarded, rejected, open, pendingRows, recent, progress);
+        var states = await tenders.GroupBy(t => t.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") ? "Rejected" :
+            t.Status == "Awarded" ? "Awarded" : t.Status == "AwaitingCommitteeDecision" ? "Pending" : "Other")
+            .Select(g => new { Status = g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Status, g => g.Count, cancellationToken);
+        var needsVote = await pending.CountAsync(t => !t.TenderApprovals.Any(a => a.Stage == "Top" && a.UserId == userId), cancellationToken);
+        return new CommitteeDashboard(total, awaiting, awarded, rejected, open, pendingRows, recent, progress)
+        {
+            Overview = new SourcingTenderManagement.Models.DashboardOverview("Assigned tender status", "Only tenders assigned to you", "tenders", "pending",
+                [new("Pending decision", states.GetValueOrDefault("Pending")), new("Awarded", states.GetValueOrDefault("Awarded"), "positive"), new("Rejected", states.GetValueOrDefault("Rejected"), "muted"), new("Other stages", states.GetValueOrDefault("Other"), "other")],
+                "Your decision workload", "Current stage of your assigned tenders",
+                [new("Needs your vote", needsVote), new("Waiting for other votes", awaiting - needsVote), new("Awarded", states.GetValueOrDefault("Awarded")), new("Rejected", states.GetValueOrDefault("Rejected")), new("Other stages", states.GetValueOrDefault("Other"))])
+        };
     }
 
     public async Task<CommitteeTenderDetails> GetTenderDetailsAsync(ClaimsPrincipal actor, int tenderId,
@@ -126,6 +136,7 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
         AssignedTenders(userId).Where(t => t.TenderId == tenderId)
             .Include(t => t.PurchaseRequest).ThenInclude(r => r.Department)
             .Include(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
+            .Include(t => t.OfferExtensions)
             .Include(t => t.EvaluationReport)
             .Include(t => t.TenderDocuments)
             .Include(t => t.TenderApprovals).ThenInclude(a => a.User)
@@ -145,7 +156,7 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
         var report = tender.EvaluationReport;
         // Include submitted bids even after their status becomes Compliant/Accepted/Withdrawn.
         var bids = tender.Invitations.SelectMany(i => i.Bids.Where(b => b.SubmittedAt.HasValue && b.Status != "Draft")
-            .OrderBy(b => b.BidId).Select(b => MapBid(b, i, report?.RecommendedBidId))).OrderBy(b => b.BidId).ToList();
+            .OrderBy(b => b.BidId).Select(b => MapBid(b, i, report?.RecommendedBidId, tender.CommitteeFinancialWeight))).OrderBy(b => b.BidId).ToList();
         var nomination = tender.Invitations.SelectMany(i => i.Bids)
             .SingleOrDefault(b => b.BidId == report?.RecommendedBidId);
         var request = tender.PurchaseRequest;
@@ -167,10 +178,16 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
             managers.Count == 1 ? managers[0] : null, members, votes, bids,
             tender.TenderDocuments.OrderBy(d => d.TenderDocumentId).Select(d =>
                 new CommitteeDocument(d.TenderDocumentId, d.OriginalFileName, null, d.FileSizeBytes)).ToList(),
-            openClarifications, clarifications, TopCommitteeRules.Inspect(tender, members, managers, nomination, openClarifications, userId));
+            openClarifications, clarifications, TopCommitteeRules.Inspect(tender, members, managers, nomination, openClarifications, userId))
+        {
+            OfferRoundSummary = SourcingTenderManagement.Services.Reports.OfferRoundContext.Describe(tender),
+            TopEditState = tender.TopEditState,
+            TopEditRequestNotes = tender.TopEditRequestNotes,
+            TopEditRequestedAt = tender.TopEditRequestedAt
+        };
     }
 
-    private static CommitteeBid MapBid(Bid bid, Invitation invitation, int? nominationId)
+    private static CommitteeBid MapBid(Bid bid, Invitation invitation, int? nominationId, decimal? financialWeight)
     {
         var subtotal = bid.BidItems.Sum(i => i.Quantity * i.UnitPrice);
         return new CommitteeBid(bid.BidId, invitation.SupplierProfileId, invitation.SupplierProfile.CompanyName,
@@ -183,8 +200,17 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
                 d.OriginalFileName, d.DocumentType, d.FileSizeBytes)).ToList(),
             bid.Evaluations.Where(e => e.Status is "Submitted" or "Approved").OrderBy(e => e.EvaluationId)
                 .Select(e => new CommitteeEvaluation(e.CommitteeAssignment.User.FullName, e.Status, e.Notes,
-                    e.SubmittedAt, e.ApprovedAt, e.EvaluationScores.OrderBy(s => s.EvaluationCriterionId)
-                        .Select(s => new CommitteeScore(s.EvaluationCriterion.Name, s.EvaluationCriterion.Category,
-                            s.EvaluationCriterion.Weight, s.Score, s.Notes)).ToList())).ToList());
+                    e.SubmittedAt, e.ApprovedAt, EvaluationScores(e, financialWeight))).ToList());
+    }
+
+    private static IReadOnlyList<CommitteeScore> EvaluationScores(SourcingTenderManagement.Models.Entities.Evaluation evaluation, decimal? financialWeight)
+    {
+        if (evaluation.FinancialMark.HasValue && evaluation.TechnicalMark.HasValue && financialWeight.HasValue)
+            return [
+                new("Financial mark", "Financial", financialWeight.Value, evaluation.FinancialMark.Value, null) { Maximum = financialWeight.Value },
+                new("Technical mark", "Requirements", 100 - financialWeight.Value, evaluation.TechnicalMark.Value, null) { Maximum = 100 - financialWeight.Value }
+            ];
+        return evaluation.EvaluationScores.OrderBy(s => s.EvaluationCriterionId)
+            .Select(s => new CommitteeScore(s.EvaluationCriterion.Name, s.EvaluationCriterion.Category, s.EvaluationCriterion.Weight, s.Score, s.Notes)).ToList();
     }
 }

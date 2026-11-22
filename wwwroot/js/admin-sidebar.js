@@ -2,13 +2,28 @@ const reviewDialog = document.getElementById('supplier-review-dialog');
 if (reviewDialog) {
     let request;
     let opener;
+    let reviewApplication;
+    let refreshListOnClose = false;
     const content = reviewDialog.querySelector('[data-supplier-content]');
     const modal = bootstrap.Modal.getOrCreateInstance(reviewDialog);
 
     reviewDialog.addEventListener('hidden.bs.modal', () => {
         request?.abort();
+        if (refreshListOnClose) {
+            window.location.reload();
+            return;
+        }
         opener?.focus();
     });
+
+    function renderSupplierDetails(markup) {
+        const page = new DOMParser().parseFromString(markup, 'text/html');
+        const flow = page.querySelector('[data-review-flow]');
+        if (!flow) throw new Error('Supplier details unavailable');
+        if (!reviewApplication) flow.querySelector('[data-review-step="Decision"]')?.remove();
+        content.replaceChildren(flow);
+        initializeReview(flow);
+    }
 
     document.addEventListener('click', async event => {
         const link = event.target.closest('[data-supplier-dialog]');
@@ -16,40 +31,76 @@ if (reviewDialog) {
         event.preventDefault();
         opener = link;
         request?.abort();
+        content.removeAttribute('aria-busy');
         const pending = new AbortController();
         request = pending;
         reviewDialog.querySelector('.modal-title').textContent = link.dataset.company;
-        content.textContent = 'Loading supplier details…';
+        const loading = document.createElement('p');
+        loading.className = 'text-secondary mb-0';
+        loading.setAttribute('role', 'status');
+        loading.textContent = 'Loading supplier details…';
+        content.replaceChildren(loading);
         modal.show();
         const url = new URL(link.href);
+        reviewApplication = url.searchParams.get('reviewApplication') === 'true';
 
         try {
             const response = await fetch(url, { signal: pending.signal });
             if (!response.ok || response.redirected) throw new Error('Supplier details unavailable');
             const markup = await response.text();
-            if (!pending.signal.aborted) {
-                const page = new DOMParser().parseFromString(markup, 'text/html');
-                const flow = page.querySelector('[data-review-flow]');
-                if (!flow) throw new Error('Supplier details unavailable');
-                if (url.searchParams.get('reviewApplication') !== 'true') {
-                    flow.querySelector('[data-review-step="Decision"]')?.remove();
-                }
-                content.replaceChildren(flow);
-                initializeReview(content.querySelector('[data-review-flow]'));
-            }
+            if (!pending.signal.aborted) renderSupplierDetails(markup);
         } catch {
             if (pending.signal.aborted) return;
             const fallback = document.createElement('a');
             fallback.href = link.href;
             fallback.textContent = 'Open supplier details';
-            content.replaceChildren(fallback);
+            const error = document.createElement('p');
+            error.className = 'text-secondary';
+            error.setAttribute('role', 'alert');
+            error.textContent = 'Supplier details could not load here.';
+            content.replaceChildren(error, fallback);
+        }
+    });
+
+    content.addEventListener('submit', async event => {
+        const form = event.target;
+        if (event.defaultPrevented || !form.matches('[data-supplier-popup-form]')) return;
+        event.preventDefault();
+        if (content.getAttribute('aria-busy') === 'true') return;
+
+        const pending = new AbortController();
+        request = pending;
+        const button = event.submitter;
+        const data = new FormData(form);
+        if (button) button.disabled = true;
+        content.setAttribute('aria-busy', 'true');
+        form.querySelector('[data-supplier-save-error]')?.remove();
+        try {
+            const response = await fetch(form.action, { method: 'POST', body: data, signal: pending.signal });
+            if (!response.ok) throw new Error('Supplier update failed');
+            const markup = await response.text();
+            if (pending.signal.aborted) return;
+            renderSupplierDetails(markup);
+            if (content.querySelector('[data-supplier-review-saved]')) refreshListOnClose = true;
+            const focusTarget = content.querySelector('.validation-summary-errors, [data-supplier-review-saved], .alert-warning');
+            if (focusTarget) {
+                focusTarget.tabIndex = -1;
+                focusTarget.focus();
+            }
+        } catch {
+            if (pending.signal.aborted) return;
+            const error = document.createElement('p');
+            error.dataset.supplierSaveError = '';
+            error.className = 'text-danger';
+            error.setAttribute('role', 'alert');
+            error.textContent = 'The result could not be confirmed. Reopen supplier details to check the saved values.';
+            form.prepend(error);
+        } finally {
+            if (request === pending) content.removeAttribute('aria-busy');
+            if (button) button.disabled = false;
         }
     });
 }
-
-document.querySelectorAll('[data-admin-feedback]').forEach(message => {
-    window.setTimeout(() => message.remove(), 4500);
-});
 
 document.querySelectorAll('[data-auto-filter]').forEach(form => {
     const results = document.getElementById(form.dataset.results || 'user-results');
@@ -116,58 +167,71 @@ document.querySelectorAll('[data-auto-filter]').forEach(form => {
 });
 
 function initializeReview(flow) {
-    if (!flow) return;
+    if (!flow || flow.dataset.reviewInitialized) return;
+    flow.dataset.reviewInitialized = 'true';
     const steps = [...flow.querySelectorAll('[data-review-step]')];
+    if (!steps.length) return;
+    const stepper = document.createElement('ol');
+    stepper.className = 'admin-review-stepper';
+    stepper.setAttribute('aria-label', 'Supplier review progress');
+    const markers = steps.map((step, index) => {
+        const item = document.createElement('li');
+        const number = document.createElement('span'); number.textContent = String(index + 1);
+        const label = document.createElement('strong'); label.textContent = step.dataset.reviewStep;
+        item.append(number, label); stepper.append(item); return item;
+    });
     const controls = document.createElement('div');
     controls.className = 'admin-review-controls';
     const progress = document.createElement('p');
     progress.className = 'admin-review-progress';
     progress.setAttribute('aria-live', 'polite');
-
     function button(text) {
         const element = document.createElement('button');
-        element.type = 'button';
-        element.className = 'btn btn-outline-primary';
-        element.textContent = text;
+        element.type = 'button'; element.className = 'btn btn-outline-primary'; element.textContent = text;
         return element;
     }
-
-    const back = button('Back');
-    const next = button('Next');
-    const done = button('Done');
+    const back = button('Previous');
+    const next = button('Review documents'); next.className = 'btn btn-primary';
+    const done = button('Close details');
     done.setAttribute('data-bs-dismiss', 'modal');
     controls.append(back, next, done);
     const decisionActions = flow.querySelector('[data-decision-actions]');
-    flow.prepend(progress);
+    const heading = flow.querySelector('[data-review-overview]');
+    if (heading) heading.after(stepper, progress); else flow.prepend(stepper, progress);
     flow.append(controls);
-    let index = 0;
-
+    const invalidIndex = steps.findIndex(step => step.querySelector('.field-validation-error,.validation-summary-errors'));
+    let index = invalidIndex >= 0 ? invalidIndex : 0;
     function show(moveFocus = false) {
         steps.forEach((step, position) => { step.hidden = position !== index; });
+        markers.forEach((marker, position) => {
+            marker.classList.toggle('is-complete', position < index);
+            if (position === index) marker.setAttribute('aria-current', 'step'); else marker.removeAttribute('aria-current');
+        });
         progress.textContent = `Step ${index + 1} of ${steps.length} · ${steps[index].dataset.reviewStep}`;
         const isLastStep = index === steps.length - 1;
-        if (isLastStep && decisionActions) {
-            decisionActions.prepend(back);
-            controls.hidden = true;
-        } else {
-            controls.prepend(back);
-            controls.hidden = false;
-        }
+        if (isLastStep && decisionActions) { decisionActions.prepend(back); controls.hidden = true; }
+        else { controls.prepend(back); controls.hidden = false; }
         back.hidden = index === 0;
         next.hidden = isLastStep;
-        done.hidden = !isLastStep || Boolean(decisionActions);
+        next.textContent = index === 0 ? 'Review documents' : 'Continue to decision';
+        done.hidden = !isLastStep || Boolean(decisionActions) || !flow.closest('.modal');
         if (moveFocus) {
-            const heading = steps[index].querySelector('h2');
-            heading.tabIndex = -1;
-            heading.focus();
+            const title = steps[index].querySelector('h2');
+            title.tabIndex = -1; title.focus();
             flow.closest('.modal-body')?.scrollTo(0, 0);
         }
     }
-
     back.addEventListener('click', () => { index--; show(true); });
     next.addEventListener('click', () => { index++; show(true); });
-    show();
+    const decision = flow.querySelector('[name="Review.Status"]');
+    const submit = flow.querySelector('[data-review-decision-submit]');
+    const labels = { Approved: 'Approve supplier', Rejected: 'Reject application', ChangesRequested: 'Request changes', Suspended: 'Suspend supplier', Pending: 'Keep pending' };
+    function updateDecision() { if (submit) submit.textContent = labels[decision?.value] || 'Save decision'; }
+    decision?.addEventListener('change', updateDecision);
+    updateDecision(); show();
 }
+
+document.querySelectorAll('[data-review-flow]').forEach(initializeReview);
 
 function applyLocalPage(results, filter) {
     const pager = results.querySelector('[data-local-pager]');

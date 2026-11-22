@@ -129,7 +129,16 @@ builder.Services.AddAuthentication(o=>{o.DefaultAuthenticateScheme="ReportQA";o.
     .AddScheme<AuthenticationSchemeOptions,QaAuthentication>("ReportQA",_=>{});
 builder.Services.AddSingleton(new QaActors(actors,keyToken));
 builder.Services.AddHttpClient<BidRecommendationService>().ConfigurePrimaryHttpMessageHandler(()=>new NoAiCalls());
-builder.Services.AddAuthorization();
+// The shared layout's Safi panel injects the speech client; the fixture never calls it.
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Chat.AiChatSpeechClient>().ConfigurePrimaryHttpMessageHandler(()=>new NoAiCalls());
+// The officer offer popup injects the pre-check service; the fixture never runs the AI review.
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Compliance.OfferPreCheck>().ConfigurePrimaryHttpMessageHandler(()=>new NoAiCalls());
+// Point AI calls at a local placeholder model so the fixture never needs, or uses, a real provider key.
+builder.Configuration.AddInMemoryCollection(new Dictionary<string,string?>{["Vllm:BaseUrl"]="http://127.0.0.1:9/v1",["Vllm:Model"]="fixture/model",["Vllm:ApiKey"]=""});
+// Same policy as Program.cs: supplier pages require an approved supplier profile.
+builder.Services.AddAuthorization(o=>o.AddPolicy("ApprovedSupplier",p=>p.RequireRole(RoleNames.Supplier).RequireAssertion(async context=>
+    context.Resource is HttpContext http && await http.RequestServices.GetRequiredService<ApplicationDbContext>().SupplierProfiles
+        .AnyAsync(s=>s.UserId==context.User.FindFirstValue(ClaimTypes.NameIdentifier)&&s.Status=="Approved"))));
 await using var app=builder.Build();
 app.UseStaticFiles(); app.UseRouting();
 app.Use(async(ctx,next)=>{if(ctx.Request.Method!="GET"){ctx.Response.StatusCode=405;return;}await next();});

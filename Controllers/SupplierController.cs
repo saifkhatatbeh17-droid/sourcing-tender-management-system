@@ -34,10 +34,16 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             AcceptedInvitations = await invitations.CountAsync(i => i.Status == "Accepted"),
             SubmittedOffers = await bids.CountAsync(b => b.Status != "Draft"),
             AcceptedOffers = await bids.CountAsync(b => b.Status == "Accepted"),
-            RecentInvitations = await invitations.AsNoTracking().Include(i => i.Tender).OrderByDescending(i => i.SentAt).Take(5).ToListAsync(),
-            RecentOffers = await bids.AsNoTracking().Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).Include(b => b.BidItems).OrderByDescending(b => b.SubmittedAt ?? b.CreatedAt).Take(5).ToListAsync(),
-            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == UserId).OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync()
+            RecentInvitations = await invitations.AsNoTracking().Include(i => i.Tender).OrderByDescending(i => i.SentAt).Take(3).ToListAsync(),
+            RecentOffers = await bids.AsNoTracking().Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).Include(b => b.BidItems).OrderByDescending(b => b.SubmittedAt ?? b.CreatedAt).Take(3).ToListAsync(),
+            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == UserId).OrderByDescending(n => n.CreatedAt).Take(3).ToListAsync()
         };
+        ViewBag.DashboardOfferStates = await bids.AsNoTracking().GroupBy(b =>
+            b.Status == "Accepted" ? "Awarded" : b.Status == "Withdrawn" ? "Withdrawn" :
+            b.Invitation.Tender.Status == "Cancelled" ? "Tender cancelled" :
+            b.Status == "Rejected" || b.Status == "NonCompliant" || b.Invitation.Tender.Status == "Awarded" ? "Not selected" :
+            b.Status == "Draft" ? "Draft" : b.ComplianceStatus == "Compliant" ? "Passed compliance" : "Awaiting review")
+            .Select(g => new { Status = g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Status, g => g.Count);
         return View(vm);
     }
 
@@ -98,7 +104,8 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     public async Task<IActionResult> Offers(string? q, string? status)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
-        IQueryable<Bid> query = db.Bids.AsNoTracking().Where(b => b.Invitation.SupplierProfileId == profile.SupplierProfileId)
+        IQueryable<Bid> query = db.Bids.AsNoTracking().AsSplitQuery().Where(b => b.Invitation.SupplierProfileId == profile.SupplierProfileId)
+            .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.OfferExtensions)
             .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).Include(b => b.BidItems);
         if (status == "Cancelled") query = query.Where(b => b.Invitation.Tender.Status == "Cancelled");
         else if (!string.IsNullOrWhiteSpace(status)) query = query.Where(b => b.Invitation.Tender.Status != "Cancelled" && b.Status == status);
@@ -137,14 +144,16 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             if (bid == null) return NotFound();
         }
         ViewData["IsOfferRevision"] = bid is { Status: not "Draft" };
-        return View(new OfferFormViewModel { InvitationId = inv.InvitationId, TenderId = inv.TenderId, BidId = bid?.BidId,
+        var form = new OfferFormViewModel { InvitationId = inv.InvitationId, TenderId = inv.TenderId, BidId = bid?.BidId,
             TenderTitle = inv.Tender.Title, ClosesAt = inv.Tender.ClosesAt, Currency = bid?.Currency ?? "JOD",
-            DeliveryDays = bid?.DeliveryDays ?? 0, PaymentTerms = bid?.PaymentTerms, TechnicalDetails = bid?.TechnicalDetails,
+            DeliveryDays = bid?.DeliveryDays ?? 0, TaxPercentage = OfferTax.RatePercent, AdditionalCosts = bid?.AdditionalCosts ?? 0, PaymentTerms = bid?.PaymentTerms, TechnicalDetails = bid?.TechnicalDetails,
             Items = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(i => new OfferLineViewModel { PurchaseRequestItemId = i.PurchaseRequestItemId,
                 ItemName = i.ItemName, Unit = i.Unit, RequestedQuantity = i.Quantity, RequestedSpecifications = i.Specifications,
                 Quantity = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.Quantity ?? i.Quantity,
                 UnitPrice = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.UnitPrice ?? 0,
-                Specifications = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.OfferedSpecifications ?? i.Specifications }).ToList() });
+                Specifications = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.OfferedSpecifications ?? i.Specifications }).ToList() };
+        await LoadProductPhotoReferences(form);
+        return View(form);
     }
 
     [HttpPost, ValidateAntiForgeryToken, RequestSizeLimit(20_000_000)]
@@ -178,20 +187,33 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         try
         {
             var amount = model.Items.Aggregate(0m, (sum, line) => checked(sum + checked(line.Quantity * line.UnitPrice)));
-            if (amount > 9999999999999999.99m) ModelState.AddModelError(nameof(model.Items), "The total offer amount is above the supported limit.");
+            // Tax is fixed at 16% of the item subtotal (OfferTax); suppliers cannot set it.
+            model.TaxPercentage = OfferTax.RatePercent;
+            model.TaxAmount = OfferTax.Amount(amount);
+            if (checked(amount + model.TaxAmount + model.AdditionalCosts) > 9999999999999999.99m) ModelState.AddModelError(nameof(model.Items), "The total offer amount is above the supported limit.");
         }
         catch (OverflowException) { ModelState.AddModelError(nameof(model.Items), "The total offer amount is above the supported limit."); }
         if (model.Currency?.Length != 3) ModelState.AddModelError(nameof(model.Currency), "Use a 3-letter currency code.");
         if (model.DeliveryDays < 0) ModelState.AddModelError(nameof(model.DeliveryDays), "Delivery days cannot be negative.");
         if (documents?.Any(f => f.Length > 10_000_000 || !AllowedFile(f.FileName)) == true) ModelState.AddModelError(nameof(documents), "Files must be PDF, DOCX, XLSX, JPG, or PNG and no larger than 10 MB each.");
+        var preparedPhotos = new Dictionary<int, byte[]>();
+        for (var index = 0; index < model.Items.Count; index++)
+        {
+            var line = model.Items[index];
+            if (line.ProductPhoto == null || line.ProductPhoto.Length == 0) continue;
+            try { preparedPhotos[line.PurchaseRequestItemId] = await SourcingTenderManagement.Services.OfferProductPhotos.PrepareAsync(line.ProductPhoto, HttpContext.RequestAborted); }
+            catch (System.ComponentModel.DataAnnotations.ValidationException error) { ModelState.AddModelError($"Items[{index}].ProductPhoto", error.Message); }
+        }
         if (!ModelState.IsValid)
         {
             model.TenderId = inv.TenderId; model.TenderTitle = inv.Tender.Title; model.ClosesAt = inv.Tender.ClosesAt;
             model.Items = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(item => model.Items.FirstOrDefault(x => x.PurchaseRequestItemId == item.PurchaseRequestItemId) ?? new OfferLineViewModel { PurchaseRequestItemId = item.PurchaseRequestItemId, ItemName = item.ItemName, Unit = item.Unit, RequestedQuantity = item.Quantity, RequestedSpecifications = item.Specifications }).ToList();
+            await LoadProductPhotoReferences(model);
             return View("CreateOffer", model);
         }
         await using var transaction = await db.Database.BeginTransactionAsync();
         var createdFiles = new List<string>();
+        var replacedFiles = new List<string>();
         var committed = false;
         try
         {
@@ -207,6 +229,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         var bid = model.BidId.HasValue ? await editableBid.Include(b => b.BidItems).SingleAsync() : new Bid { InvitationId = inv.InvitationId, TenderId = inv.TenderId, CreatedAt = DateTime.UtcNow, Status = "Draft" };
         bid.Currency = (model.Currency ?? "JOD").ToUpperInvariant(); bid.DeliveryDays = model.DeliveryDays; bid.PaymentTerms = model.PaymentTerms?.Trim();
         bid.TechnicalDetails = model.TechnicalDetails?.Trim();
+        bid.TaxAmount = model.TaxAmount; bid.AdditionalCosts = model.AdditionalCosts;
         if (model.BidId.HasValue) db.BidItems.RemoveRange(bid.BidItems);
         else db.Bids.Add(bid);
         foreach (var line in model.Items) db.BidItems.Add(new BidItem { Bid = bid, PurchaseRequestItemId = line.PurchaseRequestItemId, Quantity = line.Quantity, UnitPrice = line.UnitPrice, OfferedSpecifications = line.Specifications ?? "" });
@@ -224,10 +247,29 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             }
             await db.SaveChangesAsync();
         }
+        if (preparedPhotos.Count > 0)
+        {
+            var folder = Path.Combine(env.ContentRootPath, "App_Data", "private-files", "offers");
+            Directory.CreateDirectory(folder);
+            foreach (var photo in preparedPhotos)
+            {
+                var type = SourcingTenderManagement.Services.OfferProductPhotos.Type(photo.Key);
+                var previous = await db.BidDocuments.Where(d => d.BidId == bid.BidId && d.DocumentType == type).ToListAsync();
+                foreach (var document in previous) replacedFiles.Add(Path.Combine(folder, Path.GetFileName(document.StoredFileName)));
+                db.BidDocuments.RemoveRange(previous);
+                var stored = Guid.NewGuid().ToString("N") + ".jpg";
+                var path = Path.Combine(folder, stored); createdFiles.Add(path);
+                await System.IO.File.WriteAllBytesAsync(path, photo.Value, HttpContext.RequestAborted);
+                db.BidDocuments.Add(new BidDocument { BidId = bid.BidId, DocumentType = type, OriginalFileName = $"product-{photo.Key}.jpg",
+                    StoredFileName = stored, ContentType = "image/jpeg", FileSizeBytes = photo.Value.Length, UploadedAt = DateTime.UtcNow });
+            }
+            await db.SaveChangesAsync();
+        }
         if (submissionCommand == "Submit")
         {
             var submittedAt = DateTime.UtcNow;
             if (submittedAt >= deadline.Value) return Forbid();
+            bid.OfficerOpenedAt = null;
             bid.ComplianceStatus = null;
             bid.ComplianceNotes = null;
             bid.ComplianceReviewedAt = null;
@@ -256,16 +298,30 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
                 var item = inv.Tender.PurchaseRequest.PurchaseRequestItems.Single(i => i.PurchaseRequestItemId == line.PurchaseRequestItemId);
                 line.ItemName = item.ItemName; line.Unit = item.Unit; line.RequestedQuantity = item.Quantity; line.RequestedSpecifications = item.Specifications;
             }
+            await LoadProductPhotoReferences(model);
             return View("CreateOffer", model);
         }
         finally
         {
+            if (committed)
+                foreach (var path in replacedFiles)
+                    try { System.IO.File.Delete(path); }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    { HttpContext.RequestServices.GetRequiredService<ILogger<SupplierController>>().LogWarning(ex, "Could not remove replaced product photo {Path}", path); }
             if (!committed)
                 foreach (var path in createdFiles)
                     try { System.IO.File.Delete(path); }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                     { HttpContext.RequestServices.GetRequiredService<ILogger<SupplierController>>().LogError(ex, "Could not clean up offer attachment {Path}", path); }
         }
+    }
+
+    private async Task LoadProductPhotoReferences(OfferFormViewModel model)
+    {
+        if (!model.BidId.HasValue) return;
+        var documents = await db.BidDocuments.AsNoTracking().Where(d => d.BidId == model.BidId && d.DocumentType.StartsWith(SourcingTenderManagement.Services.OfferProductPhotos.Prefix)).ToListAsync();
+        foreach (var line in model.Items)
+            line.ProductPhotoDocumentId = documents.LastOrDefault(d => d.DocumentType == SourcingTenderManagement.Services.OfferProductPhotos.Type(line.PurchaseRequestItemId))?.BidDocumentId;
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -301,9 +357,10 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     public async Task<IActionResult> Offer(int id)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
-        var bid = await db.Bids.AsNoTracking().Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile)
+        var bid = await db.Bids.AsNoTracking().AsSplitQuery().Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile)
             .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
             .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.EvaluationReport)
+            .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.OfferExtensions)
             .Include(b => b.BidItems).ThenInclude(i => i.PurchaseRequestItem).Include(b => b.BidDocuments)
             .SingleOrDefaultAsync(b => b.BidId == id && b.Invitation.SupplierProfileId == profile.SupplierProfileId);
         return bid == null ? NotFound() : View(bid);
@@ -381,6 +438,16 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         else if(clarification.RecipientUserId!=UserId)db.Notifications.Add(new Notification{UserId=clarification.RecipientUserId,Title="Clarification response received",Message=$"A response was added to your clarification request.",RelativeUrl="/Supplier/Clarifications",CreatedAt=DateTime.UtcNow});
         await db.SaveChangesAsync(); TempData["Success"] = "Your reply was sent to the sourcing officer.";
         return RedirectToAction(nameof(Clarifications));
+    }
+
+    // Dismisses the award celebration popup by marking its winner notification read.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AcknowledgeAward(int id)
+    {
+        await db.Notifications
+            .Where(n => n.NotificationId == id && n.UserId == UserId && !n.IsRead && n.Title == ViewComponents.AwardCelebrationViewComponent.WinTitle)
+            .ExecuteUpdateAsync(update => update.SetProperty(n => n.IsRead, true));
+        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? NoContent() : RedirectToAction(nameof(Dashboard));
     }
 
     public async Task<IActionResult> Notifications()

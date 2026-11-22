@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <filter id="on-dark" color-interpolation-filters="sRGB">
+    <!-- Liquid teal has a larger green-minus-red difference than the other brand colors. -->
+    <feColorMatrix in="SourceGraphic" result="liquid-mask" values="
+      0 0 0 0 0
+      0 0 0 0 0
+      0 0 0 0 0
+      -6 6 0 0 -1.55" />
+    <feColorMatrix in="SourceGraphic" result="white-logo" values="
+      0 0 0 0 1
+      0 0 0 0 1
+      0 0 0 0 1
+      0 0 0 1 0" />
+    <feComposite in="SourceGraphic" in2="liquid-mask" operator="in" result="liquid" />
+    <feComposite in="white-logo" in2="liquid-mask" operator="out" result="light-art" />
+    <feComposite in="liquid" in2="light-art" operator="arithmetic" k2="1" k3="1" />
+  </filter>
+</svg>

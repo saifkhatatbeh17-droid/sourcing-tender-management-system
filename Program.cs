@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Services.TopCommittee;
@@ -8,21 +9,81 @@ using SourcingTenderManagement.Services.FaceEnrollment;
 using SourcingTenderManagement.Services.FaceVerification;
 using SourcingTenderManagement.Services.FaceLogin;
 using SourcingTenderManagement.Services.PdfWatermark;
+using SourcingTenderManagement.Services.Chat;
+using SourcingTenderManagement.Services.Intelligence;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddEnvironmentVariables();
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true).AddEnvironmentVariables();
 var connection = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DefaultConnection is missing.");
 builder.Services.AddControllersWithViews();
+if (builder.Environment.IsDevelopment())
+    builder.Services.AddHttpsRedirection(options => options.HttpsPort = 7130);
 builder.Services.AddHostedService<SourcingTenderManagement.Services.TenderClosureService>();
 builder.Services.AddPdfWatermarks();
-builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidRecommendationService>(client => client.Timeout = TimeSpan.FromMinutes(5));
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Evaluation.BidRecommendationService>(client => client.Timeout = TimeSpan.FromMinutes(5))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<AiChatClient>(client => client.Timeout = TimeSpan.FromSeconds(90))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<AiChatAttachmentAnalysis>(client => client.Timeout = TimeSpan.FromSeconds(60))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient(nameof(SourcingTenderManagement.Controllers.PublicSafiController),
+        client => client.Timeout = TimeSpan.FromSeconds(12))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<AiChatSpeechClient>(client => client.Timeout = TimeSpan.FromSeconds(40))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHttpClient<AiIntelligenceService>(client => client.Timeout = TimeSpan.FromSeconds(90))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+// Every AI model call goes through AiGateway: one client path, daily limits and the AiInteractions log.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<SourcingTenderManagement.Services.Ai.IAiInteractionStore, SourcingTenderManagement.Services.Ai.EfAiInteractionStore>();
+builder.Services.AddSingleton<SourcingTenderManagement.Services.Ai.AiGateway>();
+builder.Services.AddSingleton<AiChatDownloadStore>();
+// Offer pre-check for the Sourcing Officer: code checks plus an optional AI document review.
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Compliance.OfferPreCheck>(client => client.Timeout = TimeSpan.FromSeconds(90))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+// Supplier links: bid-rigging warning signs computed in code, with an optional AI brief per pair.
+builder.Services.AddScoped<SourcingTenderManagement.Services.Integrity.SupplierLinks>();
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Integrity.SupplierLinkExplainer>(client => client.Timeout = TimeSpan.FromSeconds(60))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+// Employee accounts: shared creation rules, spreadsheet import, and the forced first-sign-in password change.
+builder.Services.AddScoped<SourcingTenderManagement.Services.Admin.EmployeeAccounts>();
+builder.Services.AddScoped<SourcingTenderManagement.Services.Admin.EmployeeImport>();
+builder.Services.AddSingleton<SourcingTenderManagement.Services.Admin.EmployeeImportPreviewStore>();
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
+    options.Filters.Add<SourcingTenderManagement.Services.Admin.PasswordChangeRequiredFilter>());
+builder.Services.AddScoped<AiChatContext>();
+builder.Services.AddScoped<AiChatExportService>();
+builder.Services.AddScoped<AiChatWorkspaceActions>();
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connection));
 builder.Services.AddTopCommitteeFoundation();
 builder.Services.AddFaceEnrollment();
 builder.Services.AddFaceVerification(builder.Configuration);
 builder.Services.AddFaceLogin();
 builder.Services.AddRateLimiter(options =>
+{
+    options.OnRejected = (context, _) =>
+    {
+        if (context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName is "AiChat" or "PublicSafi")
+            context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        return ValueTask.CompletedTask;
+    };
+    options.AddPolicy("AiChat", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("PublicSafi", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 8,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
     options.AddPolicy("ChangePassword", context => RateLimitPartition.GetFixedWindowLimiter(
         context.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? context.Connection.RemoteIpAddress?.ToString()
@@ -32,7 +93,8 @@ builder.Services.AddRateLimiter(options =>
             PermitLimit = 5,
             Window = TimeSpan.FromMinutes(5),
             QueueLimit = 0
-        })));
+        }));
+});
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
 {
     o.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
@@ -70,12 +132,39 @@ builder.Services.AddAuthorization(o => o.AddPolicy("ApprovedSupplier", policy =>
         return await db.SupplierProfiles.AnyAsync(s => s.UserId == userId && s.Status == "Approved");
     })));
 
+builder.Services.AddScoped<SourcingTenderManagement.Services.OfferProductPhotos>();
 var app = builder.Build();
+if (args.Contains("--supplier-link-checks"))
+{
+    SourcingTenderManagement.Checks.SupplierLinkChecks.Run();
+    return;
+}
+if (args.Contains("--product-photo-checks"))
+{
+    await SourcingTenderManagement.Checks.ProductPhotoChecks.RunAsync(app.Services);
+    return;
+}
 // This dedicated check path runs before startup role seeding and performs no database writes.
 if (args.Contains("--top-committee-foundation-check"))
 {
     using var checkScope = app.Services.CreateScope();
     await SourcingTenderManagement.Checks.TopCommitteeFoundationChecks.RunAsync(checkScope.ServiceProvider);
+    return;
+}
+if (args.Contains("--vllm-ai-checks"))
+{
+    await SourcingTenderManagement.Checks.VllmAiChecks.RunAsync();
+    return;
+}
+if (args.Contains("--account-import-checks"))
+{
+    SourcingTenderManagement.Checks.EmployeeImportChecks.Run();
+    return;
+}
+// Known-answer checks against the real configured model. Sends made-up data to that provider.
+if (args.Contains("--ai-eval"))
+{
+    await SourcingTenderManagement.Checks.AiEvalChecks.RunAsync(app.Configuration);
     return;
 }
 using (var scope = app.Services.CreateScope())
@@ -118,6 +207,12 @@ using (var scope = app.Services.CreateScope())
     }
 }
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Home/Error");
+if (app.Environment.IsDevelopment())
+{
+    var phonePreviewPort = app.Configuration.GetValue<int?>("Links:PhonePreviewHttpPort");
+    app.UseWhen(context => context.Connection.LocalPort != phonePreviewPort,
+        branch => branch.UseHttpsRedirection());
+}
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();

@@ -25,6 +25,8 @@ public static class ManagerReferralContext
             .AppendLine($"Payment: {Value(winner.PaymentTerms)}")
             .AppendLine($"Supplier-stated technical details: {Value(winner.TechnicalDetails)}");
         text.AppendLine("Purchase requirements are recorded facts; supplier statements require verification. Missing or unclear requirements must be clarified, not inferred.");
+        var rounds = OfferRoundContext.Describe(tender);
+        if (rounds.Length > 0) text.AppendLine().AppendLine(rounds);
         return text.ToString().Trim();
     }
     private static string Value(string? value) => string.IsNullOrWhiteSpace(value) ? "Not specified" : value.Trim();

@@ -6,10 +6,10 @@ html[data-theme="dark"] body:has(.face-enrollment) {
     background: #101817;
 }
 .face-enrollment {
-    --bio-accent: var(--teal, #00a3a6);
-    --bio-action: #ff6b4a;
-    --bio-action-ink: #123032;
-    --bio-action-hover: #f05c3c;
+    --bio-accent: var(--teal, var(--pharma-primary));
+    --bio-action: #efb85c;
+    --bio-action-ink: #0c252d;
+    --bio-action-hover: #e5a23e;
     --bio-action-active: #e85536;
     --bio-ink: #152c32;
     --bio-muted: #53666c;
@@ -17,7 +17,7 @@ html[data-theme="dark"] body:has(.face-enrollment) {
     --bio-surface: #fff;
     --bio-soft: #eef8f6;
     --bio-line: #dfe7e8;
-    --bio-focus: #007b7e;
+    --bio-focus: #1d5560;
     max-width: 1280px;
     margin-inline: auto;
     padding-block: .25rem 2rem;
@@ -26,11 +26,11 @@ html[data-theme="dark"] body:has(.face-enrollment) {
 html[data-theme="dark"] .face-enrollment {
     --bio-ink: #edf5f2;
     --bio-muted: #a6bbb5;
-    --bio-link: #70d9d3;
+    --bio-link: #efb85c;
     --bio-surface: #192321;
     --bio-soft: #173a34;
     --bio-line: #34443f;
-    --bio-focus: #70d9d3;
+    --bio-focus: #efb85c;
 }
 .biometric-back {
     display: inline-flex;

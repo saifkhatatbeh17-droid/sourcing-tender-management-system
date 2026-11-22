@@ -4,4 +4,31 @@
 
 .rr-row-title h3 a{color:var(--so-ink);text-decoration:none}.rr-row-title h3 a:hover{text-decoration:underline;text-underline-offset:4px}.rr-row-action{flex-shrink:0;margin-left:8px;min-width:138px}.rr-row-action .btn{width:100%}@media(max-width:760px){.rr-row-action{margin:0 0 0 56px;width:calc(100% - 56px);min-width:0}.rr-row-action .btn{min-height:40px}}
 
-.rr-row-action{min-width:174px;display:grid;gap:7px}.rr-action-caption{font-size:11px;font-weight:500;color:var(--so-accent-hover);line-height:1.3}.so-page .rr-row-action .rr-next-action{min-height:46px;justify-content:space-between;gap:20px;padding:12px 16px;border-radius:12px;background:#00a3a6;border:1px solid #00a3a6;color:#002f32;font-size:14px;font-weight:650;box-shadow:0 3px 8px #003c3e14}.so-page .rr-row-action .rr-next-action:hover{background:#009598;border-color:#009598;box-shadow:0 4px 12px #003c3e20}.rr-row-action svg{width:18px;height:18px;flex-shrink:0}.rr-history-action{gap:16px}.rr-next-action:active{transform:translateY(1px)}@media(max-width:760px){.rr-row-action{min-width:0}.so-page .rr-row-action .rr-next-action{min-height:48px}.rr-action-caption{font-size:12px}}
+.rr-row-action{min-width:174px;display:grid;gap:7px}.rr-action-caption{font-size:11px;font-weight:500;color:var(--so-accent-hover);line-height:1.3}.so-page .rr-row-action .rr-next-action{min-height:46px;justify-content:space-between;gap:20px;padding:12px 16px;border-radius:12px;background:var(--pharma-primary);border:1px solid var(--pharma-primary);color:var(--pharma-on-primary);font-size:14px;font-weight:650;box-shadow:0 3px 8px #003c3e14}.so-page .rr-row-action .rr-next-action:hover{background:var(--pharma-primary-hover);border-color:var(--pharma-primary-hover);box-shadow:0 4px 12px #003c3e20}.rr-row-action svg{width:18px;height:18px;flex-shrink:0}.rr-history-action{gap:16px}.rr-next-action:active{transform:translateY(1px)}@media(max-width:760px){.rr-row-action{min-width:0}.so-page .rr-row-action .rr-next-action{min-height:48px}.rr-action-caption{font-size:12px}}
+
+/* The request and its QR are adjacent, including when the row wraps on mobile. */
+.rr-row-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rr-page .rr-row-buttons > .btn { width: auto; min-height: 44px; }
+.rr-page .rr-row-buttons > .rr-qr-trigger { display: inline-flex; align-items: center; gap: 6px; }
+.rr-page .rr-row-buttons > .rr-qr-trigger svg { width: 16px; height: 16px; }
+
+.rr-qr-modal { --bs-modal-width: 460px; }
+.rr-qr-modal .modal-body {
+    display: grid;
+    grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+}
+.rr-qr-modal .details-qr-image {
+    width: 150px;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid var(--so-line);
+}
+.rr-page .rr-qr-modal .modal-footer .btn { width: auto; }
+
+@media (max-width: 440px) {
+    .rr-qr-modal .modal-body { grid-template-columns: 1fr; text-align: center; }
+}

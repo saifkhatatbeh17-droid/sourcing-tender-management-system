@@ -6,27 +6,36 @@
 <div class="workspace-heading">
     <div><h1>Departments</h1><p>Organize departments and manage their availability.</p></div>
     <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-            data-bs-target="#create-department">Create Department</button>
+            data-bs-target="#create-department">Create department</button>
 </div>
 
 @if (TempData["DepartmentsFeedback"] is string feedback)
 {
-    <div class="admin-feedback" data-admin-feedback role="status">@feedback</div>
+    <div class="admin-department-feedback" data-flash-message>
+        <span class="admin-department-feedback-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg>
+        </span>
+        <div role="status">
+            <strong>@(TempData["DepartmentsFeedbackTitle"] as string ?? "Department saved successfully")</strong>
+            <p>@feedback</p>
+        </div>
+    </div>
 }
 
 <div class="admin-filter-bar">
     <form asp-action="Departments" method="get" class="admin-record-filters row g-3" data-local-filter data-results="department-results" data-dialogs="department-edit-dialogs" aria-label="Filter departments">
         <div class="col-12 col-sm">
+            <label class="form-label" for="department-search">Find a department</label>
             <div class="voice-search-control">
                 <div class="input-group">
-                    <input class="form-control" type="search" name="search" value="@ViewBag.FilterSearch" placeholder="Search departments" aria-label="Search departments" data-voice-search data-voice-search-mode="local" aria-describedby="departments-voice-status" />
+                    <input id="department-search" class="form-control" type="search" name="search" value="@ViewBag.FilterSearch" placeholder="Search departments" data-voice-search data-voice-search-mode="local" aria-describedby="departments-voice-status" />
                     <select class="form-select form-select-sm w-auto" data-voice-search-language aria-label="Voice search language"><option value="en-US">English</option><option value="ar-JO">العربية</option></select>
                     <button type="button" class="btn btn-outline-primary" data-voice-search-button aria-label="Start voice search" aria-pressed="false" aria-describedby="departments-voice-status">
                         <svg data-voice-icon="mic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg>
                         <svg data-voice-icon="stop" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" hidden><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
                     </button>
                 </div>
-                <div id="departments-voice-status" class="form-text small" data-voice-search-status role="status" aria-live="polite">Voice search is ready.</div>
+                <div id="departments-voice-status" class="form-text small" data-voice-search-status role="status" aria-live="polite"></div>
             </div>
         </div>
         <div class="col">
@@ -47,22 +56,13 @@
 }
 else
 {
-    <div class="admin-card-grid">
-        @foreach (var department in Model.Departments)
-        {
-            <article class="admin-record" data-admin-row data-search="@department.Name" data-status="@department.IsActive.ToString().ToLowerInvariant()">
-                <div class="admin-record-top">
-                    <span class="admin-record-icon"><partial name="_AdminSidebarIcon" model='@("Departments")' /></span>
-                    <span class="badge rounded-pill @(department.IsActive ? "text-bg-success" : "text-bg-secondary")">
-                        @(department.IsActive ? "Active" : "Inactive")
-                    </span>
-                </div>
-                <h2 class="text-break">@department.Name</h2>
-                <button type="button" class="btn btn-sm btn-outline-primary align-self-start" data-bs-toggle="modal"
-                        data-bs-target="#edit-department-@department.DepartmentId">Edit department</button>
-            </article>
-        }
-    </div>
+    <section class="admin-records" aria-labelledby="department-list-title"><header class="au-list-heading"><h2 id="department-list-title">Department directory</h2><p>Find a department, check its availability, or edit its name.</p></header>
+    <div class="table-responsive" tabindex="0" role="region" aria-label="Departments"><table class="table align-middle admin-record-table"><thead><tr><th scope="col">Department</th><th scope="col">Availability</th><th scope="col">Action</th></tr></thead><tbody>
+    @foreach(var department in Model.Departments)
+    {
+     <tr data-admin-row data-search="@department.Name" data-status="@department.IsActive.ToString().ToLowerInvariant()"><th scope="row">@department.Name</th><td><span class="badge @(department.IsActive?"text-bg-success":"text-bg-secondary")">@(department.IsActive?"Active":"Inactive")</span></td><td><button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#edit-department-@department.DepartmentId" aria-label="Edit @department.Name">Edit department</button></td></tr>
+    }
+    </tbody></table></div></section>
     <partial name="_AdminPager" />
 }
 
@@ -72,7 +72,7 @@ else
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <form asp-action="CreateDepartment" method="post" class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="create-department-title">Create Department</h2>
+                <h2 class="modal-title fs-5" id="create-department-title">Create department</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -88,7 +88,7 @@ else
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-primary">Create Department</button>
+                <button type="submit" class="btn btn-primary">Create department</button>
             </div>
         </form>
     </div>
@@ -133,7 +133,7 @@ else
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
                 </div>
             </form>
         </div>

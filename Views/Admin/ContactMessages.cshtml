@@ -1,0 +1,68 @@
+@model ContactMessagesPage
+@{
+    ViewData["Title"] = "Contact messages";
+    var hasFilters = !string.IsNullOrEmpty(Model.Search) || Model.Status != null;
+}
+
+<header class="workspace-heading">
+    <div><h1>Contact messages</h1><p>Read messages sent through the Contact Us form.</p></div>
+</header>
+
+<form asp-action="ContactMessages" method="get" class="row g-3 align-items-end workspace-search-card">
+    <h2 class="workspace-search-title">Find a message</h2>
+        <div class="col-12 col-md">
+            <label class="form-label" for="contact-search">Search messages</label>
+            <input class="form-control" id="contact-search" name="search" type="search" maxlength="254" value="@Model.Search" placeholder="Name, email, or subject" />
+        </div>
+        <div class="col-12 col-md-auto">
+            <label class="form-label" for="contact-status">Status</label>
+            <select class="form-select" id="contact-status" name="status">
+                <option value="">All messages</option>
+                <option value="Unread" selected="@(Model.Status == "Unread")">Unread</option>
+                <option value="Read" selected="@(Model.Status == "Read")">Read</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-auto d-flex flex-wrap gap-2">
+            <button class="btn btn-primary" type="submit">Apply filters</button>
+            @if (hasFilters) { <a class="btn btn-outline-primary" asp-action="ContactMessages">Clear filters</a> }
+        </div>
+    </form>
+
+<section class="admin-records" aria-label="Contact messages">
+
+    @if (Model.Messages.Count == 0)
+    {
+        <p class="admin-record-empty">@(hasFilters ? "No messages match these filters." : "Messages sent through Contact Us will appear here.")</p>
+    }
+    else
+    {
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Received messages">
+            <table class="table align-middle admin-record-table">
+                <thead><tr><th scope="col">Message</th><th scope="col">Sender</th><th scope="col">Received (UTC)</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+                <tbody>
+                    @foreach (var message in Model.Messages)
+                    {
+                        <tr>
+                            <th scope="row" class="text-break"><a asp-action="ContactMessageDetails" asp-route-id="@message.ContactMessageId">@message.Subject</a><span class="au-meta">Message #@message.ContactMessageId</span></th>
+                            <td class="text-break">@message.FullName<span class="au-meta">@message.Email</span></td>
+                            <td class="text-nowrap">@message.SubmittedAt.ToString("dd MMM yyyy · HH:mm")</td>
+                            <td><span class="badge @(message.IsUnread ? "text-bg-warning" : "text-bg-secondary")">@(message.IsUnread ? "Unread" : "Read")</span></td>
+                            <td><a class="btn btn-outline-primary text-nowrap" asp-action="ContactMessageDetails" asp-route-id="@message.ContactMessageId">Read message</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@if (Model.TotalPages > 1)
+{
+    <nav class="admin-pager d-flex flex-wrap align-items-center gap-2 mt-3" aria-label="Contact message pages">
+        <span class="me-auto">Page @Model.Page of @Model.TotalPages</span>
+        @if (Model.Page > 1)
+        { <a class="btn btn-outline-primary" asp-action="ContactMessages" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status">Previous</a> }
+        @if (Model.Page < Model.TotalPages)
+        { <a class="btn btn-outline-primary" asp-action="ContactMessages" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status">Next</a> }
+    </nav>
+}

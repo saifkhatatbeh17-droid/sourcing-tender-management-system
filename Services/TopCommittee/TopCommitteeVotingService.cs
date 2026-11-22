@@ -18,7 +18,7 @@ internal sealed class TopCommitteeVotingService(ITopCommitteeVotingStore store) 
             throw new CommitteeAccessDeniedException();
         ArgumentNullException.ThrowIfNull(input);
         Validator.ValidateObject(input, new ValidationContext(input), validateAllProperties: true);
-        var notes = input.Decision == "Rejected" ? input.Notes : input.Notes?.Replace("\r\n", "\n").Trim();
+        var notes = input.Decision is "Rejected" or "RequestEdit" ? input.Notes?.Replace("\r\n", "\n").Trim() : input.Notes?.Replace("\r\n", "\n").Trim();
         if (string.IsNullOrWhiteSpace(notes)) notes = null;
         try
         {
@@ -40,16 +40,37 @@ internal sealed class TopCommitteeVotingService(ITopCommitteeVotingStore store) 
                 if (!await session.IsDatabaseReadyAsync(ct)) throw new CommitteeStateConflictException(TopCommitteeVotingDatabase.Unavailable);
                 var previous = tender.TenderApprovals.Where(v => v.Stage == "Top").ToList();
                 var now = DateTime.UtcNow;
+
+                if (input.Decision == "RequestEdit")
+                {
+                    session.ClearTopVotes();
+                    tender.Status = "AwaitingManagerReview";
+                    tender.TopEditState = "WithManager";
+                    tender.TopEditRequestedByUserId = memberId;
+                    tender.TopEditRequestedAt = now;
+                    tender.TopEditRequestNotes = notes;
+                    tender.TopEditManagerNotes = null;
+                    tender.TopEditOfficerNotes = null;
+                    tender.TopEditOfficerRespondedAt = null;
+                    await session.SaveAsync(ct);
+                    return new CommitteeVoteResult(tender.TenderId, "RequestEdit", false);
+                }
+
                 session.Add(new TenderApproval { TenderId = tender.TenderId, UserId = memberId,
                     CommitteeAssignmentId = assignment.AssignmentId, Stage = "Top", Decision = input.Decision,
                     Notes = notes, DecidedAt = now });
                 var award = input.Decision == "Approved" && previous.Count == 3 && previous.All(v => v.Decision == "Approved");
-                if (input.Decision == "Rejected") tender.Status = "AwaitingManagerReview";
+                if (input.Decision == "Rejected")
+                {
+                    tender.Status = "AwaitingManagerReview";
+                    tender.TopEditState = null;
+                }
                 if (award)
                 {
                     tender.Status = "Awarded";
                     tender.AwardedBidId = context.Nomination.BidId;
                     tender.AwardedAt = now;
+                    tender.TopEditState = null;
                     tender.AwardNotes = $"Automatically awarded to nominated bid #{context.Nomination.BidId} after four valid CEO & Chiefs approvals.";
                 }
                 await session.SaveAsync(ct);

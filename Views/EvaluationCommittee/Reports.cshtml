@@ -1,21 +1,21 @@
 @model CommitteeEvaluationPage
-@{ ViewData["Title"] = "Combined reports"; }
+@{ ViewData["Title"] = "Evaluation reports"; }
 @section Styles { <partial name="_CommitteePageStyles" /><link rel="stylesheet" href="~/css/committee-report-summary.css" asp-append-version="true" /> }
 @section Scripts { <script src="~/js/committee-reports.js" asp-append-version="true"></script> }
 <div class="evaluation-page committee-workspace">
-    <header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Combined reports</h1><p>Read the recommendation, agreed weights, and approval record for each tender.</p></div><a class="cw-button cw-button-secondary" asp-action="Evaluations">Back to evaluations <span aria-hidden="true">↗</span></a></header>
+    <header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Evaluation reports</h1><p>Read the recommendation, agreed weights, and approval record for each tender.</p></div><a class="cw-button cw-button-secondary" asp-action="Evaluations">Back to evaluations <span aria-hidden="true">↗</span></a></header>
     @if(Model.Tenders.Count == 0)
     { <section class="cw-panel cw-empty"><partial name="_AdminSidebarIcon" model='@("Reports")' /><h2>No reports to show yet</h2><p>Your tender reports will appear here as evaluations get started.</p><a class="cw-text-link" asp-action="Evaluations">Go to evaluations <span aria-hidden="true">→</span></a></section> }
     else
     {
         <div class="cw-report-layout">
-            <aside class="cw-panel cw-report-browser" aria-label="Choose report">
+            <details class="cw-panel cw-report-browser ev-report-switcher"><summary><strong>Find a report</strong><span>@Model.Tenders.Count tenders · Change ⌄</span></summary><div class="ev-report-search"><label for="report-search">Search tender reports</label><input type="search" id="report-search" class="form-control" placeholder="Tender title, number or status" data-committee-search="report-options" /></div>
                 <header class="cw-panel-header"><h2>Tender reports</h2><span class="cw-count">@Model.Tenders.Count</span></header>
-                <nav aria-label="Tender reports">
+                <nav id="report-options" aria-label="Tender reports">
                 @foreach(var tender in Model.Tenders)
-                { <a asp-action="Reports" asp-route-id="@tender.TenderId" class="cw-report-link @(Model.Tender?.TenderId == tender.TenderId ? "is-current" : "")" aria-current="@(Model.Tender?.TenderId == tender.TenderId ? "page" : null)"><small>Tender #@tender.TenderId <span aria-hidden="true">@(Model.Tender?.TenderId == tender.TenderId ? "✓" : "↗")</span></small><strong>@tender.Title</strong><span>@CommitteeEvaluationPage.StatusLabel(tender.Status)</span></a> }
+                { <a asp-action="Reports" asp-route-id="@tender.TenderId" data-search-row class="cw-report-link @(Model.Tender?.TenderId == tender.TenderId ? "is-current" : "")" aria-current="@(Model.Tender?.TenderId == tender.TenderId ? "page" : null)"><small>Tender #@tender.TenderId <span aria-hidden="true">@(Model.Tender?.TenderId == tender.TenderId ? "✓" : "↗")</span></small><strong>@tender.Title</strong><span>@CommitteeEvaluationPage.StatusLabel(tender.Status)</span></a> }
                 </nav>
-            </aside>
+            <p data-search-empty="report-options" hidden role="status">No reports match. Try another title, number or status.</p></details>
             <div class="cw-report-detail">
             @if(Model.Tender != null) { <partial name="_CombinedReport" model="Model" /> }
             else { <section class="cw-panel cw-empty"><h2>Select a tender</h2><p>Choose a tender to read its report and approval record.</p></section> }

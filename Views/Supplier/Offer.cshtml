@@ -4,64 +4,190 @@
     var total = CommitteeEvaluationPage.Total(Model);
     var reportStatus = tender.EvaluationReport?.Status;
     var status = tender.Status == "Cancelled" ? "Cancelled" : Model.Status;
-    var canCancel = tender.IsAcceptingOffers(DateTime.UtcNow) && Model.SubmittedAt.HasValue &&
+    var acceptingOffers = tender.IsAcceptingOffers(DateTime.UtcNow);
+    var approvedSupplier = Model.Invitation.SupplierProfile.Status == "Approved";
+    var canContinue = status == "Draft" && approvedSupplier && Model.Invitation.Status == "Accepted" && acceptingOffers;
+    var canRevise = approvedSupplier && Model.Invitation.Status == "Accepted" && acceptingOffers &&
+        tender.OfferExtensions.Count > 0 && Model.Status is "NonCompliant" or "Withdrawn";
+    var canClarify = Model.SubmittedAt.HasValue && status is not ("Withdrawn" or "Cancelled");
+    var canCancel = acceptingOffers && Model.SubmittedAt.HasValue &&
         (Model.Status is "Submitted" or "UnderReview" or "Compliant" or "NonCompliant");
-    var stage = Model.Status == "Draft" ? 0
-        : reportStatus is "TopApproved" || Model.Status is "Accepted" or "Rejected" ? 7
-        : reportStatus == "ManagerApproved" ? 6
-        : reportStatus == "OfficerSubmitted" ? 5
-        : reportStatus is "CommitteeApproved" or "ReturnedForReview" ? 4
-        : tender.Status == "UnderEvaluation" ? 3
-        : Model.ComplianceStatus == "Compliant" || Model.Status == "Compliant" ? 3
-        : Model.Status == "Submitted" || Model.Status == "UnderReview" || Model.Status == "NonCompliant" ? 2 : 1;
-    var progressMessage = Model.Status == "Accepted" ? "Your offer was selected by the CEO & Chiefs."
-        : Model.Status == "Rejected" ? "The final decision is complete. This offer was not selected."
-        : reportStatus == "ManagerApproved" ? "The Sourcing Manager approved the recommendation; the CEO & Chiefs is recording its final decision."
-        : reportStatus == "OfficerSubmitted" ? "The Sourcing Officer approved the consolidated report; it is now with the Sourcing Manager."
-        : reportStatus is "CommitteeApproved" or "ReturnedForReview" ? "The four-member evaluation report is with the Sourcing Officer for review and approval."
-        : tender.Status == "UnderEvaluation" ? "The evaluation committee is reviewing eligible offers and recording its shared decision."
-        : Model.ComplianceStatus == "Compliant" || Model.Status == "Compliant" ? "The Sourcing Officer approved the requirements. Committee evaluation begins after the tender closes."
-        : Model.ComplianceStatus == "NonCompliant" || Model.Status == "NonCompliant" ? "The Sourcing Officer marked this offer non-compliant. Check the officer's findings or clarifications."
-        : Model.Status == "Submitted" ? "Your offer was sent to the Sourcing Officer for requirements and document review."
-        : "This offer is a draft and has not entered the review workflow.";
+    const string wait = "No action needed from you right now.";
+    (int Step, string Heading, string Current, string Next) progress = status switch
+    {
+        "Cancelled" => (0, "Tender cancelled", "The tender was cancelled and this offer will not advance.", "You can still view your offer and download its summary."),
+        _ when canRevise => (0, "Offer can be revised", "The tender has reopened for another offer round.", "Revise your pricing and technical response, then resubmit before the new deadline."),
+        "Withdrawn" => (0, "Offer withdrawn", "You cancelled this offer. It will not advance.", "You can still view your offer and download its summary."),
+        "Accepted" => (7, "Offer selected", "Your offer was selected in the final decision.", "Download your offer summary for your records."),
+        "Rejected" => (7, "Offer not selected", "Your offer was not selected in the final decision.", "Download your offer summary for your records."),
+        "Draft" when canContinue => (0, "Draft not submitted", "Your offer is saved as a draft.", "Continue your draft, check your prices and documents, then submit it before the tender deadline."),
+        "Draft" when !approvedSupplier => (0, "Draft not submitted", "Your offer is saved as a draft.", "Your supplier account needs approval before you can continue."),
+        "Draft" when Model.Invitation.Status != "Accepted" => (0, "Draft not submitted", "Your offer is saved as a draft.", "You need an accepted invitation to continue."),
+        "Draft" => (0, "Draft not submitted", "Your offer has not entered review.", "This tender is not accepting offers right now."),
+        _ when tender.Status == "Awarded" && tender.AwardedBidId == Model.BidId
+            => (7, "Offer selected", "Your offer received the tender award.", "Download your offer summary for your records."),
+        _ when tender.Status == "Awarded" && tender.AwardedBidId.HasValue
+            => (7, "Offer not selected", "The tender was awarded to another offer.", "Download your offer summary for your records."),
+        _ when Model.ComplianceStatus == "NonCompliant" || status == "NonCompliant"
+            => (0, "Offer did not pass compliance", "The Sourcing Officer marked this offer non-compliant. It does not advance as an eligible offer.", "Review the clarifications linked to this offer if you need more information."),
+        _ when tender.RejectionForwardedAt.HasValue
+            => (0, "Tender closed after committee rejection", "The rejection was forwarded to the Sourcing Officer.", "No action is requested from you for this tender."),
+        _ when reportStatus == "ManagerRejected"
+            => (0, "Recommendation rejected", "The Sourcing Manager rejected the tender recommendation.", "No action is requested from you. A final award is not shown for this offer."),
+        _ when tender.Status == "Awarded" || reportStatus == "TopApproved"
+            => (7, "Tender decision recorded", "A final decision has been recorded for this tender.", "Use the offer status above to check the outcome for your offer."),
+        _ when reportStatus == "ReturnedForReview"
+            => (3, "Evaluation reopened", "The recommendation was returned to the Evaluation Committee for review.", wait),
+        _ when reportStatus == "CommitteeApproved"
+            => (4, "Sourcing Officer review of the report", "The committee report is with the Sourcing Officer for review and approval.", wait),
+        _ when reportStatus == "OfficerSubmitted"
+            => (5, "Sourcing Manager review", "The recommendation is with the Sourcing Manager.", wait),
+        _ when tender.Status == "UnderEvaluation"
+            => (3, "Evaluation Committee review", "The committee is scoring eligible offers and preparing its recommendation.", wait),
+        _ when tender.Status == "AwaitingOfficerSummary"
+            => (4, "Sourcing Officer review of the report", "The Sourcing Officer is reviewing the committee’s recommendation before forwarding it.", wait),
+        _ when tender.Status == "AwaitingManagerReview" && reportStatus == "ManagerApproved"
+            => (5, "With the Sourcing Manager", "The manager’s approval is on record. The tender is currently with the Sourcing Manager.", "No submission is needed. Check back for the next recorded decision."),
+        _ when tender.Status == "AwaitingManagerReview"
+            => (5, "Sourcing Manager review", "The recommendation is with the Sourcing Manager.", wait),
+        _ when tender.Status == "AwaitingCommitteeDecision"
+            => (6, "CEO & Chiefs decision", "The recommendation is with the CEO & Chiefs for its decision.", wait),
+        _ when Model.ComplianceStatus == "Compliant" || status == "Compliant"
+            => (2, "Compliance confirmed", "Your offer passed the Sourcing Officer’s compliance review.", "The Sourcing Officer will send the tender to the Evaluation Committee. No action needed from you."),
+        _ when Model.ComplianceStatus == "PendingClarification"
+            => (2, "Compliance review pending clarification", "The compliance review is waiting for clarification.", "Open Clarifications and respond if the officer has requested information from you."),
+        "UnderReview" => (2, "Sourcing Officer review", "The Sourcing Officer is reviewing the offer requirements and documents.", wait),
+        _ => (1, "Offer submitted", "Your offer has been submitted for Sourcing Officer review.", wait)
+    };
+    var needsClarification = canClarify && Model.ComplianceStatus == "PendingClarification";
     ViewData["Title"] = "Offer details";
 }
 <div class="supplier-workspace supplier-workspace--offer">
-<p class="eyebrow">SUPPLIER OFFER · BID-@Model.BidId.ToString("D6")</p><div class="supplier-page-heading"><div><h1>Offer details</h1><p>@tender.Title · TND-@tender.TenderId.ToString("D6")</p></div><span class="status-badge status-@status.ToLowerInvariant()">@status</span></div>
-@if (TempData["Success"] is string success) { <div class="alert alert-success" role="status">@success</div> }
-@if (TempData["Error"] is string error) { <div class="alert alert-warning" role="alert">@error</div> }
-@if (status is "Cancelled" or "Withdrawn")
-{
-    <p class="alert alert-info">@(status == "Cancelled" ? "The sourcing officer canceled this tender." : "You canceled this offer.")</p>
-}
-else
-{
-<section class="supplier-card offer-progress-card"><div class="offer-progress-heading"><div><span class="eyebrow">OFFER REVIEW TRACKER</span><h2>Where your offer is</h2></div><span class="offer-stage-count">@(stage == 0 ? "Draft · not submitted" : stage == 7 ? "Final stage" : $"Stage {stage} of 7")</span></div><div class="offer-progress-steps" aria-label="Offer workflow progress">
-    @foreach (var item in new[] { (1, "Offer submitted"), (2, "Officer review"), (3, "4-member committee"), (4, "Officer approval"), (5, "Source manager"), (6, "CEO & Chiefs"), (7, "Final decision") })
-    {
-        <div class="offer-progress-step @(item.Item1 == stage ? "current" : item.Item1 < stage ? "complete" : "")"><span>@(item.Item1 < stage ? "✓" : item.Item1.ToString("00"))</span><small>@item.Item2</small></div>
-    }
-</div><p class="offer-progress-message">@progressMessage</p></section>
-}
-<section class="supplier-card"><div class="supplier-summary-grid"><div><small>Supplier</small><strong>@Model.Invitation.SupplierProfile.CompanyName</strong></div><div><small>Submission date</small><strong>@(Model.SubmittedAt?.ToLocalTime().ToString("dd MMM yyyy, HH:mm") ?? "Draft")</strong></div><div><small>Delivery time</small><strong>@Model.DeliveryDays days</strong></div><div><small>Tender deadline (UTC)</small><strong>@tender.ClosesAt.ToString("dd MMM yyyy, HH:mm")</strong></div></div></section>
-<section class="supplier-card mt-3"><div class="supplier-card-heading"><h2>Itemized pricing</h2><a class="btn btn-sm btn-outline-primary" asp-action="DownloadSummary" asp-route-id="@Model.BidId">Download personal summary (PDF)</a></div><div class="table-responsive"><table class="table supplier-table"><thead><tr><th>Item</th><th>Quantity</th><th>Unit price</th><th>Line total</th><th>Technical response</th></tr></thead><tbody>@foreach (var item in Model.BidItems) { <tr><td><strong>@item.PurchaseRequestItem.ItemName</strong></td><td>@item.Quantity.ToString("N3") @item.PurchaseRequestItem.Unit</td><td>@item.UnitPrice.ToString("N2") @Model.Currency</td><td>@((item.Quantity * item.UnitPrice).ToString("N2")) @Model.Currency</td><td>@item.OfferedSpecifications</td></tr> }</tbody><tfoot><tr><th colspan="3" class="text-end">Total amount</th><th colspan="2">@total.ToString("N2") @Model.Currency</th></tr></tfoot></table></div></section>
-<div class="supplier-detail-grid mt-3"><section class="supplier-card"><h2>Commercial terms</h2><dl class="detail-list"><dt>Payment terms</dt><dd>@(Model.PaymentTerms ?? "Not specified")</dd><dt>Additional technical notes</dt><dd>@(Model.TechnicalDetails ?? "Not provided")</dd></dl></section><section class="supplier-card"><h2>Supporting documents</h2>@if (!Model.BidDocuments.Any()) { <p class="text-muted">No supporting documents uploaded.</p> } else { <ul class="document-list">@foreach (var document in Model.BidDocuments) { <li><a asp-action="DownloadDocument" asp-route-id="@document.BidDocumentId">@document.OriginalFileName</a><small>@((document.FileSizeBytes / 1024d).ToString("N0")) KB · @document.UploadedAt.ToLocalTime().ToString("dd MMM yyyy")</small></li> }</ul> }</section></div>
-<div class="supplier-action-bar"><a asp-action="Offers" class="btn btn-outline-secondary">Back to my offers</a>@if (Model.Status == "Draft" && Model.Invitation.Status == "Accepted" && tender.IsAcceptingOffers(DateTime.UtcNow)) { <a asp-action="CreateOffer" asp-route-invitationId="@Model.InvitationId" asp-route-bidId="@Model.BidId" class="btn btn-primary">Continue draft</a> }
+    <nav class="supplier-offer-back" aria-label="Offer navigation">
+        <a asp-action="Offers"><span aria-hidden="true">←</span> Back to my offers</a>
+    </nav>
+
+    @if (TempData["Success"] is string success) { <div data-flash-message class="alert alert-success" role="status">@success</div> }
+    @if (TempData["Error"] is string error) { <div data-flash-message class="alert alert-warning" role="alert">@error</div> }
+
+    <section class="supplier-card supplier-offer-summary" aria-labelledby="offer-title">
+        <header class="supplier-offer-title">
+            <p class="supplier-reference">Offer BID-@Model.BidId.ToString("D6") · Tender TND-@tender.TenderId.ToString("D6")</p>
+            <h1 id="offer-title">@tender.Title</h1>
+        </header>
+
+        <div class="supplier-offer-current"><span class="status-badge status-@status.ToLowerInvariant()">@CommitteeEvaluationPage.StatusLabel(status)</span>
+            <div>
+                <h2 id="offer-progress-title">@progress.Heading</h2>
+                <p>@progress.Current</p>
+                <p class="supplier-offer-next"><strong>Next:</strong> @progress.Next</p>
+            </div>
+            @if (canContinue || canRevise)
+            {
+                <a asp-action="CreateOffer" asp-route-invitationId="@Model.InvitationId" asp-route-bidId="@Model.BidId" class="btn btn-primary">@(canRevise ? "Revise offer" : "Continue draft") <span aria-hidden="true">→</span></a>
+            }
+            else if (needsClarification)
+            {
+                <a href="#offer-clarification-title" class="btn btn-primary">Go to clarifications <span aria-hidden="true">↓</span></a>
+            }
+        </div>
+
+        <dl class="supplier-offer-summary-facts">
+            <div><dt>Offer total</dt><dd>@total.ToString("N2") @(Model.Currency == "JOD" ? "JD" : Model.Currency)</dd></div>
+            <div><dt>Submitted (local time)</dt><dd>@(Model.SubmittedAt?.ToLocalTime().ToString("dd MMM yyyy, HH:mm") ?? "Not submitted")</dd></div>
+            <div><dt>Tender deadline (UTC)</dt><dd>@tender.ClosesAt.ToString("dd MMM yyyy, HH:mm")</dd></div>
+        </dl>
+
+    </section>
+
+    <section class="supplier-card supplier-offer-pricing" aria-labelledby="offer-pricing-title">
+        <h2 id="offer-pricing-title">Items and pricing</h2>
+        @await Component.InvokeAsync("OfferProductPhotos", new { bidId = Model.BidId })
+        @if (Model.BidItems.Any())
+        {
+            <div class="table-responsive" tabindex="0" role="region" aria-label="Itemized pricing">
+                <table class="table supplier-table">
+                    <thead><tr><th scope="col">Item</th><th scope="col">Your quantity</th><th scope="col">Unit price</th><th scope="col">Line total</th><th scope="col">Technical response</th></tr></thead>
+                    <tbody>
+                    @foreach (var item in Model.BidItems)
+                    {
+                        <tr>
+                            <th scope="row">@item.PurchaseRequestItem.ItemName<small class="d-block text-secondary">Requested: @item.PurchaseRequestItem.Quantity.ToString("N3") @item.PurchaseRequestItem.Unit</small><small class="d-block text-secondary">@item.PurchaseRequestItem.Specifications</small></th>
+                            <td data-label="Your quantity">@item.Quantity.ToString("N3") @item.PurchaseRequestItem.Unit</td>
+                            <td data-label="Unit price">@item.UnitPrice.ToString("N2") @(Model.Currency == "JOD" ? "JD" : Model.Currency)</td>
+                            <td data-label="Line total">@((item.Quantity * item.UnitPrice).ToString("N2")) @(Model.Currency == "JOD" ? "JD" : Model.Currency)</td>
+                            <td data-label="Technical response">@item.OfferedSpecifications</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.TaxAmount != 0 || Model.AdditionalCosts != 0)
+            {
+                <p class="supplier-offer-cost-note">Offer total includes @Model.TaxAmount.ToString("N2") @(Model.Currency == "JOD" ? "JD" : Model.Currency) tax and @Model.AdditionalCosts.ToString("N2") @(Model.Currency == "JOD" ? "JD" : Model.Currency) additional costs.</p>
+            }
+        }
+        else
+        {
+            <p class="text-secondary mb-0">No items have been added to this offer.</p>
+        }
+
+        <section class="supplier-offer-commercial">
+            <h3>Delivery, payment and notes</h3><p>@Model.DeliveryDays days for delivery</p>
+            <dl class="supplier-offer-terms">
+                <div><dt>Supplier</dt><dd>@Model.Invitation.SupplierProfile.CompanyName</dd></div>
+                <div><dt>Payment terms</dt><dd>@(Model.PaymentTerms ?? "Not specified")</dd></div>
+                <div><dt>Technical notes</dt><dd>@(Model.TechnicalDetails ?? "Not provided")</dd></div>
+            </dl>
+        </section>
+    </section>
+
+    <div class="supplier-offer-sections">
+        <section class="supplier-card supplier-offer-files" aria-labelledby="offer-files-title">
+            <div class="supplier-card-heading">
+                <h2 id="offer-files-title">Files</h2>
+                <a class="btn btn-outline-primary" asp-action="DownloadSummary" asp-route-id="@Model.BidId">Download summary (PDF)</a>
+            </div>
+            @if (!Model.BidDocuments.Any())
+            {
+                <p class="text-secondary mb-0">No supporting documents attached.</p>
+            }
+            else
+            {
+                <ul class="document-list" aria-label="Supporting documents">
+                @foreach (var document in Model.BidDocuments)
+                {
+                    <li><a asp-action="DownloadDocument" asp-route-id="@document.BidDocumentId">@document.OriginalFileName</a><small>@((document.FileSizeBytes / 1024d).ToString("N0")) KB · @document.UploadedAt.ToLocalTime().ToString("dd MMM yyyy")</small></li>
+                }
+                </ul>
+            }
+        </section>
+
+        <section class="supplier-card supplier-offer-clarifications" aria-labelledby="offer-clarification-title">
+            <div class="supplier-card-heading">
+                <h2 id="offer-clarification-title">Clarifications</h2>
+                @if (canClarify)
+                {
+                    <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid"
+                       asp-route-recordId="@Model.BidId" class="btn btn-outline-primary">Ask a question</a>
+                }
+            </div>
+            <details class="supplier-conversation-history" open="@needsClarification">
+                <summary>View clarification history <span aria-hidden="true">⌄</span></summary>
+                @await Component.InvokeAsync("ClarificationHistory", new { kind = "bid", recordId = Model.BidId })
+            </details>
+        </section>
+    </div>
+
     @if (canCancel)
     {
-        <form asp-action="CancelOffer" asp-route-id="@Model.BidId" method="post"
-              onsubmit="return confirm('Cancel this submitted offer?');">
-            <button type="submit" class="btn btn-outline-danger">Cancel offer</button>
-        </form>
+        <section class="supplier-card supplier-offer-cancel">
+            <div><h2>Cancel this offer</h2><p>Cancel if you no longer want this offer to be considered.</p></div>
+            <form asp-action="CancelOffer" asp-route-id="@Model.BidId" method="post">
+                <button type="submit" class="btn btn-outline-danger">Cancel offer</button>
+            </form>
+        </section>
     }
 </div>
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
-@if (Model.SubmittedAt.HasValue && status is not ("Withdrawn" or "Cancelled"))
-{
-    <a asp-controller="Clarification" asp-action="Index" asp-route-kind="bid"
-       asp-route-recordId="@Model.BidId" class="btn btn-outline-primary mt-3">Ask for clarification</a>
-}
-<details class="supplier-conversation-history"><summary>Clarification history <span aria-hidden="true">⌄</span></summary>@await Component.InvokeAsync("ClarificationHistory", new { kind = "bid", recordId = Model.BidId })</details>
-
-</div>

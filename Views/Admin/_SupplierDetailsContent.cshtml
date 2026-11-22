@@ -5,6 +5,19 @@
 }
 
 <div data-review-flow>
+@if (TempData["SupplierReviewFeedback"] is string feedback)
+{
+    <p class="alert alert-success" role="status" data-supplier-review-saved>@feedback</p>
+}
+@if (TempData["SupplierReviewConflict"] is string conflict)
+{
+    <p class="alert alert-warning" role="alert">@conflict</p>
+}
+<header class="admin-review-overview" data-review-overview>
+    <span class="admin-review-eyebrow">APPLICATION REVIEW</span>
+    <p>Current status: <strong>@SupplierListViewModel.StatusLabel(supplier.Status)</strong></p>
+    <p class="text-secondary">Check the company details and official documents before recording your decision.</p>
+</header>
 <section class="workspace-section" data-review-step="Company" aria-labelledby="company-details">
     <h2 id="company-details">Company details</h2>
     <dl class="row mb-0">
@@ -88,7 +101,8 @@
 
 <section class="workspace-section" data-review-step="Decision" aria-labelledby="review-heading">
     <h2 id="review-heading">Record a decision</h2>
-    <form asp-action="ReviewSupplier" method="post">
+    <p class="text-secondary">Approval gives this company access to supplier tenders. Your reason is shared with the supplier and recorded with this review.</p>
+    <form asp-action="ReviewSupplier" method="post" data-supplier-popup-form>
         <input asp-for="Review.Id" type="hidden" />
         <input asp-for="Review.PreviousStatus" type="hidden" />
         <input asp-for="Review.ReviewedAtTicks" type="hidden" />
@@ -110,7 +124,7 @@
             <p id="review-reason-help" class="form-text mb-0">The supplier can see this reason.</p>
             <span asp-validation-for="Review.Notes" class="text-danger" role="alert"></span>
         </div>
-        <div class="admin-review-controls" data-decision-actions><button type="submit" class="btn btn-primary">Save decision</button></div>
+        <div class="admin-review-controls" data-decision-actions><button type="submit" class="btn btn-primary" data-review-decision-submit>Save decision</button></div>
     </form>
 </section>
 

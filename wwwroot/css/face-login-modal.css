@@ -17,21 +17,71 @@
 @media (max-width: 575.98px) { .face-login-modal .modal-content { border-radius: 0; } .face-login-modal .modal-body { padding: 1rem; } .face-login-modal .modal-footer .btn { flex: 1 1 auto; } }
 @media (prefers-reduced-motion: reduce) { .face-login-modal .face-modal-success, .face-login-modal .face-modal-success path { animation: none !important; } }
 
-/* Sign-in camera: one preview, one short status, no secondary actions. */
+/* Sign-in camera: a biometric scan chamber. Live face mesh, honeycomb glass, honey scan band. */
 .face-signin-compact .modal-dialog { max-width: 440px; margin-inline: auto; padding: 12px; }
-.face-signin-compact .modal-content { overflow: hidden; border-radius: 16px; }
-.face-signin-compact .modal-header { padding: 16px 20px; }
-.face-signin-compact .modal-body { padding: 12px; }
-.face-signin-compact .face-modal-preview { position: relative; isolation: isolate; aspect-ratio: 4 / 5; background: #142234; }
-.face-signin-compact :is(video,canvas) { width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; transform: scaleX(-1); }
+.face-signin-compact .modal-content { overflow: hidden; border-radius: 22px; border: 1px solid rgba(244,238,226,.12); color: #f4eee2;
+  background: radial-gradient(120% 80% at 50% 0%, #1d5560 0%, #0c252d 62%); box-shadow: 0 30px 80px rgba(4,16,20,.55), inset 0 1px rgba(244,238,226,.08); }
+.face-signin-compact .modal-header { padding: 16px 20px 6px; border: 0; }
+.face-signin-compact .modal-title { font: 400 1.6rem/1 "Instrument Serif", Georgia, serif; letter-spacing: .01em; color: #f4eee2; }
+.face-signin-compact .btn-close { filter: invert(1) grayscale(1) brightness(1.6); opacity: .7; }
+.face-signin-compact .modal-body { padding: 10px 14px 14px; }
+.face-signin-compact .face-modal-preview { position: relative; isolation: isolate; aspect-ratio: 4 / 5; overflow: hidden; border-radius: 18px; background: #081a1f;
+  box-shadow: inset 0 0 0 1px rgba(239,184,92,.18); }
+.face-signin-compact :is(video,canvas) { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; transform: scaleX(-1); }
 .face-signin-compact :is(video,canvas)[hidden] { display: none; }
-.face-signin-compact #face-signin-feedback { position: absolute; inset-inline: 16px; bottom: 16px; margin: 0; padding: 10px 16px; border-radius: 12px; background: #142234; color: #fff; text-align: center; font-size: .875rem; line-height: 1.5; }
-.face-signin-result { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; pointer-events: none; }
-.face-signin-result svg { display: none; width: 72px; height: 72px; border-radius: 50%; padding: 12px; stroke: #fff; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
-.face-signin-compact [data-state="matched"] .face-signin-result,
+.face-signin-compact video, .face-signin-compact #face-signin-snapshot { filter: saturate(.75) contrast(1.05); }
+/* honeycomb glass + vignette */
+.face-signin-compact .face-modal-preview::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(ellipse 34% 34% at 50% 45%, transparent 70%, rgba(8,26,31,.78) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='48.5' viewBox='0 0 28 48.5'%3E%3Cpath d='M14 0l14 8.08v16.17L14 32.33 0 24.25V8.08zM14 32.33v16.17' fill='none' stroke='%23efb85c' stroke-opacity='.09'/%3E%3C/svg%3E"); }
+.fs-mesh { z-index: 2; pointer-events: none; transition: filter .4s, opacity .4s; }
+.fs-frame { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; fill: none; pointer-events: none; overflow: visible; }
+.fs-oval { stroke: rgba(244,238,226,.5); stroke-width: .5; stroke-dasharray: 1.2 1.4; vector-effect: non-scaling-stroke; transition: stroke .4s; }
+.fs-orbit { stroke: #efb85c; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 0 100; vector-effect: non-scaling-stroke; transition: stroke-dasharray .6s; }
+.fs-corner { stroke: rgba(239,184,92,.75); stroke-width: 2; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.fs-scan { position: absolute; inset-inline: 0; top: 0; height: 22%; z-index: 2; pointer-events: none; opacity: 0;
+  background: linear-gradient(to bottom, transparent, rgba(239,184,92,.16) 70%, rgba(246,212,154,.75) 98%, transparent); }
+.fs-hud { position: absolute; inset: 14px 16px auto; z-index: 4; display: flex; justify-content: space-between; align-items: center;
+  font: 500 .66rem/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .18em; text-transform: uppercase; color: rgba(244,238,226,.72); pointer-events: none; }
+.fs-live { display: inline-flex; align-items: center; gap: 7px; }
+.fs-live i { width: 7px; height: 7px; border-radius: 50%; background: rgba(244,238,226,.4); }
+.fs-live b { font-weight: 500; color: #f4eee2; }
+.face-signin-compact #face-signin-feedback { position: absolute; z-index: 4; inset-inline: 16px; bottom: 16px; margin: 0; padding: 11px 16px; border-radius: 99px;
+  background: rgba(12,37,45,.78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(244,238,226,.14);
+  color: #f4eee2; text-align: center; font-size: .86rem; line-height: 1.4; transition: background .4s, color .4s, border-color .4s; }
+
+/* searching: scan band sweeps, live dot pulses */
+[data-live] .fs-live i { background: #efb85c; box-shadow: 0 0 0 0 rgba(239,184,92,.6); animation: fs-pulse 1.4s infinite; }
+[data-live="searching"] .fs-scan { opacity: 1; animation: fs-sweep 2.4s cubic-bezier(.45,0,.55,1) infinite; }
+/* locked: oval turns honey and the orbit closes around the face */
+[data-live="locked"] .fs-oval { stroke: #efb85c; stroke-dasharray: none; }
+[data-live="locked"] .fs-orbit { stroke-dasharray: 72 100; animation: fs-spin 3s linear infinite; }
+/* verifying: frozen frame, orbit races */
+[data-live="verifying"] .fs-oval { stroke: #efb85c; stroke-dasharray: none; }
+[data-live="verifying"] .fs-orbit { stroke-dasharray: 22 28; animation: fs-spin .9s linear infinite; }
+[data-live="verifying"] .fs-mesh { filter: drop-shadow(0 0 6px rgba(239,184,92,.8)); }
+[data-live="verifying"] #face-signin-snapshot { filter: saturate(.3) brightness(.7); }
+/* matched */
+.face-signin-compact [data-state="matched"] .fs-orbit { stroke-dasharray: 100 0; animation: none; }
+.face-signin-compact [data-state="matched"] .fs-mesh { filter: drop-shadow(0 0 10px #efb85c) brightness(1.3); animation: fs-flash .7s ease-out; }
+.face-signin-compact [data-state="matched"] #face-signin-feedback { background: #efb85c; color: #0a1f26; border-color: #efb85c; font-weight: 600; }
+/* failed */
+.face-signin-compact [data-state="failed"] .fs-oval { stroke: #f0645a; stroke-dasharray: none; }
+.face-signin-compact [data-state="failed"] .fs-orbit { stroke-dasharray: 0 100; }
+.face-signin-compact [data-state="failed"] .fs-frame { animation: fs-shake .45s ease-in-out; }
+.face-signin-compact [data-state="failed"] .fs-mesh { opacity: .35; filter: grayscale(1); }
+.face-signin-compact [data-state="failed"] .fs-live i { background: #f0645a; animation: none; }
+.face-signin-compact [data-state="failed"] #face-signin-feedback { background: rgba(180,35,24,.92); border-color: transparent; color: #fff; }
+
+.face-signin-result { position: absolute; inset: 0; z-index: 3; display: none; align-items: center; justify-content: center; pointer-events: none; }
+.face-signin-result svg { display: none; width: 64px; height: 64px; border-radius: 50%; padding: 12px; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 .face-signin-compact [data-state="failed"] .face-signin-result { display: flex; }
-.face-signin-compact [data-state="matched"] .face-signin-check { display: block; background: #157347; }
-.face-signin-compact [data-state="failed"] .face-signin-cross { display: block; background: #b42318; }
-.face-signin-compact [data-state="matched"] #face-signin-feedback { background: #157347; }
-.face-signin-compact [data-state="failed"] #face-signin-feedback { background: #b42318; }
+.face-signin-compact [data-state="failed"] .face-signin-cross { display: block; stroke: #fff; background: rgba(180,35,24,.85); animation: face-modal-appear .3s ease-out; }
+
+@keyframes fs-sweep { 0% { transform: translateY(-100%); } 100% { transform: translateY(460%); } }
+@keyframes fs-spin { to { stroke-dashoffset: -100; } }
+@keyframes fs-pulse { 70% { box-shadow: 0 0 0 7px rgba(239,184,92,0); } 100% { box-shadow: 0 0 0 0 rgba(239,184,92,0); } }
+@keyframes fs-flash { 0% { filter: drop-shadow(0 0 0 #efb85c) brightness(3); } }
+@keyframes fs-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 @media (max-height:700px) { .face-signin-compact .face-modal-preview { aspect-ratio: 1; max-height: 65dvh; } }
+@media (prefers-reduced-motion: reduce) { .face-signin-compact :is(.fs-scan, .fs-orbit, .fs-frame, .fs-mesh, .fs-live i) { animation: none !important; } }

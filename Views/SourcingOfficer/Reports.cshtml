@@ -1,87 +1,58 @@
 @using SourcingTenderManagement.Models.Entities
 @model List<EvaluationReport>
 @{
-    ViewData["Title"] = "Reports";
-    var selectedReport = ViewBag.SelectedReport as EvaluationReport;
+ ViewData["Title"] = "Reports";
+ var selected = ViewBag.SelectedReport as EvaluationReport;
+ // Shared with the PDF exports so downloaded reports use the same wording as this page.
+ bool NeedsReview(EvaluationReport report) => SourcingTenderManagement.Services.Reports.OfficerReportLabels.NeedsReview(report);
+ string StatusLabel(string status) => SourcingTenderManagement.Services.Reports.OfficerReportLabels.StatusLabel(status);
 }
-
-@section Styles { <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" /> }
-
-<div class="so-page so-page--reports">
-<header class="so-page-header"><div>
-<h1>Reports</h1>
-<p class="so-page-description">Read committee findings and follow the manager’s review.</p></div></header>
-<section class="so-summary-grid" aria-label="Report summary">
-    <article class="so-summary-card"><span class="so-summary-label">Reports</span><strong>@Model.Count</strong></article>
-    <article class="so-summary-card"><span class="so-summary-label">Recommendations recorded</span><strong>@Model.Count(item => item.RecommendedBidId.HasValue)</strong></article>
-    <article class="so-summary-card"><span class="so-summary-label">Manager notes recorded</span><strong>@Model.Count(item => !string.IsNullOrWhiteSpace(item.ManagerSummary))</strong></article>
-</section>
-<div class="nav nav-tabs workspace-tabs" role="tablist" aria-label="Sourcing Officer Reports">
-    <button class="nav-link @(selectedReport == null ? "active" : "")" id="reports-list-tab" data-bs-toggle="tab" data-bs-target="#reports-list" type="button" role="tab" aria-controls="reports-list" aria-selected="@(selectedReport == null ? "true" : "false")">Reports</button>
-    <button class="nav-link @(selectedReport != null ? "active" : "")" id="reports-details-tab" data-bs-toggle="tab" data-bs-target="#reports-details" type="button" role="tab" aria-controls="reports-details" aria-selected="@(selectedReport != null ? "true" : "false")">Report Details</button>
+@section Styles {
+ <link rel="stylesheet" href="~/css/sourcing-officer.css" asp-append-version="true" />
+ <link rel="stylesheet" href="~/css/officer-reports.css" asp-append-version="true" />
+}
+<div class="so-page reports-page">
+ @if(TempData["EvaluationSuccess"] is string success){<div data-flash-message class="alert alert-success" role="status">@success</div>}
+ @if(TempData["EvaluationError"] is string error){<div data-flash-message class="alert alert-danger" role="alert">@error</div>}
+ <header class="so-page-header"><div><h1>@(selected == null ? "Reports" : "Report details")</h1><p class="so-page-description">@(selected == null ? "Committee recommendations and the decisions that follow." : "Read the recommendation and follow its review history.")</p></div>
+ @if(selected == null){<a class="btn btn-outline-primary" asp-action="ReportPdf" asp-route-id=""><partial name="_ReportDownloadIcon" />Export reports</a>}
+ else{<a class="btn btn-outline-primary" asp-action="Reports" asp-route-id="">← All reports</a>}
+ </header>
+ @if(selected == null)
+ {
+  <section class="rp-library" aria-labelledby="report-library-title">
+   <header class="rp-library-heading"><div><h2 id="report-library-title">Report library <span class="rp-count">@Model.Count</span></h2><p>Needs your review first · Newest within each group</p></div><span class="rp-review-count">@Model.Count(NeedsReview) awaiting your review</span></header>
+   <div class="rp-toolbar"><div><label for="report-search">Find a report</label><input id="report-search" type="search" class="form-control" placeholder="Tender title, supplier or report number" autocomplete="off" /></div><div><label for="report-filter">Show</label><select id="report-filter" class="form-select"><option value="all">All reports</option><option value="review">Needs my review</option><option value="progress">In progress</option><option value="approved">Approved by CEO &amp; Chiefs</option></select></div></div>
+   <p class="rp-results" role="status" aria-live="polite">@Model.Count @(Model.Count==1?"report":"reports")</p>
+   @if(Model.Count == 0){<div class="rp-empty"><h3>No reports yet</h3><p>Reports appear when your tenders enter committee evaluation.</p></div>}
+   else
+   {
+    <table class="rp-table"><caption class="visually-hidden">Reports for your tenders, prioritised by review action</caption><colgroup><col/><col class="rp-status-col"/><col class="rp-date-col"/><col class="rp-action-col"/></colgroup><thead><tr><th scope="col">Tender</th><th scope="col">Review status</th><th scope="col">Submitted · UTC</th><th scope="col">Action</th></tr></thead><tbody>
+    @foreach(var report in Model.OrderByDescending(NeedsReview).ThenByDescending(x=>x.SubmittedAt ?? x.Tender.CreatedAt))
+    {
+     var needsReview=NeedsReview(report);
+     <tr class="rp-report-row" data-search="@($"{report.EvaluationReportId} {report.TenderId} {report.Tender.Title} {report.Bid?.Invitation.SupplierProfile.CompanyName}")" data-filter="@(needsReview?"review":report.Status=="TopApproved"?"approved":"progress")">
+      <td><h3><a asp-action="Reports" asp-route-id="@report.EvaluationReportId">@report.Tender.Title</a></h3><span class="rp-reference">Report #@report.EvaluationReportId · Tender #@report.TenderId</span></td>
+      <td data-label="Review status"><span class="rp-status" data-state="@(needsReview?"review":report.Status)">@(needsReview?"Your review needed":StatusLabel(report.Status))</span></td>
+      <td data-label="Submitted"><span class="rp-date">@(report.SubmittedAt?.ToString("dd MMM yyyy") ?? "Not submitted")</span>@if(report.SubmittedAt.HasValue){<small class="rp-time">@report.SubmittedAt.Value.ToString("HH:mm") UTC</small>}</td>
+      <td data-label="Action">@if(needsReview){<button type="button" class="btn btn-primary" data-report-review-url="@Url.Action("Reports", new { id = report.EvaluationReportId, review = true })">Review report <span aria-hidden="true">→</span></button>}else{<a class="btn btn-outline-primary" asp-action="Reports" asp-route-id="@report.EvaluationReportId">View report <span aria-hidden="true">→</span></a>}</td>
+     </tr>
+    }
+    </tbody></table>
+    <div class="rp-empty rp-no-matches" hidden><h3>No matching reports</h3><p>Try another search or review filter.</p></div>
+   }
+  </section>
+ }
+ else
+ {
+  <section class="rp-document-heading"><div><span class="rp-reference">Report #@selected.EvaluationReportId · Tender #@selected.TenderId</span><h2>@selected.Tender.Title</h2><span class="rp-status" data-state="@(NeedsReview(selected)?"review":selected.Status)">@(NeedsReview(selected)?"Your review needed":StatusLabel(selected.Status))</span></div><a class="btn btn-outline-primary" asp-action="ReportPdf" asp-route-id="@selected.EvaluationReportId"><partial name="_ReportDownloadIcon" />Download PDF</a></section>
+  @if(NeedsReview(selected)){<div class="rp-review-callout"><div><strong>Your approval is needed</strong><p>Review the recommendation before forwarding it to the sourcing manager.</p></div><button type="button" class="btn btn-primary" data-report-review-url="@Url.Action("Reports", new { id = selected.EvaluationReportId, review = true })">Review &amp; approve →</button></div>}
+  <div class="rp-detail-layout"><div class="rp-content">
+   <section class="rp-panel"><h3>Committee recommendation</h3>@if(string.IsNullOrWhiteSpace(selected.CommitteeSummary)){<p class="rp-muted">The committee is still preparing this report.</p>}else{<partial name="_FormattedReport" model="selected.CommitteeSummary" />}</section>
+   <section class="rp-panel"><h3>Sourcing officer review</h3>@if(string.IsNullOrWhiteSpace(selected.OfficerSummary)){<p class="rp-muted">No officer decision recorded yet.</p>}else{<partial name="_FormattedReport" model="selected.OfficerSummary" />}</section>
+   <section class="rp-panel"><h3>Sourcing manager review</h3>@if(string.IsNullOrWhiteSpace(selected.ManagerSummary)){<p class="rp-muted">No manager review recorded yet.</p>}else{<partial name="_FormattedReport" model="selected.ManagerSummary" />}</section>
+  </div><aside class="rp-panel rp-facts"><h3>Report record</h3><dl><div><dt>Prepared by</dt><dd>@(selected.PreparedByUser?.FullName ?? "Not recorded")</dd></div><div><dt>Submitted</dt><dd>@SourcingTenderManagement.Services.Reports.OfficerReportLabels.SubmittedDetail(selected.SubmittedAt)</dd></div><div><dt>Recommended supplier</dt><dd>@(selected.Bid?.Invitation.SupplierProfile.CompanyName ?? "Not recorded")</dd></div></dl><a asp-action="Offers" asp-route-id="" asp-route-tenderId="@selected.TenderId">Open tender workspace →</a></aside></div>
+ }
+ <div class="modal fade rp-review-modal" id="report-review-modal" tabindex="-1" aria-labelledby="report-review-title" aria-hidden="true"><div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"></div></div></div>
 </div>
-
-<div class="tab-content workspace-content">
-    <div class="tab-pane fade @(selectedReport == null ? "show active" : "")" id="reports-list" role="tabpanel" aria-labelledby="reports-list-tab" tabindex="0">
-        <section class="workspace-section">
-            <h2>Evaluation Reports for Your Tenders</h2>
-            <nav class="workspace-toolbar" aria-label="Reports export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id="">Download PDF</a></nav>
-            @if (Model.Count == 0)
-            {
-                <p class="text-secondary">No committee reports are available for your tenders yet.</p>
-            }
-            else
-            {
-                <div class="table-responsive"><table class="table">
-                    <thead><tr><th>Tender</th><th>Status</th><th>Committee Findings</th><th>Officer Submitted (UTC)</th><th>Manager Review</th><th></th></tr></thead>
-                    <tbody>
-                        @foreach (var report in Model)
-                        {
-                            <tr>
-                                <td>@report.Tender.Title</td>
-                                <td><span class="so-status-badge" data-status="@report.Status">@report.Status</span></td>
-                                <td><div class="so-report-preview">@(string.IsNullOrWhiteSpace(report.CommitteeSummary) ? "Not recorded" : report.CommitteeSummary)</div></td>
-                                <td>@report.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td><div class="so-report-preview">@(string.IsNullOrWhiteSpace(report.ManagerSummary) ? "Awaiting review" : report.ManagerSummary)</div></td>
-                                <td>@if (report.Status == "CommitteeApproved" && report.Tender.Status == "AwaitingOfficerSummary") { <a class="btn btn-primary btn-sm" asp-action="Offers" asp-fragment="committee-report" asp-route-tenderId="@report.TenderId" asp-route-tab="report">Review &amp; approve →</a> } <a class="btn btn-outline-primary btn-sm" asp-action="Reports" asp-route-id="@report.EvaluationReportId">Details</a></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table></div>
-            }
-        </section>
-    </div>
-    <div class="tab-pane fade @(selectedReport != null ? "show active" : "")" id="reports-details" role="tabpanel" aria-labelledby="reports-details-tab" tabindex="0">
-        <section class="workspace-section">
-            <h2>Report Details</h2>
-            @if (selectedReport is null)
-            {
-                <p class="text-secondary">Select a report to view its committee findings and review status.</p>
-            }
-            else
-            {
-                @if (selectedReport.Status == "CommitteeApproved" && selectedReport.Tender.Status == "AwaitingOfficerSummary")
-                {
-                    <div class="so-next-step"><div><strong>Your approval is needed</strong><p>Review the committee’s recommendation and forward it to the sourcing manager.</p></div><a class="btn btn-primary" asp-action="Offers" asp-fragment="committee-report" asp-route-tenderId="@selectedReport.TenderId" asp-route-tab="report">Review &amp; approve →</a></div>
-                }
-                <nav class="workspace-toolbar" aria-label="Selected report export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportPdf" asp-route-id="@selectedReport.EvaluationReportId">Download PDF</a></nav>
-                <dl>
-                    <dt>Tender</dt><dd>@selectedReport.Tender.Title</dd>
-                    <dt>Status</dt><dd><span class="so-status-badge" data-status="@selectedReport.Status">@selectedReport.Status</span></dd>
-                    <dt>Committee Summary</dt><dd><partial name="_FormattedReport" model="selectedReport.CommitteeSummary" /></dd>
-                    <dt>Sourcing Officer Summary</dt><dd>@selectedReport.OfficerSummary</dd>
-                    <dt>Prepared By</dt><dd>@(selectedReport.PreparedByUser?.FullName ?? "Not recorded")</dd>
-                    <dt>Submitted (UTC)</dt><dd>@selectedReport.SubmittedAt?.ToString("yyyy-MM-dd HH:mm")</dd>
-                    <dt>Sourcing Manager Summary</dt><dd>@(selectedReport.ManagerSummary ?? "No manager summary has been recorded.")</dd>
-                    @if (selectedReport.Bid is { } recommendedBid)
-                    {
-                        <dt>Recommended Bid Supplier</dt><dd>@recommendedBid.Invitation.SupplierProfile.CompanyName</dd>
-                        <dt>Recommended Bid Status</dt><dd><span class="so-status-badge" data-status="@recommendedBid.Status">@recommendedBid.Status</span></dd>
-                    }
-                </dl>
-                <p class="text-secondary">This report is a recommendation and review record. Final award decisions belong to the authorized later workflow stages.</p>
-            }
-        </section>
-    </div>
-</div>
-</div>
+@section Scripts {<script src="~/js/officer-reports.js" asp-append-version="true"></script>}

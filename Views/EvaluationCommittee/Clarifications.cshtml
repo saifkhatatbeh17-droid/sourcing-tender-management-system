@@ -1,9 +1,6 @@
 @{ ViewData["Title"] = "Committee clarifications"; }
 @section Styles { <partial name="_CommitteePageStyles" /> }
 <div class="evaluation-page committee-workspace">
-    <header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Clarifications</h1><p>Questions and responses related to your tender evaluations.</p></div></header>
-    <div class="cw-clarification-layout">
-        <aside class="cw-panel cw-inbox" aria-labelledby="inbox-heading"><header class="cw-panel-header"><h2 id="inbox-heading">Conversations</h2></header><div class="cw-inbox-empty"><span class="cw-document" aria-hidden="true"><partial name="_AdminSidebarIcon" model='@("Clarifications")' /></span><p>No conversations to display</p><small>Clarification messaging is not available yet.</small></div></aside>
-        <section class="cw-panel cw-conversation-empty" aria-labelledby="conversation-heading"><span class="cw-empty-illustration" aria-hidden="true"><partial name="_AdminSidebarIcon" model='@("Clarifications")' /></span><h2 id="conversation-heading">A place for clearer decisions</h2><p>Use tender requirements, supplier offers, and the committee report to review the details you need for an evaluation.</p><div class="cw-unavailable-note"><span aria-hidden="true">i</span><p>Messaging is not available yet. Questions and replies cannot be sent from this page.</p></div><a class="cw-button cw-button-secondary" asp-action="Evaluations">Return to evaluations <span aria-hidden="true">↗</span></a></section>
-    </div>
+<header class="cw-page-header"><div><p class="cw-eyebrow">Evaluation committee</p><h1>Clarifications</h1><p>Keep questions and replies connected to the tender being evaluated.</p></div><a asp-controller="Clarification" asp-action="Index" class="cw-button cw-button-secondary">Open clarification inbox →</a></header>
+<section class="cw-panel ev-clarification-guide"><h2>Get the details you need before scoring</h2><p>Open a tender and choose Ask for clarification to send a question about its requirements or offers. Follow replies and resolved questions in your clarification inbox.</p><p>Open clarifications must be resolved before the committee can send its final report.</p><a class="cw-text-link" asp-action="Evaluations">Choose a tender →</a></section>
 </div>

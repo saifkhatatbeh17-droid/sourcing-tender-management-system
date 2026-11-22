@@ -1,75 +1,324 @@
 @{
-    ViewData["Title"] = "Tiryaq";
+    ViewData["Title"] = "Tiryaq Pharma";
     ViewData["HomeLanding"] = true;
+    var signedIn = User.Identity?.IsAuthenticated == true;
 }
+@* Tiryaq Pharma homepage: follow one bottle, lot TQ-0417, from the production line to someone's home.
+   One scroll drives three acts on one sticky stage (wwwroot/js/tiryaq-home-stage.js):
+     1. the illustrated production line, hero to packaging   (wwwroot/js/tiryaq-line.js, wwwroot/css/tiryaq-line.css)
+     2. the 3D twelve-line cleanroom                          (wwwroot/js/tiryaq-journey.js, wwwroot/css/tiryaq-journey.css)
+     3. the illustrated windowsill ending                     (tiryaq-line.js again)
+   Line cards use beats of tiryaq-line.js in data-in/data-out; the cleanroom card uses beats of tiryaq-journey.js.
+   Section id "contact" is preserved on the closing section for legacy anchor compatibility. *@
+<div class="tj-root" id="top">
+  <div id="track">
+    <section id="stage" aria-label="The making of one medicine, controlled by scrolling">
+      <canvas id="line-canvas" role="img" aria-label="An illustrated pharmaceutical production line. One bottle, lot TQ-0417, travels on a conveyor through formulation, filling, capping, labelling, inspection and packaging."></canvas>
+      <canvas id="gl-canvas" role="img" aria-label="A 3D twelve-line cleanroom where the same care is repeated across oral solutions, tablets, sterile injectables and topicals."></canvas>
 
-<section class="landing-hero" id="top" aria-labelledby="landing-title">
-    <video class="landing-video" id="landing-video" muted loop playsinline preload="none"
-           data-src="@Url.Content("~/media/pharmacare-hero.mp4")" aria-hidden="true"></video>
-    <div class="landing-hero-content">
-        <p class="landing-eyebrow">Pharmaceutical sourcing &amp; procurement</p>
-        <h1 id="landing-title">Quality starts with better sourcing.</h1>
-        <p class="landing-intro">Tiryaq connects qualified suppliers with our pharmaceutical procurement team, from tender invitation to final decision.</p>
-        <div class="landing-hero-actions">
-            <a class="landing-primary" asp-controller="Account" asp-action="Register">Register as a supplier <span aria-hidden="true">→</span></a>
-            <a class="landing-secondary" href="#how-it-works">Explore the process <span aria-hidden="true">↓</span></a>
+      <!-- Illustrated fallback for the cleanroom if WebGL is unavailable -->
+      <div id="gl-fallback" hidden role="status">
+        <svg viewBox="0 0 960 540" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <rect width="960" height="540" fill="#0a2129"/>
+          <line x1="0" y1="390" x2="960" y2="390" stroke="#9eb8b5" stroke-width="6"/>
+          <line x1="0" y1="414" x2="960" y2="414" stroke="#1d5560" stroke-width="14"/>
+          <path d="M620 170h56v34c34 12 52 34 52 68v114a16 16 0 0 1-16 16H584a16 16 0 0 1-16-16V272c0-34 18-56 52-68z" fill="rgba(255,255,255,0.12)" stroke="#d9ece8" stroke-width="3"/>
+        </svg>
+      </div>
+
+      <!-- ==================== ACT 1: THE PRODUCTION LINE ==================== -->
+      <div class="ln-card" id="c-hero" data-in="-1" data-out=".72">
+        <h1>From the smallest detail to the <em>greatest human impact.</em></h1>
+        <p>Tiryaq Pharma develops and manufactures medicines. This is one bottle, lot TQ-0417, and the care it receives on its way to someone’s home.</p>
+        <div class="ln-btns">
+          <button class="ln-btn solid" type="button" data-go-d="1.6">Follow the bottle <b aria-hidden="true">↓</b></button>
+          @if (signedIn)
+          {
+            <a class="ln-btn" asp-controller="Account" asp-action="GoToDashboard">Go to my dashboard</a>
+          }
+          else
+          {
+            <a class="ln-btn" asp-controller="Account" asp-action="Register">Become a supplier</a>
+          }
         </div>
-    </div>
-    <button class="landing-video-toggle" type="button" aria-controls="landing-video" hidden>Play background video</button>
-</section>
+      </div>
 
-<section class="home-section home-about" id="about" aria-labelledby="about-title">
-    <div class="home-section-heading">
-        <p class="home-label">Built around quality</p>
-        <h2 id="about-title">Better sourcing.<br />Dependable supply.</h2>
-        <p>Our procurement team connects pharmaceutical manufacturing needs with qualified suppliers, clear requirements, and documented decisions.</p>
-        <a class="home-text-link" asp-action="About">Meet Tiryaq <span aria-hidden="true">↗</span></a>
-    </div>
-    <dl class="home-principles">
-        <div><dt><span aria-hidden="true">01</span> Quality comes first</dt><dd>Supplier documentation and offers are reviewed against the requirements of each purchase.</dd></div>
-        <div><dt><span aria-hidden="true">02</span> Production stays in focus</dt><dd>Delivery timelines and business needs help guide the sourcing decision.</dd></div>
-        <div><dt><span aria-hidden="true">03</span> Expectations stay clear</dt><dd>Specifications, submission deadlines, and tender updates are kept together.</dd></div>
-    </dl>
-</section>
+      <div class="ln-card" id="c-reveal" data-in="1.05" data-out="1.75">
+        <h2>One line. One bottle. <em>Every detail.</em></h2>
+        <p>Line 04 joins formulation, filling, capping, labelling, inspection and packaging in a single continuous rail. Our bottle has just stepped onto it.</p>
+      </div>
 
-<section class="home-process" id="how-it-works" aria-labelledby="process-title">
-    <div class="home-section">
-        <header class="home-process-heading"><div><p class="home-label">The sourcing journey</p><h2 id="process-title">From a business need<br />to an informed decision.</h2></div><a class="home-text-link" asp-action="HowItWorks">Explore the full process <span aria-hidden="true">↗</span></a></header>
-        <figure class="home-process-film">
-            <video controls playsinline preload="none" poster="@Url.Content("~/media/tiryaq-how-it-works-poster.png")" aria-label="How Tiryaq sourcing works: six-stage animated walkthrough" aria-describedby="process-video-caption">
-                <source src="~/media/tiryaq-how-it-works-narrated.webm" type="video/webm" />
-                <track kind="captions" src="~/media/tiryaq-how-it-works.vtt" srclang="en" label="English" />
-                Your browser does not support this video. Read the six sourcing steps below.
-            </video>
-            <figcaption id="process-video-caption">A 34-second walkthrough with English narration. Captions and on-screen explanations are available when watching without sound.</figcaption>
-        </figure>
-        <ol class="home-steps">
-            <li><span class="home-step-number">01</span><h3>Identify needs</h3><p>Departments specify items, quantities, requirements, and target dates in a purchase request.</p></li>
-            <li><span class="home-step-number">02</span><h3>Create the tender</h3><p>The sourcing team turns approved requests into tenders with clear terms and deadlines.</p></li>
-            <li><span class="home-step-number">03</span><h3>Invite suppliers</h3><p>Invited suppliers review the requirements and submit their offers and documents.</p></li>
-            <li><span class="home-step-number">04</span><h3>Evaluate offers</h3><p>Reviewers check compliance and compare technical and financial requirements.</p></li>
-            <li><span class="home-step-number">05</span><h3>Review recommendations</h3><p>The Sourcing Manager reviews the recommendation, with CEO & Chiefs approval when required.</p></li>
-            <li><span class="home-step-number">06</span><h3>Award the tender</h3><p>The team records the award, closes the tender, and notifies the relevant parties.</p></li>
+      <article class="ln-card ln-L ln-ins" id="c-form" data-tab="01 · Formulation" data-in="1.95" data-out="3.0">
+        <h2>Where science becomes <em>medicine.</em></h2>
+        <p>Before a bottle is filled, the solution is prepared: ingredients are weighed, dissolved in purified water and mixed under controlled conditions, then sampled and released for filling.</p>
+        <ol class="ln-steps" id="form-steps">
+          <li data-at="1.98">Weigh each ingredient <span>dispensary</span></li>
+          <li data-at="2.12">Dissolve in purified water <span>vessel</span></li>
+          <li data-at="2.3">Mix to a uniform solution <span>agitator</span></li>
+          <li data-at="2.5">Sample &amp; release <span>QC</span></li>
+          <li data-at="2.75">Transfer to the filler <span>line</span></li>
         </ol>
-    </div>
-</section>
+        <small class="ln-note">Illustrative, simplified sequence. Process parameters are product-specific.</small>
+      </article>
 
-<section class="home-section home-access" id="contact" aria-labelledby="access-title">
-    <div><p class="home-label">Your next step</p><h2 id="access-title">Let’s work together.</h2><p>Join our supplier network or return to your workspace to follow your tenders and next actions.</p><a class="home-text-link" asp-action="Contact">Contact information <span aria-hidden="true">↗</span></a></div>
-    <div class="home-access-links">
-        <a asp-controller="Account" asp-action="Register"><span><strong>Become a supplier</strong><small>Submit your company for registration and review.</small></span><span aria-hidden="true">↗</span></a>
-        <a asp-controller="Account" asp-action="Login"><span><strong>Access your workspace</strong><small>Sign in to manage your work and tender updates.</small></span><span aria-hidden="true">→</span></a>
+      <article class="ln-card ln-R ln-inst" id="c-fill" data-in="3.2" data-out="4.02">
+        <p class="ln-eyebrow"><i></i>02 · Filling</p>
+        <h2>Measured to <em>the line.</em></h2>
+        <p>The nozzle enters the neck, doses, and withdraws. Filling from inside the neck keeps the stream calm and the level exact.</p>
+        <div class="ln-gauge">
+          <div class="ln-tube" id="ln-tube"><i></i><b></b><u style="top:30%"></u><u style="top:45%"></u><u style="top:60%"></u><u style="top:75%"></u></div>
+          <dl class="ln-readout">
+            <div><dt>Nozzle</dt><dd id="ln-noz">raised</dd></div>
+            <div><dt>Dose</dt><dd id="ln-dose">0%</dd></div>
+            <div><dt>Level</dt><dd id="ln-lvl">—</dd></div>
+            <div><dt>Bottle</dt><dd>TQ-0417</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ln-card ln-L ln-inst" id="c-cap" data-in="4.45" data-out="5.1">
+        <p class="ln-eyebrow"><i></i>03 · Capping</p>
+        <h2>Sealed, then <em>secured.</em></h2>
+        <p>Caps travel from the feeder bowl down a chute. The capping head picks one, seats it on the neck and turns it to a controlled torque.</p>
+        <div class="ln-dial">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="var(--ln-line)" stroke-width="8"/>
+            <path d="M23 97 A52 52 0 1 1 97 97" fill="none" stroke="var(--ln-line)" stroke-width="2"/>
+            <path id="ln-dial-arc" d="M23 97 A52 52 0 1 1 97 97" fill="none" stroke="#efb85c" stroke-width="8" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/>
+            <path d="M84 30 A52 52 0 0 1 100 52" fill="none" stroke="var(--ln-accent)" stroke-width="3"/>
+            <g class="ln-needle" id="ln-needle"><line x1="60" y1="60" x2="60" y2="18" stroke="currentColor" stroke-width="2"/><circle cx="60" cy="60" r="5" fill="currentColor"/></g>
+          </svg>
+          <dl class="ln-readout">
+            <div><dt>Cap</dt><dd id="ln-capst">in chute</dd></div>
+            <div><dt>Torque</dt><dd id="ln-tq">—</dd></div>
+            <div><dt>Window</dt><dd>green band</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ln-card ln-R ln-ins" id="c-label" data-tab="04 · Labelling" data-in="5.5" data-out="6.15">
+        <h2>Giving it an <em>identity.</em></h2>
+        <p>The label peels from its roll and wraps the bottle in one turn. Everything a pharmacist and a patient need sits in a clear order.</p>
+        <ul class="ln-anat">
+          <li><span><b>Brand &amp; product</b> · Tiryaq · Velmira</span></li>
+          <li><span><b>Strength &amp; form</b> · 5 mg / 5 mL oral solution</span></li>
+          <li><span><b>Volume</b> · 100 mL</span></li>
+          <li><span><b>Batch &amp; expiry</b> · TQ-0417, printed on line</span></li>
+          <li><span><b>Barcode</b> · scanned again at inspection</span></li>
+        </ul>
+        <small class="ln-note">Velmira is a fictional, illustrative product. It is not a real medicine.</small>
+      </article>
+
+      <article class="ln-card ln-L ln-inst" id="c-qc" data-in="6.45" data-out="7.32">
+        <p class="ln-eyebrow"><i></i>05 · Inspection</p>
+        <h2>Five checks. <em>One decision.</em></h2>
+        <p>Cameras and lighting check every unit. A bottle moves on only when every check agrees. The one ahead of ours did not.</p>
+        <ol class="ln-qc" id="ln-qc">
+          <li data-at="6.6">Fill level within band <em></em></li>
+          <li data-at="6.72">Cap seated · tamper ring intact <em></em></li>
+          <li data-at="6.84">Label present &amp; aligned <em></em></li>
+          <li data-at="6.96">Batch code read · TQ-0417 <em></em></li>
+          <li data-at="7.08">No visible particles <em></em></li>
+        </ol>
+      </article>
+
+      <article class="ln-card ln-R ln-ins" id="c-pack" data-tab="06 · Packaging" data-in="7.7" data-out="8.5">
+        <h2>Folded around <em>it.</em></h2>
+        <p>A flat carton blank opens into a box. The bottle is lowered in, the flaps fold and tuck, and the carton carries the same identity as the label.</p>
+        <ol class="ln-steps" id="pack-steps">
+          <li data-at="7.74">Bottle picked from the line <span>gripper</span></li>
+          <li data-at="7.94">Carton erected from a flat blank <span>magazine</span></li>
+          <li data-at="8.08">Lowered into the carton <span>insert</span></li>
+          <li data-at="8.24">Flaps folded &amp; tucked <span>closing</span></li>
+        </ol>
+      </article>
+
+      <!-- ==================== ACT 2: THE TWELVE-LINE CLEANROOM (3D) ==================== -->
+      <aside class="tj-beat tj-dock" id="b-scale" data-in="6.98" data-out="8.1" aria-labelledby="t-scale">
+        <div class="tj-dock-top">
+          <div>
+            <span class="tj-eyebrow"><i></i>07 · Twelve-line cleanroom · Drag to look around</span>
+            <h2 id="t-scale">The same care, multiplied across <em>every form.</em></h2>
+          </div>
+          <div class="tj-cam-pills" role="group" aria-label="Cleanroom camera angle">
+            <button type="button" class="is-on" data-atrium-cam="crane">Atrium crane</button>
+            <button type="button" data-atrium-cam="chase">Chase TQ-0417</button>
+            <button type="button" data-atrium-cam="zenith">Aerial blueprint</button>
+          </div>
+        </div>
+
+        <div class="tj-form-pills" role="tablist" aria-label="Highlight dosage form lines in the cleanroom">
+          <button type="button" class="tj-form-pill is-on" role="tab" aria-selected="true" data-form-focus="oral">
+            <strong>Oral solutions</strong>
+            <span>Line 04 spine · Dosing &amp; torque</span>
+          </button>
+          <button type="button" class="tj-form-pill" role="tab" aria-selected="false" data-form-focus="solid">
+            <strong>Tablets &amp; capsules</strong>
+            <span>3 glass sky-tubes · Pneumatic</span>
+          </button>
+          <button type="button" class="tj-form-pill" role="tab" aria-selected="false" data-form-focus="sterile">
+            <strong>Sterile injectables</strong>
+            <span>North multi-tier waves · Rotary</span>
+          </button>
+          <button type="button" class="tj-form-pill" role="tab" aria-selected="false" data-form-focus="topical">
+            <strong>Topicals &amp; dosing</strong>
+            <span>South counter-flow &amp; robotics</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- ==================== ACT 3: ON THE WINDOWSILL AT HOME ==================== -->
+      <div class="ln-card" id="c-end" data-in="9.8" data-out="11">
+        <p class="ln-eyebrow"><i></i>Lot TQ-0417 · delivered</p>
+        <h2>Every detail matters, because every medicine <em>reaches a person.</em></h2>
+        <p>Tiryaq Pharma brings scientific precision, careful manufacturing and quality checks to every unit, so a quiet morning can stay quiet.</p>
+        <div class="ln-btns">
+          <a class="ln-btn solid" asp-controller="Home" asp-action="Contact">Partner with Tiryaq</a>
+          <button class="ln-btn" type="button" data-go-d="0">Watch it again <span aria-hidden="true">↑</span></button>
+        </div>
+      </div>
+
+      <!-- ==================== ONE PROGRESS RAIL (stops added by tiryaq-home-stage.js) ==================== -->
+      <div id="home-rail" aria-label="Journey progress">
+        <div class="ln-rail-line"></div><div class="ln-rail-done"></div>
+        <svg class="ln-mini" viewBox="0 0 14 24" aria-hidden="true"><rect x="4.5" y="0" width="5" height="4" rx="1" fill="#1d5560"/><path d="M5 4h4v2.4c2.6.8 4 2.4 4 5V21a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-9.6c0-2.6 1.4-4.2 4-5z" fill="#f4eee2"/><path d="M1.2 14h11.6v7a1.6 1.6 0 0 1-1.6 1.6H2.8A1.6 1.6 0 0 1 1.2 21z" fill="#d98a2b"/></svg>
+      </div>
+      <p class="ln-hint" id="ln-hint" aria-hidden="true"><i></i>Scroll to run the line</p>
+    </section>
+  </div>
+
+  <!-- ==================== ARCHITECTURAL PRIMARY-TEAL & HONEY FINALE ==================== -->
+  <section class="tj-after" id="contact" aria-labelledby="contact-title">
+    <div class="tj-finale-shell">
+      <div class="tj-finale-hero">
+        <div class="tj-finale-lead">
+          <p class="tj-kicker"><span>CHAIN COMPLETE</span>Sourcing &amp; Manufacturing Partnerships</p>
+          <h2 id="contact-title">Precision you can <em>partner with.</em></h2>
+          <p class="tj-finale-copy">For qualified raw-material and packaging tenders, contract manufacturing, regional distribution, or institutional enquiries, connect directly with Tiryaq’s sourcing and technical teams.</p>
+          <div class="tj-actions">
+            <a class="tj-btn solid" asp-controller="Home" asp-action="Contact">Write to Tiryaq <span aria-hidden="true">→</span></a>
+            @if (signedIn)
+            {
+              <a class="tj-btn ghost" asp-controller="Account" asp-action="GoToDashboard">Open my workspace</a>
+            }
+            else
+            {
+              <a class="tj-btn ghost" asp-controller="Account" asp-action="Register">Supplier registration</a>
+              <a class="tj-btn ghost" asp-controller="Account" asp-action="Login">Sign in</a>
+            }
+          </div>
+        </div>
+
+        <aside class="tj-passport" aria-label="Lot TQ-0417 verified chain-of-custody summary">
+          <div class="tj-passport-head">
+            <span class="tj-passport-id">SPECIMEN LEDGER · LOT TQ-0417</span>
+            <span class="tj-passport-status"><i></i>VERIFIED END-TO-END</span>
+          </div>
+
+          <ol class="tj-chain" aria-label="Six-stage platform lifecycle">
+            <li><span>01</span>Request</li>
+            <li><span>02</span>Tender</li>
+            <li><span>03</span>4/4 Eval</li>
+            <li><span>04</span>4/4 Award</li>
+            <li><span>05</span>12-Rail Line</li>
+            <li class="is-final"><span>06</span>Patient</li>
+          </ol>
+
+          <dl class="tj-passport-metrics">
+            <div>
+              <dt>Standard tender gate</dt>
+              <dd><strong>3+</strong><span>Compliant supplier lines</span></dd>
+            </div>
+            <div>
+              <dt>Dual committee quorum</dt>
+              <dd><strong>4 + 4</strong><span>Independent scores &amp; votes</span></dd>
+            </div>
+            <div>
+              <dt>Cleanroom choreography</dt>
+              <dd><strong>12</strong><span>Synchronized multi-tier rails</span></dd>
+            </div>
+            <div>
+              <dt>Inline optical release</dt>
+              <dd><strong>±0.2%</strong><span>Meniscus &amp; torque tolerance</span></dd>
+            </div>
+          </dl>
+        </aside>
+      </div>
+
+      <div class="tj-gateways" aria-label="Explore Tiryaq pathways">
+        @if (signedIn)
+        {
+          <a class="tj-gateway" asp-controller="Account" asp-action="GoToDashboard">
+            <div class="tj-gw-top">
+              <span class="tj-gw-num">01 · WORKSPACE</span>
+              <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="4" width="22" height="20" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 15l4 4 8-9" fill="none" stroke="#efb85c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3>Continue in your role workspace</h3>
+            <p>Review active purchase requests, tender invitations, technical evaluations, clarifications, and executive decisions.</p>
+            <span class="tj-gw-cta">Open dashboard <i aria-hidden="true">→</i></span>
+          </a>
+        }
+        else
+        {
+          <a class="tj-gateway" asp-controller="Account" asp-action="Register">
+            <div class="tj-gw-top">
+              <span class="tj-gw-num">01 · SUPPLIER NETWORK</span>
+              <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 14.5l3 3 6-6.5" fill="none" stroke="#efb85c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3>Qualify as a Tiryaq supplier</h3>
+            <p>Submit company credentials for administrator approval, receive category invitations, raise clarifications, and place audited bids.</p>
+            <span class="tj-gw-cta">Apply for qualification <i aria-hidden="true">→</i></span>
+          </a>
+        }
+
+        <a class="tj-gateway" asp-controller="Home" asp-action="HowItWorks">
+          <div class="tj-gw-top">
+            <span class="tj-gw-num">02 · SOURCING CAMPUS</span>
+            <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M14 4l10 5.5v9L14 24 4 18.5v-9z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M14 4v20M4 9.5l10 5.5 10-5.5" fill="none" stroke="#efb85c" stroke-width="1.6"/></svg>
+          </div>
+          <h3>Explore the 6-step sourcing map</h3>
+          <p>Step inside Tiryaq’s interactive campus to trace department requests, shortfall policies, four-reviewer scoring, and award gates.</p>
+          <span class="tj-gw-cta">Enter interactive map <i aria-hidden="true">↗</i></span>
+        </a>
+
+        <a class="tj-gateway" asp-controller="Home" asp-action="Contact">
+          <div class="tj-gw-top">
+            <span class="tj-gw-num">03 · PARTNERSHIPS</span>
+            <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M10 4h8M12 4v6l-5.5 9.5A2.5 2.5 0 0 0 8.7 23h10.6a2.5 2.5 0 0 0 2.2-3.5L16 10V4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 18h11" stroke="#efb85c" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Manufacturing &amp; institutional</h3>
+          <p>Partner with our oral-solution, solid-dose, sterile, and supply teams—every formulation step documented, tested, and reviewable.</p>
+          <span class="tj-gw-cta">Start a conversation <i aria-hidden="true">→</i></span>
+        </a>
+      </div>
     </div>
-</section>
-@section Footer {
-    <partial name="_PublicFooter" />
-}
+
+    <footer class="tj-footer">
+      <div class="tj-foot-brand">
+        <strong>Tiryaq Pharma</strong>
+        <span>&copy; @DateTime.UtcNow.Year · Sourcing &amp; Multi-Line Manufacturing</span>
+      </div>
+      <nav class="tj-foot-links" aria-label="Footer">
+        <a asp-controller="Home" asp-action="About">About</a>
+        <a asp-controller="Home" asp-action="HowItWorks">How sourcing works</a>
+        <a asp-controller="Home" asp-action="Team">Our team</a>
+        <a asp-controller="Home" asp-action="Contact">Contact</a>
+      </nav>
+      <span class="tj-foot-note">Velmira and lot TQ-0417 are illustrative specimens demonstrating Tiryaq’s sourcing and manufacturing choreography.</span>
+    </footer>
+  </section>
+</div>
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/home-polish.css" asp-append-version="true" />
+    <link rel="modulepreload" href="~/lib/login-scene/three.module.js" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@@0;1&family=Geist:wght@@400;500;600;700&family=JetBrains+Mono:wght@@400;500;600&display=swap" />
+    <link rel="stylesheet" href="~/css/tiryaq-journey.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tiryaq-line.css" asp-append-version="true" />
 }
 @section Scripts {
-    <script src="~/js/home.js" asp-append-version="true"></script>
-
+    <script src="~/js/tiryaq-home-stage.js" asp-append-version="true"></script>
+    <script src="~/js/tiryaq-line.js" asp-append-version="true"></script>
+    <script type="module" src="~/js/tiryaq-journey.js" asp-append-version="true"></script>
 }

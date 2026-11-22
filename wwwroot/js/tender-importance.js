@@ -1,4 +1,8 @@
-document.querySelector('[data-importance-form]')?.addEventListener('submit', async event => {
+const importanceDialog = document.getElementById('tender-importance');
+document.querySelector('[data-importance-open]')?.addEventListener('click', () => importanceDialog.showModal());
+importanceDialog?.querySelector('[data-importance-close]')?.addEventListener('click', () => importanceDialog.close());
+
+importanceDialog?.querySelector('[data-importance-form]')?.addEventListener('submit', async event => {
     event.preventDefault();
     const form = event.currentTarget, panel = form.closest('.tc-importance');
     const button = form.querySelector('button'), status = panel.querySelector('[data-importance-status]');
@@ -9,6 +13,9 @@ document.querySelector('[data-importance-form]')?.addEventListener('submit', asy
     status.textContent = 'Analyzing the report…';
     try {
         const response = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+        if (!response.headers.get('content-type')?.includes('application/json')) {
+            throw new Error('AI analysis is unavailable on this page.');
+        }
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Could not analyze this report. Refresh and try again.');
         panel.querySelector('[data-importance-level]').textContent = data.level;

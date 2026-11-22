@@ -8,5 +8,5 @@
 </dialog>
 @if (TempData["ActionSuccess"] is string actionSuccess)
 {
-    <div class="action-success" role="status"><span aria-hidden="true">✓</span><p>@actionSuccess</p><button type="button" aria-label="Dismiss confirmation" onclick="this.parentElement.remove()">×</button></div>
+    <div data-flash-message class="action-success" role="status"><span aria-hidden="true">✓</span><p>@actionSuccess</p><button type="button" aria-label="Dismiss confirmation" onclick="this.parentElement.remove()">×</button></div>
 }

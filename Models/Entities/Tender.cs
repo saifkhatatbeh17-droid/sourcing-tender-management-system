@@ -12,6 +12,14 @@ public class Tender
     public string? RejectionForwardedByUserId { get; set; }
     public DateTime? RejectionForwardedAt { get; set; }
 
+    public string? TopEditState { get; set; }
+    public string? TopEditRequestedByUserId { get; set; }
+    public DateTime? TopEditRequestedAt { get; set; }
+    public string? TopEditRequestNotes { get; set; }
+    public string? TopEditManagerNotes { get; set; }
+    public string? TopEditOfficerNotes { get; set; }
+    public DateTime? TopEditOfficerRespondedAt { get; set; }
+
     public int PurchaseRequestId { get; set; }
 
     public string CreatedByUserId { get; set; } = null!;
@@ -24,7 +32,6 @@ public class Tender
     public string? Terms { get; set; }
 
     public string? OfferShortfallReason { get; set; }
-
     public ICollection<TenderOfferExtension> OfferExtensions { get; set; } = new List<TenderOfferExtension>();
 
     public DateTime OpensAt { get; set; }
@@ -37,7 +44,7 @@ public class Tender
         Status is ("Open" or "Published") && OpensAt <= now && now < ClosesAt;
 
     public bool CanCancel(DateTime now) =>
-        Status is ("Draft" or "Open" or "Published") && now < ClosesAt;
+        Status is ("Open" or "Published") && now < ClosesAt;
 
     public int? AwardedBidId { get; set; }
 

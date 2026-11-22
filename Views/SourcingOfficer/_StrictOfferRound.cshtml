@@ -1,0 +1,25 @@
+@using SourcingTenderManagement.Models.Entities
+@{var tender=ViewBag.SelectedTender as Tender;var bids=ViewData.Model as List<Bid> ?? [];var round=(tender?.OfferExtensions.Count ?? 0)+1;var compliant=bids.Where(b=>b.Status!="Withdrawn" && b.ComplianceStatus=="Compliant").Select(b=>b.Invitation.SupplierProfileId).Distinct().Count();var pending=bids.Any(b=>b.Status!="Withdrawn" && b.ComplianceStatus is not ("Compliant" or "NonCompliant"));var sent=ViewBag.WorkspaceReport is EvaluationReport;}
+@if(tender!=null && !sent && (ViewBag.RoundRejected is not true) && (tender.Status is "Published" or "Open" or "Closed"))
+{
+ @if(tender.ClosesAt>DateTime.UtcNow)
+ {
+   var openQuestions = ViewBag.OpenQuestions is List<int> questions && questions.Count > 0;
+   var canSend = round == 1 && tender.IsAcceptingOffers(DateTime.UtcNow) && !pending && compliant >= 3 && !openQuestions;
+   var handoffHelp = round > 1 ? "This round must reach its deadline before committee handoff."
+       : !tender.IsAcceptingOffers(DateTime.UtcNow) ? "Submissions have not opened yet."
+       : compliant < 3 ? $"{compliant} of 3 compliant suppliers. Review submitted offers in View details."
+       : pending ? "Review the remaining offers in View details."
+       : openQuestions ? "Resolve open questions before continuing."
+       : "All offers reviewed. Ready for committee evaluation.";
+   <section class="ow-committee-handoff" aria-labelledby="committee-handoff-title">
+    <div><h2 id="committee-handoff-title">Send offers to the committee</h2><p id="committee-handoff-help">@handoffHelp</p></div>
+    <form asp-action="CloseSubmissionsEarly" method="post"><input type="hidden" name="tenderId" value="@tender.TenderId"/><input type="hidden" name="sendToCommittee" value="true"/><button class="btn btn-primary" disabled="@(!canSend)" aria-describedby="committee-handoff-help">Close submissions and send to committee</button></form>
+   </section>
+ }
+ else if(!pending && compliant<3 && round<4)
+ {
+  <section class="workspace-section"><h2>Open round @(round+1)</h2><p>Current offers stay on this tender. Eligible suppliers without a compliant offer will be invited or reminded.</p><form asp-action="ExtendOfferRound" method="post"><input type="hidden" name="tenderId" value="@tender.TenderId"/><input type="hidden" name="currentRound" value="@round"/><label for="strict-next-deadline" class="form-label">New submission deadline · UTC</label><input id="strict-next-deadline" type="datetime-local" name="newDeadline" class="form-control mb-2" value="@DateTime.UtcNow.AddDays(2).ToString("yyyy-MM-ddTHH:mm")" required/><p class="form-text">Allow at least 24 hours for suppliers to respond.</p><button class="btn btn-primary">Open next round &amp; notify suppliers</button></form></section>
+ }
+ <partial name="_TenderOfferRoundHistory" model="tender" />
+}

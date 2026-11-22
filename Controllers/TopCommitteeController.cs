@@ -80,7 +80,7 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
             return Json(result);
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or InvalidOperationException or KeyNotFoundException)
-        { return StatusCode(503, new { error = "Could not assess importance. Check local Ollama and try again." }); }
+        { return StatusCode(503, new { error = "Could not assess importance. Check your vLLM / AI endpoint or API key and try again." }); }
     });
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -96,9 +96,11 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
                     var result = await voting.SubmitAsync(User, input, cancellationToken);
                     TempData["VotingSuccess"] = result.IsAwarded
                         ? "Your approval was recorded. All four members approved, and the nominated bid was awarded."
-                        : result.Decision == "Rejected"
-                            ? "Your rejection was recorded. Voting has permanently ended and the tender has returned to Sourcing Manager review."
-                            : "Your final approval was recorded. Reload this page to see the other members' decisions.";
+                        : result.Decision == "RequestEdit"
+                            ? "Your edit request was sent to the Sourcing Manager to answer directly or push back to the Sourcing Officer."
+                            : result.Decision == "Rejected"
+                                ? "Your complete rejection was recorded. Voting has permanently ended and the tender has returned to Sourcing Manager review."
+                                : "Your final approval was recorded. Reload this page to see the other members' decisions.";
                     return RedirectToAction(nameof(TenderDetails), new { id = result.TenderId });
                 }
                 catch (ValidationException error) { ModelState.AddModelError("", error.Message); }

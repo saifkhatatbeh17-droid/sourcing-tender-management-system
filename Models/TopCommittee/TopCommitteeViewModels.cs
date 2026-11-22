@@ -21,7 +21,10 @@ public sealed record CommitteeTenderRow(int TenderId, string Title, string Statu
 
 public sealed record CommitteeDashboard(int AssignedTenders, int AwaitingDecision, int AwardedTenders,
     int RejectedTenders, int OpenClarifications, IReadOnlyList<CommitteeTenderRow> PendingTenders,
-    IReadOnlyList<CommitteeTenderRow> RecentDecisions, IReadOnlyList<CommitteeMemberProgress> VotingProgress);
+    IReadOnlyList<CommitteeTenderRow> RecentDecisions, IReadOnlyList<CommitteeMemberProgress> VotingProgress)
+{
+    public SourcingTenderManagement.Models.DashboardOverview? Overview { get; init; }
+}
 
 public sealed record CommitteeMemberProgress(int TenderId, string UserId, string FullName, int Position,
     bool IsActive, bool HasCommitteeRole, string? RecordedDecision);
@@ -55,7 +58,10 @@ public sealed record CommitteeBidItem(int RequestItemId, string ItemName, decima
     decimal UnitPrice, string OfferedSpecifications);
 
 public sealed record CommitteeScore(string Criterion, string Category, decimal Weight, decimal Score,
-    string? Notes);
+    string? Notes)
+{
+    public decimal Maximum { get; init; } = 100;
+}
 
 public sealed record CommitteeEvaluation(string Evaluator, string Status, string? Notes,
     DateTime? SubmittedAt, DateTime? ApprovedAt, IReadOnlyList<CommitteeScore> Scores);
@@ -83,4 +89,10 @@ public sealed record CommitteeTenderDetails(int TenderId, string Title, string D
     CommitteeManager? ResponsibleManager, IReadOnlyList<CommitteeMember> Members,
     IReadOnlyList<CommitteeVote> Votes, IReadOnlyList<CommitteeBid> Bids,
     IReadOnlyList<CommitteeDocument> Documents, int OpenClarifications,
-    IReadOnlyList<CommitteeClarification> MyClarifications, CommitteeReadiness Readiness);
+    IReadOnlyList<CommitteeClarification> MyClarifications, CommitteeReadiness Readiness)
+{
+    public string OfferRoundSummary { get; init; } = "";
+    public string? TopEditState { get; init; }
+    public string? TopEditRequestNotes { get; init; }
+    public DateTime? TopEditRequestedAt { get; init; }
+}

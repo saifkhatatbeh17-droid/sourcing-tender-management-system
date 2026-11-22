@@ -3,146 +3,251 @@
 @{
     var tender = Model.Tender;
     var nominated = tender.Bids.FirstOrDefault(b => b.IsNominated);
+    var hasOutcome = tender.Status == "Awarded" || tender.Readiness.HasRejection;
+    var approvals = tender.Votes.Count(v => v.Decision == "Approved" &&
+        tender.Members.Any(m => m.UserId == v.UserId && m.AssignmentId == v.AssignmentId && m.IsEligible));
+    var displayStatus = tender.Readiness.HasRejection ? "Rejected" : CommitteeDisplay.Status(tender.Status);
+    var decisionLabel = hasOutcome ? "View outcome"
+        : tender.Readiness.HasCurrentMemberVoted ? "View your decision"
+        : tender.Readiness.CanCurrentMemberVote && Model.VotingDatabaseReady ? "Record your decision" : "Check voting status";
     ViewData["Title"] = $"Tender #{tender.TenderId}";
 }
-<div class="tc-tender">
-<nav class="mb-3" aria-label="Breadcrumb"><a asp-action="Dashboard">CEO & Chiefs dashboard</a><span class="text-secondary"> / Tender #@tender.TenderId</span></nav>
-<div class="workspace-heading">
-    <div><h1 class="text-break">@tender.Title</h1><p>Review the recommendation, compare offers, and record your decision.</p></div>
-    <div class="tc-heading-actions"><a class="btn btn-outline-secondary" asp-action="Decisions">Pending tenders</a></div>
-</div>
-<p><span class="badge text-bg-secondary">@CommitteeDisplay.Status(tender.Status)</span><span class="ms-2">Tender #@tender.TenderId</span></p>
-@await Component.InvokeAsync("DetailsQr", new { controller = "TopCommittee", action = "TenderDetails", id = tender.TenderId, label = "Tender" })
-<div class="tc-summary" aria-label="Committee decision summary">
-    <div class="tc-summary-item"><span class="tc-cell-meta">Committee approvals</span><strong>@tender.Votes.Count(v => v.Decision == "Approved") / 4 recorded</strong></div>
-    <div class="tc-summary-item tc-summary-nomination"><span class="tc-cell-meta">Nominated bid</span><strong>@(nominated == null ? "Not available" : $"#{nominated.BidId} · {nominated.SupplierName}")</strong></div>
-    <a href="#voting" class="btn btn-primary">Go to voting</a>
-</div>
-@if (TempData["VotingSuccess"] is string votingSuccess) { <p class="border rounded p-3" role="status">@votingSuccess</p> }
+<div class="tc-tender" data-tender-review>
+<header class="workspace-heading tc-tender-header">
+    <div>
+        <div class="tc-tender-reference"><span>Tender #@tender.TenderId</span><span class="badge @(tender.Readiness.HasRejection ? "tc-review-rejected" : tender.Status == "Awarded" ? "tc-review-approved" : "text-bg-secondary")">@displayStatus</span></div>
+        <h1 class="text-break">@tender.Title</h1>
+        <p>@(hasOutcome ? "Review the offers and the committee’s recorded outcome." : tender.Readiness.HasCurrentMemberVoted ? "Your decision is recorded. Follow the committee’s progress." : "Review the recommendation and compare offers before voting.")</p>
+    </div>
+    <div class="tc-heading-actions"><a class="btn btn-outline-secondary" asp-action="Decisions">Back to pending tenders</a></div>
+    <dl class="tc-summary" aria-label="Committee decision summary">
+        <div class="tc-summary-item"><dt class="tc-cell-meta">Committee approvals</dt><dd>@approvals / 4 recorded</dd></div>
+        <div class="tc-summary-item tc-summary-nomination"><dt class="tc-cell-meta">Nominated bid</dt><dd>@(nominated == null ? "Not available" : $"#{nominated.BidId} · {nominated.SupplierName}")</dd></div>
+    </dl>
+</header>
+@if (TempData["VotingSuccess"] is string votingSuccess) { <p class="border rounded p-3" role="status" data-vote-result>@votingSuccess</p> }
 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
-<nav class="workspace-toolbar" aria-label="Tender sections">
-    <a href="#voting">Voting</a><a href="#request">Purchase request</a><a href="#recommendation">Manager recommendation</a><a href="#bid-comparison">Bid comparison</a><a href="#evaluation-report">Evaluation report</a><a href="#committee">Committee records</a>
+
+<nav class="tc-review-steps" aria-label="Tender review steps">
+    <ol>
+        <li><a href="#recommendation"><span aria-hidden="true">1</span> Review offers <small aria-label="Submitted offers: @tender.Bids.Count">@tender.Bids.Count</small></a></li>
+        <li><a href="#voting"><span aria-hidden="true">2</span> @decisionLabel</a></li>
+    </ol>
 </nav>
-<section class="workspace-section" aria-labelledby="tender-clarifications">
-    <div class="workspace-heading">
-        <h2 id="tender-clarifications">Clarification history</h2>
-        <a asp-action="Clarifications" asp-route-tenderId="@tender.TenderId">Open tender clarifications</a>
-    </div>
-    @foreach (var thread in tender.MyClarifications)
-    {
-        <p><a asp-action="Clarifications" asp-route-tenderId="@tender.TenderId" asp-fragment="question-@thread.ClarificationId">@thread.Subject</a> · @thread.Status</p>
-    }
-</section>
-@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = tender.TenderId, title = "Questions from the Sourcing Manager" })
-@if (tender.Status == "Awarded" || tender.Readiness.HasRejection)
+@if (tender.OpenClarifications > 0 && tender.Status != "Awarded" && !tender.Readiness.HasRejection)
 {
-    <section class="workspace-section" aria-labelledby="outcome-heading">
-        <h2 id="outcome-heading">Recorded decision</h2>
-        @if (tender.Readiness.HasRejection)
-        { <p>The committee recorded a rejection. The recorded votes and details are shown below for reference.</p> }
-        else
-        {
-            var winner = tender.Bids.FirstOrDefault(b => b.BidId == tender.AwardedBidId);
-            <dl class="row mb-0"><dt class="col-sm-3">Winning bid</dt><dd class="col-sm-9">#@tender.AwardedBidId @(winner == null ? "" : $"— {winner.SupplierName}")</dd>
-                <dt class="col-sm-3">Awarded at</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(tender.AwardedAt)</dd>
-                <dt class="col-sm-3">Decision notes</dt><dd class="col-sm-9">@CommitteeDisplay.Text(tender.AwardNotes)</dd></dl>
-        }
-    </section>
+    <div class="tc-review-notice" role="status">
+        <div><strong>Voting paused</strong><p>Resolve all open clarifications before voting. Recorded votes are preserved.</p></div>
+        <a class="btn btn-outline-primary" asp-action="Clarifications" asp-route-tenderId="@tender.TenderId">Open clarifications</a>
+    </div>
 }
-else if (tender.OpenClarifications > 0)
-{ <p class="border rounded p-3">Committee review is paused while @tender.OpenClarifications clarification(s) remain unresolved. Recorded votes are preserved.</p> }
-else if (!tender.Readiness.IsVotingOpen)
-{ <p class="border rounded p-3">@tender.Readiness.BlockingReason</p> }
-<section class="workspace-section tc-importance" aria-labelledby="importance-heading">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <div><h2 id="importance-heading">AI importance assessment</h2><p class="text-secondary mb-0">Assess the report’s operational impact, urgency, and risks.</p></div>
-        <form asp-action="AssessImportance" method="post" data-importance-form>
-            <input type="hidden" name="id" value="@tender.TenderId" />
-            <button class="btn btn-outline-primary" disabled="@(string.IsNullOrWhiteSpace(tender.Report?.CommitteeSummary))">Analyze report</button>
-        </form>
+
+<div class="tc-review-panel" data-review-panel="recommendation" tabindex="-1" aria-labelledby="recommendation-heading">
+<section id="recommendation" class="workspace-section" aria-labelledby="recommendation-heading">
+    <h2 id="recommendation-heading">1. Review offers</h2>
+    <div class="tc-offer-review-recommendation">
+        <h3>Manager recommendation</h3>
+        <p class="text-secondary mb-2">@(tender.ResponsibleManager?.FullName ?? "Referring manager not recorded")</p>
+        <partial name="_ReadableReport" model="@(CommitteeDisplay.Text(tender.Report?.ManagerSummary))" />
     </div>
-    <p class="form-text mb-0" data-importance-status role="status">Advisory only. The committee makes the final decision.</p>
-    <div data-importance-result hidden>
-        <p class="mt-3"><strong>Suggested importance: <span data-importance-level></span></strong></p>
-        <p data-importance-reason></p>
-        <div data-importance-missing hidden><h3 class="fs-6">Information to verify</h3><ul class="mb-0"></ul></div>
-    </div>
+    @if (!tender.Readiness.HasValidNomination) { <p class="text-secondary mt-2 mb-0">The nomination is missing or is not currently eligible for a committee decision.</p> }
+    <aside class="tc-ai-callout" aria-label="AI report assessment">
+        <p id="tender-ai-description">Check the report for urgency, risks, and missing information.</p>
+        <button type="button" class="btn tc-ai-action" data-importance-open aria-haspopup="dialog" aria-controls="tender-importance" aria-describedby="tender-ai-description">Assess report with AI</button>
+    </aside>
+    @await Component.InvokeAsync("SupplierLinksBanner", new { tenderId = tender.TenderId, advice = "Weigh this before you record your decision." })
+    <section id="bid-comparison" aria-labelledby="comparison-heading">
+        <h3 id="comparison-heading">Compare supplier offers</h3>
+        <partial name="_BidComparison" model="tender" />
+    </section>
 </section>
+@foreach (var bid in tender.Bids.OrderByDescending(bid => bid.SubmittedAt).ThenByDescending(bid => bid.BidId))
+{
+    var isSelected = Model.SelectedBid?.BidId == bid.BidId;
+    <div id="@(isSelected ? "selected-bid" : $"bid-{bid.BidId}")" class="workspace-section tc-review-card">
+        <button type="button" class="tc-review-card-trigger" data-review-dialog-open aria-haspopup="dialog" aria-controls="bid-content-@bid.BidId">
+            <span class="tc-review-card-icon"><partial name="_AdminSidebarIcon" model='@("Offers")' /></span>
+            <span class="tc-review-card-title"><small>Bid #@bid.BidId</small><strong>@bid.SupplierName</strong></span>
+            @if (bid.IsNominated) { <span class="badge tc-review-approved">Manager nominated</span> }
+            <span class="tc-review-card-chevron" aria-hidden="true"></span>
+        </button>
+        <dialog id="bid-content-@bid.BidId" class="tc-review-card-dialog" aria-labelledby="bid-dialog-heading-@bid.BidId">
+            <header class="tc-review-dialog-header">
+                <div>
+                    <p class="tc-review-dialog-reference">Bid #@bid.BidId</p>
+                    <h2 id="bid-dialog-heading-@bid.BidId">@bid.SupplierName</h2>
+                </div>
+                <button type="button" class="tc-review-dialog-close" data-review-dialog-close aria-label="Close dialog" autofocus><span aria-hidden="true">×</span></button>
+            </header>
+            <div class="tc-review-card-body">
+                <partial name="_BidDetails" model="bid" />
+            </div>
+            <footer class="tc-review-dialog-footer">
+                <button type="button" class="btn btn-outline-secondary" data-review-dialog-close>Close</button>
+            </footer>
+        </dialog>
+    </div>
+}
+
+<div id="request" class="workspace-section tc-review-card">
+    <button type="button" class="tc-review-card-trigger" data-review-dialog-open aria-haspopup="dialog" aria-controls="request-content">
+        <span class="tc-review-card-icon"><partial name="_AdminSidebarIcon" model='@("Requests")' /></span>
+        <span class="tc-review-card-title"><strong>Purchase Request &amp; Tender Requirements</strong><small>Requested items, specifications, and dates</small></span>
+        <span class="tc-review-card-chevron" aria-hidden="true"></span>
+    </button>
+    <dialog id="request-content" class="tc-review-card-dialog" aria-labelledby="request-dialog-heading">
+        <header class="tc-review-dialog-header">
+            <h2 id="request-dialog-heading">Purchase Request &amp; Tender Requirements</h2>
+            <button type="button" class="tc-review-dialog-close" data-review-dialog-close aria-label="Close dialog" autofocus><span aria-hidden="true">×</span></button>
+        </header>
+        <div class="tc-review-card-body">
+            <div class="tc-detail-columns">
+                <section class="tc-detail-group">
+                    <h3>Request overview</h3>
+                    <dl class="tc-detail-facts">
+                        <div><dt>Request</dt><dd>#@tender.PurchaseRequest.RequestId · @tender.PurchaseRequest.Title</dd></div>
+                        <div><dt>Department</dt><dd>@tender.PurchaseRequest.Department</dd></div>
+                        <div><dt>Priority</dt><dd>@tender.PurchaseRequest.Priority</dd></div>
+                        <div><dt>Needed by</dt><dd>@CommitteeDisplay.Date(tender.PurchaseRequest.TargetDate)</dd></div>
+                    </dl>
+                </section>
+                <section class="tc-detail-group">
+                    <h3>Tender dates</h3>
+                    <dl class="tc-detail-facts">
+                        <div><dt>Opens</dt><dd>@CommitteeDisplay.Utc(tender.OpensAt)</dd></div>
+                        <div><dt>Offer deadline</dt><dd>@CommitteeDisplay.Utc(tender.ClosesAt)</dd></div>
+                    </dl>
+                </section>
+            </div>
+            <section class="tc-detail-block">
+                <h3>Requested items</h3>
+                @if (tender.PurchaseRequest.Items.Count == 0) { <p class="tc-dialog-empty">No items recorded.</p> }
+                else
+                {
+                    <div class="table-responsive tc-dialog-table-wrap" tabindex="0" role="region" aria-label="Requested items">
+                        <table class="table tc-dialog-table tc-request-items-table">
+                            <thead><tr><th scope="col">Item</th><th scope="col" class="tc-dialog-number">Quantity</th><th scope="col">Specifications</th></tr></thead>
+                            <tbody>
+                                @foreach (var item in tender.PurchaseRequest.Items)
+                                {
+                                    <tr>
+                                        <th scope="row">@item.Name</th>
+                                        <td class="tc-dialog-number">@CommitteeDisplay.Quantity(item.Quantity) <small>@item.Unit</small></td>
+                                        <td>@item.Specifications</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+            @if (!string.IsNullOrWhiteSpace(tender.PurchaseRequest.Reason) || !string.IsNullOrWhiteSpace(tender.Description) || !string.IsNullOrWhiteSpace(tender.Terms))
+            {
+                <section class="tc-detail-group">
+                    <h3>Purpose and conditions</h3>
+                    <dl class="tc-detail-facts tc-detail-facts-stacked">
+                        @if (!string.IsNullOrWhiteSpace(tender.PurchaseRequest.Reason)) { <div><dt>Reason for request</dt><dd class="tc-report-copy">@tender.PurchaseRequest.Reason</dd></div> }
+                        @if (!string.IsNullOrWhiteSpace(tender.Description)) { <div><dt>Tender description</dt><dd class="tc-report-copy">@tender.Description</dd></div> }
+                        @if (!string.IsNullOrWhiteSpace(tender.Terms)) { <div><dt>Terms</dt><dd class="tc-report-copy">@tender.Terms</dd></div> }
+                    </dl>
+                </section>
+            }
+            @if (tender.Documents.Count > 0)
+            {
+                <section class="tc-detail-block">
+                    <h3>Tender documents</h3>
+                    <ul class="tc-dialog-files">
+                        @foreach (var document in tender.Documents)
+                        {
+                            <li><strong>@document.OriginalFileName</strong><small>@document.SizeBytes.ToString("N0") bytes</small></li>
+                        }
+                    </ul>
+                </section>
+            }
+        </div>
+        <footer class="tc-review-dialog-footer">
+            <button type="button" class="btn btn-outline-secondary" data-review-dialog-close>Close</button>
+        </footer>
+    </dialog>
+</div>
+
+<div id="evaluation-report" class="workspace-section tc-review-card tc-review-report">
+    <button type="button" class="tc-review-card-trigger" data-review-dialog-open aria-haspopup="dialog" aria-controls="evaluation-report-content">
+        <span class="tc-review-card-icon"><partial name="_AdminSidebarIcon" model='@("Reports")' /></span>
+        <span class="tc-review-card-title"><strong>Unified Evaluation Report</strong><small>Committee recommendation and review notes</small></span>
+        <span class="tc-review-card-chevron" aria-hidden="true"></span>
+    </button>
+    <dialog id="evaluation-report-content" class="tc-review-card-dialog" aria-labelledby="evaluation-report-dialog-heading">
+        <header class="tc-review-dialog-header">
+            <h2 id="evaluation-report-dialog-heading">Unified Evaluation Report</h2>
+            <button type="button" class="tc-review-dialog-close" data-review-dialog-close aria-label="Close dialog" autofocus><span aria-hidden="true">×</span></button>
+        </header>
+        <div class="tc-review-card-body">
+            @if (tender.Report is not { } report) { <p class="tc-dialog-empty">No unified evaluation report for this tender.</p> }
+            else
+            {
+                var statusClass = report.Status switch
+                {
+                    "CommitteeApproved" or "ManagerApproved" or "TopApproved" => "tc-review-approved",
+                    "ManagerRejected" or "Rejected" => "tc-review-rejected",
+                    "OfficerSubmitted" or "Submitted" or "ReturnedForReview" => "tc-review-pending",
+                    _ => "text-bg-secondary"
+                };
+                var summaries = new[]
+                {
+                    (Label: "Committee recommendation", Content: report.CommitteeSummary?.Trim()),
+                    (Label: "Officer summary", Content: report.OfficerSummary?.Trim()),
+                    (Label: "Manager summary", Content: report.ManagerSummary?.Trim())
+                }.Where(summary => !string.IsNullOrWhiteSpace(summary.Content))
+                    .GroupBy(summary => summary.Content, StringComparer.Ordinal);
+
+                <div class="tc-detail-report-meta">
+                    <dl class="tc-dialog-overview">
+                        <div><dt>Report</dt><dd>#@report.ReportId</dd></div>
+                        <div><dt>Submitted</dt><dd>@CommitteeDisplay.Utc(report.SubmittedAt)</dd></div>
+                        <div><dt>Status</dt><dd><span class="badge @statusClass">@CommitteeDisplay.Status(report.Status)</span></dd></div>
+                    </dl>
+                    <a class="btn btn-outline-primary" asp-action="UnifiedReportPdf" asp-route-id="@tender.TenderId" asp-route-bidId="@Model.SelectedBid?.BidId">Download PDF</a>
+                </div>
+                @foreach (var summary in summaries)
+                {
+                    <section class="tc-detail-block tc-dialog-report-section">
+                        <h3>@string.Join(" · ", summary.Select(source => source.Label))</h3>
+                        <partial name="_ReadableReport" model="summary.Key" />
+                    </section>
+                }
+                @if (tender.Bids.FirstOrDefault(bid => bid.BidId == report.RecommendedBidId) is { } recommendedBid && recommendedBid.Evaluations.Count > 0)
+                {
+                    <div>
+                        <a class="btn btn-outline-primary" asp-action="TenderDetails" asp-route-id="@tender.TenderId" asp-route-bidId="@recommendedBid.BidId" asp-fragment="selected-bid">View recommended bid evaluations</a>
+                    </div>
+                }
+            }
+        </div>
+        <footer class="tc-review-dialog-footer">
+            <button type="button" class="btn btn-outline-secondary" data-review-dialog-close>Close</button>
+        </footer>
+    </dialog>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(tender.OfferRoundSummary))
+{
+    <details class="workspace-section tc-review-disclosure">
+        <summary>Offer rounds and exceptions</summary>
+        <partial name="_FormattedReport" model="tender.OfferRoundSummary" />
+    </details>
+}
+
+    <div class="tc-review-navigation">
+        <a class="btn btn-primary" href="#voting">Next: @decisionLabel <span aria-hidden="true">→</span></a>
+    </div>
+</div>
+
+<div class="tc-review-panel" data-review-panel="voting" tabindex="-1" aria-labelledby="voting-heading">
 <partial name="_Voting" model="Model" />
 
-<section id="request" class="workspace-section" aria-labelledby="request-heading">
-    <h2 id="request-heading">Purchase request and tender</h2>
-    <dl class="row">
-        <dt class="col-sm-3">Request</dt><dd class="col-sm-9">#@tender.PurchaseRequest.RequestId · @tender.PurchaseRequest.Title</dd>
-        <dt class="col-sm-3">Department</dt><dd class="col-sm-9">@tender.PurchaseRequest.Department</dd>
-        <dt class="col-sm-3">Reason</dt><dd class="col-sm-9 tc-report-copy">@tender.PurchaseRequest.Reason</dd>
-        <dt class="col-sm-3">Priority</dt><dd class="col-sm-9">@tender.PurchaseRequest.Priority</dd>
-        <dt class="col-sm-3">Target date</dt><dd class="col-sm-9">@CommitteeDisplay.Date(tender.PurchaseRequest.TargetDate)</dd>
-        <dt class="col-sm-3">Tender description</dt><dd class="col-sm-9 tc-report-copy">@tender.Description</dd>
-        <dt class="col-sm-3">Terms</dt><dd class="col-sm-9 tc-report-copy">@CommitteeDisplay.Text(tender.Terms)</dd>
-        <dt class="col-sm-3">Opens</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(tender.OpensAt)</dd>
-        <dt class="col-sm-3">Submission deadline</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(tender.ClosesAt)</dd>
-    </dl>
-    @if (tender.PurchaseRequest.Items.Count == 0) { <p>No request items are recorded.</p> }
-    else
-    {
-        <div class="table-responsive" tabindex="0" role="region" aria-label="Requested items"><table class="committee-read-table table mb-0">
-            <caption>Requested items and specifications.</caption>
-            <thead><tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Unit</th><th scope="col">Specifications</th></tr></thead>
-            <tbody>@foreach (var item in tender.PurchaseRequest.Items)
-            { <tr><th scope="row">@item.Name</th><td>@CommitteeDisplay.Quantity(item.Quantity)</td><td>@item.Unit</td><td>@item.Specifications</td></tr> }</tbody>
-        </table></div>
-    }
-    @if (tender.Documents.Count > 0)
-    {
-        <h3 class="fs-6 mt-4">Tender documents</h3>
-        <ul class="tc-document-list mb-0">@foreach (var document in tender.Documents) { <li>@document.OriginalFileName <span class="tc-cell-meta text-secondary">@document.SizeBytes.ToString("N0") bytes</span></li> }</ul>
-    }
-</section>
-
-<section id="recommendation" class="workspace-section" aria-labelledby="recommendation-heading">
-    <h2 id="recommendation-heading">Manager recommendation</h2>
-    <dl class="row mb-0">
-        <dt class="col-sm-3">Responsible manager</dt><dd class="col-sm-9">@(tender.ResponsibleManager?.FullName ?? "No single referring manager is recorded")</dd>
-        <dt class="col-sm-3">Nominated bid</dt><dd class="col-sm-9">@if (nominated != null)
-        { <a asp-action="TenderDetails" asp-route-id="@tender.TenderId" asp-route-bidId="@nominated.BidId" asp-fragment="selected-bid">@nominated.SupplierName · Bid #@nominated.BidId</a><span class="badge text-bg-primary ms-2">Manager nominated</span> }
-        else { <span>No submitted nomination is available.</span> }</dd>
-    </dl>
-    <div class="tc-recommendation-copy"><h3>Recommendation and referral</h3><partial name="_ReadableReport" model="@(CommitteeDisplay.Text(tender.Report?.ManagerSummary))" /></div>
-    @if (!tender.Readiness.HasValidNomination) { <p class="text-secondary mt-2 mb-0">The nomination is missing or is not currently eligible for a committee decision.</p> }
-</section>
-
-<section id="bid-comparison" class="workspace-section" aria-labelledby="comparison-heading">
-    <h2 id="comparison-heading">Bid comparison</h2>
-    <partial name="_BidComparison" model="tender" />
-</section>
-@if (Model.SelectedBid is { } selectedBid)
-{
-    <section id="selected-bid" class="workspace-section" aria-labelledby="selected-bid-heading">
-        <h2 id="selected-bid-heading">Bid #@selectedBid.BidId · @selectedBid.SupplierName</h2>
-        @if (selectedBid.IsNominated) { <p><span class="badge text-bg-primary">Manager nominated</span></p> }
-        <partial name="_BidDetails" model="selectedBid" />
-    </section>
-}
-
-<section id="evaluation-report" class="workspace-section" aria-labelledby="report-heading">
-    <h2 id="report-heading">Unified evaluation report</h2>
-    @if (tender.Report is not { } report) { <p class="mb-0">No unified evaluation report is recorded for this tender.</p> }
-    else
-    {
-        <nav class="workspace-toolbar" aria-label="Unified report export"><a class="btn btn-outline-primary btn-sm" asp-action="UnifiedReportPdf" asp-route-id="@tender.TenderId" asp-route-bidId="@Model.SelectedBid?.BidId">Download PDF</a></nav>
-        <dl class="row mb-0">
-            <dt class="col-sm-3">Report</dt><dd class="col-sm-9">#@report.ReportId · @CommitteeDisplay.Status(report.Status)</dd>
-            <dt class="col-sm-3">Submitted</dt><dd class="col-sm-9">@CommitteeDisplay.Utc(report.SubmittedAt)</dd>
-        </dl>
-        <details class="tc-report-section" open><summary>Committee summary</summary><partial name="_ReadableReport" model="@(CommitteeDisplay.Text(report.CommitteeSummary))" /></details>
-        <details class="tc-report-section"><summary>Officer summary</summary><partial name="_ReadableReport" model="@(CommitteeDisplay.Text(report.OfficerSummary))" /></details>
-        <details class="tc-report-section"><summary>Manager summary</summary><partial name="_ReadableReport" model="@(CommitteeDisplay.Text(report.ManagerSummary))" /></details>
-    }
-</section>
-
-<section id="committee" class="workspace-section" aria-labelledby="committee-heading">
-    <h2 id="committee-heading">Committee records</h2>
+<details id="committee" class="workspace-section tc-review-disclosure">
+    <summary>Committee records</summary>
     @if (tender.Members.Count == 0) { <p>No committee members are recorded.</p> }
     else
     {
@@ -159,7 +264,30 @@ else if (!tender.Readiness.IsVotingOpen)
     @foreach (var vote in tender.Votes)
     { <div class="tc-record-note"><strong>@vote.MemberName · @CommitteeDisplay.Status(vote.Decision)</strong><p class="tc-report-copy mb-0">@CommitteeDisplay.Text(vote.Justification)</p></div> }
     @if (tender.Votes.Count == 0) { <p class="mb-0">No CEO & Chiefs votes have been recorded.</p> }
-</section>
+</details>
+    <div class="tc-review-navigation"><a class="btn btn-outline-secondary" href="#recommendation">Back to review</a></div>
+</div>
+<dialog class="tc-importance" id="tender-importance" aria-labelledby="importance-heading">
+    <header class="modal-header">
+        <h2 class="modal-title fs-5" id="importance-heading">AI report assessment</h2>
+        <button type="button" class="btn-close" data-importance-close aria-label="Close AI report assessment"></button>
+    </header>
+    <div class="modal-body">
+        <p>AI reads the evaluation report and the nominated offer to identify urgency, risks, and missing information. Your vote is recorded separately.</p>
+        @if (string.IsNullOrWhiteSpace(tender.Report?.CommitteeSummary))
+        { <p class="mb-0">An evaluation report is needed before analysis can run.</p> }
+        <p class="form-text mb-0" data-importance-status role="status"></p>
+        <div data-importance-result hidden>
+            <p class="mt-3"><strong>Suggested importance: <span data-importance-level></span></strong></p>
+            <p data-importance-reason></p>
+            <div data-importance-missing hidden><h3 class="fs-6">Information to verify</h3><ul class="mb-0"></ul></div>
+        </div>
+    </div>
+    <form class="modal-footer" asp-action="AssessImportance" method="post" data-importance-form>
+        <input type="hidden" name="id" value="@tender.TenderId" />
+        <button class="btn btn-primary" type="submit" disabled="@(string.IsNullOrWhiteSpace(tender.Report?.CommitteeSummary))">Analyze report</button>
+    </form>
+</dialog>
 <a asp-action="Dashboard">Back to dashboard</a>
 </div>
 @section Scripts { <script src="~/js/tender-importance.js" asp-append-version="true"></script> }

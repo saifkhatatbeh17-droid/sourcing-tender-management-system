@@ -1,6 +1,14 @@
 @model SourcingTenderManagement.ViewComponents.DetailsQrViewModel
 @{ var showQr = Context.Request.Query["showQr"] == "true"; }
 
+@if(Model.Compact)
+{
+ var dialogId = "qr-" + Guid.NewGuid().ToString("N");
+ <button type="button" class="btn btn-outline-primary qr-inline-trigger" data-qr-open="@dialogId" aria-label="QR code for @Model.Label" title="QR code"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M2 2h4v4H2zM10 2h4v4h-4zM2 10h4v4H2zM10 9v3h3v2h1M9 14h1M13 9h1"/></svg></button>
+ <dialog id="@dialogId" class="qr-inline-dialog" aria-labelledby="@(dialogId+"-title")"><header><h2 id="@(dialogId+"-title")">@Model.Label</h2><button type="button" data-qr-close aria-label="Close QR code">×</button></header><img src="@Model.ImageData" width="220" height="220" alt="QR code to open @Model.Label"/><p>Scan to open this record. Sign in with an account that has access.</p>@if(Model.IsLoopback){<p class="form-text">A phone needs a network address it can reach; localhost works on this computer.</p>}<a class="btn btn-outline-primary" href="@Model.ImageData" download="record-details-qr.png">Download QR</a></dialog>
+}
+else
+{
 <details class="details-qr mb-3" open="@showQr">
     <summary class="btn btn-outline-primary btn-sm details-qr-toggle">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -27,3 +35,5 @@
         </div>
     </div>
 </details>
+
+}

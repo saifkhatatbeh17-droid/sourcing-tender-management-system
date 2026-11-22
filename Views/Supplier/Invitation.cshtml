@@ -1,29 +1,98 @@
 @model SourcingTenderManagement.Models.Entities.Invitation
-@{ ViewData["Title"] = "Tender details"; var now = DateTime.UtcNow; var closed = Model.Tender.ClosesAt <= now || Model.Tender.Status is not ("Open" or "Published"); var canSubmit = Model.Tender.IsAcceptingOffers(now); var status = Model.Tender.Status == "Cancelled" ? "Cancelled" : Model.Status; var bid = Model.Bids.FirstOrDefault(); }
-<div class="supplier-workspace supplier-workspace--invitation">
-<p class="eyebrow">TND-@Model.TenderId.ToString("D6") · INVITATION #@Model.InvitationId.ToString("D6")</p><div class="supplier-page-heading"><div><h1>@Model.Tender.Title</h1><p>@Model.Tender.Description</p></div><span class="status-badge status-@status.ToLowerInvariant()">@status</span></div>
-@await Component.InvokeAsync("DetailsQr", new { controller = "Supplier", action = "Invitation", id = Model.InvitationId, label = "Tender" })
-@if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> } @if (TempData["Error"] is string error) { <div class="alert alert-danger">@error</div> }
-@if (canSubmit && Model.Tender.OfferExtensions.Count == 0)
-{
-    <p>The officer may close submissions early once offers from three different suppliers are on file.</p>
+@{
+    ViewData["Title"] = "Tender details";
+    var now = DateTime.UtcNow;
+    var closed = Model.Tender.ClosesAt <= now || Model.Tender.Status is not ("Open" or "Published");
+    var canSubmit = Model.Tender.IsAcceptingOffers(now);
+    var status = Model.Tender.Status == "Cancelled" ? "Cancelled" : Model.Status == "Pending" && closed ? "Expired" : Model.Status;
+    var bid = Model.Bids.FirstOrDefault();
 }
-<div class="supplier-detail-grid"><section class="supplier-card"><h2>Tender overview</h2><dl class="detail-list"><dt>Tender category</dt><dd>@(Model.Tender.Category ?? "Uncategorized")</dd><dt>Tender deadline (UTC)</dt><dd>@Model.Tender.ClosesAt.ToString("dddd, dd MMM yyyy · HH:mm")</dd><dt>Invitation received</dt><dd>@Model.SentAt.ToLocalTime().ToString("dd MMM yyyy · HH:mm")</dd><dt>Participation response</dt><dd>@(Model.RespondedAt?.ToLocalTime().ToString("dd MMM yyyy · HH:mm") ?? "No response recorded")</dd><dt>Terms and conditions</dt><dd>@(string.IsNullOrWhiteSpace(Model.Tender.Terms) ? "See tender documents" : Model.Tender.Terms)</dd></dl></section>
-<section class="supplier-card"><h2>Requested items</h2>@foreach (var item in Model.Tender.PurchaseRequest.PurchaseRequestItems) { <div class="requested-item"><div><strong>@item.ItemName</strong><small>@item.Quantity.ToString("N3") @item.Unit requested</small></div><p>@item.Specifications</p></div> }</section></div>
-<section class="supplier-card mt-3"><h2>Required documents</h2>@if (!Model.Tender.TenderDocuments.Any()) { <p class="text-muted mb-0">No tender documents are attached.</p> } else { <ul class="document-list">@foreach (var doc in Model.Tender.TenderDocuments) { <li><a asp-action="DownloadTenderDocument" asp-route-id="@doc.TenderDocumentId">@doc.OriginalFileName</a><small>@(doc.IsMandatory ? "Required" : "Optional")</small></li> }</ul> }</section>
-@if (Model.Tender.EvaluationCriteria.Any()) { <section class="supplier-card mt-3"><h2>Published evaluation criteria</h2><div class="criteria-grid">@foreach (var criterion in Model.Tender.EvaluationCriteria) { <div><strong>@criterion.Name</strong><small>@criterion.Category · @criterion.Weight.ToString("N0")%</small><p>@criterion.Description</p></div> }</div></section> }
-<section class="supplier-action-bar"><a asp-action="Invitations" class="btn btn-outline-secondary">Back to invitations</a><div>@if (Model.Status == "Pending" && !closed) { <form asp-action="Respond" method="post" class="d-inline"><input type="hidden" name="id" value="@Model.InvitationId"/><input type="hidden" name="response" value="Accepted"/><button class="btn btn-primary">Accept invitation</button></form><form asp-action="Respond" method="post" class="d-inline"><input type="hidden" name="id" value="@Model.InvitationId"/><input type="hidden" name="response" value="Declined"/><button class="btn btn-outline-danger">Decline</button></form> }
-@if (Model.Status == "Accepted" && canSubmit) { if (bid == null) { <a asp-action="CreateOffer" asp-route-invitationId="@Model.InvitationId" class="btn btn-primary">Prepare offer</a> } else if (bid.Status == "Draft" || (Model.Tender.OfferExtensions.Count > 0 && (bid.Status is "NonCompliant" or "Withdrawn"))) { <a asp-action="CreateOffer" asp-route-invitationId="@Model.InvitationId" asp-route-bidId="@bid.BidId" class="btn btn-primary">@(bid.Status == "Draft" ? "Continue draft" : "Revise offer")</a> } else { <a asp-action="Offer" asp-route-id="@bid.BidId" class="btn btn-primary">View offer</a> } }
-@if (!canSubmit && bid is { Status: not "Draft" }) { <a asp-action="Offer" asp-route-id="@bid.BidId" class="btn btn-outline-primary">View offer</a> }
-@if (Model.Status == "Accepted" && status != "Cancelled" && Model.Tender.ClosesAt <= DateTime.UtcNow && bid?.Status == "Draft") { <span class="text-muted">Submission period has ended.</span> }</div></section>
+<div class="supplier-workspace supplier-workspace--invitation">
+    <nav class="supplier-offer-back" aria-label="Invitation navigation">
+        <a asp-action="Invitations"><span aria-hidden="true">←</span> Back to invitations</a>
+    </nav>
+
+    <header class="supplier-page-heading">
+        <div>
+            <p class="eyebrow">TND-@Model.TenderId.ToString("D6") · INVITATION #@Model.InvitationId.ToString("D6")</p>
+            <h1>@Model.Tender.Title</h1>
+            <p>@Model.Tender.Description</p>
+        </div>
+        <div class="supplier-invitation-heading-actions">
+            <span class="status-badge status-@status.ToLowerInvariant()">@status</span>
+            @if (Model.Status == "Pending" && !closed)
+            {
+                <form asp-action="Respond" method="post">
+                    <input type="hidden" name="id" value="@Model.InvitationId" />
+                    <input type="hidden" name="response" value="Accepted" />
+                    <button type="submit" class="btn btn-primary">Accept invitation</button>
+                </form>
+                <form asp-action="Respond" method="post">
+                    <input type="hidden" name="id" value="@Model.InvitationId" />
+                    <input type="hidden" name="response" value="Declined" />
+                    <button type="submit" class="btn btn-outline-danger">Decline</button>
+                </form>
+            }
+            @if (Model.Status == "Accepted" && canSubmit)
+            {
+                if (bid == null)
+                {
+                    <a asp-action="CreateOffer" asp-route-invitationId="@Model.InvitationId" class="btn btn-primary">Prepare offer <span aria-hidden="true">→</span></a>
+                }
+                else if (bid.Status == "Draft" || (Model.Tender.OfferExtensions.Count > 0 && (bid.Status is "NonCompliant" or "Withdrawn")))
+                {
+                    <a asp-action="CreateOffer" asp-route-invitationId="@Model.InvitationId" asp-route-bidId="@bid.BidId" class="btn btn-primary">@(bid.Status == "Draft" ? "Continue draft" : "Revise offer") <span aria-hidden="true">→</span></a>
+                }
+                else
+                {
+                    <a asp-action="Offer" asp-route-id="@bid.BidId" class="btn btn-primary">View offer <span aria-hidden="true">→</span></a>
+                }
+            }
+            @if (!canSubmit && bid is { Status: not "Draft" })
+            {
+                <a asp-action="Offer" asp-route-id="@bid.BidId" class="btn btn-outline-primary">View offer <span aria-hidden="true">→</span></a>
+            }
+        </div>
+    </header>
+
+    @if (TempData["Success"] is string success) { <div data-flash-message class="alert alert-success" role="status">@success</div> }
+    @if (TempData["Error"] is string error) { <div data-flash-message class="alert alert-danger" role="alert">@error</div> }
+    @if (Model.Status == "Accepted" && status != "Cancelled" && Model.Tender.ClosesAt <= DateTime.UtcNow && bid?.Status == "Draft")
+    {
+        <p class="alert alert-info" role="status">Submission period has ended.</p>
+    }
+
+    <section class="supplier-participation" aria-labelledby="participation-title">
+        <div><h2 id="participation-title">@(Model.Status == "Pending" && !closed ? "Your response is needed" : canSubmit && Model.Status == "Accepted" ? "Ready for your offer" : closed ? "Submissions closed" : "Your participation")</h2>
+        <p>@(Model.Status == "Pending" && !closed ? "Review the requested items and documents below, then accept to prepare an offer." : canSubmit && Model.Status == "Accepted" ? "Prepare or review your offer before the deadline. Accepting an invitation does not submit an offer." : Model.Status == "Declined" ? "You declined this invitation." : "Check your offer for its latest status and any requested clarification.")</p></div>
+        <div class="supplier-deadline"><span>Deadline (UTC)</span><strong>@Model.Tender.ClosesAt.ToString("dd MMM yyyy, HH:mm")</strong><small>Offer round @(Model.Tender.OfferExtensions.Count + 1)</small></div>
+    </section>
+    @if (canSubmit && Model.Tender.OfferExtensions.Count == 0)
+    {
+        <p>The officer may close submissions early once offers from three different suppliers are on file.</p>
+    }
+    <div class="supplier-detail-grid"><section class="supplier-card"><h2>Terms and dates</h2><dl class="detail-list"><dt>Tender category</dt><dd>@(Model.Tender.Category ?? "Uncategorized")</dd><dt>Tender deadline (UTC)</dt><dd>@Model.Tender.ClosesAt.ToString("dddd, dd MMM yyyy · HH:mm")</dd><dt>Invitation received</dt><dd>@Model.SentAt.ToLocalTime().ToString("dd MMM yyyy · HH:mm")</dd><dt>Participation response</dt><dd>@(Model.RespondedAt?.ToLocalTime().ToString("dd MMM yyyy · HH:mm") ?? "No response recorded")</dd><dt>Terms and conditions</dt><dd>@(string.IsNullOrWhiteSpace(Model.Tender.Terms) ? "No additional terms specified" : Model.Tender.Terms)</dd></dl></section>
+    <section class="supplier-card"><h2>Requested items</h2>@foreach (var item in Model.Tender.PurchaseRequest.PurchaseRequestItems) { <div class="requested-item"><div><strong>@item.ItemName</strong><small>@item.Quantity.ToString("N3") @item.Unit requested</small></div><p>@item.Specifications</p></div> }</section></div>
+    @if (Model.Tender.TenderDocuments.Any())
+    {
+        <section class="supplier-card mt-3"><h2>Tender documents</h2><p class="text-secondary">Download the requirements and attach your responses when preparing an offer. Required documents need a supporting upload.</p><ul class="document-list">@foreach (var doc in Model.Tender.TenderDocuments) { <li><a asp-action="DownloadTenderDocument" asp-route-id="@doc.TenderDocumentId">@doc.OriginalFileName</a><small>@(doc.IsMandatory ? "Required" : "Optional")</small></li> }</ul></section>
+    }
+    @if (Model.Tender.EvaluationCriteria.Any()) { <section class="supplier-card mt-3"><h2>How offers will be evaluated</h2><div class="criteria-grid">@foreach (var criterion in Model.Tender.EvaluationCriteria) { <div><strong>@criterion.Name</strong><small>@criterion.Category · @criterion.Weight.ToString("N0")%</small><p>@criterion.Description</p></div> }</div></section> }
+
+    <section class="supplier-card supplier-offer-clarifications mt-3" aria-labelledby="invitation-clarification-title">
+        <header class="supplier-card-heading">
+            <div><h2 id="invitation-clarification-title">Clarifications</h2><p>Review questions and answers about this tender.</p></div>
+            @if (status is "Pending" or "Accepted")
+            {
+                <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender"
+                   asp-route-recordId="@Model.TenderId" class="btn btn-outline-primary">Ask about this tender</a>
+            }
+        </header>
+        <details class="supplier-conversation-history">
+            <summary>Clarification history <span aria-hidden="true">⌄</span></summary>
+            @await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = Model.TenderId })
+        </details>
+    </section>
+</div>
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
-
-@if (status is "Pending" or "Accepted")
-{
-    <a asp-controller="Clarification" asp-action="Index" asp-route-kind="tender"
-       asp-route-recordId="@Model.TenderId" class="btn btn-outline-primary mt-3">Ask about this tender</a>
-}
-<details class="supplier-conversation-history"><summary>Clarification history <span aria-hidden="true">⌄</span></summary>@await Component.InvokeAsync("ClarificationHistory", new { kind = "tender", recordId = Model.TenderId })</details>
-
-</div>

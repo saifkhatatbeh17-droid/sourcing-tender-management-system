@@ -15,15 +15,6 @@
     <span class="badge @SupplierListViewModel.StatusStyle(supplier.Status)">@SupplierListViewModel.StatusLabel(supplier.Status)</span>
 </div>
 
-@if (TempData["SupplierReviewFeedback"] is string feedback)
-{
-    <p class="admin-feedback" data-admin-feedback role="status">@feedback</p>
-}
-@if (TempData["SupplierReviewConflict"] is string conflict)
-{
-    <p class="alert alert-warning" role="alert">@conflict</p>
-}
-
 <partial name="_SupplierDetailsContent" model="Model" />
 
 @section Scripts {

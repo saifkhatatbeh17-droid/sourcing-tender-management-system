@@ -2,13 +2,15 @@
 @{ ViewData["Title"] = "Sign In"; ViewData["StandaloneLogin"] = true; }
 
 @section Styles {
+    <link rel="modulepreload" href="~/lib/login-scene/three.module.js" />
     <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/face-login-modal.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/face-setup.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/login-cinematic.css" asp-append-version="true" />
 }
 
-<div class="login-page" id="login-stage">
-    <!-- Brand side: logo + interactive emblem + one line -->
+<div class="login-page cinematic-login" id="login-stage">
+    <!-- Login-only pharmaceutical scene; all authentication controls retain their original bindings. -->
     <div class="login-identity" data-access="idle">
         <div class="login-access-effect" aria-hidden="true"></div>
 
@@ -16,51 +18,12 @@
             <partial name="_PharmaBrand" />
         </a>
 
-        <div class="identity-art" aria-hidden="true">
-            <div class="orbit orbit-one"><span class="orbit-node node-1"></span></div>
-            <div class="orbit orbit-three">
-                <svg class="orbit-progress-svg" viewBox="0 0 200 200">
-                    <circle class="orbit-track-circle" cx="100" cy="100" r="92" />
-                    <circle class="orbit-progress-circle" id="typing-ring" cx="100" cy="100" r="92" />
-                </svg>
-            </div>
-
-            <div class="identity-core" id="interactive-logo-core">
-                <div class="core-glare"></div>
-                <div class="face-scan-brackets"><i></i><i></i><i></i><i></i><span class="face-laser"></span></div>
-                <div class="passkey-waves"><span></span><span></span><span></span></div>
-
-                <svg class="tiryaq-interactive-svg" viewBox="0 0 120 120" fill="none">
-                    <defs>
-                        <linearGradient id="tq-grad-top" x1="15" y1="15" x2="95" y2="75" gradientUnits="userSpaceOnUse">
-                            <stop offset="0%" stop-color="#64f4dc" />
-                            <stop offset="55%" stop-color="#00a3a6" />
-                            <stop offset="100%" stop-color="#0c746c" />
-                        </linearGradient>
-                        <linearGradient id="tq-grad-bottom" x1="25" y1="55" x2="95" y2="108" gradientUnits="userSpaceOnUse">
-                            <stop offset="0%" stop-color="#00b4b8" />
-                            <stop offset="100%" stop-color="#065a54" />
-                        </linearGradient>
-                    </defs>
-                    <path class="tq-ribbon tq-ribbon-top"
-                          d="M22 44 C22 25, 37 14, 52 14 L52 36 L74 36 C91 36, 100 46, 100 63 L100 74 L82 74 L82 64 C82 55, 76 50, 65 50 L22 49 Z"
-                          fill="url(#tq-grad-top)" />
-                    <path class="tq-ribbon tq-ribbon-bottom"
-                          d="M32 57 L52 57 L52 75 C52 84, 58 89, 69 89 L96 89 C93 101, 82 107, 65 107 C43 107, 32 95, 32 76 Z"
-                          fill="url(#tq-grad-bottom)" />
-                    <g class="tq-visor-group">
-                        <rect class="tq-visor-bg" x="54" y="52" width="26" height="19" rx="9.5" />
-                        <g class="tq-eyes">
-                            <circle class="tq-eye" cx="62" cy="61.5" r="2.8" />
-                            <circle class="tq-eye" cx="72" cy="61.5" r="2.8" />
-                        </g>
-                        <path class="tq-privacy-shutter" d="M57 61.5 H77" stroke-width="3" stroke-linecap="round" />
-                        <path class="tq-verified-check" d="M60 61.5 L65 66 L75 56" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
-                    </g>
-                </svg>
+        <div class="pharma-scene" id="pharma-scene" aria-hidden="true">
+            <div class="pharma-fallback">
+                <div class="fallback-bottle"><div class="fallback-cap"></div><div class="fallback-label"><span>TIRYAQ</span><i></i><small>SOURCING &amp; TENDER<br />MANAGEMENT</small></div></div>
+                <span class="fallback-tablet tablet-a"></span><span class="fallback-tablet tablet-b"></span>
             </div>
         </div>
-
         <div class="identity-story">
             <h2 class="login-identity-copy">Sourcing and tender management</h2>
         </div>
@@ -127,7 +90,10 @@
         <div class="login-divider">or</div>
         <div class="login-methods">
             <button id="face-login-button" class="btn login-method" type="submit" form="password-login"
-                    asp-controller="Account" asp-action="LoginWithFaceId" aria-label="Sign in with Face ID (password + camera)"
+                    asp-controller="Account" asp-action="@(Context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment() ? "DemoFaceSignIn" : "LoginWithFaceId")"
+                    formnovalidate="@(Context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())"
+                    data-face-demo="@(Context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment() ? "true" : "false")"
+                    aria-label="Sign in with Face ID"
                     data-biometric-hover="face">
                 <span class="login-method-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -151,7 +117,7 @@
             </form>
         </div>
         <p id="face-login-error" class="text-danger mt-2" role="alert" hidden></p>
-        <p class="small text-muted mt-2">Face ID requires your password and a matching enrolled face. Set up your face from Biometric sign-in after signing in normally.</p>
+        <p class="small text-muted mt-2">@(Context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment() ? "Enter your email, then select Face ID. No password needed for the local demo." : "Face ID requires your password and a matching enrolled face.") Set up your face from Biometric sign-in after signing in normally.</p>
 
         <p class="login-registration">
             New supplier? <a asp-controller="Account" asp-action="Register">Register your company</a>
@@ -166,8 +132,12 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/login-submit.js" asp-append-version="true" defer></script>
     <script src="~/js/login-access.js" asp-append-version="true" defer></script>
     <script src="~/js/login-visibility.js" asp-append-version="true" defer></script>
+    <link rel="stylesheet" href="~/css/biometric-welcome.css" asp-append-version="true" />
+    <script src="~/js/biometric-welcome.js" asp-append-version="true" defer></script>
     <script src="~/js/passkeys.js" asp-append-version="true" defer></script>
     <script src="~/js/face-login-inline.js" asp-append-version="true" defer></script>
+    <script type="module" src="~/js/login-scene.js" asp-append-version="true"></script>
 }

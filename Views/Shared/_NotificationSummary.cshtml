@@ -1,0 +1,39 @@
+@model SourcingTenderManagement.Models.Entities.Notification
+@using System.Globalization
+@{
+    var title = Model.Title;
+    var messages = title.Contains("message", StringComparison.OrdinalIgnoreCase)
+        || title.Contains("clarification", StringComparison.OrdinalIgnoreCase)
+        || Model.RelativeUrl?.Contains("/ContactMessageDetails", StringComparison.OrdinalIgnoreCase) == true;
+    var application = title.Contains("supplier application", StringComparison.OrdinalIgnoreCase);
+    var approved = title.Contains("approved", StringComparison.OrdinalIgnoreCase);
+    var tone = messages ? "message" : application ? "application" : approved ? "approved" : "review";
+    var review = application || approved
+        || title.Contains("approval", StringComparison.OrdinalIgnoreCase)
+        || title.Contains("review", StringComparison.OrdinalIgnoreCase)
+        || title.Contains("decision", StringComparison.OrdinalIgnoreCase)
+        || title.Contains("rejected", StringComparison.OrdinalIgnoreCase);
+    var group = messages ? "messages" : review ? "approvals" : "other";
+    var icon = tone switch
+    {
+        "message" => "M3 5h18v14H3zM3 6l9 7 9-7",
+        "application" => "M14 20H4v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2M12 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM18 8v6m-3-3h6",
+        "approved" => "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM7.5 12l3 3 6-6",
+        _ => "M8 5H4v16h16V5h-4M8 3h8v4H8zM8 13l3 3 5-5"
+    };
+    var absoluteDate = Model.CreatedAt.ToString("dd MMM yyyy, HH:mm 'UTC'", CultureInfo.InvariantCulture);
+}
+<span class="notice-center-icon" data-notice-tone="@tone" data-notice-group="@group" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="@icon" /></svg>
+</span>
+<div class="notice-center-copy">
+    <strong>@title</strong>
+    <p class="notice-center-message">@Model.Message</p>
+</div>
+<div class="notice-center-meta">
+    <time class="notice-center-time" datetime="@Model.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture)" title="@absoluteDate" aria-label="@absoluteDate">@absoluteDate</time>
+    @if (!Model.IsRead)
+    {
+        <span class="notice-center-dot"><span class="visually-hidden">Unread</span></span>
+    }
+</div>

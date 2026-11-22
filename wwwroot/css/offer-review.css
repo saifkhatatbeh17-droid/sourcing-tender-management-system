@@ -29,3 +29,69 @@
 .or-review-actions .btn { min-height:44px; padding:11px 20px; font-size:14px; }
 .so-page .or-review-note { max-width:72ch; font-size:15px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; margin:0 0 20px; }
 @media(max-width:680px) { .or-report-heading,.or-document-heading { align-items:start; } .or-winner { align-items:start; flex-direction:column; gap:16px; } .or-quote { text-align:left; } .or-document-heading > a { width:100%; } .or-approvals ul { grid-template-columns:1fr; } .or-review-actions > .d-flex { flex-direction:column; align-items:stretch; } .or-review-actions form .btn { width:100%; } }
+
+/* Tender selection, summary and available actions. */
+.offer-review .offer-picker {
+    max-width: none;
+    padding: clamp(16px, 2.4vw, 24px);
+    background: var(--so-surface);
+    border: 1px solid var(--so-line);
+    border-radius: 16px;
+}
+
+.offer-review .offer-picker > div { flex: 0 1 640px; }
+
+.tw-overview {
+    padding: clamp(18px, 3vw, 28px);
+    margin-bottom: 24px;
+    background: var(--so-surface);
+    border: 1px solid var(--so-line);
+    border-radius: 18px;
+}
+
+.tw-tender-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+}
+
+.tw-tender-heading > div { min-width: 0; }
+.tw-tender-reference { margin: 0 0 4px; color: var(--so-muted); font-size: .875rem; }
+.tw-tender-heading h2 { margin: 0; font-size: 1.5rem; overflow-wrap: anywhere; }
+
+.tw-tender-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+    gap: 10px;
+    margin: 18px 0;
+}
+
+.tw-tender-facts > div { padding: 12px 14px; border-radius: 10px; background: var(--so-surface-alt); }
+.tw-tender-facts dt { color: var(--so-muted); font-size: .8125rem; font-weight: 500; }
+.tw-tender-facts dd { margin: 4px 0 0; color: var(--so-ink); font-weight: 650; }
+
+.tw-overview-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--so-line);
+}
+
+.tw-next-step { flex: 1 1 280px; }
+.tw-next-step h3 { margin: 0 0 4px; font-size: .9375rem; }
+.tw-next-step p { margin: 0; color: var(--so-muted); font-size: .875rem; }
+.tw-overview-actions .tw-tools { display: flex; flex-wrap: wrap; flex: 0 1 auto; }
+.tw-empty-offers { min-height: 0; }
+.tw-management { margin-top: 20px; }
+.tw-management summary { width: fit-content; cursor: pointer; color: var(--so-muted); }
+.tw-management form { margin-top: 12px; }
+
+@media (max-width: 600px) {
+    .offer-review .offer-picker > div,
+    .offer-review .offer-picker > .btn,
+    .tw-overview-actions .tw-tools { flex-basis: 100%; }
+    .tw-overview-actions .tw-tools .btn { flex: 1 1 160px; }
+}

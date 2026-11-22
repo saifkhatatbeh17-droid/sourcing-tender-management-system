@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,34 +11,20 @@ namespace SourcingTenderManagement.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "OfferShortfallReason",
-                table: "Tenders",
-                type: "nvarchar(2000)",
-                maxLength: 2000,
-                nullable: true);
-
-            migrationBuilder.CreateTable(
-                name: "TenderOfferExtensions",
-                columns: table => new
-                {
-                    TenderId = table.Column<int>(type: "int", nullable: false),
-                    Round = table.Column<int>(type: "int", nullable: false),
-                    PreviousDeadline = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    OpenedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Deadline = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    PreviousCompliantOffers = table.Column<int>(type: "int", nullable: false),
-                    Outreach = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TenderOfferExtensions", x => new { x.TenderId, x.Round });
-                    table.ForeignKey(
-                        name: "FK_TenderOfferExtensions_Tenders_TenderId",
-                        column: x => x.TenderId,
-                        principalTable: "Tenders",
-                        principalColumn: "TenderId");
-                });
+            // The local database may already contain Yasmeen's migration from the other checkout.
+            migrationBuilder.Sql(@"
+IF COL_LENGTH('dbo.Tenders', 'OfferShortfallReason') IS NULL
+    ALTER TABLE dbo.Tenders ADD OfferShortfallReason nvarchar(2000) NULL;
+IF OBJECT_ID('dbo.TenderOfferExtensions', 'U') IS NULL
+BEGIN
+ CREATE TABLE dbo.TenderOfferExtensions (
+  TenderId int NOT NULL, Round int NOT NULL, PreviousDeadline datetime2 NOT NULL,
+  OpenedAt datetime2 NOT NULL, Deadline datetime2 NOT NULL, PreviousCompliantOffers int NOT NULL,
+  Outreach nvarchar(max) NOT NULL,
+  CONSTRAINT PK_TenderOfferExtensions PRIMARY KEY (TenderId, Round),
+  CONSTRAINT FK_TenderOfferExtensions_Tenders_TenderId FOREIGN KEY (TenderId) REFERENCES dbo.Tenders(TenderId)
+ );
+END");
         }
 
         /// <inheritdoc />

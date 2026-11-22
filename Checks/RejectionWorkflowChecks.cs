@@ -99,15 +99,15 @@ public static class RejectionWorkflowChecks
             var forward=await Task.WhenAll(Post(manager,"/SourcingManager/ForwardRejection",new(){["id"]=f.Tender.ToString()}),Post(manager,"/SourcingManager/ForwardRejection",new(){["id"]=f.Tender.ToString()}));
             Check(forward.Count(r=>r.StatusCode==HttpStatusCode.Redirect)==1&&forward.Count(r=>r.StatusCode==HttpStatusCode.Conflict)==1,"Concurrent forwarding only once");
             Check(await Read(db=>db.Notifications.CountAsync(n=>n.UserId=="officer"&&n.Title=="Rejected tender forwarded to you"))==1,"Officer notified exactly once");
-            Check((await officer.GetStringAsync("/SourcingOfficer/Tenders")).Contains("Exact rejection reason."),"Officer receives original rejection");
+            Check((await officer.GetStringAsync("/SourcingOfficer/Offers?tenderId="+f.Tender)).Contains("Exact rejection reason."),"Officer receives original rejection");
             Check((await stranger.GetAsync("/SourcingOfficer/Create?replacesTenderId="+f.Tender)).StatusCode==HttpStatusCode.NotFound,"Other officer cannot replace");
             var createHtml=await officer.GetStringAsync("/SourcingOfficer/Create?replacesTenderId="+f.Tender);
             Check(createHtml.Contains("ReplacesTenderId") && createHtml.Contains("name=\"PurchaseRequestId\"") && createHtml.Contains("name=\"Title\" value=\"\"") && !createHtml.Contains("Original description"),"Normal creation form opens with blank tender details and purchase request selector");
-            Dictionary<string,string> Replacement(bool launch=false)=>new(){["ReplacesTenderId"]=f.Tender.ToString(),["PurchaseRequestId"]=f.Request.ToString(),["Title"]="Replacement",["Category"]="Laboratory instruments & supplies",["Description"]="New description",["OpensAt"]=DateTime.UtcNow.ToString("s"),["ClosesAt"]=DateTime.UtcNow.AddDays(7).ToString("s"),["launch"]=launch.ToString()};
-            Check((await Post(officer,"/SourcingOfficer/Create",Replacement(true))).StatusCode==HttpStatusCode.OK && !await Read(db=>db.Tenders.AnyAsync(t=>t.ReplacesTenderId==f.Tender)),"Publishing requires approved suppliers");
+            Dictionary<string,string> Replacement(bool launch=false, bool includeSupplier=true)=>new(){["supplierProfileIds[0]"]=includeSupplier?Read(db=>db.SupplierProfiles.Where(p=>p.UserId=="supplier").Select(p=>p.SupplierProfileId.ToString()).SingleAsync()).GetAwaiter().GetResult():"0",["ReplacesTenderId"]=f.Tender.ToString(),["PurchaseRequestId"]=f.Request.ToString(),["Title"]="Replacement",["Category"]="Laboratory instruments & supplies",["Description"]="New description",["OpensAt"]=DateTime.UtcNow.ToString("s"),["ClosesAt"]=DateTime.UtcNow.AddDays(7).ToString("s"),["launch"]=launch.ToString()};
+            Check((await Post(officer,"/SourcingOfficer/Create",Replacement(true, false))).StatusCode==HttpStatusCode.OK && !await Read(db=>db.Tenders.AnyAsync(t=>t.ReplacesTenderId==f.Tender)),"Publishing requires approved suppliers");
             using var officer2=Client("officer");var replacements=await Task.WhenAll(Post(officer,"/SourcingOfficer/Create",Replacement()),Post(officer2,"/SourcingOfficer/Create",Replacement()));
             Check(replacements.Count(r=>r.StatusCode==HttpStatusCode.Redirect)==1&&replacements.Count(r=>r.StatusCode==HttpStatusCode.Conflict)==1,"Concurrent replacements only once");
-            Check(await Read(db=>db.Tenders.CountAsync(t=>t.ReplacesTenderId==f.Tender&&t.Status=="Draft"&&t.PurchaseRequestId==f.Request))==1,"Separate linked Draft created");
+            Check(await Read(db=>db.Tenders.CountAsync(t=>t.ReplacesTenderId==f.Tender&&t.Status=="Published"&&t.Invitations.Count==1&&t.PurchaseRequestId==f.Request))==1,"Separate linked replacement published with supplier invitation");
             Check((await Post(officer,"/SourcingOfficer/ReviewAndSend",new(){["tenderId"]=f.Tender.ToString()})).StatusCode==HttpStatusCode.Conflict,"Rejected original cannot re-enter evaluation");
             Check(await Read(db=>db.TenderApprovals.CountAsync(a=>a.TenderId==f.Tender))==3&&await Read(db=>db.Bids.AnyAsync(b=>b.BidId==f.Bid))&&await Read(db=>db.EvaluationReports.AnyAsync(r=>r.TenderId==f.Tender&&r.CommitteeSummary=="Original report")),"Original votes, bids and report intact");
             var launchSource=await Fixture();
@@ -138,7 +138,7 @@ public static class RejectionWorkflowChecks
                 var invalid=new Dictionary<string,string>(normal);invalid["Description"]="";
                 Check((await Post(officer,"/SourcingOfficer/Create",invalid)).StatusCode==HttpStatusCode.OK&&!await Read(db=>db.Tenders.AnyAsync(t=>t.PurchaseRequestId==normalRequest)),"Normal creation validation still blocks missing description");
                 Check((await Post(officer,"/SourcingOfficer/Create",normal)).StatusCode==HttpStatusCode.Redirect,"Normal tender creation succeeds");
-                Check(await Read(db=>db.Tenders.AnyAsync(t=>t.PurchaseRequestId==normalRequest&&t.ReplacesTenderId==null&&t.Status==(publishNormally?"Published":"Draft")&&t.Invitations.Count==(publishNormally?1:0))),"Normal draft/publish semantics and invitations unchanged");
+                Check(await Read(db=>db.Tenders.AnyAsync(t=>t.PurchaseRequestId==normalRequest&&t.ReplacesTenderId==null&&t.Status=="Published"&&t.Invitations.Count==1)),"Tender publishes directly even when legacy launch=false is posted");
             }
             var regularManager=await Fixture();int regularReport;
             using(var scope=app.Services.CreateScope())

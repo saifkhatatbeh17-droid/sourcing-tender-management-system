@@ -4,10 +4,8 @@
 }
 
 .registration-page {
-    --reg-teal: #0f766e;
-    --reg-navy: #12304a;
-    --reveal-easing: cubic-bezier(.19, 1, .22, 1);
-    --capsule-seam: max(4rem, calc((100svh - 5rem) / 2 - 3.75rem));
+    --reg-teal: #1d5560;
+    --reg-navy: #0c252d;
     min-height: calc(100vh - 76px);
     background: #f4f8f7;
     color: #18364a;
@@ -39,157 +37,8 @@
     border: 1px solid #d9e7e8;
     border-radius: 1.5rem;
     background: #fff;
-    box-shadow: inset 0 3px #0f766e;
+    box-shadow: inset 0 3px #1d5560;
 }
-
-.registration-page:not(.registration-has-errors) .registration-form-card {
-    transform-origin: center top;
-    animation: registration-unfold 750ms 900ms var(--reveal-easing) backwards;
-}
-
-.registration-capsule-stage {
-    position: absolute;
-    z-index: 2;
-    inset: 0 0 auto;
-    height: calc(var(--capsule-seam) * 2);
-    display: grid;
-    place-items: center;
-    pointer-events: none;
-    animation: registration-stage-out 1ms 1500ms forwards;
-}
-
-.registration-capsule-halo, .registration-capsule, .registration-burst { grid-area: 1 / 1; }
-.registration-capsule-halo {
-    width: min(78%, 47rem);
-    height: clamp(5rem, 14vw, 13rem);
-    border-radius: 50%;
-    background: #3ba99e70;
-    filter: blur(clamp(1.3rem, 5vw, 3rem));
-    animation: registration-halo 1.45s ease-out both;
-}
-
-.registration-capsule {
-    display: flex;
-    width: min(85%, 50rem, 110svh);
-    aspect-ratio: 4 / 1;
-    filter: drop-shadow(0 1.2rem 1.6rem #12304a38);
-    animation: registration-sway 1.3s var(--reveal-easing) both;
-}
-
-.registration-capsule-left, .registration-capsule-right {
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: 50%;
-    box-shadow: inset 0 .3rem .7rem #ffffff80, inset 0 -.5rem 1.1rem #12304a22;
-    animation: registration-split 620ms 830ms var(--reveal-easing) both;
-}
-
-.registration-capsule-left {
-    --split-x: -84%;
-    --split-y: -32%;
-    --split-angle: -30deg;
-    border-radius: 999px 0 0 999px;
-    background: #f4f8f7;
-    color: var(--reg-teal);
-    font-size: clamp(1.6rem, 6vw, 4.2rem);
-}
-
-.registration-capsule-right {
-    --split-x: 84%;
-    --split-y: 24%;
-    --split-angle: 30deg;
-    border-radius: 0 999px 999px 0;
-    background: #00a3a6;
-    color: #fff;
-    font-size: clamp(.6rem, 1.9vw, 1.25rem);
-    letter-spacing: .16em;
-}
-
-.registration-burst {
-    z-index: 1;
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: clamp(9rem, 40vw, 29rem);
-    aspect-ratio: 2 / 1;
-}
-
-.registration-burst::before {
-    content: "";
-    grid-area: 1 / 1;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: transparent;
-    animation: registration-flash 480ms 830ms ease-out both;
-}
-
-.registration-burst i {
-    grid-area: 1 / 1;
-    width: 100%;
-    height: .35rem;
-    transform: rotate(var(--angle, 0deg));
-}
-
-.registration-burst i::after {
-    content: "";
-    display: block;
-    width: .45rem;
-    height: .45rem;
-    margin-left: 50%;
-    border-radius: 50%;
-    background: #17a793;
-    animation: registration-particle 570ms 850ms var(--reveal-easing) both;
-}
-
-.registration-burst i:nth-child(2) { --angle: 34deg; }
-.registration-burst i:nth-child(3) { --angle: 78deg; }
-.registration-burst i:nth-child(4) { --angle: 123deg; }
-.registration-burst i:nth-child(5) { --angle: 161deg; }
-.registration-burst i:nth-child(6) { --angle: 209deg; }
-.registration-burst i:nth-child(7) { --angle: 253deg; }
-.registration-burst i:nth-child(8) { --angle: 308deg; }
-
-@keyframes registration-sway {
-    0% { transform: translateY(.7rem) rotate(-13deg) scale(.88); opacity: 0; }
-    34% { transform: rotate(-7deg) scale(1); opacity: 1; }
-    64% { transform: translateY(0) rotate(3deg) scale(1.04); }
-    100% { transform: rotate(0); }
-}
-
-@keyframes registration-split {
-    0% { transform: translate(0, 0); opacity: 1; }
-    42% { opacity: 1; }
-    100% { transform: translate(var(--split-x), var(--split-y)) rotate(var(--split-angle)) scale(.8); opacity: 0; }
-}
-
-@keyframes registration-unfold {
-    from { visibility: hidden; opacity: 0; transform: translateY(var(--capsule-seam)) scale(.32, .8); clip-path: inset(0 0 100% round 1.5rem); }
-    25% { visibility: visible; opacity: 1; }
-    to { opacity: 1; transform: none; clip-path: inset(0 round 1.5rem); }
-}
-
-@keyframes registration-halo {
-    0% { opacity: 0; transform: scale(.65); }
-    52% { opacity: 1; }
-    100% { opacity: 0; transform: scale(1.2); }
-}
-
-@keyframes registration-flash {
-    0% { opacity: 0; transform: scale(.2); }
-    24% { opacity: .9; }
-    100% { opacity: 0; transform: scale(1.6); }
-}
-
-@keyframes registration-particle {
-    from { opacity: 0; margin-left: 50%; }
-    24% { opacity: 1; }
-    to { opacity: 0; margin-left: 96%; }
-}
-
-@keyframes registration-stage-out { to { visibility: hidden; } }
-.registration-has-errors .registration-capsule-stage { display: none; }
 
 .form-step { display: block; color: var(--reg-teal); font-size: .7rem; font-weight: 800; letter-spacing: .12em; }
 .form-heading { padding-bottom:1.45rem;border-bottom:1px solid #edf1f3; }.form-step { justify-content:space-between;color:var(--reg-teal); }.form-step b { color:#82949e;font-size:.59rem;letter-spacing:.09em; }.form-heading h1 { margin:.9rem 0 .3rem;color:var(--reg-navy);font-size:clamp(1.45rem,2.5vw,1.9rem);font-weight:760;letter-spacing:-.045em; }.form-heading p { margin:0;color:#70818c;font-size:.82rem; }
@@ -197,14 +46,78 @@
 .registration-fields { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem 1rem;padding-left:2.8rem; }.registration-field { display:grid;align-content:start;gap:.38rem;min-width:0; }.field-wide { grid-column:1/-1; }.registration-field>label:not(.document-dropzone) { color:#435a68;font-size:.71rem;font-weight:700; }.registration-field>label b { color:#d04b4b; }.registration-field .form-control { min-height:42px;padding:.62rem .78rem;border:1px solid #dce6e9;border-radius:9px;background:#fbfcfd;color:#19364b;font-size:.78rem;box-shadow:none;transition:border-color .2s,box-shadow .2s,background .2s; }.registration-field .form-control::placeholder { color:#a6b2b9; }.registration-field .form-control:focus { border-color:#59b5a9;background:#fff;box-shadow:0 0 0 3px #0f766e16; }.registration-field .input-validation-error { border-color:#d95d5d; }.field-error,.field-error span { min-height:0;color:#c43d3d;font-size:.67rem; }.field-error:empty { display:none; }
 .password-input-wrap { position:relative; }.password-input-wrap>.form-control { padding-right:2.8rem; }.password-visibility-toggle { position:absolute;top:50%;right:.55rem;display:grid;place-items:center;width:31px;height:31px;padding:0;border:0;border-radius:7px;background:transparent;color:#7e929b;transform:translateY(-50%);transition:color .18s,background .18s; }.password-visibility-toggle:hover,.password-visibility-toggle:focus-visible { color:var(--reg-teal);background:#e8f5f2;outline:none; }.password-visibility-toggle:focus-visible { box-shadow:0 0 0 3px #0f766e24; }.password-visibility-toggle svg { width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round; }.password-visibility-toggle .eye-closed { display:none; }.password-visibility-toggle[aria-pressed="true"] .eye-open { display:none; }.password-visibility-toggle[aria-pressed="true"] .eye-closed { display:block; }
 .document-field { margin:1.4rem 0 0 2.8rem; }.document-dropzone { display:flex;position:relative;align-items:center;gap:.8rem;min-height:78px;padding:.8rem 1rem;border:1px dashed #a8c7c4;border-radius:12px;background:#f7fbfa;cursor:pointer;transition:border .2s,background .2s,transform .2s; }.document-dropzone:hover { border-color:var(--reg-teal);background:#f1faf7;transform:translateY(-1px); }.document-dropzone input { position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap; }.document-dropzone:focus-within { outline:3px solid #0f766e24;outline-offset:2px; }.upload-icon { display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;border-radius:12px;background:#e4f4ef;color:var(--reg-teal);font-size:1.25rem;font-weight:800; }.upload-copy { display:grid;flex:1;gap:.2rem;min-width:0; }.upload-copy strong { color:var(--reg-navy);font-size:.75rem; }.upload-copy small { color:#85949d;font-size:.65rem;line-height:1.45; }.upload-action { padding:.45rem .65rem;border:1px solid #dae7e5;border-radius:7px;background:#fff;color:#355b5e;font-size:.66rem;font-weight:750;white-space:nowrap; }.document-file-list { display:block;margin:.4rem 0 0 .1rem;color:#82929b;font-size:.65rem;overflow-wrap:anywhere; }.document-file-list.has-files { color:var(--reg-teal);font-weight:650; }
-.registration-submit-row { display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid #edf1f3; }.registration-submit-row>span { color:#81919b;font-size:.65rem; }.registration-submit-row>span i { margin-right:.25rem;color:var(--reg-teal);font-style:normal;font-size:1rem; }.registration-submit { display:inline-flex;align-items:center;gap:1rem;padding:.72rem 1rem;border:0;border-radius:9px;background: #00a3a6;box-shadow:0 7px 16px #0f766e25;font-size:.75rem;font-weight:750;transition:transform .2s,box-shadow .2s; }.registration-submit:hover { transform:translateY(-2px);box-shadow:0 10px 20px #0f766e38; }.registration-submit span { font-size:1rem;transition:transform .2s; }.registration-submit:hover span { transform:translateX(3px); }.registration-login-note { margin:1.1rem 0 0;text-align:center;color:#84939b;font-size:.7rem; }.registration-login-note a { color:var(--reg-teal);font-weight:750;text-decoration:none; }.registration-login-note a:hover { text-decoration:underline; }
+.registration-submit-row { display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid #edf1f3; }.registration-submit-row>span { color:#81919b;font-size:.65rem; }.registration-submit-row>span i { margin-right:.25rem;color:var(--reg-teal);font-style:normal;font-size:1rem; }.registration-submit { display:inline-flex;align-items:center;gap:1rem;padding:.72rem 1rem;border:0;border-radius:9px;background: var(--pharma-primary);box-shadow:0 7px 16px #0f766e25;font-size:.75rem;font-weight:750;transition:transform .2s,box-shadow .2s; }.registration-submit:hover { transform:translateY(-2px);box-shadow:0 10px 20px #0f766e38; }.registration-submit span { font-size:1rem;transition:transform .2s; }.registration-submit:hover span { transform:translateX(3px); }.registration-login-note { margin:1.1rem 0 0;text-align:center;color:#84939b;font-size:.7rem; }.registration-login-note a { color:var(--reg-teal);font-weight:750;text-decoration:none; }.registration-login-note a:hover { text-decoration:underline; }
 
 .registration-form-card .form-heading { text-align: left; }
-.registration-form-card .form-heading h1 { font-size: clamp(1.7rem, 3.5vw, 2.45rem); }
-.registration-form-card .form-heading p { font-size: .94rem; }
-.registration-field .form-control { min-height: 46px; }
+.landing-header.registration-navbar { position: sticky; top: 0; }
+.registration-navbar .landing-register[aria-current="page"] { text-decoration: underline; text-underline-offset: .3em; }
+.registration-page {
+    --reg-copy: #425b65;
+    --reg-control-bg: #fbfcfd;
+    --reg-control-ink: #19364b;
+    --reg-placeholder: #60747f;
+    --reg-label: #304955;
+}
+html[data-theme="dark"] .registration-page {
+    --reg-copy: var(--muted);
+    --reg-control-bg: #1b1e1f;
+    --reg-control-ink: var(--ink);
+    --reg-placeholder: var(--muted);
+    --reg-label: var(--ink);
+    --reg-navy: var(--ink);
+    --reg-teal: var(--pharma-link);
+}
+.registration-form-card .form-heading h1 { font-size: clamp(1.7rem, 3.5vw, 2.45rem); line-height: 1.15; }
+.registration-form-card .form-heading p { font-size: 1rem; line-height: 1.55; color: var(--reg-copy); }
+.registration-section legend strong { font-size: 1rem; }
+.registration-section legend small,
+.registration-page :is(.upload-copy small, .document-file-list, .registration-submit-row > span, .registration-login-note) {
+    font-size: .875rem;
+    line-height: 1.5;
+    color: var(--reg-copy);
+}
+.registration-fields { row-gap: 1rem; }
+.registration-fields > [data-category-fields] { min-width: 0; margin-bottom: 0 !important; }
+.registration-form-card :is(.registration-field > label:not(.document-dropzone), [data-category-fields] .form-label) {
+    font-size: .875rem;
+    font-weight: 650;
+    line-height: 1.35;
+    color: var(--reg-label);
+}
+.registration-form-card [data-category-fields] .form-label { display: block; margin-bottom: .38rem; }
+.registration-form-card [data-category-fields] .form-label:has(+ select[required])::after { content: " *"; }
+.registration-form-card .registration-field > label b,
+.registration-form-card [data-category-fields] .form-label::after { color: var(--pharma-danger-text); }
+.registration-form-card :is(.form-control, .form-select) {
+    min-height: 48px;
+    font-size: 1rem;
+    line-height: 1.4;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 9px;
+    background-color: var(--reg-control-bg);
+    color: var(--reg-control-ink);
+}
+.registration-form-card :is(.form-control, .form-select):focus {
+    border-color: var(--pharma-focus);
+    outline: 2px solid var(--pharma-focus);
+    outline-offset: 1px;
+    box-shadow: none;
+}
+.registration-form-card .form-control::placeholder { color: var(--reg-placeholder); }
+.registration-form-card .input-validation-error { border-color: var(--pharma-danger-text); }
+.registration-form-card :is(.registration-validation, .field-error, .field-error span, .field-validation-error) {
+    font-size: .875rem;
+    line-height: 1.45;
+    color: var(--pharma-danger-text);
+}
+.registration-form-card .upload-copy strong { font-size: .9375rem; }
+.registration-form-card .upload-action { font-size: .875rem; }
+.registration-form-card .registration-submit { font-size: .9375rem; min-height: 44px; }
+.registration-form-card :is(button, a, .document-dropzone):focus-visible,
+.registration-form-card .document-dropzone:focus-within { outline: 2px solid var(--pharma-focus); outline-offset: 3px; }
 
 @media (max-width: 560px) {
+    .landing-header.registration-navbar { position: relative; }
     .registration-form-area { width: calc(100% - 1.25rem); }
     .registration-fields { grid-template-columns: 1fr; padding-left: 0; }
     .document-field { margin-left: 0; }
@@ -217,3 +130,38 @@
     .registration-capsule-stage { display: none; }
     .registration-page:not(.registration-has-errors) .registration-form-card { animation: none; }
 }
+/* Three real stages, with immediate feedback and a stable action row. */
+.registration-page:not(.registration-has-errors) .registration-form-card { animation:none; }
+.registration-page { background:var(--color-surface-alt,#f5f6f4); }
+.registration-form-area { max-width:900px; }
+.registration-form-card { background:var(--color-surface,#fff); border-color:var(--color-border,#d9e2df); box-shadow:none; }
+.registration-stepper { display:flex;list-style:none;margin:24px 0 0;padding:0;gap:12px; }
+.registration-stepper li { flex:1;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--color-border,#d9e2df);padding:0 0 14px;color:var(--reg-copy);font-size:.875rem; }
+.registration-stepper li>span { width:30px;height:30px;display:grid;place-items:center;border:1px solid currentColor;border-radius:50%;flex-shrink:0; }
+.registration-stepper li[aria-current] { color:var(--reg-navy);border-color:#bd4b27; }
+.registration-stepper li[aria-current]>span { color:#fff;background:#98401f;border-color:#98401f; }
+.registration-stepper li.is-complete { border-color:var(--reg-teal); }
+.registration-progress { margin:16px 0 0;color:var(--reg-copy);font-size:.875rem; }
+.supplier-registration-form [hidden] { display:none!important; }
+.registration-stage-heading { font-size:1.15rem;margin:26px 0 8px;color:var(--reg-navy); }
+.registration-stage-copy { color:var(--reg-copy);line-height:1.6; }
+.registration-navigation { display:flex;gap:12px;margin-left:auto; }
+.registration-form-card :is(.registration-continue,.registration-submit) { display:inline-flex;justify-content:center;align-items:center;gap:14px;min-height:48px;padding:12px 20px;background:var(--action-petrol)!important;color:var(--action-petrol-text)!important;border:1px solid var(--action-petrol);font-size:.9375rem;font-weight:650;box-shadow:none;transform:none; }
+.registration-form-card :is(.registration-continue,.registration-submit):hover { background:var(--action-petrol-hover)!important;border-color:var(--action-petrol-hover);box-shadow:none; }
+.registration-form-card .registration-previous { min-height:48px;padding:12px 18px;background:var(--reg-control-bg);color:var(--reg-control-ink);border:1px solid var(--color-border,#b7c8c5); }
+.registration-summary { display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px 14px;margin:24px 0;padding:18px;border:1px solid var(--color-border,#d9e2df);border-radius:10px;color:var(--reg-label); }
+.registration-summary dt { font-weight:500; }.registration-summary dd { margin:0;overflow-wrap:anywhere; }
+.registration-page .optional-label { font-weight:400;color:var(--reg-copy); }
+.registration-section legend:focus,.registration-stage-heading:focus { outline:none; }
+.registration-form-card .document-field { margin-left:0; }
+@media(max-width:560px) { .registration-stepper { gap:8px; }.registration-stepper li { flex-direction:column;align-items:flex-start;font-size:.75rem;gap:8px; }.registration-navigation { margin-left:0;width:100%; }.registration-navigation .btn { flex:1; }.registration-submit-row>span { display:none; } }
+
+.registration-form-card .password-visibility-toggle { width:44px;height:44px;right:2px; }
+.registration-form-card .password-input-wrap>.form-control { padding-right:48px; }
+html[data-theme="dark"] .registration-page .registration-back { color:var(--reg-teal); }
+html[data-theme="dark"] .registration-section legend>span:first-child,
+html[data-theme="dark"] .registration-page .upload-icon { background:#293c38;color:#b8e6db; }
+html[data-theme="dark"] .registration-page .document-dropzone { background:var(--reg-control-bg);border-color:#64847b; }
+html[data-theme="dark"] .registration-page .document-dropzone:hover { background:#24302d; }
+html[data-theme="dark"] .registration-page .upload-action { background:#293c38;color:#e7f1ed;border-color:#64847b; }
+@media(max-width:560px) { .registration-navigation .registration-previous { flex:0 0 auto;padding-inline:14px; } .registration-navigation .registration-submit { gap:8px;padding-inline:14px; } }

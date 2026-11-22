@@ -3,8 +3,10 @@
 @section Styles { <link rel="stylesheet" href="~/css/face-enrollment.css" asp-append-version="true" /> }
 <section class="face-enrollment" aria-labelledby="verification-title">
     <a asp-controller="Account" asp-action="GoToDashboard" class="btn btn-outline-secondary mb-3">Continue to workspace</a>
-    <h1 id="verification-title">Face verification</h1>
-    <p class="text-muted">Compare a fresh camera sample with your own enrolled face samples.</p>
+    <header class="biometric-hero">
+        <h1 id="verification-title">Face verification</h1>
+        <p>Compare a fresh camera sample with your own enrolled face samples.</p>
+    </header>
     @if (string.Equals(Context.Request.Query["fromLogin"], "true", StringComparison.OrdinalIgnoreCase))
     {
         <p class="alert alert-success" role="status">Password sign-in is complete. You may run the optional face check below or continue to your workspace. The check does not change your access.</p>

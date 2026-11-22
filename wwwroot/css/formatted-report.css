@@ -1,7 +1,7 @@
 /* A single reading column; the surrounding workspace supplies the report surface. */
 .formatted-report { width: 100%; max-width: 72ch; color: var(--color-text, #152c32); font-size: 1rem; line-height: 1.6; overflow-wrap: anywhere; white-space: normal; }
 .formatted-report > h4, .evaluation-page .formatted-report > h4 { color: var(--color-text, #152c32); background: none; border: 0; border-radius: 0; padding: 0; margin: 1.5rem 0 .5rem; font-size: 1.0625rem; line-height: 1.4; font-weight: 600; letter-spacing: -.01em; break-after: avoid; }
-.formatted-report > h4:first-child, .evaluation-page .formatted-report > h4:first-child { margin-top: 0; color: var(--color-link, #007b7e); }
+.formatted-report > h4:first-child, .evaluation-page .formatted-report > h4:first-child { margin-top: 0; color: var(--color-link, #1d5560); }
 .formatted-report > p, .evaluation-page .formatted-report > p { margin: 0 0 .75rem; white-space: normal; }
 .formatted-report strong { color: inherit; font-weight: 600; }
 .formatted-report > ul { margin: .5rem 0 .75rem; padding-inline-start: 1.25rem; }

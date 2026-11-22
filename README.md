@@ -1,145 +1,231 @@
-# Sourcing & Tender Management — Code First
+<div align="center">
+  <img src="https://raw.githubusercontent.com/saifkhatatbeh17-droid/sourcing-tender-management-system/main/wwwroot/images/tiryaq-logo.png" alt="TIRYAQ logo" width="300" />
 
-ASP.NET Core MVC 10, SQL Server, and EF Core code-first migrations. This is a separate project from the earlier database-first starter. The latest merged pages, sidebars, login, roles, supplier History, and manager submission/chosen-offer screens are included.
+  <h1>TIRYAQ</h1>
+  <p><strong>Sourcing &amp; Tender Management System</strong></p>
+  <p>A connected purchasing process for pharmaceutical companies, from purchase request to supplier award.</p>
 
-The C# entities and `ApplicationDbContext` define the database. EF migrations create and update SQL Server. There is one context for Identity and all business entities; no database scaffolding is needed.
+  <p>
+    <a href="#about-tiryaq">About</a> ·
+    <a href="#key-features">Features</a> ·
+    <a href="#procurement-workflow">Workflow</a> ·
+    <a href="#getting-started">Getting started</a> ·
+    <a href="#our-team">Our team</a>
+  </p>
+</div>
 
-## Open and run
+> **Testing branch:** Use `ghaith-changes` for the latest AI Intelligence and committee edit-cycle changes. Follow the complete [tester setup guide](VLLM-SETUP.md#3-step-by-step-setup-after-cloning-from-github), including database migrations and Groq/Qwen 3.8 configuration.
 
-Open `SourcingTenderManagement.CodeFirst.sln` in Visual Studio, or open this project folder. Run commands in a terminal from the folder containing the `.csproj`.
+## About TIRYAQ
 
-Requirements: .NET 10 SDK and SQL Server. The default connection uses localhost and Windows Authentication:
+TIRYAQ is a web platform designed to help pharmaceutical companies manage purchasing requests, supplier participation and tender decisions in one place.
 
-```json
-"DefaultConnection": "Server=localhost;Database=SourcingTenderManagementCodeFirst;Trusted_Connection=True;TrustServerCertificate=True;"
+Procurement teams often work across email, paper forms and separate spreadsheets. This makes it difficult to follow approvals, compare quotations consistently and understand how a supplier was selected. TIRYAQ brings these steps into a shared workflow with clear responsibilities for each participant.
+
+Our goal is to make pharmaceutical sourcing easier to manage and easier to review. Departments describe what they need, suppliers submit their offers, committees evaluate the evidence, and decision makers can follow the recommendation through to the final award.
+
+The platform supports procurement categories including pharmaceuticals, laboratory supplies, medical equipment, IT, packaging and professional services.
+
+## Key features
+
+| Area | What TIRYAQ provides |
+|---|---|
+| Supplier onboarding | Company registration, document uploads, administrator review and approval |
+| Purchase requests | Department requests with item quantities, specifications and review feedback |
+| Tender management | Category-based supplier invitations, opening and closing dates, and offer rounds |
+| Supplier quotations | Item prices, tax, additional costs, delivery terms and supporting documents |
+| Offer review | Compliance decisions before eligible offers move to committee evaluation |
+| Committee evaluation | Four member weight confirmations, independent financial and technical marks, ranking and tie resolution |
+| Management approval | Officer report review, manager decisions and referral to the final committee |
+| Final decisions | Four CEO & Chiefs approvals for an award, with a rejection and replacement-tender path |
+| Communication | Record-linked clarifications, notifications and role-specific workspaces |
+| Reports | Committee reports, PDF downloads and selected Excel exports |
+| AI assistance | vLLM / OpenAI-compatible comparisons, workspace help and report assistance, subject to validation and human review |
+| Access and usability | ASP.NET Core Identity, optional face sign-in and passkeys, responsive layouts, voice search and QR detail links |
+
+AI suggestions support the review process. Recorded committee marks determine the ranking, and authorized users retain responsibility for approvals and the final decision.
+
+## Procurement workflow
+
+```mermaid
+flowchart TD
+    A[Supplier registration] --> B[Administrator review]
+    B --> C[Approved supplier]
+    D[Department purchase request] --> E[Officer review and tender creation]
+    C --> F[Supplier invitations and quotations]
+    E --> F
+    F --> G[Officer compliance review]
+    G --> H[Four-member evaluation and scoring]
+    H --> I[Committee report]
+    I --> J[Sourcing Officer report review]
+    J --> K[Sourcing Manager approval and referral]
+    K --> L[CEO and Chiefs decision]
+    L -->|Four approvals| M[Supplier award]
+    L -->|A rejection| N[Manager reviews and forwards rejection]
+    N --> O[Officer creates a linked replacement tender]
+    O --> F
 ```
 
-If your SQL Server name differs, override the connection in `appsettings.Local.json` (ignored by Git), or set environment variable `ConnectionStrings__DefaultConnection`.
+The normal path requires three compliant suppliers. The system supports up to four offer rounds; a final-round shortfall requires a written reason. Evaluation members confirm their percentages before scoring every eligible offer. The highest average total leads, and tied leaders require a unanimous committee decision.
 
-First run on a teammate's computer:
+Open clarifications can pause progression. Reports can return for review, while a final-committee rejection preserves the original decision history and allows a linked replacement tender.
+
+## User roles
+
+| Role | Main responsibility |
+|---|---|
+| Administrator | Manage accounts and departments, and review supplier applications |
+| Department | Submit purchase requirements and respond to requested changes |
+| Supplier | Maintain company information, respond to invitations and submit quotations |
+| Sourcing Officer | Review requests, prepare tenders, check offer compliance and review committee reports |
+| Evaluation Committee | Confirm evaluation weights and independently score the offers |
+| Sourcing Manager | Review recommendations, record decisions and refer approved cases |
+| CEO & Chiefs / Top Committee | Review the nominated offer and record the final approvals or rejection |
+
+Both committees use four distinct member positions. Permissions and record visibility depend on the user's role and assignment.
+
+## Technology stack
+
+| Layer | Technologies |
+|---|---|
+| Application | C#, ASP.NET Core MVC, .NET 10 |
+| Database | Microsoft SQL Server, Entity Framework Core with Code First migrations |
+| Authentication | ASP.NET Core Identity, WebAuthn passkeys, optional face verification |
+| Interface | Razor views, HTML, CSS, JavaScript and Bootstrap |
+| AI | vLLM (`Qwen/Qwen3-8B-AWQ` on GPU) or any OpenAI-compatible `/v1/chat/completions` API key |
+| Documents | PDFsharp/MigraDoc for PDFs, ClosedXML for Excel exports |
+| Additional tools | QRCoder, browser speech recognition and face-api.js |
+
+## Getting started
+
+### Requirements
+
+- .NET 10 SDK.
+- SQL Server accessible from your development machine.
+- Visual Studio with .NET 10 support, or a terminal and your preferred editor.
+- vLLM (Docker + WSL 2 on NVIDIA GPU) or an OpenAI-compatible API key if you want to use the AI features (see `VLLM-SETUP.md`).
+
+### 1. Clone the application branch
+
+```powershell
+git clone --branch ghaith-changes https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system.git
+cd sourcing-tender-management-system
+```
+
+Open `SourcingTenderManagement.CodeFirst.sln` in Visual Studio, or continue with the commands below.
+
+### 2. Configure the database
+
+The default connection uses SQL Server on `localhost` with Windows Authentication. To use a different instance, create `appsettings.Local.json` in the project root:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=SourcingTenderManagementCodeFirst;Trusted_Connection=True;TrustServerCertificate=True;"
+  }
+}
+```
+
+This local configuration file is ignored by Git. The connection can also be supplied through the `ConnectionStrings__DefaultConnection` environment variable.
+
+### 3. Restore dependencies and apply migrations
 
 ```powershell
 dotnet tool restore
 dotnet restore
 dotnet ef database update
-.\scripts\create-admin.ps1 -Email admin@example.com
-dotnet run --launch-profile http
 ```
 
-The admin script prompts for a password without displaying it. The application seeds its 15 role records when it starts, including when running the admin command. There are no shared default credentials in the source.
+Entity Framework migrations create and update the database schema. Database records, local demo accounts and private uploaded documents are not included in a Git clone.
 
-Open **http://localhost:5072**. The optional HTTPS launch profile uses **https://localhost:7130**. These ports differ from the original project's 5062/7120 ports so the two versions can coexist. The new version also uses its own authentication cookie.
+### 4. Create your administrator
 
-You can also run `scripts/setup-database.ps1`; it restores the tools/packages and applies the migrations. You do not need to manually create tables or run the old SQL scripts.
+```powershell
+.\scripts\create-admin.ps1 -Email admin@example.com
+```
 
-## Your local copy
+The script prompts for a password. No shared default administrator password is stored in the repository.
 
-The new database `SourcingTenderManagementCodeFirst` has already been created on the original computer. The 13 existing demo accounts, their role assignments, the demo department, and the demo supplier profile were copied locally. Their existing passwords still work. The original `SourcingTenderManagement` database and old project were left intact.
+After signing in as administrator, create a department and the required staff accounts. Assign one active user to each of the four evaluation positions and each of the four Top Committee positions. Suppliers register through the public registration page and require administrator approval.
 
-Those account records and password hashes are **not** included in the ZIP or Git repository. A teammate creates their own administrator using the command above.
+### 5. Run the application
 
-## Where your team writes code
+```powershell
+dotnet dev-certs https --trust
+dotnet run --launch-profile https
+```
 
-| File/folder | Purpose |
-|---|---|
-| `Models/Entities/` | 21 business entity classes; edit these directly |
-| `Data/ApplicationUser.cs` | Identity account plus department/profile relationships |
-| `Data/ApplicationDbContext.cs` | One context: relationships, keys, lengths, money precision, defaults, checks, and delete rules |
-| `Data/Migrations/` | EF-generated migration, designer, and model snapshot; commit these together |
-| `Controllers/` | Page actions, account processing, and future workflow logic |
-| `Views/<Role>/` | Merged role pages and partial views; search for `TEAM TODO` |
-| `Models/PageNavigation.cs` | Sidebar destinations for the seven roles |
-| `ViewComponents/NotificationBellViewComponent.cs` | Account-specific notification display |
-| `Checks/` | Identity, route/security, and SQL constraint checks |
+Open [https://localhost:7130](https://localhost:7130).
 
-The model creates **28 application tables**: 21 business tables and 7 standard Identity tables. SQL Server also contains `__EFMigrationsHistory`, so SSMS displays **29 tables**. The history table tells EF which migrations have already run.
+For HTTP development, run `dotnet run --launch-profile http` and open [http://localhost:5072](http://localhost:5072). Face and passkey features depend on browser, device, permissions and secure-context support; use HTTPS for their setup and testing.
 
-Relationships are the same as the earlier starter: departments own purchase requests, requests contain items and lead to tenders, suppliers receive invitations and submit bids, committees evaluate bids and record approvals, and questions/documents/notifications link to the related records. See [PAGE-MAP.md](PAGE-MAP.md) for page ownership and routes.
+### Optional: enable AI (vLLM GPU or Cloud API Key)
 
-## Changing the database later
+The application uses **vLLM** (`Qwen/Qwen3-8B-AWQ` with thinking disabled) or any OpenAI-compatible `/v1/chat/completions` API key. See `VLLM-SETUP.md` for full setup instructions:
 
-1. Change the relevant entity and/or the configuration in `ApplicationDbContext`.
-2. Create a migration with a descriptive name:
+- **Local NVIDIA GPU (e.g., 64 GB RAM + RTX 3070 8 GB VRAM):**
+  ```powershell
+  .\scripts\start-vllm-3070.ps1
+  ```
+- **Cloud API Key (for lightweight or non-GPU PCs):** Add a `Vllm` section to `appsettings.Local.json`:
+  ```json
+  {
+    "Vllm": {
+      "BaseUrl": "https://api.groq.com/openai/v1",
+      "Model": "qwen/qwen3.8-27b",
+      "ApiKey": "YOUR_API_KEY",
+      "EnableThinking": false
+    }
+  }
+  ```
 
-   ```powershell
-   dotnet ef migrations add AddDeliveryNotes
-   ```
+Committee reports continue to fall back to recorded scoring and quotation facts when the AI narrative is unavailable or cannot be verified.
 
-3. Read the generated migration. Check whether it adds, changes, renames, or removes columns; migrations are not a guarantee against data loss.
-4. Apply it:
+## Project structure
 
-   ```powershell
-   dotnet ef database update
-   ```
+```text
+Controllers/       MVC endpoints and role workflows
+Models/            Entities, forms and page models
+Data/              Identity users, database context and EF migrations
+Services/          Evaluation, reporting, AI and committee services
+Views/             Razor pages and shared components
+ViewComponents/    Reusable server-rendered UI components
+wwwroot/           Stylesheets, scripts, images and browser assets
+Checks/            Workflow, authorization, reporting and regression checks
+scripts/           Database setup and administrator creation
+```
 
-5. Commit the entity/context changes, migration, designer, and snapshot together. Teammates pull them and run `dotnet ef database update` against their own databases.
+Browse the [application source](https://github.com/saifkhatatbeh17-droid/sourcing-tender-management-system/tree/main) for the current implementation.
 
-Do not run `Scaffold-DbContext` or `dotnet ef dbcontext scaffold` in this version. Do not manually change SQL Server's schema and expect C# to update automatically. Do not use `EnsureCreated` alongside migrations. Coordinate migration creation so two people do not create conflicting migrations at the same time.
+## Development checks
 
-## Delete behaviour
-
-Business relationships use **NO ACTION**. If another record still references a department, request, tender, supplier, or offer, SQL Server blocks deleting that parent. Reassign or explicitly remove dependent records as appropriate. Deleting a parent does not silently delete business records or clear their foreign keys.
-
-Identity retains its standard cascading rules for its own account/role-link tables. A user referenced by business records is still protected by the business foreign keys. Prefer the existing active/inactive controls to deleting accounts.
-
-## What is complete and what remains
-
-Working features carried over: Identity login/logout, role checks, employee/department creation and editing, supplier registration/correction/approval, account-specific notification display, supplier list/details, and reading an officer's tenders/chosen offer.
-
-Business pages are still a team starter. Purchase/tender/offer submission, scoring, report generation, exports, legal-document handling, clarification messages, notification generation/read updates, Ollama calls, and the approval state machine are implementation areas. Popup and tab bodies marked `TEAM TODO` are deliberately unfinished. Supplier History is for the supplier's own submitted offers and personal summaries; suppliers do not send evaluation reports.
-
-The agreed decision flow is: officer evaluation/summary → manager writes a separate summary → Top Committee chooses an offer with four approvals → manager approves the shared report → officer closes the process and involved roles see permitted status updates. The manager does not edit the supplier's submitted offer. Approval buttons remain template controls until that workflow is implemented.
-
-The two committees each retain four member positions and four separate approvals. Audit logs, face login, deployment setup, and extra architecture are excluded. Optional brief features and fingerprint login remain undecided.
-
-## Verify
+Run these commands from the application checkout:
 
 ```powershell
 dotnet build
 dotnet ef migrations has-pending-model-changes
-dotnet run --no-launch-profile -- --self-test
 ```
 
-With the app running separately on port 5072, optionally run:
+The repository also includes isolated workflow checks:
 
 ```powershell
-python Checks/http-smoke.py
-sqlcmd -S localhost -E -C -I -b -i Checks/schema-checks.sql
+python Checks/procurement-entry-checks.py
+python Checks/all-offer-scoring-checks.py
+python Checks/full-qa-checks.py
 ```
 
-The HTTP checks require Python 3 and sqlcmd; they use the default local code-first database. They create randomly named fixtures and remove only those fixtures. The SQL checks roll back their temporary rows. These tests do not prove completion of the unfinished business workflows.
+These runners require Python 3, .NET and a local SQL Server account allowed to create and remove their disposable test databases. They cover procurement entry, scoring, report handling and rejection/replacement scenarios. Browser permissions, physical biometric hardware and real AI output require separate testing.
 
-## GitHub handoff
+## Our team
 
-Commit this project, its migrations, and its tool manifest. Do not upload `bin/`, `obj/`, local connection overrides, database backups/data files, or passwords. Each teammate applies the same migrations to their own database; GitHub does not synchronize database records.
+| Team member | Role |
+|---|---|
+| **Saif Khatatbeh** | Scrum Master |
+| **Taimaa Freahat** | Product Owner |
+| **Anas Ghawanmeh** | Quality Assurance (QA) |
+| **Mohammad Mustafa** | Developer |
+| **Gaith Ammoureh** | Developer |
+| **Yasmeen Talafha** | Developer |
+| **Amani Azzam** | Developer |
 
-Official references: [EF Core migrations](https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/) and [ASP.NET Core Identity model](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/customize-identity-model?view=aspnetcore-10.0).
-
-
-### AI bid recommendations
-
-The Evaluation Committee page uses local Ollama, with no API key or cloud provider. The default model is `qwen2.5:7b` at `http://localhost:11434/api/generate`. Keep Ollama running, enter the financial and technical percentages under **Tender & offers**, then select **Find best offer**. Use whole percentages between 0 and 100, totaling 100%.
-
-The AI compares submitted offers against purchase requirements and returns one recommendation using the entered percentages. Insufficient evidence can produce no recommendation. It does not use committee scores, fill score fields, approve, award, or advance the tender. The input contains tender requirements, bid items/specifications, totals, delivery/payment terms and validity; uploaded attachments are not read. The local model can make factual or comparative errors; committee members must check its reasons against the bids.
-
-Optional `appsettings.Local.json` configuration (merge with any existing settings):
-
-```json
-{
-  "Ollama": {
-    "BaseUrl": "http://localhost:11434",
-    "Model": "qwen2.5:7b"
-  }
-}
-```
-
-Only local HTTP endpoints are accepted. The recommendation and chosen percentages are saved in the existing `AiAnalyses` table. Changed bids hide the old result until regenerated. Invalid bid IDs, mismatched weights, incomplete comparisons, mixed-currency financial recommendations, financial-only selections above the lowest total, provider errors and incomplete output are rejected. Requests and model output use Ollama's [structured JSON format](https://docs.ollama.com/capabilities/structured-outputs). Apply the included `AllowCustomAiWeights` migration with `Update-Database` or `dotnet ef database update` to allow custom percentages.
-
-
-### Committee evaluation basis
-
-The shared form edits one price weight and one technical-requirements weight for the entire tender. Both must be positive, have at most two decimals, and sum to 100%. Assigned committee members share these weights; changing them clears existing evaluation approvals. Four distinct member approvals complete the report and advance the tender to `AwaitingOfficerSummary`. No manually entered per-supplier scores are required, and approval does not automatically select a supplier. Existing historical score records remain available in older reports. AI comparisons are advisory and use separate percentages. Members can post or update a shared committee comment without clearing approvals.
-
-## QR links for tender and purchase request details
-
-QR codes use the address the user opened the site with by default. For deployment behind a proxy, set `Links__PublicOrigin` to the site's reachable origin (for example, `https://tenders.example.com`). For a local phone test, use the computer's reachable network address and port. A `localhost` link opens on the device that scans the code.
+Together, we are building TIRYAQ to give procurement teams a clear process from the first request to the final supplier decision.

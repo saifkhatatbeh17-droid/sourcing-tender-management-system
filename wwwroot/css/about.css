@@ -1,0 +1,71 @@
+/* About page: dark hero like the homepage, near-white body, honey accents, serif headings. */
+.main-content:has(.ab){padding:0!important;max-width:none}
+body:has(.ab){background:#f8faf9!important}
+.ab{--ink:#0c252d;--teal:#1d5560;--honey:#efb85c;--honey-deep:#b06f1c;--muted:#4a6168;--line:#e0e8e6;color:var(--ink);font-family:Geist,system-ui,sans-serif}
+.ab-wrap{width:min(1180px,calc(100% - 48px));margin-inline:auto}
+.ab h1,.ab h2{font-family:"Instrument Serif",Georgia,serif;font-weight:400;letter-spacing:-.01em;margin:0}
+.ab-kicker{margin:0 0 18px;font:500 .72rem/1.4 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.22em;text-transform:uppercase;color:var(--honey)}
+.ab-kicker-dark{color:var(--honey-deep)}
+
+.ab-hero{position:relative;overflow:hidden;margin-top:-92px;padding:150px 0 96px;color:#f4eee2;
+  background:radial-gradient(90% 120% at 85% 10%,#1d5560 0,#0c252d 62%)}
+.ab-hero::before{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='48.5' viewBox='0 0 28 48.5'%3E%3Cpath d='M14 0l14 8.08v16.17L14 32.33 0 24.25V8.08zM14 32.33v16.17' fill='none' stroke='%23efb85c' stroke-opacity='.08'/%3E%3C/svg%3E")}
+.ab-hero::after{content:"";position:absolute;inset:auto 0 0;height:80px;background:linear-gradient(transparent,#f8faf9)}
+.ab-hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.25fr .75fr;align-items:center;gap:48px}
+.ab-hero h1{font-size:clamp(2.6rem,6vw,4.8rem);line-height:1.02;color:#f4eee2;max-width:13ch}
+.ab-hero h1 em{color:var(--honey);font-style:italic}
+.ab-lead{margin:22px 0 32px;max-width:52ch;font-size:1.08rem;line-height:1.65;color:rgba(244,238,226,.78)}
+.ab-actions{display:flex;flex-wrap:wrap;gap:12px}
+.ab-btn{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 22px;border-radius:99px;font-weight:600;font-size:.92rem;text-decoration:none!important;transition:background .25s,color .25s,border-color .25s,transform .25s}
+.ab-btn:hover{transform:translateY(-1px)}
+.ab-btn-honey{background:var(--honey);color:var(--ink)!important}
+.ab-btn-honey:hover{background:#e5a23e}
+.ab-btn-ghost{border:1px solid rgba(244,238,226,.35);color:#f4eee2!important}
+.ab-btn-ghost:hover{border-color:var(--honey);color:var(--honey)!important}
+.ab-btn:focus-visible{outline:2px solid var(--honey);outline-offset:3px}
+.ab-hero-art svg{width:100%;max-width:340px;display:block;margin-inline:auto;color:rgba(239,184,92,.35)}
+.ab-hex polygon{stroke-width:1.2}.ab-hex polygon+polygon{stroke-dasharray:4 7;stroke:rgba(244,238,226,.25)}
+.ab-hex{transform-origin:160px 160px;animation:ab-turn 40s linear infinite}
+.ab-pill{transform-origin:160px 160px;transform:rotate(-24deg);animation:ab-float 6s ease-in-out infinite}
+@keyframes ab-turn{to{transform:rotate(360deg)}}
+@keyframes ab-float{50%{transform:rotate(-18deg) translateY(-8px)}}
+
+.ab-story{display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,6vw,88px);padding:72px 0 88px}
+.ab-story h2,.ab-process h2,.ab-cta h2{font-size:clamp(2rem,4vw,3rem);line-height:1.08;color:var(--ink)}
+.ab-story-copy h2{margin-bottom:22px;max-width:16ch}
+.ab-story-copy p:not(.ab-kicker){color:var(--muted);line-height:1.75;margin:0 0 16px}
+.ab-priorities{list-style:none;margin:0;padding:0;align-self:center;border-top:1px solid var(--line)}
+.ab-priorities li{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:24px 0;border-bottom:1px solid var(--line)}
+.ab-priorities span{font:400 2.2rem/1 "Instrument Serif",Georgia,serif;color:var(--honey-deep)}
+.ab-priorities h3{margin:2px 0 6px;font-size:1.05rem;font-weight:600;color:var(--teal)}
+.ab-priorities p{margin:0;color:var(--muted);line-height:1.6}
+
+.ab-process{padding:80px 0;background:#eef3f2;border-block:1px solid var(--line)}
+.ab-process h2{margin-bottom:44px}
+.ab-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;position:relative}
+.ab-steps::before{content:"";position:absolute;top:28px;left:28px;right:28px;height:1px;background:repeating-linear-gradient(90deg,var(--teal) 0 6px,transparent 6px 12px);opacity:.35}
+.ab-step{position:relative;padding:0 4px}
+.ab-step-icon{position:relative;z-index:1;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:var(--teal);color:var(--honey);box-shadow:0 0 0 8px #eef3f2}
+.ab-step-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ab-step-no{margin:22px 0 6px;font:500 .7rem/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--honey-deep)}
+.ab-step h3{margin:0 0 10px;font:400 1.6rem/1.15 "Instrument Serif",Georgia,serif;color:var(--ink)}
+.ab-step>p:not(.ab-step-no){color:var(--muted);line-height:1.7;margin:0 0 16px}
+.ab-step ul{list-style:none;margin:0;padding:16px 0 0;border-top:1px solid var(--line)}
+.ab-step li{position:relative;padding-left:22px;margin-bottom:8px;font-size:.92rem;color:var(--ink)}
+.ab-step li::before{content:"";position:absolute;left:0;top:.5em;width:10px;height:6px;border-left:2px solid var(--teal);border-bottom:2px solid var(--teal);transform:rotate(-45deg)}
+
+.ab-cta{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:24px;margin-block:72px;padding:44px clamp(24px,5vw,56px);border-radius:28px;
+  background:radial-gradient(120% 140% at 100% 0,#1d5560,#0c252d 70%);color:#f4eee2}
+.ab-cta h2{color:#f4eee2}
+.ab-cta p{margin:8px 0 0;color:rgba(244,238,226,.75)}
+
+@media (max-width:900px){
+  .ab-hero{margin-top:-140px;padding:180px 0 72px}
+  .ab-hero-grid,.ab-story{grid-template-columns:1fr}
+  .ab-hero-art{display:none}
+  .ab-steps{grid-template-columns:1fr;gap:36px}
+  .ab-steps::before{top:28px;bottom:28px;left:28px;right:auto;width:1px;height:auto;background:repeating-linear-gradient(180deg,var(--teal) 0 6px,transparent 6px 12px)}
+  .ab-step{padding-left:76px}.ab-step-icon{position:absolute;left:0;top:0}.ab-step-no{margin-top:4px}
+}
+@media (prefers-reduced-motion:reduce){.ab-hex,.ab-pill{animation:none}}

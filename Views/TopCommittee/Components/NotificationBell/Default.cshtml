@@ -10,59 +10,66 @@
         </svg>
         @if (Model.UnreadCount > 0) { <span class="badge text-bg-primary">@Model.UnreadCount</span> }
     </button>
-    <div class="dropdown-menu dropdown-menu-end notification-dropdown p-2" id="tc-notification-menu" aria-labelledby="notification-bell">
-        <header class="tc-notification-header">
-            <h2 class="fs-6 mb-1">Notifications</h2>
-            <p class="small text-secondary mb-2">@Model.UnreadCount unread · @Model.Total total</p>
+    <div class="dropdown-menu dropdown-menu-end notification-dropdown notice-center" id="tc-notification-menu" aria-labelledby="notification-bell">
+        <header class="notice-center-header">
+            <partial name="~/Views/Shared/_NotificationHeading.cshtml" model="Model.UnreadCount" />
             @if (Model.UnreadCount > 0)
             {
-                <form asp-controller="TopCommittee" asp-action="MarkAllNotificationsRead" method="post">
+                <form asp-controller="TopCommittee" asp-action="MarkAllNotificationsRead" method="post" class="notice-center-header-action">
                     <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
-                    <button class="btn btn-sm btn-outline-primary">Mark all as read</button>
+                    <button type="submit" class="notice-center-action">Mark all as read</button>
                 </form>
             }
         </header>
         @if (Model.OpenOnLoad && TempData["NotificationSuccess"] is string success)
         {
-            <p class="small px-2 pt-2 mb-0" role="status">@success</p>
+            <p class="notice-center-feedback" role="status">@success</p>
         }
         @if (Model.Items.Count == 0)
         {
-            <p class="text-secondary px-2 mb-2">No notifications yet.</p>
+            <p class="notice-center-empty"><strong>No notifications yet</strong><span>New updates will appear here.</span></p>
         }
         else
         {
-            <ul class="list-unstyled mb-0 tc-notification-list" aria-label="Your notifications">
+            <partial name="~/Views/Shared/_NotificationFilters.cshtml" model="@Model.Items.Count(item => !item.IsRead)" />
+            <p class="notice-center-empty" data-notice-empty hidden role="status">No notifications match this filter.</p>
+            <ul class="notice-center-list" aria-label="Your notifications" tabindex="0">
             @foreach (var notification in Model.Items)
             {
-                <li class="notification-item">
-                    <strong class="@(notification.IsRead ? "fw-normal" : "")">@notification.Title</strong>
-                    <p class="mb-1">@notification.Message</p>
-                    <p class="small text-secondary mb-2"><time datetime="@notification.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture)">@notification.CreatedAt.ToString("dd MMM yyyy, HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture)</time> · @(notification.IsRead ? "Read" : "Unread")</p>
-                    <div class="tc-notification-actions">
+                <li class="notice-center-item @(!notification.IsRead ? "is-unread" : null)">
+                    <partial name="~/Views/Shared/_NotificationSummary.cshtml" model="notification" />
                     @if (Url.IsLocalUrl(notification.RelativeUrl))
                     {
-                        <a href="@notification.RelativeUrl">View details</a>
+                        @if (!notification.IsRead)
+                            {
+                                <form asp-controller="Account" asp-action="OpenNotification" method="post" class="notice-center-open">
+                                    <button type="submit" name="id" value="@notification.NotificationId" class="notice-center-card-link" aria-label="View details: @notification.Title"><span aria-hidden="true">›</span></button>
+                                </form>
+                            }
+                            else
+                            {
+                                <a class="notice-center-card-link notice-center-open" href="@notification.RelativeUrl" aria-label="View details: @notification.Title"><span aria-hidden="true">›</span></a>
+                            }
                     }
                     @if (!notification.IsRead)
                     {
-                        <form asp-controller="TopCommittee" asp-action="MarkNotificationRead" method="post">
+                        <form asp-controller="TopCommittee" asp-action="MarkNotificationRead" method="post" class="notice-center-row-action">
                             <input type="hidden" name="id" value="@notification.NotificationId" />
                             <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
-                            <button class="btn btn-sm btn-outline-primary" aria-label="Mark @notification.Title as read">Mark as read</button>
+                            <button type="submit" class="notice-center-action" aria-label="Mark @notification.Title as read">Mark as read</button>
                         </form>
                     }
-                    </div>
                 </li>
             }
             </ul>
         }
+        <div class="notice-center-footer"><a asp-controller="TopCommittee" asp-action="Notifications">View all notifications <span aria-hidden="true">›</span></a></div>
         @if (Model.Pages > 1)
         {
-            <nav class="tc-notification-pagination" aria-label="Notification pages">
-                @if (Model.PreviousUrl != null) { <a class="btn btn-sm btn-outline-primary" href="@Model.PreviousUrl" aria-label="Newer notifications">Newer</a> }
-                <span class="small text-secondary">Page @Model.Page of @Model.Pages</span>
-                @if (Model.NextUrl != null) { <a class="btn btn-sm btn-outline-primary" href="@Model.NextUrl" aria-label="Older notifications">Older</a> }
+            <nav class="notice-center-pages" aria-label="Notification pages">
+                @if (Model.PreviousUrl != null) { <a class="notice-center-action" href="@Model.PreviousUrl" aria-label="Newer notifications">Newer</a> }
+                <span>Page @Model.Page of @Model.Pages</span>
+                @if (Model.NextUrl != null) { <a class="notice-center-action" href="@Model.NextUrl" aria-label="Older notifications">Older</a> }
             </nav>
         }
     </div>

@@ -9,3 +9,13 @@ appsettings.Local.json
 *.ldf
 App_Data/private-files/
 .playwright-cli/
+
+# Local browser QA artifacts
+output/playwright/
+
+# Local QA evidence and Python caches
+output/qa/
+__pycache__/
+*.pyc
+
+output/supplier-build/

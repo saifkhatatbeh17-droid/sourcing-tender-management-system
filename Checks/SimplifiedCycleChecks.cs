@@ -65,7 +65,7 @@ public static class SimplifiedCycleChecks
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
             await Controller().ReviewAndSend(tenderId, new() { [bid.BidId] = "Compliant" }); db.ChangeTracker.Clear();
-            Require(await db.Tenders.AnyAsync(t => t.TenderId == tenderId && t.Status == "UnderEvaluation"), "Handoff failed");
+            Require(await db.Tenders.AnyAsync(t => t.TenderId == tenderId && t.Status == "UnderEvaluation"), "Early handoff before the future deadline failed");
             Require(await db.CommitteeAssignments.CountAsync(a => a.TenderId == tenderId) == 4, "Committee not initialized");
             Require(await db.EvaluationCriteria.Where(c => c.TenderId == tenderId).SumAsync(c => c.Weight) == 100, "Default weights missing");
             Require(await db.EvaluationReports.AnyAsync(r => r.TenderId == tenderId && r.Status == "Draft" && r.RecommendedBidId == null), "Manual choice not preserved");

@@ -7,7 +7,7 @@
     var returnedRequests = Model.Where(r => r.Status == "Returned").ToList();
     var attentionCount = Model.Count(r => r.Status is "Returned" or "Rejected");
 }
-@section Styles { <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
+@section Styles { <link rel="stylesheet" href="~/css/dashboard-overview.css" asp-append-version="true" /> <link rel="stylesheet" href="~/css/department-workspace.css" asp-append-version="true" /> }
 
 <div class="unified-dashboard department-workspace">
     <header class="dashboard-heading">
@@ -28,6 +28,37 @@
         <partial name="_DashboardMetric" model='@(new DashboardMetric("Approved & tendered", approvedCount.ToString("N0"), "Approved or converted to tender", false, "Requests"))' />
         <partial name="_DashboardMetric" model='@(new DashboardMetric("Needs attention", attentionCount.ToString("N0"), "Returned for revision or rejected", false, "Requests"))' />
     </section>
+@{
+ var current = Model.GroupBy(DepartmentRequestProgress.Code).ToDictionary(g => g.Key, g => g.Count());
+ int N(params string[] keys) => keys.Sum(k => current.GetValueOrDefault(k));
+ var requestStages = new List<DashboardSlice> { new("With sourcing officer", N("Submitted", "UnderReview")), new("Needs your changes", N("Returned")), new("Preparing tender", N("Approved", "ConvertedToTender")), new("Receiving offers", N("Published", "Open")), new("Reviewing offers & reports", N("Closed", "UnderEvaluation", "AwaitingOfficerSummary", "AwaitingManagerReview")), new("Final decision", N("AwaitingCommitteeDecision")), new("Awarded", N("Awarded")), new("Rejected or cancelled", N("Rejected", "Cancelled")) };
+ var other = Model.Count - requestStages.Sum(x => x.Count);
+ if(other > 0) requestStages.Add(new("Other stages", other));
+ var progressing = Model.Count - N("Returned", "Awarded", "Rejected", "Cancelled");
+ var overview = new DashboardOverview("Request progress", "All requests from your department", "requests", "in progress",
+ [new("In progress", progressing), new("Awarded", N("Awarded"), "positive"), new("Needs changes", N("Returned"), "attention"), new("Closed", N("Rejected", "Cancelled"), "muted")], "Where your requests are", "Current stage, including the latest linked tender", requestStages);
+}
+<section class="dr-progress-summary" aria-labelledby="request-progress-heading">
+    <div class="dr-progress-overview">
+        <h2 id="request-progress-heading">Request progress</h2>
+        <dl class="dr-progress-counts">
+            @foreach (var segment in overview.Segments)
+            {
+                <div><dt>@segment.Label</dt><dd>@segment.Count.ToString("N0")</dd></div>
+            }
+        </dl>
+    </div>
+    <details class="dr-stage-breakdown">
+        <summary>View stages</summary>
+        <dl>
+            @foreach (var stage in requestStages)
+            {
+                <div><dt>@stage.Label</dt><dd>@stage.Count.ToString("N0")</dd></div>
+            }
+        </dl>
+    </details>
+</section>
+
 
     @if (returnedRequests.Count > 0)
     {

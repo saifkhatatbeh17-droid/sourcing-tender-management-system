@@ -6,7 +6,9 @@
     var profileController = User.IsInRole(RoleNames.Supplier) ? "Supplier" : "Account";
     var editingProfile = currentController == "Account" && currentAction == "EditProfile";
     var profileIsActive = editingProfile || (currentController == profileController && currentAction == "Profile");
-    var workspaceController = currentController;
+    var workspaceController = currentController == "AiIntelligence" && ViewData["WorkspaceController"]?.ToString() is { Length: > 0 } presetWorkspace
+        ? presetWorkspace
+        : currentController;
     if (profileIsActive && currentController == "Account")
     {
         workspaceController = User.IsInRole(RoleNames.Supplier)
@@ -15,12 +17,19 @@
     }
     var standaloneLogin = ViewData["StandaloneLogin"] is true;
     var isHomeLanding = ViewData["HomeLanding"] is true;
+    var isSupplierRegistration = currentController == "Account" && currentAction == "Register";
+    var isContactPage = currentController == "Home" && currentAction == "Contact";
+    var useLandingNavbar = isHomeLanding || isSupplierRegistration || isContactPage;
     if (!PageNavigation.Menus.ContainsKey(workspaceController) || !User.IsInRole(workspaceController))
         workspaceController = RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     var showWorkspace = !isHomeLanding && User.Identity?.IsAuthenticated == true
         && ViewData["HideWorkspaceSidebar"] is not true && PageNavigation.Menus.ContainsKey(workspaceController)
-        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "Clarification" or "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
+        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "AiIntelligence" or "Clarification" or "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin");
     var showAdminSidebar = showWorkspace && workspaceController == "Admin";
+    var showPublicSafi = !showWorkspace &&
+        ((currentController == "Home" && currentAction is "Index" or "About" or "HowItWorks" or "Team" or "Contact") ||
+         (currentController == "Account" && currentAction is "Login" or "Register"));
+    ViewData["SafiPublic"] = showPublicSafi;
     ViewData["WorkspaceController"] = workspaceController;
     ViewData["WorkspaceLabel"] = workspaceController == "Admin" ? "Administration" : RoleNames.DisplayName(workspaceController);
     var activeAction = ViewData["ActivePage"]?.ToString() ?? currentAction;
@@ -29,6 +38,8 @@
         "Details" when workspaceController == "Department" => "Requests",
         "Edit" when workspaceController == "Department" => "Create",
         "SupplierDetails" => "Suppliers", "CreateRequest" or "EditRequest" or "RequestDetails" => "Requests",
+        "Tenders" or "TenderDetails" or "Create" or "Edit" or "Invitations" or "Compliance" or "Comparison" or "Evaluations"
+            when workspaceController == "SourcingOfficer" => "Offers",
         "CreateOffer" or "Offer" => "Offers", "TenderDetails" when workspaceController == "TopCommittee" => "Decisions",
         "TenderDetails" => "Tenders", "Invitation" => "Invitations", _ => activeAction
     };
@@ -41,6 +52,7 @@
     <script src="~/js/site-theme.js" asp-append-version="true"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] — Sourcing &amp; Tender Management</title>
+    <link rel="icon" type="image/png" href="~/images/tiryaq-mark.png" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/formatted-report.css" asp-append-version="true" />
@@ -56,57 +68,28 @@
     {
         <link rel="stylesheet" href="~/css/root.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/admin-root.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/admin-usability.css" asp-append-version="true" />
     }
     @if (showWorkspace) { <link rel="stylesheet" href="~/css/workspace-shell.css" asp-append-version="true" /> }
     @if (showWorkspace && currentAction == "Dashboard") { <link rel="stylesheet" href="~/css/workspace-dashboard.css" asp-append-version="true" /> }
+    <link rel="stylesheet" href="~/css/workflow-ux.css" asp-append-version="true" />
+    @if (showWorkspace || showPublicSafi)
+    {
+        <link rel="stylesheet" href="~/css/ai-chat.css" asp-append-version="true" />
+    }
+    @if (!showWorkspace) { <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@@0;1&family=Geist:wght@@400;500;600&family=JetBrains+Mono:wght@@400;500&display=swap" /> }
+    <link rel="stylesheet" href="~/css/public-nav.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brand-theme.css" asp-append-version="true" />
 </head>
-<body>
+<body class="@(!showWorkspace && !standaloneLogin && !isHomeLanding && ViewData["DarkPublicPage"] is not true ? "tq-light" : null)">
 <a class="skip-link" href="#main">Skip to content</a>
 @if (showWorkspace)
 {
     <partial name="_WorkspaceNavbar" />
 }
-else if (!standaloneLogin)
+else if (!standaloneLogin && ViewData["HidePublicNavigation"] is not true)
 {
-<header class="@(isHomeLanding ? "landing-header" : "border-bottom bg-white")">
-    <nav class="container-fluid d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-nav" : "p-3")" aria-label="Main navigation">
-        @if (isHomeLanding)
-        {
-            <a class="pharma-brand landing-brand" asp-controller="Home" asp-action="Index"><partial name="_PharmaBrand" /></a>
-        }
-        else
-        {
-            <a class="pharma-brand text-decoration-none text-dark me-auto" asp-controller="Home" asp-action="Index"><partial name="_PharmaBrand" /></a>
-        }
-        <div class="d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-links" : "")">
-            <a asp-controller="Home" asp-action="Index" aria-current="@(isHomeLanding ? "page" : null)">Home</a>
-            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "About")" asp-fragment="@(isHomeLanding ? "about" : null)">About</a>
-            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "HowItWorks")" asp-fragment="@(isHomeLanding ? "how-it-works" : null)">How It Works</a>
-            <a asp-controller="Home" asp-action="@(isHomeLanding ? "Index" : "Contact")" asp-fragment="@(isHomeLanding ? "contact" : null)">Contact</a>
-        </div>
-        <div class="d-flex flex-wrap align-items-center gap-3 @(isHomeLanding ? "landing-account" : "")">
-        <partial name="_ThemeToggle" />
-        @if (User.Identity?.IsAuthenticated == true)
-        {
-            @if (!isHomeLanding)
-            {
-                <a asp-controller="Account" asp-action="GoToDashboard">My Dashboard</a>
-            }
-            <a asp-controller="FaceEnrollment" asp-action="Index">Biometric sign-in</a>
-            @await Component.InvokeAsync("NotificationBell")
-            @if (!showAdminSidebar)
-            {
-                <form asp-controller="Account" asp-action="Logout" method="post"><button class="btn btn-sm btn-outline-secondary">Sign Out</button></form>
-            }
-        }
-        else
-        {
-            <a asp-controller="Account" asp-action="Login">Login</a>
-            <a class="@(isHomeLanding ? "landing-register" : "")" asp-controller="Account" asp-action="Register">Supplier Registration</a>
-        }
-        </div>
-    </nav>
-</header>
+    <partial name="_PublicNav" />
 }
 <div class="app-shell @(showAdminSidebar ? "admin-shell" : null) @(showWorkspace ? "workspace-shell" : null)">
 @if (showWorkspace)
@@ -117,6 +100,15 @@ else if (!standaloneLogin)
 </div>
 @if (!standaloneLogin) { @await RenderSectionAsync("Footer", required: false) }
 <partial name="_ActionConfirmation" />
+@if (showWorkspace && User.IsInRole(RoleNames.Supplier))
+{
+    @await Component.InvokeAsync("AwardCelebration")
+}
+@if (showWorkspace || showPublicSafi)
+{
+    <partial name="_AiChat" />
+    <script src="~/js/ai-chat.js" asp-append-version="true" defer></script>
+}
 <script src="~/js/action-confirmation.js" asp-append-version="true"></script>
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -127,7 +119,9 @@ else if (!standaloneLogin)
 }
 
 <script src="~/js/voice-search.js" asp-append-version="true"></script>
+<script src="~/js/notification-center.js" asp-append-version="true"></script>
 
+<script src="~/js/workflow-ux.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

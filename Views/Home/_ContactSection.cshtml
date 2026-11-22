@@ -1,3 +1,4 @@
+@model ContactMessageInput
 @{
     var isHomeLanding = ViewData["HomeLanding"] is true;
 }
@@ -10,24 +11,35 @@
     {
         <h1 id="contact-title">Contact Us</h1>
     }
-    <p id="contact-preview-note">Online messaging is currently unavailable.</p>
-    <div class="contact-form" role="group" aria-labelledby="contact-title" aria-describedby="contact-preview-note">
+    @if (TempData["ContactSuccess"] is string success)
+    {
+        <p class="alert alert-success" role="status">@success</p>
+    }
+    <form asp-controller="Home" asp-action="Contact" method="post" class="contact-form" id="contact-form" aria-labelledby="contact-title">
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div asp-validation-summary="ModelOnly" class="contact-wide text-danger" role="alert"></div>
+        }
         <div>
             <label for="contact-name">Full name</label>
-            <input id="contact-name" class="form-control" autocomplete="name" maxlength="120" />
+            <input asp-for="FullName" id="contact-name" class="form-control" autocomplete="name" maxlength="120" required />
+            <span asp-validation-for="FullName" class="text-danger"></span>
         </div>
         <div>
             <label for="contact-email">Email address</label>
-            <input id="contact-email" type="email" class="form-control" autocomplete="email" maxlength="254" />
+            <input asp-for="Email" id="contact-email" type="email" class="form-control" autocomplete="email" maxlength="254" required />
+            <span asp-validation-for="Email" class="text-danger"></span>
         </div>
         <div class="contact-wide">
             <label for="contact-subject">Subject</label>
-            <input id="contact-subject" class="form-control" maxlength="150" />
+            <input asp-for="Subject" id="contact-subject" class="form-control" maxlength="150" required />
+            <span asp-validation-for="Subject" class="text-danger"></span>
         </div>
         <div class="contact-wide">
             <label for="contact-message">Message</label>
-            <textarea id="contact-message" class="form-control" rows="4" maxlength="2000"></textarea>
+            <textarea asp-for="Message" id="contact-message" class="form-control" rows="4" maxlength="2000" required></textarea>
+            <span asp-validation-for="Message" class="text-danger"></span>
         </div>
-        <button type="button" class="btn contact-send" disabled>Send message</button>
-    </div>
+        <button type="submit" class="btn contact-send">Send Message</button>
+    </form>
 </section>

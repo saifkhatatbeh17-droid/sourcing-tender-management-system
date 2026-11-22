@@ -2,18 +2,40 @@
 @{ ViewData["Title"] = "Tender invitations"; var selected = ViewBag.Status as string; }
 <div class="supplier-workspace supplier-workspace--invitations">
 <div class="supplier-page-heading"><div><h1>Tender invitations</h1><p>Review invitations sent to your company and respond before the tender deadline.</p></div></div>
+<div class="supplier-local-search"><label for="supplier-search">Search invitations</label><input id="supplier-search" type="search" class="form-control" placeholder="Search by title, reference or details" data-supplier-search=".supplier-invitation-row"/><p class="form-text" data-supplier-search-status role="status" aria-live="polite"></p></div>
+
 <form method="get" class="supplier-filters"><label for="status">Status</label><select id="status" name="status" class="form-select"><option value="">All invitations</option>@foreach (var s in new[] { "Pending", "Accepted", "Declined", "Expired", "Cancelled" }) { <option value="@s" selected="@(selected == s)">@s</option> }</select><button class="btn btn-outline-primary">Filter</button>@if (!string.IsNullOrEmpty(selected)) { <a asp-action="Invitations" class="btn btn-link">Clear</a> }</form>
-@if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> } @if (TempData["Error"] is string error) { <div class="alert alert-danger">@error</div> }
+@if (TempData["Success"] is string success) { <div data-flash-message class="alert alert-success" role="status">@success</div> } @if (TempData["Error"] is string error) { <div data-flash-message class="alert alert-danger" role="alert">@error</div> }
 <section class="supplier-card supplier-invitation-list"><div class="supplier-card-heading"><h2>Invitations to your company</h2><span class="supplier-count">@Model.Count()</span></div>
-@if (!Model.Any()) { <div class="empty-state"><span class="empty-mark" aria-hidden="true">↗</span><h2>No invitations found</h2><p>New invitations and the tenders you’re participating in will appear here.</p></div> }
+@if (!Model.Any()) { <div class="empty-state"><h2>No invitations found</h2><p>New invitations and the tenders you’re participating in will appear here.</p></div> }
 @foreach (var invitation in Model)
 {
     var cancelled = invitation.Tender.Status == "Cancelled";
     var expired = invitation.Tender.ClosesAt <= DateTime.UtcNow && invitation.Status == "Pending";
-    <article id="tender-@invitation.TenderId" class="supplier-invitation-row"><div class="supplier-invitation-main"><span class="supplier-reference">Invitation #@invitation.InvitationId · Tender #@invitation.TenderId</span><a class="supplier-record-title" asp-action="Invitation" asp-route-id="@invitation.InvitationId">@invitation.Tender.Title</a><span class="supplier-record-note">Received @invitation.SentAt.ToLocalTime().ToString("dd MMM yyyy")</span></div><div class="supplier-deadline"><span>Tender deadline (UTC)</span><strong>@invitation.Tender.ClosesAt.ToString("dd MMM yyyy")</strong><small>@invitation.Tender.ClosesAt.ToString("HH:mm")</small></div><span class="status-badge status-@(cancelled ? "cancelled" : expired ? "expired" : invitation.Status.ToLowerInvariant())">@(cancelled ? "Cancelled" : expired ? "Expired" : invitation.Status)</span><a class="btn btn-outline-primary" asp-action="Invitation" asp-route-id="@invitation.InvitationId">View tender ↗</a></article>
+    <article id="tender-@invitation.TenderId" class="supplier-invitation-row">
+        <div class="supplier-invitation-main">
+            <span class="supplier-reference">Invitation #@invitation.InvitationId · Tender #@invitation.TenderId</span>
+            <a class="supplier-record-title" asp-action="Invitation" asp-route-id="@invitation.InvitationId">@invitation.Tender.Title</a>
+            <span class="supplier-record-note">Received @invitation.SentAt.ToLocalTime().ToString("dd MMM yyyy")</span>
+        </div>
+        <div class="supplier-deadline">
+            <span>Tender deadline (UTC)</span>
+            <strong>@invitation.Tender.ClosesAt.ToString("dd MMM yyyy")</strong>
+            <small>@invitation.Tender.ClosesAt.ToString("HH:mm")</small>
+        </div>
+        <div class="supplier-invitation-actions">
+            <div class="supplier-invitation-status">
+                <span class="status-badge status-@(cancelled ? "cancelled" : expired ? "expired" : invitation.Status.ToLowerInvariant())">@(cancelled ? "Cancelled" : expired ? "Expired" : invitation.Status)</span>
+            </div>
+<div class="supplier-invitation-buttons">            <a class="btn btn-primary" asp-action="Invitation" asp-route-id="@invitation.InvitationId">View tender <span aria-hidden="true">↗</span></a>
+@await Component.InvokeAsync("DetailsQr", new { controller = "Supplier", action = "Invitation", id = invitation.InvitationId, label = "Tender", compact = true })</div>
+        </div>
+    </article>
 }
 </section>
 
 @section Styles { <link rel="stylesheet" href="~/css/supplier.css" asp-append-version="true" /> }
 
 </div>
+
+@section Scripts { <script src="~/js/supplier-workspace.js" asp-append-version="true" defer></script> }

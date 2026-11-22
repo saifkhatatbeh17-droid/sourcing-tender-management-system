@@ -1,6 +1,7 @@
 using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using SourcingTenderManagement.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
@@ -46,6 +47,16 @@ public partial class SourcingManagerController : Controller
         var pendingQuestions = _context.Clarifications.Count(question =>
             question.RecipientUserId == ManagerId && question.Status == "Pending");
 
+        ViewBag.DashboardReportStates = _context.EvaluationReports.AsNoTracking()
+            .Where(r => r.Status == "OfficerSubmitted" || r.Status == "ManagerApproved" || r.Status == "ManagerRejected" ||
+                r.Status == "TopApproved" || r.ManagerSummary != null || r.Tender.Status == AwaitingManagerReview ||
+                r.Tender.Status == AwaitingCommitteeDecision || r.Tender.Status == "Awarded")
+            .GroupBy(r => r.Status == "ManagerRejected" || r.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") ? "Rejected" :
+            r.Tender.Status == AwaitingManagerReview && r.Status == ManagerApproved ? "Ready to forward" :
+            r.Tender.Status == AwaitingManagerReview && (r.Status == "OfficerSubmitted" || r.Status == "CommitteeApproved") ? "Needs your review" :
+            r.Tender.Status == AwaitingCommitteeDecision ? "With CEO & Chiefs" : r.Tender.Status == "Awarded" ? "Awarded" :
+            r.Tender.Status == "Cancelled" ? "Cancelled" : r.Status == "ReturnedForReview" ? "Back with committee" : "With sourcing team")
+            .Select(g => new { Status = g.Key, Count = g.Count() }).ToDictionary(g => g.Status, g => g.Count);
         var dashboard = new ManagerDashboard(
             reportsAwaitingReview, approvedRecommendations, tendersWithTopCommittee, pendingQuestions);
         return View(dashboard);
@@ -55,19 +66,28 @@ public partial class SourcingManagerController : Controller
     public IActionResult Submissions(int? id, int? rejectedTenderId = null, bool showRejections = false)
     {
         var rejections = ManagedRejections();
+        var editRequests = ManagedTopEditRequests();
         if (rejectedTenderId.HasValue)
         {
-            if (!rejections.Any(t => t.TenderId == rejectedTenderId)) return NotFound();
-            rejections = rejections.Where(t => t.TenderId == rejectedTenderId);
+            var inRejections = rejections.Any(t => t.TenderId == rejectedTenderId);
+            var inEdits = editRequests.Any(t => t.TenderId == rejectedTenderId);
+            if (!inRejections && !inEdits) return NotFound();
+            if (inRejections) rejections = rejections.Where(t => t.TenderId == rejectedTenderId);
+            if (inEdits) editRequests = editRequests.Where(t => t.TenderId == rejectedTenderId);
         }
+        var editList = editRequests.OrderByDescending(t => t.TopEditRequestedAt ?? t.CreatedAt).ToList();
+        var requesterIds = editList.Select(t => t.TopEditRequestedByUserId).Where(uid => !string.IsNullOrWhiteSpace(uid)).Distinct().ToArray();
+        ViewBag.TopEditRequests = editList;
+        ViewBag.TopEditRequesters = requesterIds.Length == 0
+            ? new Dictionary<string, string>()
+            : _context.Users.AsNoTracking()
+                .Where(u => requesterIds.Contains(u.Id))
+                .ToDictionary(u => u.Id, u => u.FullName);
         ViewBag.RejectedTenders = rejections.OrderByDescending(t => t.CreatedAt).ToList();
         ViewBag.OpenRejections = showRejections || rejectedTenderId.HasValue;
         var evaluationReports = _context.EvaluationReports
-            .Include(report => report.Tender)
-            .Where(report => !report.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") && report.Tender.Status == AwaitingManagerReview &&
-                (report.Status == "OfficerSubmitted" ||
-                 report.Status == "CommitteeApproved" ||
-                 report.Status == ManagerApproved))
+            .Include(report => report.Tender).ThenInclude(t => t.OfferExtensions)
+            .InManagerReview()
             .OrderByDescending(report => report.SubmittedAt)
             .ThenByDescending(report => report.EvaluationReportId)
             .ToList();
@@ -94,6 +114,7 @@ public partial class SourcingManagerController : Controller
         }
 
         var tenderId = selectedReport.TenderId;
+        ViewData["AiChatRecordId"] = selectedReport.EvaluationReportId;
         var submittedBids = _context.Bids.AsNoTracking()
             .Where(bid => bid.TenderId == tenderId && bid.Status != "Draft" && bid.Status != "Withdrawn");
 
@@ -106,11 +127,14 @@ public partial class SourcingManagerController : Controller
             .Include(bid => bid.Evaluations.Where(evaluation =>
                 evaluation.Status == "Submitted" || evaluation.Status == "Approved"))
             .ThenInclude(evaluation => evaluation.EvaluationScores)
-            .ThenInclude(score => score.EvaluationCriterion);
+            .ThenInclude(score => score.EvaluationCriterion)
+            .Include(bid => bid.Evaluations.Where(evaluation =>
+                evaluation.Status == "Submitted" || evaluation.Status == "Approved"))
+            .ThenInclude(evaluation => evaluation.CommitteeAssignment);
 
         var supplierOffers = bidsWithEvaluations.AsSplitQuery()
             .OrderBy(bid => bid.BidId)
-            .ToList();
+            .ToList().OrderByDescending(bid => bid.BidId == selectedReport.RecommendedBidId).ToList();
 
         var page = new ManagerReviewPage(evaluationReports, selectedReport, supplierOffers, selectedReport.SubmittedAt);
         return View(page);
@@ -229,6 +253,7 @@ public partial class SourcingManagerController : Controller
         [FromServices] SourcingTenderManagement.Services.Evaluation.BidRecommendationService ai, CancellationToken cancellationToken)
     {
         var report = await _context.EvaluationReports.AsNoTracking().Include(r => r.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.Department)
+            .Include(r => r.Tender).ThenInclude(t => t.OfferExtensions)
             .Include(r => r.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
             .Include(r => r.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.SupplierProfile)
             .Include(r => r.Bid).ThenInclude(b => b!.BidItems)
@@ -244,6 +269,7 @@ public partial class SourcingManagerController : Controller
             var excludedSuppliers = await _context.Bids.AsNoTracking().Where(b => b.TenderId == report.TenderId && b.BidId != report.Bid.BidId)
                 .Select(b => b.Invitation.SupplierProfile.CompanyName).Distinct().ToListAsync(cancellationToken);
             var summary = await ai.DraftReferral(new { tender = report.Tender.Title, report.Tender.Description, report.Tender.Terms,
+                offerRoundsAndException = SourcingTenderManagement.Services.Reports.OfferRoundContext.Describe(report.Tender),
                 purchaseRequest = new { report.Tender.PurchaseRequest.Title, report.Tender.PurchaseRequest.Reason,
                     department = report.Tender.PurchaseRequest.Department.Name, report.Tender.PurchaseRequest.Priority, report.Tender.PurchaseRequest.TargetDate,
                     items = report.Tender.PurchaseRequest.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId)
@@ -261,7 +287,7 @@ public partial class SourcingManagerController : Controller
             return Json(new { summary });
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or InvalidOperationException or KeyNotFoundException)
-        { return StatusCode(503, new { error = "Could not generate the summary. Check local Ollama and try again." }); }
+        { return StatusCode(503, new { error = "Could not generate the summary. Check your vLLM / AI endpoint or API key and try again." }); }
     }
 
     [HttpPost]
@@ -343,6 +369,7 @@ public partial class SourcingManagerController : Controller
         {
             evaluationReport.ManagerSummary += $"\n\nReferral reason: {reason}";
         }
+        _context.Entry(tender).Collection(t => t.OfferExtensions).Load();
         evaluationReport.ManagerSummary = SourcingTenderManagement.Services.Reports.ManagerReferralContext.Describe(tender, winningOffer)
             + "\n\n## Manager assessment\n" + evaluationReport.ManagerSummary;
 

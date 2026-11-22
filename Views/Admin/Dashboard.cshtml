@@ -27,6 +27,15 @@
             <partial name="_DashboardMetric" model='@(new DashboardMetric(metric.Label, metric.Count.ToString("N0"), "System total", metric.Label == "Users"))' />
         }
     </section>
+@{
+ var supplierStates = ViewBag.DashboardSupplierStates as Dictionary<string,int> ?? new();
+ int N(params string[] keys) => keys.Sum(k => supplierStates.GetValueOrDefault(k));
+ var overview = new DashboardOverview("Supplier approval status", "All registered supplier companies", "suppliers", "approved",
+ [new("Approved", N("Approved"), "positive"), new("Awaiting action", N("Pending", "ChangesRequested"), "active"), new("Inactive", N("Rejected", "Suspended"), "muted")], "Supplier review breakdown", "Current account status of each company",
+ [new("Awaiting admin review", N("Pending")), new("Changes requested", N("ChangesRequested")), new("Approved", N("Approved")), new("Rejected", N("Rejected")), new("Suspended", N("Suspended"))]);
+}
+<partial name="_DashboardOverview" model="overview" />
+
 
     <div class="admin-dashboard-panels">
         <section class="workspace-section" aria-labelledby="pending-applications-heading">
@@ -74,3 +83,5 @@
 </div>
 
 <partial name="_SupplierReviewDialog" />
+
+@section Styles { <link rel="stylesheet" href="~/css/dashboard-overview.css" asp-append-version="true" /> }

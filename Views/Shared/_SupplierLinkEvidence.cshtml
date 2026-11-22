@@ -1,0 +1,29 @@
+@model SourcingTenderManagement.Services.Integrity.SupplierLink
+@using SourcingTenderManagement.Services.Integrity
+@{
+    // Optional format string for tender links, e.g. "/Admin/AiIntelligence?tenderId={0}". Without it, tender numbers are plain text.
+    var tenderLink = ViewData["TenderLink"] as string;
+    var hideTender = ViewData["HideTender"] as int?;
+}
+<ul class="sl-evidence">
+    @foreach (var item in Model.Evidence)
+    {
+        <li data-kind="@item.Kind">
+            <span class="sl-kind">@SupplierLinks.KindLabel(item.Kind)</span>
+            <span class="sl-text">
+                @item.Text
+                @if (item.TenderId is { } tender && tender != hideTender)
+                {
+                    @if (tenderLink != null)
+                    {
+                        <a href="@string.Format(tenderLink, tender)">Tender #@tender</a>
+                    }
+                    else
+                    {
+                        <span class="sl-tender">Tender #@tender</span>
+                    }
+                }
+            </span>
+        </li>
+    }
+</ul>

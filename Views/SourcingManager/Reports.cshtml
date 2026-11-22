@@ -7,10 +7,10 @@
     <link rel="stylesheet" href="~/css/sourcing-manager.css" asp-append-version="true" />
 }
 
-<div class="manager-shell manager-refresh">
-    <header class="mr-heading"><div><h1>Reports &amp; decisions<span>.</span></h1><p>Review your recorded decisions, comments and tender outcomes.</p></div><span class="mr-count">@Model.Decisions.Count records</span></header>
-    <section class="workspace-section" aria-label="Reports">
-        <form class="mr-filters" method="get" asp-action="Reports">
+<div class="manager-shell manager-refresh mr-reports-page">
+    <header class="mr-heading"><div><h1>Reports &amp; decisions</h1><p>Review your recorded decisions, comments and tender outcomes.</p></div><span class="mr-count">@Model.Decisions.Count records</span></header>
+    <form class="mr-filters workspace-search-card" method="get" asp-action="Reports">
+        <h2 class="workspace-search-title">Find a report</h2>
             <div class="col-sm-5">
                 <label for="search" class="form-label">Tender title</label>
                 <div class="voice-search-control">
@@ -35,19 +35,40 @@
                 </select>
             </div>
             <div class="col-sm-auto">
-                <button type="submit" class="btn btn-primary">Filter</button>
+                <div class="mr-actions">
+                    <button type="submit" class="btn btn-primary">Apply filters</button>
+                    @if (!string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.Decision))
+                    {
+                        <a class="btn btn-outline-primary" asp-action="Reports">Clear filters</a>
+                    }
+                </div>
             </div>
         </form>
-        <nav class="workspace-toolbar" aria-label="Filtered decisions export"><a class="btn btn-outline-primary btn-sm" asp-action="ReportsPdf" asp-route-search="@Model.Search" asp-route-decision="@Model.Decision">Download PDF</a></nav>
+
+<section class="workspace-section" aria-label="Reports">
+        <div class="mr-record-heading mr-results-heading">
+            <h2 id="manager-report-results">Decision history</h2>
+            <a class="btn btn-outline-primary" asp-action="ReportsPdf" asp-route-search="@Model.Search" asp-route-decision="@Model.Decision">Download results (PDF)</a>
+        </div>
 
         @if (Model.Decisions.Count == 0)
         {
-            <div class="mr-empty"><span aria-hidden="true">↗</span><h2>No matching decisions</h2><p>Try another title or decision filter. Recorded manager reviews appear here.</p></div>
+            <div class="mr-empty"><span aria-hidden="true">↗</span>
+                @if (!string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.Decision))
+                {
+                    <h3>No matching decisions</h3><p>Try a different tender title or clear the filters.</p>
+                }
+                else
+                {
+                    <h3>No decisions recorded</h3><p>Decisions appear here after a committee submission has been reviewed.</p>
+                    <a class="btn btn-outline-primary" asp-action="Submissions">Open Officer Submissions</a>
+                }
+            </div>
         }
         else
         {
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+            <div class="table-responsive" tabindex="0" role="region" aria-labelledby="manager-report-results">
+                <table class="table table-hover align-middle mb-0 mr-history-table">
                     <thead>
                         <tr><th scope="col">Tender</th><th scope="col">Manager</th><th scope="col">Decision</th><th scope="col">Recorded (UTC)</th><th scope="col">Tender status</th><th scope="col">Comments</th></tr>
                     </thead>
@@ -57,8 +78,8 @@
                             <tr>
                                 <td><strong class="mr-record-title">@item.Tender.Title</strong><small class="mr-reference">Tender #@item.TenderId</small></td>
                                 <td>@item.User.FullName</td>
-                                <td><span class="mr-status">@(item.Decision == "ReturnedForReview" ? "Returned for review" : item.Decision)</span></td>
-                                <td>@item.DecidedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td><span class="mr-status" data-state="@item.Decision">@(item.Decision == "ReturnedForReview" ? "Returned for review" : item.Decision)</span></td>
+                                <td><time class="mr-history-date" datetime="@item.DecidedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")"><span>@item.DecidedAt.ToString("dd MMM yyyy")</span><small>@item.DecidedAt.ToString("HH:mm") UTC</small></time></td>
                                 <td>@System.Text.RegularExpressions.Regex.Replace(item.Tender.Status, "([a-z])([A-Z])", "$1 $2")</td>
                                 <td>@if (string.IsNullOrWhiteSpace(item.Notes)) { <span class="text-secondary">No comments</span> } else { <details class="mr-notes"><summary>Read comments</summary><p class="manager-text">@item.Notes</p></details> }</td>
                             </tr>
@@ -69,3 +90,5 @@
         }
     </section>
 </div>
+
+@section Scripts { <script src="~/js/sourcing-manager-workspace.js" asp-append-version="true"></script> }

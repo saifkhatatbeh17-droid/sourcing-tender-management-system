@@ -9,6 +9,18 @@ namespace SourcingTenderManagement.Controllers;
 public class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     ApplicationDbContext db) : Controller
 {
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> OpenNotification(int id, CancellationToken ct)
+    {
+        var userId = users.GetUserId(User);
+        if (userId == null) return Forbid();
+        var items = db.Notifications.Where(n => n.NotificationId == id && n.UserId == userId);
+        var destination = await items.Select(n => n.RelativeUrl).SingleOrDefaultAsync(ct);
+        if (!Url.IsLocalUrl(destination)) return NotFound();
+        await items.Where(n => !n.IsRead).ExecuteUpdateAsync(update => update.SetProperty(n => n.IsRead, true), ct);
+        return LocalRedirect(destination!);
+    }
+
     [HttpGet]
     public IActionResult Login(string? returnUrl)
     {
@@ -21,11 +33,27 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     private RedirectToActionResult ContinueAfterLogin(LoginViewModel model) =>
         RedirectToAction(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) });
 
+    private bool IsAsyncLogin => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
+    private IActionResult PasswordLoginSuccess(LoginViewModel model) => IsAsyncLogin
+        ? Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) })
+        : ContinueAfterLogin(model);
+
+    private IActionResult PasswordLoginFailure(LoginViewModel model, int statusCode) => IsAsyncLogin
+        ? StatusCode(statusCode, new
+        {
+            message = "Unable to sign in. Check your email and password, or try again later.",
+            errors = ModelState.Where(entry => entry.Value?.Errors.Count > 0)
+                .ToDictionary(entry => entry.Key, entry => entry.Value!.Errors.Select(error => error.ErrorMessage).ToArray())
+        })
+        : View("Login", model);
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
-        if (User.Identity?.IsAuthenticated == true) return ContinueAfterLogin(model);
-        if (!ModelState.IsValid) return View(model);
+        Response.Headers.CacheControl = "no-store";
+        if (User.Identity?.IsAuthenticated == true) return PasswordLoginSuccess(model);
+        if (!ModelState.IsValid) return PasswordLoginFailure(model, StatusCodes.Status400BadRequest);
         var user = await users.FindByEmailAsync(model.Email);
         if (user != null && user.IsActive)
         {
@@ -34,11 +62,11 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             {
                 Response.Cookies.Delete(SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieName,
                     SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieOptions(Request));
-                return ContinueAfterLogin(model);
+                return PasswordLoginSuccess(model);
             }
         }
         ModelState.AddModelError("", "Unable to sign in. Check your email and password, or try again later.");
-        return View(model);
+        return PasswordLoginFailure(model, StatusCodes.Status401Unauthorized);
     }
 
     // This path must not call Login: that would issue a session before checking the face.
@@ -94,6 +122,50 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             return BadRequest(new { message = failure });
         Response.Cookies.Delete(SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieName,
             SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.CookieOptions(Request));
+        return Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken,
+     Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
+    public async Task<IActionResult> DemoFaceSignIn(
+        SourcingTenderManagement.Models.FaceLogin.FaceDemoSignInInput model,
+        [FromServices] IWebHostEnvironment environment,
+        [FromServices] SourcingTenderManagement.Services.FaceVerification.FaceVerificationService verification,
+        CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-store";
+        if (!environment.IsDevelopment()) return NotFound();
+        if (User.Identity?.IsAuthenticated == true) return Conflict(new { message = "Already signed in." });
+        if (!ModelState.IsValid || !SourcingTenderManagement.Services.FaceVerification.FaceVerificationService.ValidDescriptor(model.Descriptor)
+            || model.ModelIdentifier != SourcingTenderManagement.Services.FaceEnrollment.FaceEnrollmentService.ModelIdentifier)
+            return BadRequest(new { message = "Invalid camera sample." });
+
+        var requestedUser = await users.FindByEmailAsync(model.Email.Trim());
+        var enrolledIds = requestedUser == null ? new List<string>() : await db.UserFaceCredentials.AsNoTracking()
+            .Where(x => x.UserId == requestedUser.Id && x.ProtectedTemplates != null).Select(x => x.UserId).ToListAsync(ct);
+        ApplicationUser? matched = null;
+        foreach (var id in enrolledIds)
+        {
+            var candidate = await users.FindByIdAsync(id);
+            if (candidate == null || !candidate.IsActive || !await signIn.CanSignInAsync(candidate)
+                || (users.SupportsUserLockout && await users.IsLockedOutAsync(candidate))
+                || await users.GetTwoFactorEnabledAsync(candidate)) continue;
+            try
+            {
+                var result = await verification.VerifyAsync(id, new() { Descriptor = model.Descriptor, ModelIdentifier = model.ModelIdentifier }, ct);
+                if (result.Status != "Matched") continue;
+                // Never choose an arbitrary account when more than one enrollment matches.
+                if (matched != null) return BadRequest(new { message = "Multiple accounts matched. Use password sign-in.", code = "face_ambiguous" });
+                matched = candidate;
+            }
+            catch (UnauthorizedAccessException) { }
+        }
+        if (matched == null) return BadRequest(new { message = "No available enrolled account matched your face.", code = "face_not_matched" });
+        matched = await users.FindByIdAsync(matched.Id);
+        if (matched == null || !matched.IsActive || !await signIn.CanSignInAsync(matched)
+            || (users.SupportsUserLockout && await users.IsLockedOutAsync(matched))
+            || await users.GetTwoFactorEnabledAsync(matched)) return BadRequest(new { message = "Account unavailable." });
+        await signIn.SignInAsync(matched, isPersistent: false, authenticationMethod: "LocalDemoFace");
         return Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) });
     }
 
@@ -222,6 +294,12 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             return RedirectToProfileSecurity();
         }
 
+        // A temporary password from the account import is now replaced; lift the forced-change restriction.
+        var temporary = (await users.GetClaimsAsync(account))
+            .Where(claim => claim.Type == SourcingTenderManagement.Services.Admin.EmployeeAccounts.PasswordChangeRequiredClaim)
+            .ToList();
+        if (temporary.Count > 0) await users.RemoveClaimsAsync(account, temporary);
+
         await signIn.RefreshSignInAsync(account);
         TempData["PasswordChangeSuccess"] = "Password changed successfully.";
         return RedirectToProfileSecurity();
@@ -248,6 +326,10 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     public async Task<IActionResult> Register(RegisterViewModel model, List<IFormFile>? officialDocuments)
     {
         if (User.Identity?.IsAuthenticated == true) return BadRequest("Sign out before registering a supplier.");
+        // Trim and collapse spaces first so the duplicate check and saved values are consistent.
+        model.Normalize();
+        if (model.PhoneNumber.Count(char.IsDigit) is < 7 or > 15)
+            ModelState.AddModelError(nameof(model.PhoneNumber), "Enter a phone number with 7–15 digits, for example +962 7X XXX XXXX.");
         if (await db.SupplierProfiles.AnyAsync(s => s.RegistrationNumber == model.RegistrationNumber))
             ModelState.AddModelError(nameof(model.RegistrationNumber), "This registration number is already registered.");
         if (officialDocuments == null || officialDocuments.Count == 0)
@@ -312,9 +394,10 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         var id = users.GetUserId(User);
         var profile = await db.SupplierProfiles.SingleOrDefaultAsync(s => s.UserId == id);
         if (profile?.Status != "ChangesRequested") return Forbid();
-        if (!ModelState.IsValid) return View(input);
+        input.NormalizeCompany();
         if (await db.SupplierProfiles.AnyAsync(s => s.RegistrationNumber == input.RegistrationNumber && s.UserId != id))
-            return BadRequest("This registration number is already registered.");
+            ModelState.AddModelError(nameof(input.RegistrationNumber), "This registration number is already registered.");
+        if (!ModelState.IsValid) return View(input);
         profile.Category = input.SelectedCategory;
         profile.CompanyName = input.CompanyName; profile.RegistrationNumber = input.RegistrationNumber;
         profile.TaxNumber = input.TaxNumber; profile.ContactName = input.ContactName; profile.Address = input.Address;

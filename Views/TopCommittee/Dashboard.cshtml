@@ -1,12 +1,13 @@
 @model CommitteeDashboard
-@section Styles { <partial name="_ReadStyles" /> }
+@section Styles { <link rel="stylesheet" href="~/css/dashboard-overview.css" asp-append-version="true" /> <partial name="_ReadStyles" /> }
 @{ ViewData["Title"] = "CEO & Chiefs Dashboard"; }
-<div class="unified-dashboard"><div class="dashboard-heading">
-    <div><h1>CEO & Chiefs dashboard</h1><p class="text-secondary mt-2 mb-0">Review assigned tenders, follow member approvals and read recorded decisions.</p></div>
-    <div class="dashboard-heading-actions">
-        <a class="dashboard-cta" asp-action="Decisions">View pending tenders <span aria-hidden="true">→</span></a>
+<div class="unified-dashboard"><header class="dashboard-heading tc-page-heading">
+    <div class="tc-heading-copy">
+        <h1>CEO &amp; Chiefs Dashboard</h1>
+        <p>Review assigned tenders, track approvals, and see past decisions.</p>
     </div>
-</div>
+    <a class="dashboard-cta" asp-action="Decisions">Review pending tenders <span aria-hidden="true">→</span></a>
+</header>
 <section class="dashboard-metrics is-five" aria-label="Your committee totals">
     <partial name="_DashboardMetric" model='@(new DashboardMetric("Awaiting decision", Model.AwaitingDecision.ToString("N0"), "Tenders ready for committee review", true))' />
     <partial name="_DashboardMetric" model='@(new DashboardMetric("Assigned tenders", Model.AssignedTenders.ToString("N0"), "Your committee assignments"))' />
@@ -14,6 +15,8 @@
     <partial name="_DashboardMetric" model='@(new DashboardMetric("Rejected", Model.RejectedTenders.ToString("N0"), "Recorded rejections"))' />
     <partial name="_DashboardMetric" model='@(new DashboardMetric("Open clarifications", Model.OpenClarifications.ToString("N0"), "Questions awaiting resolution"))' />
 </section>
+@if(Model.Overview != null){<partial name="_DashboardOverview" model="Model.Overview" />}
+
 @if (Model.AssignedTenders == 0)
 {
     <section class="workspace-section tc-empty" aria-labelledby="no-assignments">
@@ -30,9 +33,9 @@ else
         else
         {
             <div class="table-responsive" tabindex="0" role="region" aria-label="Pending committee decisions"><table class="committee-read-table table tc-dashboard-table mb-0">
-                <caption class="text-secondary">Up to 10 pending tenders, oldest first. Reload the page to see new decisions.</caption>
+                <caption class="text-secondary">Up to 5 pending tenders, oldest first. Reload the page to see new decisions.</caption>
                 <thead><tr><th scope="col">Tender</th><th scope="col">Nominated supplier</th><th scope="col">Committee progress</th><th scope="col">Review</th></tr></thead>
-                <tbody>@foreach (var tender in Model.PendingTenders)
+                <tbody>@foreach (var tender in Model.PendingTenders.Take(5))
                 {
                     var members = Model.VotingProgress.Where(m => m.TenderId == tender.TenderId).ToList();
                     <tr>
@@ -49,19 +52,6 @@ else
         else { <span class="badge text-bg-primary">Awaiting review</span> }</td>
                     </tr>
                 }</tbody>
-            </table></div>
-        }
-    </section>
-    <section class="workspace-section" aria-labelledby="recent-heading">
-        <div class="tc-section-heading"><h2 id="recent-heading">Recent decisions</h2><a asp-action="History">View history <span aria-hidden="true">→</span></a></div>
-        @if (Model.RecentDecisions.Count == 0) { <p class="mb-0">No completed decisions have been recorded for your assigned tenders.</p> }
-        else
-        {
-            <div class="table-responsive" tabindex="0" role="region" aria-label="Recent committee decisions"><table class="committee-read-table table align-middle mb-0">
-                <caption>Up to 10 recent decisions for your assignments.</caption>
-                <thead><tr><th scope="col">Tender</th><th scope="col">Outcome</th><th scope="col">Nominated supplier</th></tr></thead>
-                <tbody>@foreach (var tender in Model.RecentDecisions)
-                { <tr><th scope="row"><a asp-action="TenderDetails" asp-route-id="@tender.TenderId">@tender.Title</a></th><td>@(tender.HasRejection ? "Committee rejected" : CommitteeDisplay.Status(tender.Status))</td><td>@CommitteeDisplay.Text(tender.NominatedSupplier)</td></tr> }</tbody>
             </table></div>
         }
     </section>

@@ -19,7 +19,7 @@ public static class FinalReportChecks
         {
             var handler = new Handler(mode);
             using var http = new HttpClient(handler);
-            var ai = new BidRecommendationService(http, new ConfigurationBuilder().Build());
+            var ai = new BidRecommendationService(http, VllmAiChecks.LocalFixtureConfiguration());
             try
             {
                 var result = await ai.FinalReport(page, 40, default);
@@ -45,7 +45,9 @@ public static class FinalReportChecks
                 observations = "No non-compliance is recorded for either eligible offer. Supplier warranty and support statements remain claims to verify.",
                 conclusion = "Recommend the committee-selected offer for its documented delivery and warranty benefits, acknowledging its higher total cost."
             };
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new { done = true, done_reason = "stop", response = JsonSerializer.Serialize(content) }), Encoding.UTF8, "application/json") });
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new {
+                choices = new[] { new { finish_reason = "stop", message = new { content = JsonSerializer.Serialize(content) } } }
+            }), Encoding.UTF8, "application/json") });
         }
     }
 }

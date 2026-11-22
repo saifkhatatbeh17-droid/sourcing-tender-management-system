@@ -1,18 +1,23 @@
+@using System.Globalization
 @{
     ViewData["Title"] = "Sourcing officer dashboard";
+    var states = ViewBag.TenderStates as Dictionary<string, int> ?? new();
+    int Count(params string[] statuses) => statuses.Sum(status => states.GetValueOrDefault(status));
     var metrics = new[] {
         new DashboardMetric("Requests to review", Convert.ToString(ViewBag.PendingRequests) ?? "0", "Purchase requests awaiting review", true, "Requests"),
-        new DashboardMetric("Draft tenders", Convert.ToString(ViewBag.DraftTenders) ?? "0", "Prepare and publish tenders", false, "Tenders"),
-        new DashboardMetric("Reports for your review", Convert.ToString(ViewBag.ReportsAwaitingOfficer) ?? "0", "Committee reports ready for review", false, "Evaluations"),
+        new DashboardMetric("Receiving offers", Count("Published", "Open").ToString("N0"), "Published tenders awaiting supplier offers", false, "Offers"),
+        new DashboardMetric("Reports for your review", Convert.ToString(ViewBag.ReportsAwaitingOfficer) ?? "0", "Committee reports ready for review", false, "Reports"),
         new DashboardMetric("Submitted offers", Convert.ToString(ViewBag.SubmittedOffers) ?? "0", "Supplier bids received", false, "Offers"),
-        new DashboardMetric("Evaluations in progress", Convert.ToString(ViewBag.EvaluationsInProgress) ?? "0", "With the evaluation committee", false, "Evaluations"),
+        new DashboardMetric("Tenders in evaluation", Count("UnderEvaluation").ToString("N0"), "With the evaluation committee", false, "Evaluations"),
         new DashboardMetric("Offers needing review", Convert.ToString(ViewBag.PendingCompliance) ?? "0", "Offers awaiting a compliance decision", false, "Offers")
     };
 }
-<div class="unified-dashboard">
+@section Styles { <link rel="stylesheet" href="~/css/dashboard-overview.css" asp-append-version="true" /> <link rel="stylesheet" href="~/css/officer-dashboard.css" asp-append-version="true" /> }
+<div class="unified-dashboard officer-dashboard">
     <header class="dashboard-heading"><div><h1>Sourcing officer dashboard</h1><p>Your requests, tenders, supplier offers, and evaluation handoffs.</p></div><a class="dashboard-cta" asp-action="Requests">Review requests <span aria-hidden="true">↗</span></a></header>
     <section class="dashboard-metrics" aria-label="Sourcing activity">
         @foreach (var metric in metrics) { <partial name="_DashboardMetric" model="metric" /> }
     </section>
+    <partial name="_DashboardOverview" model='@(DashboardOverview.Tenders(states, "All tenders you created"))' />
     <section class="workspace-section"><h2>Your workspace</h2><p class="text-secondary">Compare supplier offers, follow clarification conversations, and review recorded decisions.</p><div class="d-flex flex-wrap gap-2"><a asp-action="Offers" class="btn btn-outline-primary">Review offers</a><a asp-action="Clarifications" class="btn btn-outline-primary">Clarifications</a><a asp-action="Reports" class="btn btn-outline-primary">Reports</a></div></section>
 </div>

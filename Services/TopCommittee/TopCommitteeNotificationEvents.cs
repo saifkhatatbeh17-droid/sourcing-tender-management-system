@@ -16,12 +16,16 @@ public static class TopCommitteeNotificationEvents
  {
   if (context.Access.Tender!.Status == "AwaitingManagerReview")
   {
+   var isEditRequest = context.Access.Tender.TopEditState == "WithManager";
    foreach (var manager in context.Access.Managers.Where(m => m.IsActive && m.HasManagerRole))
-    db.Notifications.Add(new Notification { UserId = manager.UserId, Title = "Top Committee rejected tender",
-     Message = $"Tender #{context.Access.Tender.TenderId} was rejected. Review the original reason and forward to its officer.",
+    db.Notifications.Add(new Notification { UserId = manager.UserId,
+     Title = isEditRequest ? "Top Committee requested edits on tender" : "Top Committee rejected tender",
+     Message = isEditRequest
+      ? $"CEO & Chiefs requested edits/clarification on Tender #{context.Access.Tender.TenderId}. Answer directly or push back to the Sourcing Officer."
+      : $"Tender #{context.Access.Tender.TenderId} was completely rejected. Review the reason and forward to its officer.",
      RelativeUrl = $"/SourcingManager/Submissions?rejectedTenderId={context.Access.Tender.TenderId}&showRejections=true", CreatedAt = DateTime.UtcNow });
   }
-  var tender=context.Access.Tender!;if(tender.Status is "Awarded" or "AwaitingManagerReview")await AddAsync(db,tender.TenderId,context.Access.Members.Where(m=>m.IsEligible).Select(m=>m.UserId),$"Tender #{tender.TenderId}: {(tender.Status=="Awarded"?"awarded":"rejected and returned to Manager")}",ct);
+  var tender=context.Access.Tender!;if(tender.Status is "Awarded" or "AwaitingManagerReview")await AddAsync(db,tender.TenderId,context.Access.Members.Where(m=>m.IsEligible).Select(m=>m.UserId),$"Tender #{tender.TenderId}: {(tender.Status=="Awarded"?"awarded":tender.TopEditState=="WithManager"?"returned to Manager for edits":"rejected and returned to Manager")}",ct);
   if (tender.Status == "Awarded" && tender.AwardedBidId.HasValue)
   {
    var offers = await db.Bids.Where(b => b.TenderId == tender.TenderId && b.SubmittedAt.HasValue && b.Status != "Draft" && b.Status != "Withdrawn")

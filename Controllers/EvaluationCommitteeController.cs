@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SourcingTenderManagement.Services.Evaluation;
+using SourcingTenderManagement.Services;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -12,35 +13,33 @@ using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Controllers;
 
 [Authorize(Roles = RoleNames.EvaluationCommittee)]
-public partial class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users, BidRecommendationService ai) : Controller
+public partial class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users, BidRecommendationService ai, ILogger<EvaluationCommitteeController> logger) : Controller
 {
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
     public async Task<IActionResult> Dashboard() => View(await LoadPage(null));
     public async Task<IActionResult> Evaluations(int? id, int? offerId = null)
     {
-        var page = await LoadPage(id);
+        var page = await LoadPage(id, selectFirst: false);
         if (offerId.HasValue && !page.Offers.Any(b => b.BidId == offerId.Value)) return NotFound();
         page.ReviewOfferId = offerId;
         return View(page);
     }
     public async Task<IActionResult> Reports(int? id)
     {
-        var page = await LoadPage(id);
-        return page.Tender != null && (!page.PercentageReady || !page.Locked && !page.SelectionReady)
-            ? RedirectToAction(nameof(Evaluations), new { id = page.Tender.TenderId, tab = page.PercentageReady ? "report" : "offers" })
-            : View(page);
+        var page = await LoadPage(id, selectFirst: false);
+        return View(page);
     }
     public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
 
-    private async Task<CommitteeEvaluationPage> LoadPage(int? id)
+    private async Task<CommitteeEvaluationPage> LoadPage(int? id, bool selectFirst = true)
     {
         var page = new CommitteeEvaluationPage { UserId = UserId };
         page.Tenders = await db.Tenders.AsNoTracking()
             .AsSplitQuery().Include(t => t.EvaluationReport).Include(t => t.CommitteeAssignments).Include(t => t.TenderApprovals)
-            .Where(t => t.Status == "UnderEvaluation" || t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == UserId))
+            .InEvaluationWorkspace(UserId)
             .OrderByDescending(t => t.CreatedAt).ToListAsync();
-        var selected = id ?? page.Tenders.FirstOrDefault()?.TenderId;
+        var selected = id ?? (selectFirst ? page.Tenders.FirstOrDefault()?.TenderId : null);
         if (selected != null && page.Tenders.Any(t => t.TenderId == selected))
         {
             page.Tender = await TenderQuery().SingleAsync(t => t.TenderId == selected);
@@ -133,14 +132,22 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
                     : "Top-three committee report generated and sent to the sourcing officer. The manager summary will cover the winner only.";
             }
             if (!writeReport) db.AiAnalyses.Add(new AiAnalysis { TenderId = id, RequestedByUserId = UserId,
-                FinancialWeight = financialWeight, RequirementsWeight = requirementsWeight, ModelName = ai.Model, CreatedAt = DateTime.UtcNow,
+                FinancialWeight = financialWeight, RequirementsWeight = requirementsWeight,
+                ModelName = result.ModelName ?? throw new InvalidOperationException("The comparison did not identify its AI model."),
+                CreatedAt = DateTime.UtcNow,
                 ResultJson = JsonSerializer.Serialize(new SavedBidRecommendation(fingerprint, result), BidRecommendationService.Json) });
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
-        catch (InvalidOperationException ex) { TempData["AiError"] = ex.Message; }
+        catch (InvalidOperationException ex)
+        {
+            // The user-facing text hides which check failed; keep the real reason in the server log.
+            logger.LogWarning("AI comparison for tender {TenderId} rejected: {Reason}", id, ex.InnerException?.Message ?? ex.Message);
+            TempData["AiError"] = ex.Message;
+        }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException or KeyNotFoundException)
-        { TempData["AiError"] = "Could not reach local Ollama or finish the comparison. Check that Ollama is running, then try again."; }
+        { logger.LogWarning(ex, "AI comparison for tender {TenderId} failed to reach the model or read its answer", id);
+          TempData["AiError"] = "Could not reach the vLLM / AI endpoint or finish the comparison. Check your Vllm configuration or API key, then try again."; }
         return RedirectToAction(nameof(Evaluations), new { id });
     }
 
@@ -159,6 +166,10 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
     // All committee writes lock the tender first, so simultaneous saves/approvals cannot race.
     private async Task<IActionResult> Change(int id, Func<CommitteeEvaluationPage, Task<string?>> change, bool initialize = false)
     {
+        // Navigation hints belong to this save, not an earlier tender or browser tab.
+        TempData.Remove("EvaluationOffer");
+        TempData.Remove("EvaluationFocus");
+        TempData.Remove("EvaluationTab");
         if (!ModelState.IsValid)
         {
             TempData["CommitteeError"] = "Check the entered values. Scores must be 0–100 and weights must be positive.";

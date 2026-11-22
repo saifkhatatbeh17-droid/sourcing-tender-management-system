@@ -1,34 +1,68 @@
 @model NotificationBellViewModel
+@{
+    var contactDetailsPrefix = User.IsInRole(SourcingTenderManagement.Data.RoleNames.Admin)
+        ? Url.Action("ContactMessageDetails", "Admin", new { id = "" }) + "/"
+        : null;
+    var unreadShown = Model.Items.Count(item => !item.IsRead);
+    var canViewAll = ViewData["WorkspaceController"]?.ToString() == "Supplier"
+        && User.IsInRole(SourcingTenderManagement.Data.RoleNames.Supplier);
+}
 <div class="dropdown">
     <button type="button" class="btn btn-outline-secondary notification-bell" id="notification-bell"
-            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications, @Model.UnreadCount unread">
+            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-controls="workspace-notification-menu" aria-label="Notifications, @Model.UnreadCount unread">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         @if (Model.UnreadCount > 0) { <span class="badge text-bg-primary">@Model.UnreadCount</span> }
     </button>
-    <div class="dropdown-menu dropdown-menu-end notification-dropdown p-2" aria-labelledby="notification-bell">
-        <h2 class="fs-6 px-2 pt-2">Notifications</h2>
+    <div class="dropdown-menu dropdown-menu-end notification-dropdown notice-center" id="workspace-notification-menu" aria-labelledby="notification-bell">
+        <header class="notice-center-header">
+            <partial name="~/Views/Shared/_NotificationHeading.cshtml" model="Model.UnreadCount" />
+        </header>
         @if (Model.Items.Count == 0)
         {
-            <p class="text-secondary px-2 mb-2">No notifications yet.</p>
+            <p class="notice-center-empty"><strong>No notifications yet</strong><span>New updates will appear here.</span></p>
         }
         else
         {
-            <ul class="list-unstyled mb-0">
+            <partial name="~/Views/Shared/_NotificationFilters.cshtml" model="unreadShown" />
+            <p class="notice-center-empty" data-notice-empty hidden role="status">No notifications match this filter.</p>
+            <ul class="notice-center-list" aria-label="Your notifications" tabindex="0">
             @foreach (var notification in Model.Items)
             {
-                <li class="notification-item">
-                    <strong class="@(notification.IsRead ? "fw-normal" : "")">@notification.Title</strong>
-                    <p class="mb-1">@notification.Message</p>
+                <li class="notice-center-item @(!notification.IsRead ? "is-unread" : null)">
+                    <partial name="~/Views/Shared/_NotificationSummary.cshtml" model="notification" />
                     @if (Url.IsLocalUrl(notification.RelativeUrl))
                     {
-                        <a href="@notification.RelativeUrl">View details</a>
+                        @if (!notification.IsRead && contactDetailsPrefix != null
+                            && notification.RelativeUrl!.StartsWith(contactDetailsPrefix, StringComparison.OrdinalIgnoreCase)
+                            && int.TryParse(notification.RelativeUrl.AsSpan(contactDetailsPrefix.Length), out var messageId) && messageId > 0)
+                        {
+                            <form asp-controller="Admin" asp-action="OpenContactNotification" method="post" class="notice-center-open">
+                                <button type="submit" name="id" value="@notification.NotificationId" class="notice-center-card-link" aria-label="View details: @notification.Title"><span aria-hidden="true">›</span></button>
+                            </form>
+                        }
+                        else
+                        {
+                            @if (!notification.IsRead)
+                            {
+                                <form asp-controller="Account" asp-action="OpenNotification" method="post" class="notice-center-open">
+                                    <button type="submit" name="id" value="@notification.NotificationId" class="notice-center-card-link" aria-label="View details: @notification.Title"><span aria-hidden="true">›</span></button>
+                                </form>
+                            }
+                            else
+                            {
+                                <a class="notice-center-card-link notice-center-open" href="@notification.RelativeUrl" aria-label="View details: @notification.Title"><span aria-hidden="true">›</span></a>
+                            }
+                        }
                     }
                 </li>
             }
             </ul>
         }
-        <!-- TEAM TODO: Add an authorized mark-as-read action when notification processing is implemented. -->
+        @if (canViewAll)
+        {
+            <div class="notice-center-footer"><a asp-controller="Supplier" asp-action="Notifications">View all notifications <span aria-hidden="true">›</span></a></div>
+        }
     </div>
 </div>

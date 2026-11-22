@@ -1,0 +1,27 @@
+@using SourcingTenderManagement.Models.Entities
+@model List<Bid>
+@{
+    var tender = ViewBag.SelectedTender as Tender;
+}
+@if (Model.Count > 0)
+{
+    <div class="os-list-labels" aria-hidden="true"><span>Supplier</span><span>Total price</span><span>Delivery</span><span>Compliance decision</span><span></span></div>
+<div class="offer-review-list os-offers">
+@foreach (var bid in Model.OrderByDescending(b => b.SubmittedAt ?? b.CreatedAt).ThenByDescending(b => b.BidId))
+{
+    var total = bid.BidItems.Sum(i => i.Quantity * i.UnitPrice) + bid.TaxAmount + bid.AdditionalCosts;
+    var currency = bid.Currency == "JOD" ? "JD" : bid.Currency;
+    var state = tender?.Status == "Cancelled" ? "Cancelled" : bid.Status == "Withdrawn" ? "Withdrawn" : bid.ComplianceStatus;
+    var label = state switch { "Compliant" => "Compliant", "NonCompliant" => "Non-compliant", "Cancelled" => "Cancelled", "Withdrawn" => "Withdrawn", _ => "Needs review" };
+    <article class="offer-review-card os-offer-row" data-offer-id="@bid.BidId" data-supplier="@bid.Invitation.SupplierProfile.CompanyName" data-unread="@((bid.OfficerOpenedAt == null).ToString().ToLowerInvariant())" data-open-url="@Url.Action("MarkOfferOpened", new { id = bid.BidId })">
+        <div class="os-offer-overview">
+                <span class="os-supplier"><strong><span class="os-unread-dot" title="Unopened offer" hidden="@(bid.OfficerOpenedAt != null)"><span class="visually-hidden">Unopened offer: </span></span>@bid.Invitation.SupplierProfile.CompanyName</strong><small>Offer #@bid.BidId</small></span>
+                <span class="os-price"><strong>@total.ToString("N2") <small>@currency</small></strong><small>Including tax &amp; extra costs</small></span>
+                <span class="os-delivery">@bid.DeliveryDays days</span>
+                <span class="so-status-badge ow-recorded-decision" data-status="@(state ?? "Pending")">@label</span>
+                <button type="button" class="os-offer-trigger" data-bs-toggle="modal" data-bs-target="#offer-details-@bid.BidId" aria-label="View details for @bid.Invitation.SupplierProfile.CompanyName, offer #@bid.BidId"><span>View details</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></button>
+        </div>
+    </article>
+}
+</div>
+}

@@ -4,46 +4,94 @@
     ViewData["Title"] = "Pending Tenders";
     var tenderPage = Model.Tenders;
     var totalPages = Math.Max(1, (int)Math.Ceiling((double)tenderPage.TotalCount / tenderPage.PageSize));
+    var hasFilters = !string.IsNullOrWhiteSpace(Model.Filter.Search);
 }
-<div class="workspace-heading"><div><h1>Decisions</h1><p>Review your assigned tenders awaiting a CEO & Chiefs decision.</p></div><div class="tc-heading-actions"><a class="btn" asp-action="Dashboard">Back to dashboard</a></div></div>
-<form asp-action="Decisions" method="get" class="workspace-section" aria-label="Filter pending tenders">
+<div class="tc-decisions-page">
+<header class="workspace-heading tc-page-heading">
+    <div class="tc-heading-copy"><h1>Pending tenders</h1><p>Choose an assigned tender to start your review.</p></div>
+</header>
+<ol class="tc-decision-guide" aria-label="Decision workflow">
+    <li aria-current="step"><span aria-hidden="true">1</span><div><strong>Choose a tender</strong><small>Open a tender from your queue.</small></div></li>
+    <li><span aria-hidden="true">2</span><div><strong>Review offers</strong><small>Read the recommendation and compare bids.</small></div></li>
+    <li><span aria-hidden="true">3</span><div><strong>Record your decision</strong><small>Vote when voting is open.</small></div></li>
+</ol>
+<div class="tc-search-panel">
+<form asp-action="Decisions" method="get" class="workspace-section tc-query tc-query-queue" aria-labelledby="tc-query-title">
+    <h2 id="tc-query-title">Find a tender</h2>
+
     <div asp-validation-summary="All" class="text-danger" role="alert"></div>
-    <div class="row g-3 align-items-end tc-filter-grid">
-        <div class="col-12 col-lg-4"><label for="tender-search" class="form-label">Tender or nominated supplier</label><div class="voice-search-control"><div class="input-group"><input id="tender-search" name="Search" value="@Model.Filter.Search" maxlength="200" class="form-control" type="search" data-voice-search data-voice-search-mode="submit" aria-describedby="top-decisions-voice-status"/><select class="form-select form-select-sm w-auto" data-voice-search-language aria-label="Voice search language"><option value="en-US">English</option><option value="ar-JO">العربية</option></select><button type="button" class="btn btn-outline-primary" data-voice-search-button aria-label="Start voice search" aria-pressed="false" aria-describedby="top-decisions-voice-status"><svg data-voice-icon="mic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg><svg data-voice-icon="stop" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" hidden><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button></div><div id="top-decisions-voice-status" class="form-text small" data-voice-search-status role="status" aria-live="polite">Voice search is ready.</div></div></div>
-        <div class="col-6 col-lg-2"><label for="tender-from" class="form-label">Created from (UTC)</label><input id="tender-from" name="FromDate" value="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" type="date" class="form-control" /></div>
-        <div class="col-6 col-lg-2"><label for="tender-to" class="form-label">Created through (UTC)</label><input id="tender-to" name="ToDate" value="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" type="date" class="form-control" /></div>
-        <div class="col-6 col-lg-2"><label for="tender-page-size" class="form-label">Rows per page</label><select id="tender-page-size" name="PageSize" class="form-select">@foreach (var size in new[] { 20, 50, 100 }) { <option value="@size" selected="@(Model.Filter.PageSize == size)">@size</option> }</select></div>
-        <div class="col-12 col-lg-2 d-flex gap-2 tc-filter-actions"><button class="btn btn-primary" type="submit">Apply</button><a asp-action="Decisions" class="btn btn-outline-secondary">Reset</a></div>
+    <div class="tc-query-fields">
+        <div><label for="tender-search" class="visually-hidden">Tender or nominated supplier</label><div class="voice-search-control"><div class="input-group"><input id="tender-search" name="Search" value="@Model.Filter.Search" maxlength="200" placeholder="Search tender or supplier" class="form-control" type="search" data-voice-search data-voice-search-mode="submit" aria-describedby="top-decisions-voice-status"/><select class="form-select form-select-sm w-auto" data-voice-search-language aria-label="Voice search language"><option value="en-US">English</option><option value="ar-JO">العربية</option></select><button type="button" class="btn btn-outline-primary" data-voice-search-button aria-label="Start voice search" aria-pressed="false" aria-describedby="top-decisions-voice-status"><svg data-voice-icon="mic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg><svg data-voice-icon="stop" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" hidden><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button></div><div id="top-decisions-voice-status" class="form-text small" data-voice-search-status role="status" aria-live="polite"></div></div></div>
+        <div class="tc-flow-actions tc-query-actions"><button class="btn btn-primary" type="submit">Search</button><a asp-action="Decisions" class="btn btn-outline-secondary">Clear</a></div>
     </div>
 </form>
+</div>
+<details class="tc-decision-picker" open>
+<summary>
+    <span><strong>Choose a tender</strong><small>Search your assigned tenders or select one below.</small></span>
+    <span class="tc-decision-picker-count">@tenderPage.TotalCount @(tenderPage.TotalCount == 1 ? "tender" : "tenders") <span class="tc-picker-chevron" aria-hidden="true"></span></span>
+</summary>
+<div class="tc-decision-picker-body">
 @if (!ViewData.ModelState.IsValid)
-{ <p>Correct the filter values and select Apply to load the tender list.</p> }
+{ <p>Check your search and try again.</p> }
 else if (tenderPage.TotalCount == 0)
 {
-    <section class="workspace-section tc-empty"><h2>No pending tenders found</h2><p class="mb-0">You may not have a pending assignment, or no tender matches these filters. Reset the filters to check all pending assignments.</p></section>
+    <section class="workspace-section tc-flow-empty">
+        <h2>@(hasFilters ? "No matching tenders" : "No pending assignments")</h2>
+        @if (hasFilters)
+        {
+            <p>Try another tender title or supplier, or clear your search.</p>
+            <a class="btn" asp-action="Decisions">Show all pending tenders</a>
+        }
+        else
+        {
+            <p>Assigned tenders appear here when they reach the CEO & Chiefs for a decision.</p>
+            <a class="btn" asp-action="History">View decision history</a>
+        }
+    </section>
 }
 else
 {
-    <div class="table-responsive" tabindex="0" role="region" aria-label="Pending tenders"><table class="committee-read-table table tc-pending-table">
-        <caption>@tenderPage.TotalCount pending @(tenderPage.TotalCount == 1 ? "tender matches" : "tenders match") your filters. All times are UTC.</caption>
-        <thead><tr><th scope="col">Tender</th><th scope="col">Created (UTC)</th><th scope="col">Nominated supplier</th><th scope="col">Approvals</th><th scope="col">Review status</th></tr></thead>
-        <tbody>@foreach (var tender in tenderPage.Items)
+    <section aria-labelledby="pending-results">
+        <header class="tc-flow-section-heading"><h2 id="pending-results">Review queue</h2></header>
+        <div class="tc-review-queue">
+        @foreach (var tender in tenderPage.Items)
         {
-            <tr><th scope="row"><a asp-action="TenderDetails" asp-route-id="@tender.TenderId">@tender.Title</a><span class="d-block text-secondary small">Tender #@tender.TenderId</span></th>
-                <td><time class="tc-date-stack" datetime="@tender.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")"><span>@tender.CreatedAt.ToString("yyyy-MM-dd")</span><span>@tender.CreatedAt.ToString("HH:mm") UTC</span></time></td>
-                <td>@CommitteeDisplay.Text(tender.NominatedSupplier)</td><td><span class="text-nowrap">@tender.RecordedApprovals / 4</span><span class="tc-cell-meta">recorded</span></td>
-                <td><div class="tc-cell-stack"><span><span class="badge @(tender.OpenClarifications > 0 ? "text-bg-warning" : "text-bg-primary")">@(tender.OpenClarifications > 0 ? "Voting paused" : "Awaiting review")</span></span>@if (tender.OpenClarifications > 0) { <span class="tc-cell-meta">@tender.OpenClarifications open @(tender.OpenClarifications == 1 ? "clarification" : "clarifications")</span> }</div></td></tr>
-        }</tbody>
-    </table></div>
+            <article class="tc-review-item">
+                <header><h3>@tender.Title</h3><span class="tc-flow-meta">Tender #@tender.TenderId</span>
+                    <span class="badge @(tender.OpenClarifications > 0 ? "text-bg-warning" : "text-bg-primary")">@(tender.OpenClarifications > 0 ? "Voting paused" : "Awaiting committee decision")</span>
+                </header>
+                <dl class="tc-review-facts">
+                    <div><dt>Nominated supplier</dt><dd>@CommitteeDisplay.Text(tender.NominatedSupplier)</dd></div>
+                    <div><dt>Approvals recorded</dt><dd><span>@tender.RecordedApprovals / 4</span><progress value="@tender.RecordedApprovals" max="4" aria-label="Committee approvals"></progress></dd></div>
+                    <div><dt>Created (UTC)</dt><dd><time datetime="@tender.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")">@tender.CreatedAt.ToString("dd MMM yyyy · HH:mm")</time></dd></div>
+                </dl>
+                <div class="tc-review-action">
+                    @if (tender.OpenClarifications > 0) { <p>@tender.OpenClarifications open @(tender.OpenClarifications == 1 ? "clarification" : "clarifications")</p> }
+                    <div class="tc-review-buttons">
+                        @await Component.InvokeAsync("DetailsQr", new { controller = "TopCommittee", action = "TenderDetails", id = tender.TenderId, label = $"Tender #{tender.TenderId}", compact = true })
+                        <a class="btn btn-primary" asp-action="TenderDetails" asp-route-id="@tender.TenderId" aria-label="Review tender @tender.TenderId">Review tender <span aria-hidden="true">→</span></a>
+                    </div>
+                </div>
+            </article>
+        }
+        </div>
+    </section>
     @if (tenderPage.Items.Count == 0) { <p>This page has no results. Use Previous or return to the first page.</p> }
+    @if (totalPages > 1 || tenderPage.Page > 1)
+    {
     <nav class="workspace-toolbar" aria-label="Tender list pages">
         @if (tenderPage.Page > 1)
         {
-            <a class="btn btn-outline-secondary" asp-action="Decisions" asp-route-Page="1" asp-route-PageSize="@tenderPage.PageSize" asp-route-Search="@Model.Filter.Search" asp-route-FromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-ToDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")">First page</a>
-            <a class="btn btn-outline-secondary" asp-action="Decisions" asp-route-Page="@(tenderPage.Page - 1)" asp-route-PageSize="@tenderPage.PageSize" asp-route-Search="@Model.Filter.Search" asp-route-FromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-ToDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")">Previous</a>
+            <a class="btn btn-outline-secondary" asp-action="Decisions" asp-route-Page="1" asp-route-Search="@Model.Filter.Search">First page</a>
+            <a class="btn btn-outline-secondary" asp-action="Decisions" asp-route-Page="@(tenderPage.Page - 1)" asp-route-Search="@Model.Filter.Search">Previous</a>
         }
         <span aria-current="page">Page @tenderPage.Page of @totalPages</span>
         @if (tenderPage.Page < totalPages)
-        { <a class="btn btn-outline-secondary" asp-action="Decisions" asp-route-Page="@(tenderPage.Page + 1)" asp-route-PageSize="@tenderPage.PageSize" asp-route-Search="@Model.Filter.Search" asp-route-FromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-ToDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")">Next</a> }
+        { <a class="btn btn-outline-secondary" asp-action="Decisions" asp-route-Page="@(tenderPage.Page + 1)" asp-route-Search="@Model.Filter.Search">Next</a> }
     </nav>
+    }
 }
+</div>
+</details>
+</div>
