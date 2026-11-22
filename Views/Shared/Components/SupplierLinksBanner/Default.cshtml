@@ -1,0 +1,25 @@
+@model IReadOnlyList<SourcingTenderManagement.Services.Integrity.SupplierLink>
+@using SourcingTenderManagement.Services.Integrity
+@{
+    var tenderId = (int)ViewData["TenderId"]!;
+    var strong = Model.Any(l => l.Level == SupplierLinks.High);
+}
+<link rel="stylesheet" href="~/css/supplier-links.css" asp-append-version="true" />
+<details class="sl-banner @(strong ? "" : "is-medium")" aria-label="Suppliers who may be working together">
+    <summary>
+        <span class="sl-banner-title">⚠ Some suppliers on this tender may be working together</span>
+        <span class="sl-banner-sub sl-banner-pairs">@string.Join(", ", Model.Select(l => $"{l.NameA} & {l.NameB}"))</span>
+        <span class="sl-banner-toggle"><span class="is-closed">See why</span><span class="is-open">Hide</span></span>
+    </summary>
+    <div class="sl-banner-body">
+        @foreach (var link in Model)
+        {
+            <section class="sl-banner-pair">
+                <h4>@link.NameA &amp; @link.NameB <span class="sl-level is-@link.Level">@SupplierLinks.LevelLabel(link.Level)</span></h4>
+                <p class="sl-banner-why">@SupplierLinks.Reasons(link).</p>
+                <partial name="~/Views/Shared/_SupplierLinkEvidence.cshtml" model="link" view-data='new ViewDataDictionary(ViewData) { ["HideTender"] = tenderId }' />
+            </section>
+        }
+        <p class="sl-banner-sub">These are reasons to check, not proof. @ViewData["Advice"]</p>
+    </div>
+</details>

@@ -42,6 +42,10 @@ builder.Services.AddSingleton<AiChatDownloadStore>();
 // Offer pre-check for the Sourcing Officer: code checks plus an optional AI document review.
 builder.Services.AddHttpClient<SourcingTenderManagement.Services.Compliance.OfferPreCheck>(client => client.Timeout = TimeSpan.FromSeconds(90))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+// Supplier links: bid-rigging warning signs computed in code, with an optional AI brief per pair.
+builder.Services.AddScoped<SourcingTenderManagement.Services.Integrity.SupplierLinks>();
+builder.Services.AddHttpClient<SourcingTenderManagement.Services.Integrity.SupplierLinkExplainer>(client => client.Timeout = TimeSpan.FromSeconds(60))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 // Employee accounts: shared creation rules, spreadsheet import, and the forced first-sign-in password change.
 builder.Services.AddScoped<SourcingTenderManagement.Services.Admin.EmployeeAccounts>();
 builder.Services.AddScoped<SourcingTenderManagement.Services.Admin.EmployeeImport>();
@@ -130,6 +134,11 @@ builder.Services.AddAuthorization(o => o.AddPolicy("ApprovedSupplier", policy =>
 
 builder.Services.AddScoped<SourcingTenderManagement.Services.OfferProductPhotos>();
 var app = builder.Build();
+if (args.Contains("--supplier-link-checks"))
+{
+    SourcingTenderManagement.Checks.SupplierLinkChecks.Run();
+    return;
+}
 if (args.Contains("--product-photo-checks"))
 {
     await SourcingTenderManagement.Checks.ProductPhotoChecks.RunAsync(app.Services);

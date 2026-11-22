@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Services.Ai;
+using SourcingTenderManagement.Services.Integrity;
 using SourcingTenderManagement.Services.Intelligence;
 
 namespace SourcingTenderManagement.Controllers;
@@ -38,6 +39,8 @@ public sealed class AiIntelligenceController(
             return Forbid();
 
         var model = await intelligence.BuildDashboardAsync(resolvedWorkspace, User, user, tenderId, ct);
+        if (resolvedWorkspace == RoleNames.Admin)
+            ViewData["SupplierLinks"] = await HttpContext.RequestServices.GetRequiredService<SupplierLinks>().MapAsync(ct);
 
         ViewData["Title"] = "AI Intelligence";
         ViewData["ActivePage"] = "AiIntelligence";
@@ -119,6 +122,36 @@ public sealed class AiIntelligenceController(
         {
             logger.LogWarning(ex, "AI Intelligence tender insights failed for tender {TenderId}.", input.TenderId);
             return StatusCode(503, new { error = "Could not generate AI tender analysis right now. Please try again in a moment." });
+        }
+    }
+
+    [HttpPost("/AiIntelligence/SupplierLinkBrief")]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("AiChat")]
+    public async Task<IActionResult> SupplierLinkBrief([FromBody] SupplierLinkBriefInput input,
+        [FromServices] SupplierLinks links, [FromServices] SupplierLinkExplainer explainer, CancellationToken ct)
+    {
+        var (user, resolvedWorkspace) = await AuthorizeWorkspaceUserAsync(RoleNames.Admin);
+        if (user == null || resolvedWorkspace != RoleNames.Admin)
+            return Forbid();
+
+        var link = await links.PairAsync(input.SupplierA, input.SupplierB, ct);
+        if (link == null)
+            return NotFound(new { error = "These suppliers are no longer linked." });
+
+        try
+        {
+            return Ok(await explainer.ExplainAsync(link, ct));
+        }
+        catch (AiLimitReachedException ex)
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { error = ex.Message });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException ||
+                                   (ex is OperationCanceledException && !ct.IsCancellationRequested))
+        {
+            logger.LogWarning(ex, "Supplier link brief failed for suppliers {A} and {B}.", input.SupplierA, input.SupplierB);
+            return StatusCode(503, new { error = "The AI brief is not available right now. The evidence above is complete without it." });
         }
     }
 
@@ -213,6 +246,8 @@ public sealed class AiIntelligenceController(
 public sealed record AiPortfolioPromptInput(
     [StringLength(40)] string? Workspace,
     [StringLength(1200)] string? Question);
+
+public sealed record SupplierLinkBriefInput(int SupplierA, int SupplierB);
 
 public sealed record AiTenderPromptInput(
     int TenderId,

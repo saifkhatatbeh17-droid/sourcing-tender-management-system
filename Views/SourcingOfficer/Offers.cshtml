@@ -117,6 +117,10 @@ else
         </section>
     }
     <header class="tw-offers-heading"><div><h2>Offers <span class="tw-offer-count">@Model.Count</span></h2></div></header>
+    @if (activeOfferCount >= 2)
+    {
+        @await Component.InvokeAsync("SupplierLinksBanner", new { tenderId = tender.TenderId, advice = "Check them before you send offers to the committee." })
+    }
     <form asp-action="ReviewAndSend" method="post">
         <input type="hidden" name="tenderId" value="@tender.TenderId" />
         @if (Model.Count == 0)

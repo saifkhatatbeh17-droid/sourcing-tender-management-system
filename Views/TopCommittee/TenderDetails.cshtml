@@ -55,6 +55,7 @@
         <p id="tender-ai-description">Check the report for urgency, risks, and missing information.</p>
         <button type="button" class="btn tc-ai-action" data-importance-open aria-haspopup="dialog" aria-controls="tender-importance" aria-describedby="tender-ai-description">Assess report with AI</button>
     </aside>
+    @await Component.InvokeAsync("SupplierLinksBanner", new { tenderId = tender.TenderId, advice = "Weigh this before you record your decision." })
     <section id="bid-comparison" aria-labelledby="comparison-heading">
         <h3 id="comparison-heading">Compare supplier offers</h3>
         <partial name="_BidComparison" model="tender" />

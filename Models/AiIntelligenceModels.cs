@@ -51,7 +51,8 @@ public sealed record AiSupplierAnalyticsRow(
     int CompliantBidsCount,
     int AwardedCount,
     decimal ParticipationRatePercent,
-    decimal ComplianceRatePercent);
+    decimal ComplianceRatePercent,
+    decimal AwardedValue = 0);
 
 public sealed record AiTenderSelectOption(
     int TenderId,

@@ -188,6 +188,12 @@
     const statusLabelFor = (tenderId, fallback) =>
         root.querySelector(`[data-tender-row="${CSS.escape(String(tenderId))}"] .ai-intel-tag`)?.textContent.trim() || fallback;
 
+    // "2026-11-11 13:13" (UTC) -> "11 Nov 2026"
+    const fmtDay = (utc) => {
+        const d = new Date(String(utc || "").replace(" ", "T") + "Z");
+        return Number.isNaN(d.getTime()) ? String(utc || "") : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    };
+
     function renderTenderReport(report) {
         if (!tenderContainer) return;
         if (!report) {
@@ -212,10 +218,13 @@
             return `<li class="ai-intel-step ${cls}"${cls === "is-current" ? ' aria-current="step"' : ""}>${esc(lbl)}</li>`;
         }).join("");
 
-        const weightsBadge = report.financialWeight != null
-            ? `<span class="ai-intel-tag">Weights: ${report.financialWeight}% financial, ${report.technicalWeight}% technical</span>`
-            : `<span class="ai-intel-tag">Weights: not yet agreed by the committee</span>`;
-
+        // Price and technical weights as one split bar, so the balance reads at a glance.
+        const weightsHtml = report.financialWeight != null
+            ? `<dd><div class="ai-intel-weights" role="img" aria-label="${report.financialWeight}% price, ${report.technicalWeight}% technical">
+                    <span class="is-price" style="width:${report.financialWeight}%"></span><span class="is-tech" style="width:${report.technicalWeight}%"></span>
+               </div></dd>
+               <small><span class="ai-intel-dot is-price"></span>Price ${report.financialWeight}% <span class="ai-intel-dot is-tech"></span>Technical ${report.technicalWeight}%</small>`
+            : `<dd>Not agreed yet</dd><small>The committee sets these before scoring</small>`;
         let offersVisualHtml = "";
         if (!report.canViewSupplierOffers) {
             offersVisualHtml = `<p class="ai-intel-note">Supplier offers and prices are hidden in the Department workspace to keep competing quotations confidential.</p>`;
@@ -291,18 +300,35 @@
                 <span class="ai-intel-report-name">#${report.tenderId} ${esc(report.title)}</span>
                 <span class="ai-intel-tag ${report.status === "Awarded" ? "is-win" : ""}">${esc(statusLabelFor(report.tenderId, report.status))}</span>
             </div>
-            <div class="ai-intel-badges">
-                <span class="ai-intel-tag">Request #${report.purchaseRequestId} (${esc(report.department)})</span>
-                <span class="ai-intel-tag">Round ${report.round}</span>
-                <span class="ai-intel-tag">Duration: ${esc(report.lifecycleFormatted)}</span>
-                ${weightsBadge}
-                ${report.topCommitteeApprovals > 0 ? `<span class="ai-intel-tag is-win">CEO &amp; Chiefs approvals: ${report.topCommitteeApprovals} of 4</span>` : ""}
-            </div>
-            <p class="ai-intel-section-sub"><strong>Scope:</strong> ${esc(report.description)}${report.terms ? ` <strong>Terms:</strong> ${esc(report.terms)}` : ""}</p>
-            <p class="ai-intel-section-sub">
-                Created ${esc(report.createdUtc)} UTC · Closes ${esc(report.closesUtc)} UTC${report.awardedUtc ? ` · Awarded ${esc(report.awardedUtc)} UTC` : ""}${report.winnerNotifiedUtc ? ` · Winner notified ${esc(report.winnerNotifiedUtc)} UTC` : ""}
-            </p>
+            <p class="ai-intel-report-meta">${esc(report.department)} · Request #${report.purchaseRequestId} · Round ${report.round}</p>
 
+            <dl class="ai-intel-facts">
+                <div class="ai-intel-fact">
+                    <dt>Duration</dt>
+                    <dd>${esc(report.lifecycleFormatted)}</dd>
+                </div>
+                <div class="ai-intel-fact">
+                    <dt>Timeline</dt>
+                    <dd>${esc(fmtDay(report.createdUtc))} <span aria-label="to">→</span> ${esc(fmtDay(report.closesUtc))}</dd>
+                    <small>Created, then closes${report.awardedUtc ? `. Awarded ${esc(fmtDay(report.awardedUtc))}` : ""}</small>
+                </div>
+                <div class="ai-intel-fact">
+                    <dt>Scoring weights</dt>
+                    ${weightsHtml}
+                </div>
+                ${report.topCommitteeApprovals > 0 ? `
+                <div class="ai-intel-fact">
+                    <dt>CEO &amp; Chiefs approvals</dt>
+                    <dd>${report.topCommitteeApprovals} of 4</dd>
+                </div>` : ""}
+            </dl>
+
+            <details class="ai-intel-details">
+                <summary>Scope and terms</summary>
+                <p><strong>Scope.</strong> ${esc(report.description)}</p>
+                ${report.terms ? `<p><strong>Terms.</strong> ${esc(report.terms)}</p>` : ""}
+                ${report.winnerNotifiedUtc ? `<p><strong>Winner notified.</strong> ${esc(report.winnerNotifiedUtc)} UTC</p>` : ""}
+            </details>
             <ol class="ai-intel-stepper" aria-label="Tender lifecycle">${stepsHtml}</ol>
 
             ${offersVisualHtml}
@@ -368,27 +394,61 @@
         });
     });
 
-    // 4. AI insight cards
-    function buildInsightsMarkup(res) {
-        const cards = (res.insights || []).map(item => `
-            <article class="ai-intel-card" data-tone="${esc(item.tone || "info")}">
-                <div class="ai-intel-card-head">
-                    <span class="ai-intel-card-cat">${esc(item.category)}</span>
-                </div>
-                <h4>${esc(item.title)}</h4>
-                <p>${esc(item.finding)}</p>
-                <div class="ai-intel-rec"><strong>Recommendation:</strong> ${esc(item.recommendation)}</div>
-            </article>
-        `).join("");
+    // "Waiting for a decision" rows open the same tender report as the table rows.
+    root.querySelectorAll("[data-open-tender]").forEach(btn => {
+        btn.addEventListener("click", () => openTenderFromTable(btn.dataset.openTender));
+    });
 
-        return `
-            <div class="ai-intel-chart-card is-live">
+    // AI hub tabs: "Ask a question" and "Analyze a file". Arrow keys, Home and End move between tabs.
+    const aiTabs = Array.from(root.querySelectorAll("[data-ai-tabs] [role='tab']"));
+    function selectAiTab(tab, { focus = false } = {}) {
+        for (const t of aiTabs) {
+            const on = t === tab;
+            t.setAttribute("aria-selected", String(on));
+            t.tabIndex = on ? 0 : -1;
+            const panel = document.getElementById(t.getAttribute("aria-controls"));
+            if (panel) panel.hidden = !on;
+        }
+        if (focus) tab.focus();
+    }
+    aiTabs.forEach((tab, i) => {
+        tab.addEventListener("click", () => selectAiTab(tab));
+        tab.addEventListener("keydown", (e) => {
+            const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: aiTabs.length - 1 }[e.key];
+            if (next === undefined) return;
+            e.preventDefault();
+            selectAiTab(aiTabs[(next + aiTabs.length) % aiTabs.length], { focus: true });
+        });
+    });
+
+    // Placeholder shown while the AI is working, so the answer has a visible home.
+    const skeletonMarkup = `
+        <div class="ai-answer ai-skeleton" aria-hidden="true">
+            <span class="ai-skel-line is-title"></span>
+            <span class="ai-skel-line"></span>
+            <span class="ai-skel-line is-short"></span>
+        </div>`;
+
+    // 4. AI answers: headline, a short brief, then at most three points with their next step.
+    function insightListMarkup(items) {
+        const rows = (items || []).slice(0, 3).map(item => `
+            <li data-tone="${esc(item.tone || "info")}">
+                <span class="ai-answer-dot" aria-hidden="true"></span>
                 <div>
-                    <span class="ai-intel-card-cat">AI summary</span>
-                    <h3>${esc(res.headline)}</h3>
-                    <p class="ai-intel-section-sub">${esc(res.executiveBrief)}</p>
+                    <strong>${esc(item.title)}.</strong> ${esc(item.finding)}
+                    ${item.recommendation ? `<span class="ai-answer-next"><b>Next step:</b> ${esc(item.recommendation)}</span>` : ""}
                 </div>
-                <div class="ai-intel-cards-grid">${cards}</div>
+            </li>`).join("");
+        return rows ? `<ul class="ai-answer-list">${rows}</ul>` : "";
+    }
+
+    function buildInsightsMarkup(res) {
+        return `
+            <div class="ai-answer">
+                <p class="ai-result-label">AI answer</p>
+                <h3 class="ai-answer-head">${esc(res.headline)}</h3>
+                ${res.executiveBrief ? `<p class="ai-result-brief">${esc(res.executiveBrief)}</p>` : ""}
+                ${insightListMarkup(res.insights)}
             </div>`;
     }
 
@@ -404,6 +464,7 @@
         showStatus(portfolioStatus, questionText
             ? "Analyzing your data to answer the question. This can take up to a minute…"
             : "Preparing a general brief from your data. This can take up to a minute…");
+        if (portfolioOut) { portfolioOut.innerHTML = skeletonMarkup; portfolioOut.hidden = false; portfolioOut.setAttribute("aria-busy", "true"); }
         try {
             const resp = await fetch("/AiIntelligence/PortfolioInsights", {
                 method: "POST",
@@ -423,8 +484,10 @@
             }
             hideStatus(portfolioStatus);
         } catch (err) {
+            if (portfolioOut) { portfolioOut.hidden = true; portfolioOut.innerHTML = ""; }
             showStatus(portfolioStatus, err.message, true);
         } finally {
+            portfolioOut?.removeAttribute("aria-busy");
             setBusy(portfolioSubmit, false);
         }
     }
@@ -451,6 +514,7 @@
         if (!tid) return;
         setBusy(analyzeTenderBtn, true);
         showStatus(tenderStatus, `Preparing an AI recommendation for tender #${tid}. This can take up to a minute…`);
+        if (tenderAiBox) { tenderAiBox.innerHTML = skeletonMarkup; tenderAiBox.hidden = false; }
         try {
             const resp = await fetch("/AiIntelligence/TenderInsights", {
                 method: "POST",
@@ -469,6 +533,7 @@
             }
             hideStatus(tenderStatus);
         } catch (err) {
+            if (tenderAiBox) { tenderAiBox.hidden = true; tenderAiBox.innerHTML = ""; }
             showStatus(tenderStatus, err.message, true);
         } finally {
             setBusy(analyzeTenderBtn, false);
@@ -563,17 +628,7 @@
                 </div>`).join("");
 
             const dlHtml = (data.downloads || []).map(dl => `
-                <a class="ai-intel-btn is-primary" href="${esc(dl.url)}" download="${esc(dl.fileName)}">${esc(dl.label || dl.fileName)}</a>`).join("");
-
-            const insightsHtml = (data.insights || []).map(item => `
-                <article class="ai-intel-card" data-tone="${esc(item.tone || "info")}">
-                    <div class="ai-intel-card-head">
-                        <span class="ai-intel-card-cat">${esc(item.category)}</span>
-                    </div>
-                    <h4>${esc(item.title)}</h4>
-                    <p>${esc(item.finding)}</p>
-                    <div class="ai-intel-rec"><strong>Recommendation:</strong> ${esc(item.recommendation)}</div>
-                </article>`).join("");
+                <a class="ai-intel-btn is-surface is-small" href="${esc(dl.url)}" download="${esc(dl.fileName)}">${esc(dl.label || dl.fileName)}</a>`).join("");
 
             let tableHtml = "";
             if (Array.isArray(data.tableHeaders) && data.tableHeaders.length > 0) {
@@ -591,17 +646,17 @@
 
             if (uploadResults) {
                 uploadResults.innerHTML = `
-                    <div class="ai-intel-chart-card is-live">
-                        <div class="ai-intel-section-head">
+                    <div class="ai-answer">
+                        <div class="ai-answer-file">
                             <div>
-                                <span class="ai-intel-card-cat">${esc(data.fileType)}</span>
-                                <h3>${esc(data.fileName)}</h3>
+                                <p class="ai-result-label">AI file analysis · ${esc(data.fileType)}</p>
+                                <h3 class="ai-answer-head">${esc(data.fileName)}</h3>
                             </div>
                             <div class="ai-intel-toolbar">${dlHtml}</div>
                         </div>
-                        <p class="ai-intel-section-sub">${esc(data.summary)}</p>
+                        <p class="ai-result-brief">${esc(data.summary)}</p>
                         ${kpiHtml ? `<div class="ai-intel-kpi-grid">${kpiHtml}</div>` : ""}
-                        ${insightsHtml ? `<div class="ai-intel-cards-grid">${insightsHtml}</div>` : ""}
+                        ${insightListMarkup(data.insights)}
                         ${tableHtml}
                     </div>`;
                 uploadResults.hidden = false;
