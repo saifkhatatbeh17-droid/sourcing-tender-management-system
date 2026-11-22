@@ -1,10 +1,10 @@
 namespace SourcingTenderManagement.Models;
 
-public sealed record DashboardSlice(string Label, int Count, string Tone = "active");
+public sealed record DashboardSlice(string Label, int Count, string Tone = "active", string? Link = null);
 
 public sealed record DashboardOverview(string Title, string Scope, string Unit, string FocusLabel,
     IReadOnlyList<DashboardSlice> Segments, string StagesTitle, string StagesDescription,
-    IReadOnlyList<DashboardSlice> Stages)
+    IReadOnlyList<DashboardSlice> Stages, string? Link = null)
 {
     public int Total => Segments.Sum(s => s.Count);
 

@@ -1352,6 +1352,43 @@ namespace SourcingTenderManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.ReportAccessRule", b =>
+                {
+                    b.Property<int>("ReportAccessRuleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ReportAccessRuleId"));
+
+                    b.Property<bool>("Allowed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ReportKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ReportAccessRuleId");
+
+                    b.HasIndex("ReportKey", "Role")
+                        .IsUnique();
+
+                    b.ToTable("ReportAccessRules", "dbo");
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.SpecMatchAnalysis", b =>
                 {
                     b.Property<int>("SpecMatchAnalysisId")

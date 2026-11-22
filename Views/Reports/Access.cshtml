@@ -1,0 +1,33 @@
+@using SourcingTenderManagement.Data
+@using SourcingTenderManagement.Models.Reports
+@model IReadOnlyList<ReportAccessEntry>
+@{ ViewData["Title"] = "Report access"; }
+@section Styles { <link rel="stylesheet" href="~/css/reports.css" asp-append-version="true" /> }
+@section Scripts { <script src="~/js/reports.js" asp-append-version="true" defer></script> }
+<div class="reports-page">
+    <a asp-controller="Reports" asp-action="Index" class="rpt-back">← All reports</a>
+    <header class="rpt-heading"><div><h1>Report access</h1><p>Choose which roles can open each report. Data remains limited to each user's workspace.</p></div></header>
+    <form asp-controller="ReportAccess" asp-action="Save" method="post" asp-antiforgery="false" class="rpt-panel" data-report-access>
+        @Html.AntiForgeryToken()
+        <div class="rpt-section-heading"><h2>Permissions by role</h2><span>Default = report setting · Custom = saved override</span></div>
+        <p class="rpt-muted">Admin always has access. Supplier access is always blocked.</p>
+        @if (Model.Count == 0) { <p>No reports are registered yet.</p> }
+        else
+        {
+            <div class="rpt-scroll" role="region" aria-label="Report permissions matrix" tabindex="0">
+                <table class="rpt-table rpt-access-table"><caption class="visually-hidden">Report permissions for each role</caption>
+                    <thead><tr><th scope="col">Report</th>@foreach (var role in RoleNames.Primary) { <th scope="col">@RoleNames.DisplayName(role)</th> }</tr></thead>
+                    <tbody>@foreach (var report in Model)
+                    {
+                        <tr><th scope="row">@report.Title</th>@foreach (var permission in report.Permissions)
+                        {
+                            <td><label class="rpt-permission"><input type="checkbox" checked="@permission.Allowed" disabled="@(!permission.CanEdit)" data-report-key="@report.Key" data-report-role="@permission.Role" data-original="@permission.Allowed.ToString().ToLowerInvariant()" aria-label="Allow @RoleNames.DisplayName(permission.Role) to access @report.Title" /><span class="rpt-permission-origin">@(!permission.CanEdit ? "Fixed" : permission.IsDefault ? "Default" : "Custom")</span></label></td>
+                        }</tr>
+                    }</tbody>
+                </table>
+            </div>
+        }
+        <div class="rpt-access-footer"><p data-permission-feedback role="status" aria-live="polite">No unsaved changes.</p><button type="submit" class="btn btn-primary" disabled data-save-permissions>Save changes</button></div>
+        <noscript><p class="rpt-notice">Enable JavaScript to save report permissions.</p></noscript>
+    </form>
+</div>

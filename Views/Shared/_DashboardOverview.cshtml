@@ -12,12 +12,25 @@
 <div class="dashboard-overview">
  <section class="di-panel" aria-label="@Model.Title">
   <header><h2>@Model.Title</h2><p>@Model.Scope</p></header>
-  <div class="di-distribution"><div class="di-ring" aria-hidden="true" style="background:@fill"><span>@(Model.Total==0?"—":Percent(Model.Segments.FirstOrDefault()?.Count ?? 0).ToString("0")+"%")<small>@Model.FocusLabel</small></span></div><div class="di-total"><strong>@Model.Total.ToString("N0")</strong><span>@Model.Unit in total</span><small>Current status</small></div></div>
-  <ul class="di-legend" aria-label="Status counts">@foreach(var segment in Model.Segments){<li><span><i aria-hidden="true" style="background:var(--di-@segment.Tone)"></i>@segment.Label</span><span><small>@Percent(segment.Count).ToString("0")%</small><strong>@segment.Count.ToString("N0")</strong></span></li>}</ul>
+  <div class="di-distribution">
+   @if(Model.Link != null && Url.IsLocalUrl(Model.Link)) {
+    <a class="di-ring-link" href="@Model.Link" aria-label="View @Model.Title report"><div class="di-ring" aria-hidden="true" style="background:@fill"><span>@(Model.Total==0?"—":Percent(Model.Segments.FirstOrDefault()?.Count ?? 0).ToString("0")+"%")<small>@Model.FocusLabel</small></span></div></a>
+   } else { <div class="di-ring" aria-hidden="true" style="background:@fill"><span>@(Model.Total==0?"—":Percent(Model.Segments.FirstOrDefault()?.Count ?? 0).ToString("0")+"%")<small>@Model.FocusLabel</small></span></div> }
+   <div class="di-total"><strong>@Model.Total.ToString("N0")</strong><span>@Model.Unit in total</span><small>Current status</small></div>
+  </div>
+  <ul class="di-legend" aria-label="Status counts">@foreach(var segment in Model.Segments){<li>
+   @if(segment.Link != null && Url.IsLocalUrl(segment.Link)) {
+    <a class="di-report-link" href="@segment.Link"><span><i aria-hidden="true" style="background:var(--di-@segment.Tone)"></i>@segment.Label</span><span><small>@Percent(segment.Count).ToString("0")%</small><strong>@segment.Count.ToString("N0")</strong></span></a>
+   } else { <span><i aria-hidden="true" style="background:var(--di-@segment.Tone)"></i>@segment.Label</span><span><small>@Percent(segment.Count).ToString("0")%</small><strong>@segment.Count.ToString("N0")</strong></span> }
+  </li>}</ul>
   @if(Model.Total==0){<p class="di-note">No @Model.Unit to show yet.</p>}
  </section>
  <section class="di-panel" aria-label="@Model.StagesTitle"><header><h2>@Model.StagesTitle</h2><p>@Model.StagesDescription</p></header>
-  <ul class="di-stages">@foreach(var stage in Model.Stages){<li><span>@stage.Label</span><div class="di-track" aria-hidden="true"><i style="width:@Pct(100m * stage.Count / largest)"></i></div><strong>@stage.Count.ToString("N0")</strong></li>}</ul>
+  <ul class="di-stages">@foreach(var stage in Model.Stages){<li>
+   @if(stage.Link != null && Url.IsLocalUrl(stage.Link)) {
+    <a class="di-stage-link" href="@stage.Link" aria-label="View @stage.Label: @stage.Count.ToString("N0")"><span>@stage.Label</span><div class="di-track" aria-hidden="true"><i style="width:@Pct(100m * stage.Count / largest)"></i></div><strong>@stage.Count.ToString("N0")</strong></a>
+   } else { <span>@stage.Label</span><div class="di-track" aria-hidden="true"><i style="width:@Pct(100m * stage.Count / largest)"></i></div><strong>@stage.Count.ToString("N0")</strong> }
+  </li>}</ul>
   <p class="di-note">Each @Model.Unit.TrimEnd('s') appears once in this breakdown.</p>
  </section>
 </div>

@@ -1,7 +1,9 @@
 @using SourcingTenderManagement.Models
+@inject SourcingTenderManagement.Services.Reports.Hub.ReportNavigation ReportNavigation
 @{
     var currentAction = ViewData["ActivePage"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString();
     var activeAction = currentAction == "SupplierDetails" ? "Suppliers" : currentAction;
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
 }
 <aside class="admin-sidebar" aria-label="Admin navigation">
     <div class="admin-sidebar-top">
@@ -14,10 +16,12 @@
         <nav id="admin-sidebar-menu" class="admin-sidebar-nav" aria-label="Administration">
             @foreach (var item in PageNavigation.Menus["Admin"])
             {
-                var isActive = activeAction == item.Action;
-                <a class="admin-sidebar-item @(isActive ? "is-active" : null)" asp-controller="Admin" asp-action="@item.Action"
+                var targetController = item.Controller ?? "Admin";
+                if (targetController == "Reports" && !await ReportNavigation.HasReportsAsync("Admin", Context.RequestAborted)) { continue; }
+                var isActive = targetController == "Reports" ? controller is "Reports" or "ReportAccess" : item.Controller == null && controller is not ("Reports" or "ReportAccess") && activeAction == item.Action;
+                <a class="admin-sidebar-item @(isActive ? "is-active" : null)" asp-controller="@targetController" asp-action="@item.Action"
                    aria-current="@(isActive ? "page" : null)" aria-label="@item.Title" title="@item.Title">
-                    <partial name="_AdminSidebarIcon" model="item.Action" />
+                    <partial name="_AdminSidebarIcon" model='@(item.Controller != null ? "Reports" : item.Action)' />
                     <span>@item.Title</span>
                 </a>
             }

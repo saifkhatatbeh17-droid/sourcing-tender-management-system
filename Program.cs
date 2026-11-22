@@ -67,6 +67,12 @@ builder.Services.AddScoped<IReport, BidsEvaluationReport>();
 builder.Services.AddScoped<IReport, ApprovalsReport>();
 builder.Services.AddScoped<IReport, AuditLogReport>();
 builder.Services.AddScoped<IReport, TopCommitteeHubReport>();
+builder.Services.AddScoped<IReport, PurchaseRequestsReport>();
+builder.Services.AddScoped<IReport, TendersReport>();
+builder.Services.AddScoped<ReportRegistry>();
+builder.Services.AddScoped<ReportNavigation>();
+builder.Services.AddScoped<ReportFilterOptions>();
+builder.Services.AddScoped<ReportExport>();
 builder.Services.AddDbContext<ApplicationDbContext>((services, o) =>
     o.UseSqlServer(connection).AddInterceptors(services.GetRequiredService<AuditSaveChangesInterceptor>()));
 builder.Services.AddTopCommitteeFoundation();

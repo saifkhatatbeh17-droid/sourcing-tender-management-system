@@ -1,9 +1,12 @@
 @using SourcingTenderManagement.Models
+@inject SourcingTenderManagement.Services.Reports.Hub.ReportNavigation ReportNavigation
 @{
     var currentAction = ViewData["ActivePage"]?.ToString() ?? ViewContext.RouteData.Values["action"]?.ToString();
     var controller = ViewData["WorkspaceController"]?.ToString() ?? "Admin";
     var activeAction = ViewData["WorkspaceActiveAction"]?.ToString() ?? currentAction;
     var roles = SourcingTenderManagement.Data.RoleNames.Primary.Where(User.IsInRole).ToArray();
+    var routeController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var reportsRendered = false;
 }
 <aside class="admin-sidebar workspace-navigation" aria-label="@ViewData["WorkspaceLabel"] navigation">
     <div class="admin-sidebar-top">
@@ -30,10 +33,15 @@
             @foreach (var item in PageNavigation.Menus[role])
             {
                 if (role == "Supplier" && item.Action == "History") { continue; }
-                var isActive = controller == role && activeAction == item.Action;
-                <a class="admin-sidebar-item @(isActive ? "is-active" : null)" asp-controller="@role" asp-action="@item.Action"
+                var targetController = item.Controller ?? role;
+                var isReports = targetController == "Reports";
+                if (isReports && (reportsRendered || !await ReportNavigation.HasReportsAsync(role, Context.RequestAborted))) { continue; }
+                if (isReports) { reportsRendered = true; }
+                var isActive = isReports ? routeController is "Reports" or "ReportAccess" :
+                    item.Controller == null && controller == role && routeController is not ("Reports" or "ReportAccess") && activeAction == item.Action;
+                <a class="admin-sidebar-item @(isActive ? "is-active" : null)" asp-controller="@targetController" asp-action="@item.Action"
                    aria-current="@(isActive ? "page" : null)" aria-label="@SourcingTenderManagement.Data.RoleNames.DisplayName(role) — @item.Title" title="@SourcingTenderManagement.Data.RoleNames.DisplayName(role) — @item.Title">
-                    <partial name="_AdminSidebarIcon" model="item.Action" />
+                    <partial name="_AdminSidebarIcon" model='@(item.Controller != null ? "Reports" : item.Action)' />
                     <span>@item.Title</span>
                 </a>
             }
