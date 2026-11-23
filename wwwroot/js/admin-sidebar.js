@@ -16,11 +16,16 @@ if (reviewDialog) {
         opener?.focus();
     });
 
-    function renderSupplierDetails(markup) {
+    // startStep: which step to open (used after saving a document so the popup does not jump back to step 1).
+    function renderSupplierDetails(markup, startStep) {
         const page = new DOMParser().parseFromString(markup, 'text/html');
         const flow = page.querySelector('[data-review-flow]');
         if (!flow) throw new Error('Supplier details unavailable');
         if (!reviewApplication) flow.querySelector('[data-review-step="Decision"]')?.remove();
+        // When every document is verified, move on to the Decision step on its own.
+        if (startStep === 'Documents' && !flow.querySelector('[data-document-pending]') &&
+            flow.querySelector('[data-review-step="Decision"]')) startStep = 'Decision';
+        if (startStep) flow.dataset.startStep = startStep;
         content.replaceChildren(flow);
         initializeReview(flow);
     }
@@ -80,7 +85,7 @@ if (reviewDialog) {
             if (!response.ok) throw new Error('Supplier update failed');
             const markup = await response.text();
             if (pending.signal.aborted) return;
-            renderSupplierDetails(markup);
+            renderSupplierDetails(markup, form.action.includes('VerifySupplierDocument') ? 'Documents' : undefined);
             if (content.querySelector('[data-supplier-review-saved]')) refreshListOnClose = true;
             const focusTarget = content.querySelector('.validation-summary-errors, [data-supplier-review-saved], .alert-warning');
             if (focusTarget) {
@@ -200,7 +205,8 @@ function initializeReview(flow) {
     if (heading) heading.after(stepper, progress); else flow.prepend(stepper, progress);
     flow.append(controls);
     const invalidIndex = steps.findIndex(step => step.querySelector('.field-validation-error,.validation-summary-errors'));
-    let index = invalidIndex >= 0 ? invalidIndex : 0;
+    const startIndex = steps.findIndex(step => step.dataset.reviewStep === flow.dataset.startStep);
+    let index = invalidIndex >= 0 ? invalidIndex : Math.max(startIndex, 0);
     function show(moveFocus = false) {
         steps.forEach((step, position) => { step.hidden = position !== index; });
         markers.forEach((marker, position) => {

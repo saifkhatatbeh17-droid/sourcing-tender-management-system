@@ -27,15 +27,14 @@ public partial class AdminController
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> VerifySupplierDocument(int id, string status, string? note, CancellationToken ct)
+    public async Task<IActionResult> VerifySupplierDocument(int id, string status, CancellationToken ct)
     {
-        note = note?.Trim();
-        if (status is not ("Verified" or "Rejected") || note?.Length > 1000 ||
-            (status == "Rejected" && string.IsNullOrEmpty(note))) return BadRequest("Enter a valid decision and a rejection note of up to 1,000 characters.");
+        // A document can only be marked verified here. Rejecting a supplier is done on the Decision step.
+        if (status != "Verified") return BadRequest("Documents can only be marked as verified. Reject the supplier on the Decision step.");
         var document = await db.SupplierDocuments.SingleOrDefaultAsync(d => d.SupplierDocumentId == id, ct);
         if (document is null) return NotFound();
         document.VerificationStatus = status;
-        document.VerificationNote = note;
+        document.VerificationNote = null;
         document.VerifiedAt = DateTime.UtcNow;
         document.VerifiedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await db.SaveChangesAsync(ct);

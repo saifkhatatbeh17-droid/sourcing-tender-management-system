@@ -1072,6 +1072,11 @@ public sealed class AiIntelligenceService(
 
     // ---------------- INTERNAL HELPERS ----------------
 
+    /// <summary>Ids of the tenders this workspace may see, using the same scope as the dashboard.</summary>
+    public async Task<IReadOnlyList<int>> ScopedTenderIdsAsync(
+        string workspace, ClaimsPrincipal principal, ApplicationUser user, int? tenderId, CancellationToken ct) =>
+        (await LoadScopedTendersAsync(workspace, principal, user, ct, tenderId)).Select(t => t.TenderId).ToList();
+
     private async Task<List<Tender>> LoadScopedTendersAsync(
         string workspace,
         ClaimsPrincipal principal,

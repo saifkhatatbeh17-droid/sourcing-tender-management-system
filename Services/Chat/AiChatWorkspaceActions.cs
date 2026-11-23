@@ -510,6 +510,11 @@ public sealed class AiChatWorkspaceActions(
         var newItems = ParseRequestItems(args);
         if (newItems.Count > 0)
         {
+            // Replacing the items must not wipe the legal warranty the department asked for. Keep it for items with the same name.
+            var keptWarranty = request.PurchaseRequestItems.Where(i => i.LegalWarrantyMonths != null)
+                .GroupBy(i => i.ItemName.Trim().ToLowerInvariant()).ToDictionary(g => g.Key, g => g.First().LegalWarrantyMonths);
+            foreach (var item in newItems.Where(i => i.LegalWarrantyMonths == null))
+                if (keptWarranty.TryGetValue(item.ItemName.Trim().ToLowerInvariant(), out var months)) item.LegalWarrantyMonths = months;
             db.PurchaseRequestItems.RemoveRange(request.PurchaseRequestItems);
             request.PurchaseRequestItems.Clear();
             foreach (var item in newItems)
@@ -1697,7 +1702,8 @@ public sealed class AiChatWorkspaceActions(
                 ItemName = name,
                 Quantity = decimal.Round(qty, 3, MidpointRounding.AwayFromZero),
                 Unit = unit,
-                Specifications = specs
+                Specifications = specs,
+                LegalWarrantyMonths = GetInt(el, "legalWarrantyMonths") is int months and >= 1 and <= 120 ? months : null
             });
         }
         return result;

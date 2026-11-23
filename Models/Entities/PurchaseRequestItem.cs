@@ -18,6 +18,9 @@ public class PurchaseRequestItem
 
     public string Specifications { get; set; } = null!;
 
+    /// <summary>Minimum legal warranty, in months, the department asks suppliers for on this item. Null means none required.</summary>
+    public int? LegalWarrantyMonths { get; set; }
+
     public ICollection<BidItem> BidItems { get; set; } = new List<BidItem>();
 
     public PurchaseRequest PurchaseRequest { get; set; } = null!;

@@ -20,4 +20,9 @@
             });
         });
     });
+
+    // Picking a tender loads its committee contacts straight away; no separate button.
+    document.querySelectorAll('[data-autosubmit]').forEach(control => {
+        control.addEventListener('change', () => control.form?.requestSubmit());
+    });
 })();

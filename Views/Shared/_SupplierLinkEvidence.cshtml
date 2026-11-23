@@ -4,24 +4,37 @@
     // Optional format string for tender links, e.g. "/Admin/AiIntelligence?tenderId={0}". Without it, tender numbers are plain text.
     var tenderLink = ViewData["TenderLink"] as string;
     var hideTender = ViewData["HideTender"] as int?;
+    // When set, only these tenders become links; others stay plain text (a viewer may not open every tender).
+    var linkable = ViewData["LinkableTenders"] as IReadOnlySet<int>;
+    // The same warning on many tenders reads as one row: "Same description · 8 tenders: #177 #178 ...".
+    var rows = Model.Evidence
+        .GroupBy(e => (e.Kind, e.Text))
+        .Select(g => (g.Key.Kind, g.Key.Text, Tenders: g.Select(e => e.TenderId).OfType<int>().Where(t => t != hideTender).Distinct().OrderBy(t => t).ToList()))
+        .ToList();
 }
 <ul class="sl-evidence">
-    @foreach (var item in Model.Evidence)
+    @foreach (var row in rows)
     {
-        <li data-kind="@item.Kind">
-            <span class="sl-kind">@SupplierLinks.KindLabel(item.Kind)</span>
+        <li data-kind="@row.Kind">
+            <span class="sl-kind">@SupplierLinks.KindLabel(row.Kind)</span>
             <span class="sl-text">
-                @item.Text
-                @if (item.TenderId is { } tender && tender != hideTender)
+                @row.Text
+                @if (row.Tenders.Count > 0)
                 {
-                    @if (tenderLink != null)
-                    {
-                        <a href="@string.Format(tenderLink, tender)">Tender #@tender</a>
-                    }
-                    else
-                    {
-                        <span class="sl-tender">Tender #@tender</span>
-                    }
+                    <span class="sl-tenders">
+                        @if (row.Tenders.Count > 1) { <span class="sl-tender-count">On @row.Tenders.Count tenders:</span> }
+                        @foreach (var tender in row.Tenders)
+                        {
+                            @if (tenderLink != null && (linkable == null || linkable.Contains(tender)))
+                            {
+                                <a class="sl-tender-chip" href="@string.Format(tenderLink, tender)">#@tender</a>
+                            }
+                            else
+                            {
+                                <span class="sl-tender-chip is-plain">#@tender</span>
+                            }
+                        }
+                    </span>
                 }
             </span>
         </li>

@@ -110,7 +110,8 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
                     ItemName = i.ItemName,
                     Quantity = i.Quantity,
                     Unit = i.Unit,
-                    Specifications = i.Specifications
+                    Specifications = i.Specifications,
+                    LegalWarrantyMonths = i.LegalWarrantyMonths
                 }).ToList()
         });
     }

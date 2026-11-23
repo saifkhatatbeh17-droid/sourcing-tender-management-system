@@ -15,9 +15,22 @@ document.querySelectorAll("[data-spec-match]").forEach(section => {
     });
     if (run) run.dataset.idleLabel = run.textContent;
 
+    // The comparison stays folded away until asked for, so the page is not crowded. It opens right after an analysis.
+    const body = section.querySelector("[data-spec-body]");
+    const toggle = section.querySelector("[data-spec-toggle]");
+    function setOpen(open) {
+        if (!body || !toggle) return;
+        body.hidden = !open;
+        toggle.setAttribute("aria-expanded", String(open));
+        toggle.textContent = open ? "Hide comparison" : "Show comparison";
+    }
+    toggle?.addEventListener("click", () => setOpen(body.hidden));
+    if (section.id && location.hash === "#" + section.id && body) { setOpen(true); section.scrollIntoView(); }
+
     const title = section.querySelector("[data-spec-title]");
     const reason = section.querySelector("[data-spec-reason]");
     const evidence = section.querySelector("[data-spec-evidence]");
+    const warranty = section.querySelector("[data-spec-warranty]");
     let selected;
 
     section.querySelectorAll(".spec-match-cell").forEach(cell => {
@@ -30,6 +43,12 @@ document.querySelectorAll("[data-spec-match]").forEach(section => {
             reason.hidden = !cell.dataset.reason;
             evidence.textContent = cell.dataset.evidence || "";
             evidence.hidden = !cell.dataset.evidence;
+            if (warranty) {
+                warranty.textContent = cell.dataset.warranty || "";
+                warranty.hidden = !cell.dataset.warranty;
+                if (cell.dataset.warrantyVerdict) warranty.dataset.verdict = cell.dataset.warrantyVerdict;
+                else delete warranty.dataset.verdict;
+            }
         });
 
         cell.addEventListener("keydown", event => {

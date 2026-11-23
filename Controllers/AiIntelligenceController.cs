@@ -25,7 +25,7 @@ public sealed class AiIntelligenceController(
     [HttpGet("/EvaluationCommittee/AiIntelligence")]
     [HttpGet("/SourcingManager/AiIntelligence")]
     [HttpGet("/TopCommittee/AiIntelligence")]
-    public async Task<IActionResult> Index(string? workspace, int? tenderId, CancellationToken ct)
+    public async Task<IActionResult> Index(string? workspace, int? tenderId, int? from, CancellationToken ct)
     {
         var pathSegment = HttpContext.Request.Path.Value?.Trim('/').Split('/').FirstOrDefault();
         var inferredWorkspace = !string.IsNullOrWhiteSpace(workspace)
@@ -39,8 +39,25 @@ public sealed class AiIntelligenceController(
             return Forbid();
 
         var model = await intelligence.BuildDashboardAsync(resolvedWorkspace, User, user, tenderId, ct);
+        IReadOnlyList<int>? scoped = null;
+        async Task<IReadOnlyList<int>> ScopedIds() => scoped ??= await intelligence.ScopedTenderIdsAsync(resolvedWorkspace, User, user, null, ct);
+
         if (resolvedWorkspace == RoleNames.Admin)
             ViewData["SupplierLinks"] = await HttpContext.RequestServices.GetRequiredService<SupplierLinks>().MapAsync(ct);
+        else if (resolvedWorkspace == RoleNames.TopCommittee)
+        {
+            // Top Committee sees only pairs that bid on tenders in its own scope.
+            var inScope = (await ScopedIds()).ToHashSet();
+            var all = await HttpContext.RequestServices.GetRequiredService<SupplierLinks>().MapAsync(ct);
+            var mine = all.Links.Where(l => l.SharedTenders.Any(inScope.Contains)).ToList();
+            var linked = mine.SelectMany(l => new[] { l.SupplierA, l.SupplierB }).ToHashSet();
+            ViewData["SupplierLinks"] = new SupplierLinkMap(all.Nodes.Where(n => linked.Contains(n.Id)).ToList(), mine, inScope.Count, 0);
+            ViewData["LinkableTenders"] = (IReadOnlySet<int>)inScope;
+        }
+
+        // "Back to tender" only for a tender the member may open.
+        if (resolvedWorkspace == RoleNames.TopCommittee && from is int back && (await ScopedIds()).Contains(back))
+            ViewData["BackTender"] = back;
 
         ViewData["Title"] = "AI Intelligence";
         ViewData["ActivePage"] = "AiIntelligence";
@@ -131,17 +148,24 @@ public sealed class AiIntelligenceController(
     public async Task<IActionResult> SupplierLinkBrief([FromBody] SupplierLinkBriefInput input,
         [FromServices] SupplierLinks links, [FromServices] SupplierLinkExplainer explainer, CancellationToken ct)
     {
-        var (user, resolvedWorkspace) = await AuthorizeWorkspaceUserAsync(RoleNames.Admin);
-        if (user == null || resolvedWorkspace != RoleNames.Admin)
+        var (user, resolvedWorkspace) = await AuthorizeWorkspaceUserAsync(input.Workspace ?? RoleNames.Admin);
+        if (user == null || resolvedWorkspace is not (RoleNames.Admin or RoleNames.TopCommittee))
             return Forbid();
 
         var link = await links.PairAsync(input.SupplierA, input.SupplierB, ct);
         if (link == null)
             return NotFound(new { error = "These suppliers are no longer linked." });
+        // Top Committee may explain only pairs that bid on a tender in its own scope.
+        if (resolvedWorkspace == RoleNames.TopCommittee)
+        {
+            var inScope = await intelligence.ScopedTenderIdsAsync(resolvedWorkspace, User, user, null, ct);
+            if (!link.SharedTenders.Any(inScope.Contains))
+                return NotFound(new { error = "These suppliers are not linked on a tender in your workspace." });
+        }
 
         try
         {
-            return Ok(await explainer.ExplainAsync(link, ct));
+            return Ok(await explainer.ExplainAsync(link, ct, resolvedWorkspace));
         }
         catch (AiLimitReachedException ex)
         {
@@ -247,7 +271,7 @@ public sealed record AiPortfolioPromptInput(
     [StringLength(40)] string? Workspace,
     [StringLength(1200)] string? Question);
 
-public sealed record SupplierLinkBriefInput(int SupplierA, int SupplierB);
+public sealed record SupplierLinkBriefInput(int SupplierA, int SupplierB, [StringLength(40)] string? Workspace = null);
 
 public sealed record AiTenderPromptInput(
     int TenderId,

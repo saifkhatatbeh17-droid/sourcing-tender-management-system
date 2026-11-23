@@ -193,3 +193,28 @@
     .sl-key-panel dl { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 }
 @media (max-width: 600px) { .sl .sl-graph-card { display: none; } }
+/* ---------- Grouped tender chips inside evidence rows ---------- */
+.sl-tenders { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .3rem .35rem; margin-left: .45rem; vertical-align: baseline; }
+.sl-tender-count { font-size: .82rem; color: var(--sl-muted); }
+.sl-tender-chip {
+    display: inline-block; padding: .05rem .5rem; border-radius: 999px; font-size: .8rem; font-weight: 650; line-height: 1.5;
+    color: var(--sl-teal); background: var(--sl-surface); border: 1px solid var(--sl-line); text-decoration: none;
+}
+a.sl-tender-chip:hover { border-color: var(--sl-teal); }
+a.sl-tender-chip:focus-visible { outline: 3px solid rgba(0, 163, 166, .45); outline-offset: 2px; }
+.sl-tender-chip.is-plain { color: var(--sl-muted); background: transparent; }
+
+/* ---------- Opened from a tender page: highlight the pair, offer a way back ---------- */
+.sl-backlink {
+    display: inline-flex; align-items: center; gap: .4rem; margin: 0 0 .9rem; padding: .45rem .8rem; border-radius: 10px;
+    border: 1px solid var(--sl-line); background: var(--sl-surface); color: var(--sl-teal); font-weight: 650; text-decoration: none;
+}
+.sl-backlink:hover { border-color: var(--sl-teal); }
+.sl-backlink:focus-visible { outline: 3px solid rgba(0, 163, 166, .45); outline-offset: 2px; }
+@keyframes sl-pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sl-high) 55%, transparent); }
+    100% { box-shadow: 0 0 0 14px transparent; }
+}
+.sl.is-arrived .sl-panel, .sl.is-arrived .sl-graph-card { animation: sl-pulse 1.4s ease-out 2; }
+.sl .sl-detail.is-arrived { border-radius: 12px; outline: 2px solid var(--sl-high); outline-offset: 6px; }
+@media (prefers-reduced-motion: reduce) { .sl.is-arrived .sl-panel, .sl.is-arrived .sl-graph-card { animation: none; } }

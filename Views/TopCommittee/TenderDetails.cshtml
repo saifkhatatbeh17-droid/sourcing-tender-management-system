@@ -59,20 +59,36 @@
         <p id="tender-ai-description">Check the report for urgency, risks, and missing information.</p>
         <button type="button" class="btn tc-ai-action" data-importance-open aria-haspopup="dialog" aria-controls="tender-importance" aria-describedby="tender-ai-description">Assess report with AI</button>
     </aside>
-    @await Component.InvokeAsync("SupplierLinksBanner", new { tenderId = tender.TenderId, advice = "Weigh this before you record your decision." })
-    <section id="bid-comparison" aria-labelledby="comparison-heading">
-        <h3 id="comparison-heading">Compare supplier offers</h3>
-        <partial name="_BidComparison" model="tender" />
-    </section>
+    @await Component.InvokeAsync("TenderIntegrity", new { tenderId = tender.TenderId, workspace = SourcingTenderManagement.Data.RoleNames.TopCommittee })
 </section>
-@foreach (var bid in tender.Bids.OrderByDescending(bid => bid.SubmittedAt).ThenByDescending(bid => bid.BidId))
-{
+
+<section id="bid-comparison" class="workspace-section tc-offers-section" aria-labelledby="comparison-heading">
+    <header class="tc-section-head">
+        <h3 id="comparison-heading">Offers <span class="tc-section-count">@tender.Bids.Count</span></h3>
+        <p>Select an offer to read its prices, items and committee marks. Totals include taxes and fees.</p>
+    </header>
+    @if (tender.Bids.Count == 0) { <p class="mb-0">No submitted bids are available for this tender.</p> }
+    else
+    {
+    // The lowest total is only called out when offers in the same currency can be compared.
+    var lowest = tender.Bids.Where(b => b.Status != "Withdrawn").GroupBy(b => b.Currency)
+        .Where(g => g.Count() > 1).ToDictionary(g => g.Key, g => g.Min(b => b.Total));
+    <ol class="tc-offers">
+    @foreach (var bid in tender.Bids.OrderByDescending(bid => bid.SubmittedAt).ThenByDescending(bid => bid.BidId))
+    {
     var isSelected = Model.SelectedBid?.BidId == bid.BidId;
-    <div id="@(isSelected ? "selected-bid" : $"bid-{bid.BidId}")" class="workspace-section tc-review-card">
-        <button type="button" class="tc-review-card-trigger" data-review-dialog-open aria-haspopup="dialog" aria-controls="bid-content-@bid.BidId">
-            <span class="tc-review-card-icon"><partial name="_AdminSidebarIcon" model='@("Offers")' /></span>
-            <span class="tc-review-card-title"><small>Bid #@bid.BidId</small><strong>@bid.SupplierName</strong></span>
-            @if (bid.IsNominated) { <span class="badge tc-review-approved">Manager nominated</span> }
+    var isLowest = bid.Status != "Withdrawn" && lowest.TryGetValue(bid.Currency, out var min) && bid.Total == min;
+    <li>
+    <div id="@(isSelected ? "selected-bid" : $"bid-{bid.BidId}")" class="tc-offer @(bid.IsNominated ? "is-nominated" : null) @(bid.Status == "Withdrawn" ? "is-withdrawn" : null)">
+        <button type="button" class="tc-offer-trigger" data-review-dialog-open aria-haspopup="dialog" aria-controls="bid-content-@bid.BidId">
+            <span class="tc-offer-supplier"><small>Bid #@bid.BidId · @CommitteeDisplay.Status(bid.Status)</small><strong>@bid.SupplierName</strong></span>
+            <span class="tc-offer-fact"><small>Total</small><strong>@CommitteeDisplay.Money(bid.Total) @bid.Currency</strong></span>
+            <span class="tc-offer-fact"><small>Delivery</small><strong>@bid.DeliveryDays days</strong></span>
+            <span class="tc-offer-tags">
+                @if (bid.IsNominated) { <span class="tc-tag is-nominated">Manager nominated</span> }
+                @if (isLowest) { <span class="tc-tag is-lowest">Lowest price</span> }
+                @if (!string.IsNullOrWhiteSpace(bid.ComplianceStatus) && bid.ComplianceStatus != "Compliant") { <span class="tc-tag is-warn">@CommitteeDisplay.Status(bid.ComplianceStatus)</span> }
+            </span>
             <span class="tc-review-card-chevron" aria-hidden="true"></span>
         </button>
         <dialog id="bid-content-@bid.BidId" class="tc-review-card-dialog" aria-labelledby="bid-dialog-heading-@bid.BidId">
@@ -87,17 +103,25 @@
                 <partial name="_BidDetails" model="bid" />
             </div>
             <footer class="tc-review-dialog-footer">
+                <a class="tc-offer-permalink" asp-action="TenderDetails" asp-route-id="@tender.TenderId" asp-route-bidId="@bid.BidId" asp-fragment="selected-bid" aria-label="Link to bid @bid.BidId from @bid.SupplierName">Link to this offer</a>
                 <button type="button" class="btn btn-outline-secondary" data-review-dialog-close>Close</button>
             </footer>
         </dialog>
     </div>
-}
+    </li>
+    }
+    </ol>
+    }
+</section>
 
-<div id="request" class="workspace-section tc-review-card">
-    <button type="button" class="tc-review-card-trigger" data-review-dialog-open aria-haspopup="dialog" aria-controls="request-content">
-        <span class="tc-review-card-icon"><partial name="_AdminSidebarIcon" model='@("Requests")' /></span>
-        <span class="tc-review-card-title"><strong>Purchase Request &amp; Tender Requirements</strong><small>Requested items, specifications, and dates</small></span>
-        <span class="tc-review-card-chevron" aria-hidden="true"></span>
+<section class="tc-references" aria-labelledby="references-heading">
+<h3 id="references-heading" class="tc-references-heading">Reference documents</h3>
+<p class="tc-references-sub">Background for your decision. These are not offers.</p>
+<div id="request" class="tc-doc">
+    <button type="button" class="tc-doc-trigger" data-review-dialog-open aria-haspopup="dialog" aria-controls="request-content">
+        <span class="tc-doc-icon"><partial name="_AdminSidebarIcon" model='@("Requests")' /></span>
+        <span class="tc-doc-title"><strong>Purchase request and requirements</strong><small>Requested items, specifications and dates</small></span>
+        <span class="tc-doc-action">Open</span>
     </button>
     <dialog id="request-content" class="tc-review-card-dialog" aria-labelledby="request-dialog-heading">
         <header class="tc-review-dialog-header">
@@ -175,11 +199,11 @@
     </dialog>
 </div>
 
-<div id="evaluation-report" class="workspace-section tc-review-card tc-review-report">
-    <button type="button" class="tc-review-card-trigger" data-review-dialog-open aria-haspopup="dialog" aria-controls="evaluation-report-content">
-        <span class="tc-review-card-icon"><partial name="_AdminSidebarIcon" model='@("Reports")' /></span>
-        <span class="tc-review-card-title"><strong>Unified Evaluation Report</strong><small>Committee recommendation and review notes</small></span>
-        <span class="tc-review-card-chevron" aria-hidden="true"></span>
+<div id="evaluation-report" class="tc-doc">
+    <button type="button" class="tc-doc-trigger" data-review-dialog-open aria-haspopup="dialog" aria-controls="evaluation-report-content">
+        <span class="tc-doc-icon"><partial name="_AdminSidebarIcon" model='@("Reports")' /></span>
+        <span class="tc-doc-title"><strong>Unified evaluation report</strong><small>Committee recommendation and review notes</small></span>
+        <span class="tc-doc-action">Open</span>
     </button>
     <dialog id="evaluation-report-content" class="tc-review-card-dialog" aria-labelledby="evaluation-report-dialog-heading">
         <header class="tc-review-dialog-header">
@@ -236,11 +260,12 @@
 
 @if (!string.IsNullOrWhiteSpace(tender.OfferRoundSummary))
 {
-    <details class="workspace-section tc-review-disclosure">
-        <summary>Offer rounds and exceptions</summary>
-        <partial name="_FormattedReport" model="tender.OfferRoundSummary" />
+    <details class="tc-doc tc-doc-details tc-review-disclosure">
+        <summary><span class="tc-doc-icon" aria-hidden="true"><partial name="_AdminSidebarIcon" model='@("Reports")' /></span><span class="tc-doc-title"><strong>Offer rounds and exceptions</strong><small>How this tender reached its offers</small></span><span class="tc-doc-action">Show</span></summary>
+        <div class="tc-doc-details-body"><partial name="_FormattedReport" model="tender.OfferRoundSummary" /></div>
     </details>
 }
+</section>
 
     <div class="tc-review-navigation">
         <a class="btn btn-primary" href="#voting">Next: @decisionLabel <span aria-hidden="true">→</span></a>
@@ -292,6 +317,5 @@
         <button class="btn btn-primary" type="submit" disabled="@(string.IsNullOrWhiteSpace(tender.Report?.CommitteeSummary))">Analyze report</button>
     </form>
 </dialog>
-<a asp-action="Dashboard">Back to dashboard</a>
 </div>
 @section Scripts { <script src="~/js/tender-importance.js" asp-append-version="true"></script> }

@@ -9,7 +9,10 @@
 }
 
 <div class="manager-shell manager-refresh">
-<header class="mr-heading"><div><h1>Clarifications</h1><p>Ask a committee member about a tender, follow replies, and confirm when the question is resolved.</p></div><a asp-action="Clarifications" asp-route-tenderId="@Model.SelectedTenderId" asp-route-compose="true" asp-fragment="manager-conversation" class="btn btn-primary">Ask a new question</a></header>
+<header class="workspace-heading mr-page-heading">
+    <div class="mr-heading-copy"><h1>Clarifications</h1><p>Ask a committee member about a tender, follow replies, and confirm when the question is resolved.</p></div>
+    <div class="mr-actions mr-heading-actions"><a asp-action="Clarifications" asp-route-tenderId="@Model.SelectedTenderId" asp-route-compose="true" asp-fragment="manager-conversation" class="btn btn-primary">Ask a new question</a></div>
+</header>
 @if (TempData["ClarificationError"] is string error) { <div data-flash-message class="alert alert-danger" role="alert">@error</div> }
 @if (TempData["ManagerMessage"] is string message) { <div data-flash-message class="alert alert-info" role="status">@message</div> }
 <div class="mr-inbox">
@@ -43,7 +46,7 @@
         @if (Model.Tenders.Count == 0) { <div class="mr-empty"><h2>No eligible tenders</h2><p>Committee contacts become available when a tender reaches the appropriate review stage.</p></div> }
         else
         {
-            <form method="get" asp-action="Clarifications" asp-fragment="manager-conversation" class="mr-contact-picker"><label for="tender" class="form-label">Related tender</label><div><select id="tender" name="tenderId" class="form-select">@foreach (var tender in Model.Tenders) { <option value="@tender.TenderId" selected="@(tender.TenderId == Model.SelectedTenderId)">@tender.Title</option> }</select><button type="submit" class="btn btn-outline-primary">Show committee contacts</button></div></form>
+            <form method="get" asp-action="Clarifications" asp-fragment="manager-conversation" class="mr-contact-picker"><label for="tender" class="form-label">Related tender</label><div><select id="tender" name="tenderId" class="form-select" data-autosubmit>@foreach (var tender in Model.Tenders) { <option value="@tender.TenderId" selected="@(tender.TenderId == Model.SelectedTenderId)">@tender.Title</option> }</select><noscript><button type="submit" class="btn btn-outline-primary">Show committee contacts</button></noscript></div></form>
             @if (Model.Recipients.Count > 0)
             {
                 <form asp-action="CreateClarification" method="post" class="mr-compose"><input type="hidden" name="TenderId" value="@Model.SelectedTenderId" />

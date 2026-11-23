@@ -11,15 +11,22 @@
         nodes = nodes.Select(n => new { id = n.Id, name = n.Name, offers = n.Offers, linked = linked.Contains(n.Id) }),
         links = Model.Links.Select(l => new { a = l.SupplierA, b = l.SupplierB, level = l.Level, score = l.Score, label = SupplierLinks.LevelLabel(l.Level) })
     }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+    var workspace = ViewData["WorkspaceController"] as string ?? "Admin";
+    var back = ViewData["BackTender"] as int?;
+    var tenderLinkFormat = $"/{workspace}/AiIntelligence?tenderId={{0}}#tender-explorer";
 }
 
-<section class="ai-intel-section sl" id="supplier-links" aria-labelledby="supplier-links-heading" data-supplier-links data-graph="@graphJson">
+<section class="ai-intel-section sl" id="supplier-links" aria-labelledby="supplier-links-heading" data-supplier-links data-workspace="@workspace" data-graph="@graphJson">
     <div class="ai-intel-section-head">
         <div>
             <h2 id="supplier-links-heading">Suppliers who may be working together</h2>
             <p class="ai-intel-section-sub">Every supplier is a dot. When two suppliers send offers that look too similar, a line joins them. Click a line or a pair to see why.</p>
         </div>
     </div>
+    @if (back is int backTender)
+    {
+        <a class="sl-backlink" href="/TopCommittee/TenderDetails/@backTender#recommendation"><span aria-hidden="true">←</span> Back to tender #@backTender</a>
+    }
 
     <div class="sl-layout">
         <div class="sl-graph-card">
@@ -42,13 +49,13 @@
                 {
                     <div class="sl-empty">
                         <h3>All clear</h3>
-                        <p>We checked @Model.OffersChecked offers in @Model.TendersChecked tenders. No two suppliers look like they are working together.</p>
+                        <p>We checked @(Model.OffersChecked > 0 ? $"{Model.OffersChecked} offers in {Model.TendersChecked} tenders" : $"the {Model.TendersChecked} tenders in your workspace"). No two suppliers look like they are working together.</p>
                     </div>
                 }
                 else
                 {
                     <h3 class="sl-panel-title">@Model.Links.Count @(Model.Links.Count == 1 ? "pair" : "pairs") to check</h3>
-                    <p class="sl-panel-sub">Found in @Model.OffersChecked offers across @Model.TendersChecked tenders.</p>
+                    <p class="sl-panel-sub">Found @(Model.OffersChecked > 0 ? $"in {Model.OffersChecked} offers across {Model.TendersChecked} tenders" : $"across the {Model.TendersChecked} tenders in your workspace").</p>
                     <ul class="sl-pairs">
                         @foreach (var link in Model.Links)
                         {
@@ -73,7 +80,7 @@
                     <h3 id="sl-detail-@link.SupplierA-@link.SupplierB">@link.NameA <span>&amp;</span> @link.NameB</h3>
                     <p class="sl-verdict is-@link.Level"><strong>@SupplierLinks.LevelLabel(link.Level).</strong> Their offers look too similar to be fully independent. Check before you award.</p>
                     <h4 class="sl-why-title">Why</h4>
-                    <partial name="~/Views/Shared/_SupplierLinkEvidence.cshtml" model="link" view-data='new ViewDataDictionary(ViewData) { ["TenderLink"] = "/Admin/AiIntelligence?tenderId={0}#tender-explorer" }' />
+                    <partial name="~/Views/Shared/_SupplierLinkEvidence.cshtml" model="link" view-data='new ViewDataDictionary(ViewData) { ["TenderLink"] = tenderLinkFormat }' />
                     <div class="sl-brief" data-sl-brief>
                         <button type="button" class="ai-intel-btn is-primary" data-sl-explain data-a="@link.SupplierA" data-b="@link.SupplierB" data-busy-label="Thinking…">Explain with AI</button>
                     </div>

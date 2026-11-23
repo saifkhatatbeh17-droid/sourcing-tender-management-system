@@ -43,7 +43,8 @@ public class PurchaseRequestForm : IValidatableObject
                 ItemName = item.ItemName.Trim(),
                 Quantity = item.Quantity!.Value,
                 Unit = item.Unit.Trim(),
-                Specifications = item.Specifications.Trim()
+                Specifications = item.Specifications.Trim(),
+                LegalWarrantyMonths = item.LegalWarrantyMonths
             });
         }
     }
@@ -55,6 +56,8 @@ public class PurchaseRequestItemForm : IValidatableObject
     [Required] public decimal? Quantity { get; set; }
     [Required, StringLength(30)] public string Unit { get; set; } = "";
     [Required, StringLength(4000)] public string Specifications { get; set; } = "";
+    [Range(1, 120, ErrorMessage = "Enter a warranty period between 1 and 120 months, or leave it empty.")]
+    public int? LegalWarrantyMonths { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

@@ -76,7 +76,7 @@
                         <td class="fw-semibold">@item.ItemName</td>
                         <td class="dr-num">@item.Quantity.ToString("0.###")</td>
                         <td><span class="dr-unit-pill">@item.Unit</span></td>
-                        <td class="text-break" style="white-space: pre-wrap">@item.Specifications</td>
+                        <td class="text-break" style="white-space: pre-wrap">@item.Specifications@if (item.LegalWarrantyMonths is int warrantyMonths) { <div class="mt-2"><strong>Legal warranty required:</strong> at least @warrantyMonths month@(warrantyMonths == 1 ? "" : "s")</div> }</td>
                     </tr>
                 }
                 </tbody>

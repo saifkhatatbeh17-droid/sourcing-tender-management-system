@@ -102,6 +102,17 @@
     });
     root.addEventListener("keydown", e => { if (e.key === "Escape" && list.hidden) close(); });
 
+    // Arriving from a tender page (?pair=3-7): open that pair, scroll to it and give it a short highlight.
+    const wanted = new URLSearchParams(location.search).get("pair");
+    if (wanted && /^\d+-\d+$/.test(wanted) && root.querySelector(`[data-sl-detail="${wanted}"]`)) {
+        const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        open(wanted);
+        root.classList.add("is-arrived");
+        root.querySelector(`[data-sl-detail="${wanted}"]`)?.classList.add("is-arrived");
+        requestAnimationFrame(() => root.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" }));
+        setTimeout(() => { root.classList.remove("is-arrived"); root.querySelector(".sl-detail.is-arrived")?.classList.remove("is-arrived"); }, 4000);
+    }
+
     // Hovering a pair in the list previews its line on the map.
     list.addEventListener("pointerover", e => {
         const key = e.target.closest("[data-sl-open]")?.dataset.slOpen;
@@ -119,7 +130,7 @@
             const response = await fetch("/AiIntelligence/SupplierLinkBrief", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "RequestVerificationToken": csrf },
-                body: JSON.stringify({ supplierA: +button.dataset.a, supplierB: +button.dataset.b })
+                body: JSON.stringify({ supplierA: +button.dataset.a, supplierB: +button.dataset.b, workspace: root.dataset.workspace || null })
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(data.error || "The AI brief is not available right now.");

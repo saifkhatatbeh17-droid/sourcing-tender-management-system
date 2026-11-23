@@ -32,7 +32,7 @@ public sealed partial class SupplierLinkExplainer(HttpClient http, IConfiguratio
         required = new[] { "summary", "checks" }
     };
 
-    public async Task<SupplierLinkExplanation> ExplainAsync(SupplierLink link, CancellationToken ct)
+    public async Task<SupplierLinkExplanation> ExplainAsync(SupplierLink link, CancellationToken ct, string workspace = Data.RoleNames.Admin)
     {
         var payload = new
         {
@@ -50,7 +50,7 @@ public sealed partial class SupplierLinkExplainer(HttpClient http, IConfiguratio
             Schema,
             500,
             Interactive: true,
-            Workspace: Data.RoleNames.Admin,
+            Workspace: workspace,
             RecordType: "SupplierPair",
             RecordId: link.SupplierA), ct);
 

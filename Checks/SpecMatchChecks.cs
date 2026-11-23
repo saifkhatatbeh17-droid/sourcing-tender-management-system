@@ -9,8 +9,29 @@ namespace SourcingTenderManagement.Checks;
 
 public static class SpecMatchChecks
 {
+    /// <summary>Legal warranty comparison is plain code. Dates are inclusive, so 1 Jan to 31 Dec is a full 12 months.</summary>
+    public static void RunLegalWarrantyChecks()
+    {
+        static BidGuarantee Legal(string from, string to) => new() { Kind = "Legal", StartsOn = DateOnly.Parse(from), ExpiresOn = DateOnly.Parse(to) };
+        static void Expect(string verdict, int months, BidGuarantee? legal, string why)
+        {
+            var actual = LegalWarrantyMatch.Evaluate(months, legal).Verdict;
+            if (actual != verdict) throw new InvalidOperationException($"Legal warranty check failed: {why}. Expected {verdict}, got {actual}.");
+        }
+        Expect("Missing", 12, null, "no legal warranty attached");
+        Expect("Match", 12, Legal("2026-01-01", "2026-12-31"), "exactly 12 months");
+        Expect("Partial", 12, Legal("2026-01-01", "2026-12-30"), "one day short of 12 months");
+        Expect("Match", 12, Legal("2026-01-01", "2028-12-31"), "longer than asked");
+        Expect("Partial", 24, Legal("2026-03-15", "2027-03-14"), "12 months offered, 24 asked");
+        Expect("Match", 1, Legal("2026-01-31", "2026-02-28"), "month end dates count as one month");
+        Expect("Match", 6, Legal("2026-08-31", "2027-02-28"), "six months ending on a shorter month");
+        if (LegalWarrantyMatch.FullMonths(Legal("2026-01-01", "2026-12-31")) != 12) throw new InvalidOperationException("Legal warranty check failed: full months.");
+        Console.WriteLine("PASS: legal warranty is compared in code: none attached, exact, one day short, longer, month-end dates.");
+    }
+
     public static async Task RunAsync()
     {
+        RunLegalWarrantyChecks();
         var items = Enumerable.Range(1, 6).Select(id => new PurchaseRequestItem
         {
             PurchaseRequestItemId = id, ItemName = $"Item {id}", Unit = "each", Quantity = 2, Specifications = "316L steel"

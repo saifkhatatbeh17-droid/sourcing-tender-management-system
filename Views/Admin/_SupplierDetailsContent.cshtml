@@ -61,13 +61,16 @@
                             <td>
                                 @(document.ExpiresOn?.ToString("dd MMM yyyy") ?? "Not provided")
                                 <span class="badge text-bg-secondary">@DocumentExpiry.State(document.ExpiresOn, today, warning)</span>
-                                <p>@document.VerificationStatus @document.VerificationNote</p>
-                                <form asp-action="VerifySupplierDocument" asp-route-id="@document.SupplierDocumentId" method="post" data-supplier-popup-form>
-                                    <label for="verify-@document.SupplierDocumentId">Verification note</label>
-                                    <input id="verify-@document.SupplierDocumentId" class="form-control" name="note" maxlength="1000" />
-                                    <button class="btn btn-outline-primary" name="status" value="Verified">Verify</button>
-                                    <button class="btn btn-outline-danger" name="status" value="Rejected">Reject</button>
-                                </form>
+                                @if (document.VerificationStatus == "Verified")
+                                {
+                                    <p class="mb-0"><span class="badge text-bg-success">Verified</span></p>
+                                }
+                                else
+                                {
+                                    <form asp-action="VerifySupplierDocument" asp-route-id="@document.SupplierDocumentId" method="post" data-supplier-popup-form data-document-pending>
+                                        <button class="btn btn-outline-primary btn-sm" name="status" value="Verified">Mark as verified</button>
+                                    </form>
+                                }
                             </td>
                             <td>
                                 @if (Model.DocumentsConfigured)

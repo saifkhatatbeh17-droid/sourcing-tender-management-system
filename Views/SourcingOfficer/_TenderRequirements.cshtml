@@ -8,7 +8,7 @@
  @if (request?.PurchaseRequestItems.Count > 0)
  {
   <div class="ow-table-wrap"><table class="ow-item-table"><caption class="visually-hidden">Items and specifications requested by the department</caption><thead><tr><th scope="col">Item &amp; requirements</th><th scope="col">Quantity</th></tr></thead><tbody>
-  @foreach (var item in request.PurchaseRequestItems) { <tr><td><strong>@item.ItemName</strong><p>@item.Specifications</p></td><td>@item.Quantity.ToString("0.###") @item.Unit</td></tr> }
+  @foreach (var item in request.PurchaseRequestItems) { <tr><td><strong>@item.ItemName</strong><p>@item.Specifications</p>@if (item.LegalWarrantyMonths is int warrantyMonths) { <p><strong>Legal warranty required:</strong> at least @warrantyMonths month@(warrantyMonths == 1 ? "" : "s")</p> }</td><td>@item.Quantity.ToString("0.###") @item.Unit</td></tr> }
   </tbody></table></div>
  }
  else { <p>No item specifications are recorded for this request.</p> }

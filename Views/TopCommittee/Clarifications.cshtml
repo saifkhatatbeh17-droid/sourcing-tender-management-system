@@ -3,6 +3,7 @@
 @{ ViewData["Title"] = "Committee Clarifications"; }
 <header class="workspace-heading tc-page-heading">
     <div class="tc-heading-copy"><h1>Clarifications</h1><p>Choose an assigned tender to ask the Sourcing Manager a private question or follow an existing conversation.</p></div>
+    <div class="tc-heading-actions"><a class="btn btn-outline-secondary" asp-controller="Clarification" asp-action="Index">Questions from the Sourcing Manager</a></div>
 </header>
 @if (TempData["ClarificationSuccess"] is string success) { <p class="border rounded p-3" role="status">@success</p> }
 @if (TempData["ClarificationError"] is string failure) { <p class="text-danger border rounded p-3" role="alert">@failure</p> }
@@ -12,10 +13,12 @@
 {
     <section class="workspace-section tc-flow-empty"><h2>No tenders assigned yet</h2><p>When a tender is assigned to you, you can ask the Sourcing Manager a question from this page.</p><a class="btn" asp-action="Decisions">Check pending tenders</a></section>
 }
-else
+<div class="tc-inbox @(Model.Tenders.Count == 0 ? "is-single" : null)">
+@if (Model.Tenders.Count > 0)
 {
+    <aside class="tc-inbox-side">
     <section class="workspace-section tc-clarification-picker" id="choose-tender">
-        <div class="tc-section-heading"><h2>Assigned tenders</h2><a class="btn btn-outline-secondary" asp-action="Clarifications">All conversations</a></div>
+        <div class="tc-section-heading"><h2>Assigned tenders <span class="tc-flow-count">@Model.Tenders.Count</span></h2><a class="btn btn-outline-secondary" asp-action="Clarifications">All conversations</a></div>
         <label for="clarification-tender-search" class="form-label">Find a tender</label>
         <input id="clarification-tender-search" type="search" class="form-control" placeholder="Search by tender title or number" data-top-search=".tc-tender-choice" />
         <p class="form-text" data-top-search-status role="status" hidden></p>
@@ -26,6 +29,11 @@ else
         }
         </nav>
     </section>
+    </aside>
+}
+<div class="tc-inbox-main">
+@if (Model.Tenders.Count > 0)
+{
     @if (Model.Create.TenderId > 0)
     {
         <div class="workspace-section tc-clarification-context">
@@ -64,8 +72,6 @@ else
     { <partial name="_ClarificationThread" model="thread" /> }
 }
 </section>
-<nav class="tc-flow-actions tc-clarification-footer" aria-label="Clarifications navigation">
-    <a class="btn btn-primary" asp-controller="Clarification" asp-action="Index">Questions from the Sourcing Manager</a>
-    <a class="btn" asp-action="Dashboard">Back to dashboard</a>
-</nav>
+</div>
+</div>
 @section Scripts { <partial name="_ValidationScriptsPartial" /> }

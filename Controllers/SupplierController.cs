@@ -153,7 +153,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             TenderTitle = inv.Tender.Title, ClosesAt = inv.Tender.ClosesAt, Currency = bid?.Currency ?? "JOD",
             DeliveryDays = bid?.DeliveryDays ?? 0, TaxPercentage = OfferTax.RatePercent, AdditionalCosts = bid?.AdditionalCosts ?? 0, PaymentTerms = bid?.PaymentTerms, TechnicalDetails = bid?.TechnicalDetails,
             Items = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(i => new OfferLineViewModel { PurchaseRequestItemId = i.PurchaseRequestItemId,
-                ItemName = i.ItemName, Unit = i.Unit, RequestedQuantity = i.Quantity, RequestedSpecifications = i.Specifications,
+                ItemName = i.ItemName, Unit = i.Unit, RequestedQuantity = i.Quantity, RequestedSpecifications = i.Specifications, RequestedLegalWarrantyMonths = i.LegalWarrantyMonths,
                 Quantity = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.Quantity ?? i.Quantity,
                 UnitPrice = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.UnitPrice ?? 0,
                 Specifications = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.OfferedSpecifications ?? i.Specifications }).ToList() };
@@ -215,7 +215,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         if (!ModelState.IsValid)
         {
             model.TenderId = inv.TenderId; model.TenderTitle = inv.Tender.Title; model.ClosesAt = inv.Tender.ClosesAt;
-            model.Items = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(item => model.Items.FirstOrDefault(x => x.PurchaseRequestItemId == item.PurchaseRequestItemId) ?? new OfferLineViewModel { PurchaseRequestItemId = item.PurchaseRequestItemId, ItemName = item.ItemName, Unit = item.Unit, RequestedQuantity = item.Quantity, RequestedSpecifications = item.Specifications }).ToList();
+            model.Items = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(item => model.Items.FirstOrDefault(x => x.PurchaseRequestItemId == item.PurchaseRequestItemId) ?? new OfferLineViewModel { PurchaseRequestItemId = item.PurchaseRequestItemId, ItemName = item.ItemName, Unit = item.Unit, RequestedQuantity = item.Quantity, RequestedSpecifications = item.Specifications, RequestedLegalWarrantyMonths = item.LegalWarrantyMonths }).ToList();
             await LoadProductPhotoReferences(model);
             return View("CreateOffer", model);
         }
@@ -308,7 +308,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             foreach (var line in model.Items)
             {
                 var item = inv.Tender.PurchaseRequest.PurchaseRequestItems.Single(i => i.PurchaseRequestItemId == line.PurchaseRequestItemId);
-                line.ItemName = item.ItemName; line.Unit = item.Unit; line.RequestedQuantity = item.Quantity; line.RequestedSpecifications = item.Specifications;
+                line.ItemName = item.ItemName; line.Unit = item.Unit; line.RequestedQuantity = item.Quantity; line.RequestedSpecifications = item.Specifications; line.RequestedLegalWarrantyMonths = item.LegalWarrantyMonths;
             }
             await LoadProductPhotoReferences(model);
             return View("CreateOffer", model);

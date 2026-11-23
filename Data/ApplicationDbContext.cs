@@ -705,6 +705,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<PurchaseRequestItem>().ToTable("PurchaseRequestItems", table =>
         {
             table.HasCheckConstraint("CK_PurchaseRequestItems_1", "([Quantity]>(0))");
+            table.HasCheckConstraint("CK_PurchaseRequestItems_LegalWarranty", "[LegalWarrantyMonths] IS NULL OR ([LegalWarrantyMonths]>=1 AND [LegalWarrantyMonths]<=120)");
         });
 
         modelBuilder.Entity<SupplierDocument>().ToTable("SupplierDocuments", table =>

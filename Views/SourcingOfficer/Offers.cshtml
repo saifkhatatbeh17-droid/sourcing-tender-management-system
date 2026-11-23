@@ -13,7 +13,6 @@
     var canInvite = tender?.CanCancel(now) == true;
     var editable = !alreadySent && tender != null && (ViewBag.RoundRejected is not true) && (tender.Status is "Published" or "Open" or "Closed");
     ViewData["CanReviewCompliance"] = editable;
-    var activeOfferCount = Model.Count(b => b.Status != "Withdrawn");
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/spec-match.css" asp-append-version="true" />
@@ -118,10 +117,6 @@ else
         </section>
     }
     <header class="tw-offers-heading"><div><h2>Offers <span class="tw-offer-count">@Model.Count</span></h2></div></header>
-    @if (activeOfferCount >= 2)
-    {
-        @await Component.InvokeAsync("SupplierLinksBanner", new { tenderId = tender.TenderId, advice = "Check them before you send offers to the committee." })
-    }
     @if (ViewBag.SpecMatch is SourcingTenderManagement.Controllers.OfficerSpecMatchPage specMatch)
     {
         <partial name="_SpecMatch" model="specMatch" />

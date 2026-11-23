@@ -48,6 +48,7 @@ public class OfferLineViewModel
     public string Unit { get; set; } = "";
     public decimal RequestedQuantity { get; set; }
     public string RequestedSpecifications { get; set; } = "";
+    public int? RequestedLegalWarrantyMonths { get; set; }
     [Range(typeof(decimal), "0.001", "999999999999999.999")] public decimal Quantity { get; set; }
     [Range(typeof(decimal), "0", "9999999999999999.99")] public decimal UnitPrice { get; set; }
     [Required, StringLength(4000)] public string? Specifications { get; set; }

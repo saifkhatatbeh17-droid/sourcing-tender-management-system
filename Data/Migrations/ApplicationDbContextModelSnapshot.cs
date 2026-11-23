@@ -1412,6 +1412,9 @@ namespace SourcingTenderManagement.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("LegalWarrantyMonths")
+                        .HasColumnType("int");
+
                     b.Property<int>("PurchaseRequestId")
                         .HasColumnType("int");
 
@@ -1435,6 +1438,8 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.ToTable("PurchaseRequestItems", null, t =>
                         {
                             t.HasCheckConstraint("CK_PurchaseRequestItems_1", "([Quantity]>(0))");
+
+                            t.HasCheckConstraint("CK_PurchaseRequestItems_LegalWarranty", "[LegalWarrantyMonths] IS NULL OR ([LegalWarrantyMonths]>=1 AND [LegalWarrantyMonths]<=120)");
                         });
                 });
 

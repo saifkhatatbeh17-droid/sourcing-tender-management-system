@@ -57,3 +57,50 @@
 .spec-match-detail { margin-top: .8rem; padding: .8rem; border: 1px solid var(--sm-line); border-radius: .65rem; overflow-wrap: anywhere; }
 .spec-match-detail p, .spec-match-detail blockquote { margin: .4rem 0 0; }
 .spec-match-detail blockquote { border-inline-start: 3px solid var(--sm-line); padding-inline-start: .7rem; color: var(--sm-muted); }
+
+/* Legal warranty: a separate, code-decided signal shown beside the spec verdict. */
+.spec-match-cell { position: relative; }
+.spec-match-wmark {
+    display: inline-grid; place-items: center; min-width: 1.05rem; height: 1.05rem; padding: 0 .1rem;
+    border-radius: 999px; font-size: .68rem; font-weight: 800; line-height: 1;
+}
+.spec-match-wcorner { position: absolute; top: .2rem; right: .2rem; box-shadow: 0 0 0 2px var(--sm-surface); }
+.spec-match-table th small.spec-match-needs { color: var(--sm-partial-ink); font-weight: 700; }
+.spec-match-warranty-note { font-size: .85rem; }
+.spec-match-warranty-note .spec-match-wmark { margin-inline: .15rem; vertical-align: middle; }
+.spec-match-detail p[data-spec-warranty] { padding: .35rem .6rem; border-radius: .4rem; font-weight: 600; }
+
+/* Highlighted call-to-action card: the comparison is folded away, so the section itself must be easy to spot. */
+section.workspace-section.spec-match {
+    --sm-accent: #0f7a7a;
+    --sm-accent-soft: rgba(15, 122, 122, .08);
+    --sm-accent-line: rgba(15, 122, 122, .35);
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--sm-accent-line);
+    border-inline-start: 5px solid var(--sm-accent);
+    border-radius: .75rem;
+    background: var(--sm-accent-soft);
+    box-shadow: 0 2px 10px rgba(15, 122, 122, .12);
+}
+[data-theme="dark"] section.workspace-section.spec-match {
+    --sm-accent: #5cc8c0;
+    --sm-accent-soft: rgba(92, 200, 192, .10);
+    --sm-accent-line: rgba(92, 200, 192, .40);
+    box-shadow: 0 2px 14px rgba(0, 0, 0, .35);
+}
+.spec-match-header { align-items: center; }
+.spec-match-header h2 { display: flex; align-items: center; gap: .55rem; font-size: 1.25rem; }
+.spec-match-header h2::after {
+    content: "AI assisted"; padding: .12rem .55rem; border-radius: 999px; font-size: .68rem; font-weight: 800;
+    letter-spacing: .05em; text-transform: uppercase; color: var(--sm-accent); border: 1px solid var(--sm-accent-line);
+}
+.spec-match-header .btn { padding: .6rem 1.3rem; font-weight: 700; white-space: nowrap; }
+.spec-match-header .btn-primary { box-shadow: 0 0 0 3px var(--sm-accent-line); }
+.spec-match-header p { margin-bottom: 0; }
+.spec-match-scroll { background: var(--sm-surface); }
+/* The officer workspace paints every .workspace-section with its own surface and border, so say it again with more weight. */
+html[data-theme] .so-page section.workspace-section.spec-match {
+    background: var(--sm-accent-soft) !important;
+    border-color: var(--sm-accent-line);
+    border-inline-start-color: var(--sm-accent);
+}

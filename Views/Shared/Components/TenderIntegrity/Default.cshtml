@@ -1,0 +1,40 @@
+@model SourcingTenderManagement.ViewComponents.TenderIntegrityModel
+@using SourcingTenderManagement.Services.Integrity
+@{
+    // "A and B", "A, B and C", "A, B and 2 more".
+    string Names(IReadOnlyList<string> names) => names.Count switch
+    {
+        1 => names[0],
+        2 => $"{names[0]} and {names[1]}",
+        3 => $"{names[0]}, {names[1]} and {names[2]}",
+        _ => $"{names[0]}, {names[1]} and {names.Count - 2} more"
+    };
+    var s = Model.Suppliers;
+}
+<link rel="stylesheet" href="~/css/tender-integrity.css" asp-append-version="true" />
+<section class="tc-integrity" id="integrity-checks" aria-labelledby="integrity-heading">
+    <header class="tc-integrity-head">
+        <h3 id="integrity-heading">Integrity checks</h3>
+        <span class="tc-integrity-count @(s == null ? "is-clear" : "is-flag")">@(s == null ? "Nothing stands out" : "1 to review")</span>
+    </header>
+    <ul class="tc-checks">
+        <li class="tc-check @(s == null ? "is-clear" : "is-" + s.Level)">
+            <span class="tc-check-icon" aria-hidden="true">@(s == null ? "✓" : "!")</span>
+            <div class="tc-check-body">
+                <p class="tc-check-title"><strong>Supplier links</strong>
+                    @if (s != null) { <span class="tc-check-badge">@SupplierLinks.LevelLabel(s.Level)</span> }
+                </p>
+                @if (s == null)
+                {
+                    <p class="tc-check-text">No two suppliers on this tender look like they are working together.</p>
+                }
+                else
+                {
+                    <p class="tc-check-text">@Names(s.Names) look linked@(s.Pairs > 1 ? $" across {s.Pairs} pairs" : "").</p>
+                    <ul class="tc-chips" aria-label="Reasons">@foreach (var reason in s.Reasons) { <li>@reason</li> }</ul>
+                }
+            </div>
+            @if (s != null) { <a class="tc-check-link" href="@s.Url">View on supplier map <span aria-hidden="true">→</span></a> }
+        </li>
+    </ul>
+</section>

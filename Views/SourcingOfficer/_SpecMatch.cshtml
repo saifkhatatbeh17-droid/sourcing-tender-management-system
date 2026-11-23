@@ -6,6 +6,12 @@
     var offers = Model.Input.Offers;
     var canRun = items.Count > 0 && offers.Count > 0;
     var cells = result?.Cells.ToDictionary(c => (c.BidId, c.ItemId));
+    var legalWarranties = Model.LegalWarranties ?? new Dictionary<int, SourcingTenderManagement.Models.Entities.BidGuarantee>();
+    var warrantyItems = items.Where(i => i.LegalWarrantyMonths.HasValue).ToList();
+    SourcingTenderManagement.Services.Evaluation.LegalWarrantyVerdict? WarrantyFor(SourcingTenderManagement.Models.Entities.PurchaseRequestItem item, int bidId) =>
+        item.LegalWarrantyMonths is int months
+            ? SourcingTenderManagement.Services.Evaluation.LegalWarrantyMatch.Evaluate(months, legalWarranties.GetValueOrDefault(bidId))
+            : null;
     var statuses = new Dictionary<string, (string Label, string Symbol)>
     {
         ["Match"] = ("Match", "✓"),
@@ -15,18 +21,22 @@
         ["NotAssessed"] = ("Not assessed", "–")
     };
 }
-<section class="workspace-section spec-match" data-spec-match aria-labelledby="spec-match-title">
+<section class="workspace-section spec-match" id="spec-match" data-spec-match aria-labelledby="spec-match-title">
     <header class="spec-match-header">
         <div>
             <h2 id="spec-match-title">Spec match</h2>
-            <p>Compare requested items and specifications across compliant offers.</p>
+            <p>See how each submitted offer lines up with what was requested. It helps you decide on compliance.</p>
         </div>
         @if (canRun && result is null)
         {
             <form asp-action="RunSpecMatch" asp-route-id="@Model.Input.TenderId" method="post" data-spec-form>
-                <button type="submit" class="btn btn-primary">@(Model.Outdated ? "Run again" : "Run spec match")</button>
+                <button type="submit" class="btn btn-primary">@(Model.Outdated ? "Analyze again" : "Analyze offers")</button>
                 <span class="visually-hidden" data-spec-progress role="status"></span>
             </form>
+        }
+        else if (result is not null)
+        {
+            <button type="button" class="btn btn-outline-primary" data-spec-toggle aria-expanded="false" aria-controls="spec-match-body">Show comparison</button>
         }
     </header>
     @if (Model.CreatedAt is DateTime updated)
@@ -37,10 +47,11 @@
     }
     @if (!canRun)
     {
-        <p class="spec-match-meta">A requested item and a compliant offer are needed to run spec match.</p>
+        <p class="spec-match-meta">A requested item and a submitted offer are needed to run spec match.</p>
     }
     else if (result is not null)
     {
+        <div id="spec-match-body" data-spec-body hidden>
         @if (!result.AiAvailable)
         {
             <p class="spec-match-meta" role="status">AI matching unavailable. Showing quantity and coverage checks only.</p>
@@ -51,6 +62,14 @@
                 <li><span class="spec-match-key" data-verdict="@verdict" aria-hidden="true">@status.Symbol</span> @status.Label</li>
             }
         </ul>
+        @if (warrantyItems.Count > 0)
+        {
+            <p class="spec-match-meta spec-match-warranty-note">The small mark in a cell's corner is the <strong>legal warranty</strong> check for items that ask for one:
+                <span class="spec-match-wmark" data-verdict="Match" aria-hidden="true">✓</span> long enough
+                <span class="spec-match-wmark" data-verdict="Partial" aria-hidden="true">△</span> too short
+                <span class="spec-match-wmark" data-verdict="Missing" aria-hidden="true">×</span> none attached.
+                An offer has one legal warranty, so it is compared with every item that needs one.</p>
+        }
         <div class="spec-match-scroll" tabindex="0" role="region" aria-label="Spec match comparison">
             <table class="spec-match-table" aria-labelledby="spec-match-title">
                 <thead><tr>
@@ -65,7 +84,7 @@
                     {
                         var item = items[row];
                         <tr>
-                            <th scope="row">@item.ItemName <small>@item.Quantity.ToString("0.###") @item.Unit</small><small>@item.Specifications</small></th>
+                            <th scope="row">@item.ItemName <small>@item.Quantity.ToString("0.###") @item.Unit</small><small>@item.Specifications</small>@if (item.LegalWarrantyMonths is int needed) { <small class="spec-match-needs">Legal warranty ≥ @needed mo</small> }</th>
                             @for (var column = 0; column < offers.Count; column++)
                             {
                                 var bid = offers[column];
@@ -73,12 +92,15 @@
                                 var cell = cells!.GetValueOrDefault((bid.BidId, item.PurchaseRequestItemId));
                                 var verdict = cell?.Verdict ?? "NotAssessed";
                                 var status = statuses[verdict];
-                                <td><button type="button" class="spec-match-cell" data-verdict="@verdict"
+                                var warranty = WarrantyFor(item, bid.BidId);
+                                var warrantyMark = warranty is null ? null : statuses[warranty.Verdict].Symbol;
+                                <td><button type="button" class="spec-match-cell" data-verdict="@verdict" data-warranty="@warranty?.Text" data-warranty-verdict="@warranty?.Verdict"
                                     data-row="@row" data-column="@column" data-title="@($"{supplier} · {item.ItemName} · {status.Label}")"
                                     data-reason="@cell?.Reason" data-evidence="@cell?.Evidence" aria-pressed="false"
-                                    aria-label="@($"{supplier}, {item.ItemName}: {status.Label}. {cell?.Reason}")"
-                                    title="@($"{status.Label}. {cell?.Reason} {cell?.Evidence}".Trim())">
+                                    aria-label="@($"{supplier}, {item.ItemName}: {status.Label}. {cell?.Reason} {warranty?.Text}".Trim())"
+                                    title="@($"{status.Label}. {cell?.Reason} {cell?.Evidence} {warranty?.Text}".Trim())">
                                     <span aria-hidden="true">@status.Symbol</span>
+                                    @if (warranty is not null) { <span class="spec-match-wmark spec-match-wcorner" data-verdict="@warranty.Verdict" aria-hidden="true">@warrantyMark</span> }
                                 </button></td>
                             }
                         </tr>
@@ -92,13 +114,26 @@
                         { "Match" => 1m, "Partial" => .5m, _ => 0m });
                         <td>@score.ToString("0.#") / @items.Count</td>
                     }
-                </tr></tfoot>
+                </tr>
+                @if (warrantyItems.Count > 0)
+                {
+                    <tr>
+                        <th scope="row">Legal warranty met</th>
+                        @foreach (var bid in offers)
+                        {
+                            var met = warrantyItems.Count(item => WarrantyFor(item, bid.BidId)?.Verdict == "Match");
+                            <td>@met / @warrantyItems.Count</td>
+                        }
+                    </tr>
+                }</tfoot>
             </table>
         </div>
         <div class="spec-match-detail" aria-live="polite" aria-atomic="true">
             <strong data-spec-title>Select a cell to see why.</strong>
             <p data-spec-reason hidden></p>
             <blockquote data-spec-evidence hidden></blockquote>
+            <p data-spec-warranty hidden></p>
+        </div>
         </div>
     }
 </section>

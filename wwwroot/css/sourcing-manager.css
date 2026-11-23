@@ -382,11 +382,16 @@ html[data-theme="dark"] body:has(.manager-refresh) { background:#101817; --color
 .mr-heading-copy p { margin: 8px 0 0; color: var(--color-text-secondary); }
 .manager-shell .mr-heading-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .manager-shell .mr-heading-actions :is(.btn, .dashboard-cta) { white-space: normal; overflow-wrap: anywhere; }
-.manager-refresh .mr-inbox { grid-template-columns:minmax(0,1fr); }
+/* Inbox: conversation list beside the open conversation, like the other roles' clarification inbox. */
+.manager-refresh .mr-inbox { grid-template-columns:minmax(260px,320px) minmax(0,1fr); gap:24px; }
 .mr-list-search { display:grid; gap:6px; margin-bottom:16px; }
 .mr-list-search label { font-weight:600; }
 .mr-list-search .form-text { margin:0; }
-.mr-conversations nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-height:280px; }
+.mr-conversations nav { display:grid; grid-template-columns:minmax(0,1fr); max-height:620px; }
+@media(max-width:950px) {
+    .manager-refresh .mr-inbox { grid-template-columns:minmax(0,1fr); }
+    .mr-conversations nav { grid-template-columns:repeat(2,minmax(0,1fr)); max-height:280px; }
+}
 .manager-refresh .mr-conversation-content { min-height:0; }
 .manager-refresh .mr-award { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; padding-block:20px; }
 .manager-refresh .mr-award > details { grid-column:1/-1; }

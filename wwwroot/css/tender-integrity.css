@@ -1,0 +1,62 @@
+/* Compact "Integrity checks" card on the Top Committee tender page. Details open on AI Intelligence. */
+.tc-integrity {
+    --ti-high: #b8323f; --ti-high-soft: #fbecee;
+    --ti-medium: #a86d12; --ti-medium-soft: #fbf3e4;
+    --ti-good: #1d7a5a; --ti-good-soft: #e8f5ef;
+    --ti-line: var(--color-border, #dce3e9);
+    --ti-ink: var(--color-text, #111827);
+    --ti-muted: var(--color-text-secondary, #4b5563);
+    --ti-surface: var(--color-surface, #fff);
+    --ti-link: var(--tc-link, #1d5560);
+    margin: 0 0 1.5rem;
+    color: var(--ti-ink);
+}
+[data-theme="dark"] .tc-integrity {
+    --ti-high: #f07580; --ti-high-soft: rgba(240, 117, 128, .12);
+    --ti-medium: #f0be6a; --ti-medium-soft: rgba(240, 190, 106, .12);
+    --ti-good: #6fd3ae; --ti-good-soft: rgba(111, 211, 174, .1);
+    --ti-line: rgba(255, 255, 255, .16);
+    --ti-link: #efb85c;
+}
+.tc-integrity-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin: 0 0 .6rem; }
+.tc-integrity-head h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.tc-integrity-count { padding: .2rem .65rem; border-radius: 999px; font-size: .8rem; font-weight: 700; white-space: nowrap; }
+.tc-integrity-count.is-flag { color: var(--ti-high); background: var(--ti-high-soft); }
+.tc-integrity-count.is-clear { color: var(--ti-good); background: var(--ti-good-soft); }
+
+.tc-checks { list-style: none; margin: 0; padding: 0; border: 1px solid var(--ti-line); border-radius: 12px; overflow: hidden; background: var(--ti-surface); }
+.tc-check {
+    display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: .5rem 1rem;
+    padding: .9rem 1.1rem; border-left: 4px solid var(--ti-good);
+}
+.tc-check + .tc-check { border-top: 1px solid var(--ti-line); }
+.tc-check.is-high { border-left-color: var(--ti-high); background: var(--ti-high-soft); }
+.tc-check.is-medium { border-left-color: var(--ti-medium); background: var(--ti-medium-soft); }
+.tc-check-icon {
+    display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+    font-size: .85rem; font-weight: 800; color: #fff; background: var(--ti-good);
+}
+.tc-check.is-high .tc-check-icon { background: var(--ti-high); }
+.tc-check.is-medium .tc-check-icon { background: var(--ti-medium); }
+.tc-check-body { min-width: 0; }
+.tc-check-title { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; margin: 0; }
+.tc-check-title strong { font-size: .95rem; }
+.tc-check-badge { padding: .1rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 700; color: var(--ti-high); background: var(--ti-surface); border: 1px solid currentColor; }
+.tc-check.is-medium .tc-check-badge { color: var(--ti-medium); }
+.tc-check-text { margin: .15rem 0 0; font-size: .9rem; line-height: 1.5; color: var(--ti-muted); overflow-wrap: anywhere; }
+.tc-chips { list-style: none; display: flex; flex-wrap: wrap; gap: .35rem; margin: .45rem 0 0; padding: 0; }
+.tc-chips li { padding: .1rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 600; color: var(--ti-muted); background: var(--ti-surface); border: 1px solid var(--ti-line); }
+.tc-check-link {
+    display: inline-flex; align-items: center; gap: .35rem; padding: .5rem .85rem; border-radius: 10px; white-space: nowrap;
+    font-size: .88rem; font-weight: 650; text-decoration: none; color: var(--ti-link); background: var(--ti-surface); border: 1px solid var(--ti-line);
+    transition: border-color .15s, transform .15s;
+}
+.tc-check-link:hover { border-color: var(--ti-link); }
+.tc-check-link:hover span { transform: translateX(2px); }
+.tc-check-link span { transition: transform .15s; }
+.tc-check-link:focus-visible { outline: 3px solid rgba(0, 163, 166, .45); outline-offset: 2px; }
+@media (max-width: 640px) {
+    .tc-check { grid-template-columns: 30px minmax(0, 1fr); }
+    .tc-check-link { grid-column: 2; justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) { .tc-check-link, .tc-check-link span { transition: none; } }
