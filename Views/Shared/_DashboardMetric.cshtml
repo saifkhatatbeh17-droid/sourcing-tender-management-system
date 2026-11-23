@@ -3,7 +3,11 @@
     <h2>@Model.Label</h2>
     <strong>@Model.Value</strong>
     <p>@Model.Note</p>
-    @if (Model.Action != null)
+    @if (Model.Link != null && Url.IsLocalUrl(Model.Link))
+    {
+        <a href="@Url.Content(Model.Link)">View details <span aria-hidden="true">↗</span><span class="visually-hidden"> — @Model.Label</span></a>
+    }
+    else if (Model.Action != null)
     {
         <a asp-action="@Model.Action">View details <span aria-hidden="true">↗</span><span class="visually-hidden"> — @Model.Label</span></a>
     }

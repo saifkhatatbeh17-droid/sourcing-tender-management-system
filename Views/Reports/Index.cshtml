@@ -1,0 +1,31 @@
+@using SourcingTenderManagement.Data
+@using SourcingTenderManagement.Models.Reports
+@model ReportsHubPage
+@{ ViewData["Title"] = "Reports"; }
+@section Styles { <link rel="stylesheet" href="~/css/reports.css" asp-append-version="true" /> }
+<div class="reports-page">
+    <header class="rpt-heading">
+        <div><h1>Reports</h1><p>Explore procurement activity and follow decisions across your workspace.</p>
+            <span class="rpt-context">@RoleNames.DisplayName(Model.Scope.Role) · @Model.Reports.Count available reports</span></div>
+        @if (Model.Scope.IsAdmin)
+        { <a class="btn btn-outline-primary" asp-controller="ReportAccess" asp-action="Index">Manage report access</a> }
+    </header>
+    @if (Model.Reports.Count == 0)
+    {
+        <section class="rpt-panel rpt-empty"><h2>No reports available</h2><p>Your role currently has no accessible reports. Contact an administrator if you need access.</p></section>
+    }
+    else
+    {
+        <section class="rpt-hub-grid" aria-label="Available reports">
+            @foreach (var report in Model.Reports)
+            {
+                var icon = report.Icon switch { "people" => "Users", "bar-chart" => "Offers", "check-circle" => "Decisions", "clock-history" => "History", "graph-up" => "Dashboard", _ => "Reports" };
+                <article class="rpt-report-card">
+                    <span class="rpt-icon"><partial name="_AdminSidebarIcon" model="icon" /></span>
+                    <h2>@report.Title</h2><p>@report.Description</p>
+                    <a asp-controller="Reports" asp-action="Show" asp-route-key="@report.Key" class="rpt-card-link" aria-label="View @report.Title report">View report <span aria-hidden="true">→</span></a>
+                </article>
+            }
+        </section>
+    }
+</div>

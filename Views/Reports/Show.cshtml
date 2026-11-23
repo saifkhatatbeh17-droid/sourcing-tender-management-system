@@ -1,0 +1,20 @@
+@using SourcingTenderManagement.Models.Reports
+@model ReportPageModel
+@{ ViewData["Title"] = Model.Report.Title; }
+@section Styles { <link rel="stylesheet" href="~/css/reports.css" asp-append-version="true" /> }
+<div class="reports-page">
+    <a asp-controller="Reports" asp-action="Index" class="rpt-back">← All reports</a>
+    <header class="rpt-heading"><div><h1>@Model.Report.Title</h1><p>@Model.Report.Description</p></div><span class="rpt-context">Dates shown in UTC</span></header>
+    @if (Model.Messages.Count > 0)
+    {
+        <div class="rpt-notice" role="status"><strong>Check your filters</strong><ul>@foreach (var message in Model.Messages) { <li>@message</li> }</ul></div>
+    }
+    <partial name="_ReportFilters" model="Model" />
+    <partial name="_ReportKpis" model="Model" />
+    <partial name="_ReportChart" model="Model" />
+    <partial name="_ReportTable" model="Model" />
+    @if (Model.Result.Notes.Count > 0)
+    {
+        <aside class="rpt-panel rpt-notes" aria-labelledby="report-notes-title"><h2 id="report-notes-title">About these results</h2><ul>@foreach (var note in Model.Result.Notes) { <li>@note</li> }</ul></aside>
+    }
+</div>

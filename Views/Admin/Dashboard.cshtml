@@ -1,7 +1,11 @@
 @model AdminDashboardViewModel
+@inject SourcingTenderManagement.Services.Reports.Hub.ReportRegistry ReportRegistry
 
 @{
     ViewData["Title"] = "Dashboard";
+    var availableReports = (await ReportRegistry.GetAvailableAsync("Admin", Context.RequestAborted)).Select(report => report.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    string? ReportUrl(string key, string? status = null) => availableReports.Contains(key)
+        ? Url.Action("Show", "Reports", new { key, status }) : null;
     var metrics = new[]
     {
         (Label: "Users", Count: Model.UsersCount),
@@ -24,17 +28,32 @@
     <section class="dashboard-metrics is-five" aria-label="System totals">
         @foreach (var metric in metrics)
         {
-            <partial name="_DashboardMetric" model='@(new DashboardMetric(metric.Label, metric.Count.ToString("N0"), "System total", metric.Label == "Users"))' />
+            var reportKey = metric.Label switch { "Suppliers" => "suppliers", "Purchase requests" => "purchase-requests", "Tenders" => "tenders", _ => null };
+            <partial name="_DashboardMetric" model='@(new DashboardMetric(metric.Label, metric.Count.ToString("N0"), "System total", metric.Label == "Users", Link: reportKey == null ? null : ReportUrl(reportKey)))' />
         }
     </section>
 @{
  var supplierStates = ViewBag.DashboardSupplierStates as Dictionary<string,int> ?? new();
  int N(params string[] keys) => keys.Sum(k => supplierStates.GetValueOrDefault(k));
  var overview = new DashboardOverview("Supplier approval status", "All registered supplier companies", "suppliers", "approved",
- [new("Approved", N("Approved"), "positive"), new("Awaiting action", N("Pending", "ChangesRequested"), "active"), new("Inactive", N("Rejected", "Suspended"), "muted")], "Supplier review breakdown", "Current account status of each company",
- [new("Awaiting admin review", N("Pending")), new("Changes requested", N("ChangesRequested")), new("Approved", N("Approved")), new("Rejected", N("Rejected")), new("Suspended", N("Suspended"))]);
+ [new("Approved", N("Approved"), "positive", ReportUrl("suppliers", "Approved")), new("Awaiting action", N("Pending", "ChangesRequested"), "active"), new("Inactive", N("Rejected", "Suspended"), "muted")], "Supplier review breakdown", "Current account status of each company",
+ [new("Awaiting admin review", N("Pending"), Link: ReportUrl("suppliers", "Pending")), new("Changes requested", N("ChangesRequested"), Link: ReportUrl("suppliers", "ChangesRequested")), new("Approved", N("Approved"), Link: ReportUrl("suppliers", "Approved")), new("Rejected", N("Rejected"), Link: ReportUrl("suppliers", "Rejected")), new("Suspended", N("Suspended"), Link: ReportUrl("suppliers", "Suspended"))], ReportUrl("suppliers"));
 }
 <partial name="_DashboardOverview" model="overview" />
+    <section class="workspace-section mb-4" aria-labelledby="admin-reports-heading">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h2 id="admin-reports-heading">Reports</h2>
+            <a asp-controller="Reports" asp-action="Index" class="btn btn-outline-primary">Open Reports Hub</a>
+        </div>
+        <p>Explore the system totals above and review offers and evaluation results.</p>
+        <div class="d-flex flex-wrap gap-2">
+            @if (ReportUrl("purchase-requests") is { } requestsUrl) { <a href="@requestsUrl" class="btn btn-outline-primary">Purchase requests · @Model.PurchaseRequestsCount.ToString("N0")</a> }
+            @if (ReportUrl("tenders") is { } tendersUrl) { <a href="@tendersUrl" class="btn btn-outline-primary">Tenders · @Model.TendersCount.ToString("N0")</a> }
+            @if (ReportUrl("suppliers") is { } suppliersUrl) { <a href="@suppliersUrl" class="btn btn-outline-primary">Suppliers · @Model.SuppliersCount.ToString("N0")</a> }
+            @if (ReportUrl("bids-evaluation") is { } evaluationsUrl) { <a href="@evaluationsUrl" class="btn btn-outline-primary">Offers &amp; evaluation</a> }
+            <a asp-controller="ReportAccess" asp-action="Index" class="btn btn-outline-primary">Manage report access</a>
+        </div>
+    </section>
 
 
     <div class="admin-dashboard-panels">

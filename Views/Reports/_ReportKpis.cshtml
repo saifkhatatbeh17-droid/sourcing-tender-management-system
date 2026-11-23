@@ -1,0 +1,18 @@
+@using SourcingTenderManagement.Models.Reports
+@model ReportPageModel
+@if (Model.Result.Kpis.Count > 0)
+{
+    <section class="rpt-kpis" aria-label="Key figures">
+        @foreach (var kpi in Model.Result.Kpis)
+        {
+            @if (kpi.Drill != null)
+            {
+                <a class="rpt-kpi rpt-kpi-link" href="@Model.Link(drill: kpi.Drill)" aria-label="Filter by @kpi.Label"><span>@kpi.Label</span><strong>@kpi.Value</strong>@if (kpi.Hint != null) { <small>@kpi.Hint</small> }<span class="rpt-kpi-action">View results <span aria-hidden="true">↗</span></span></a>
+            }
+            else
+            {
+                <div class="rpt-kpi"><span>@kpi.Label</span><strong>@kpi.Value</strong>@if (kpi.Hint != null) { <small>@kpi.Hint</small> }</div>
+            }
+        }
+    </section>
+}

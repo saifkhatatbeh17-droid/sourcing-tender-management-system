@@ -1,0 +1,42 @@
+@using SourcingTenderManagement.Models.Reports
+@model ReportPageModel
+@{
+    var table = Model.Result.Table;
+    var hasLinks = table.Rows.Any(row => row.Link != null && Url.IsLocalUrl(row.Link));
+    var first = table.Total == 0 ? 0 : (Model.Query.Page - 1) * ReportPageModel.PageSize + 1;
+    var last = Math.Min(table.Total, first + table.Rows.Count - 1);
+}
+<section class="rpt-panel rpt-results" aria-labelledby="report-results-title">
+    <div class="rpt-section-heading"><h2 id="report-results-title">Results <span class="rpt-count">@table.Total.ToString("N0")</span></h2><span>25 records per page</span></div>
+    @if (Model.Query.Drill != null)
+    {
+        <a class="rpt-drill-chip" href="@Model.Link(clearDrill: true)" aria-label="Remove drill-down filter @Model.Query.Drill">@Model.Query.Drill.Replace(":", " · ") <span aria-hidden="true">×</span></a>
+    }
+    @if (table.Rows.Count == 0)
+    {
+        <div class="rpt-empty"><h3>No matching records</h3><p>Try another filter or clear your filters to see available records.</p><a href="@Model.ReportPath" class="btn btn-outline-primary">Clear filters</a></div>
+    }
+    else
+    {
+        <div class="rpt-scroll" role="region" aria-label="Report results table" tabindex="0">
+            <table class="rpt-table"><caption class="visually-hidden">@Model.Report.Title results</caption><thead><tr>@foreach (var column in table.Columns) { <th scope="col">@column</th> }@if (hasLinks) { <th scope="col">Details</th> }</tr></thead><tbody>
+                @foreach (var row in table.Rows)
+                {
+                    <tr>@for (var column = 0; column < table.Columns.Count; column++) { <td>@(column < row.Cells.Count ? row.Cells[column] : "—")</td> }
+                        @if (hasLinks) { <td>@if (row.Link != null && Url.IsLocalUrl(row.Link)) { <a class="rpt-row-link" href="@row.Link" aria-label="View details for @row.Cells.FirstOrDefault()">View details <span aria-hidden="true">↗</span></a> }</td> }
+                    </tr>
+                }
+            </tbody></table>
+        </div>
+    }
+    <nav class="rpt-pagination" aria-label="Report result pages">
+        <span>@(table.Rows.Count == 0 ? "0 records shown" : $"Showing {first:N0}–{last:N0} of {table.Total:N0}")</span>
+        @if (Model.TotalPages > 1)
+        {
+            <div>@if (Model.Query.Page > 1) { <a class="btn btn-outline-primary" href="@Model.Link(page: Model.Query.Page - 1)" rel="prev">Previous</a> }
+                <span aria-current="page">Page @Model.Query.Page of @Model.TotalPages</span>
+                @if (Model.Query.Page < Model.TotalPages) { <a class="btn btn-outline-primary" href="@Model.Link(page: Model.Query.Page + 1)" rel="next">Next</a> }
+            </div>
+        }
+    </nav>
+</section>

@@ -1,0 +1,54 @@
+@using System.Globalization
+@using SourcingTenderManagement.Models.Reports
+@model ReportPageModel
+@if (Model.Result.Chart is { } chart)
+{
+    var maximum = chart.Points.Count == 0 ? 0m : chart.Points.Max(point => Math.Max(0, point.Value));
+    var total = chart.Points.Sum(point => Math.Max(0, point.Value));
+    var donut = chart.Kind == "donut" && total > 0;
+    <section class="rpt-panel" aria-labelledby="report-chart-title">
+        <div class="rpt-section-heading"><h2 id="report-chart-title">@chart.Title</h2>@if (chart.Points.Any(point => point.Drill != null)) { <span>Choose a value to filter results</span> }</div>
+        @if (Model.Report is SourcingTenderManagement.Services.Reports.Hub.TendersReport)
+        {
+            <nav class="rpt-actions" aria-label="Tender chart view">
+                <a href="@Model.Link(drill: "chart:status")" class="btn btn-outline-primary" aria-current="@(chart.Title == "Tenders by status" ? "true" : null)">By status</a>
+                <a href="@Model.Link(drill: "chart:activity")" class="btn btn-outline-primary" aria-current="@(chart.Title == "Tender activity" ? "true" : null)">Tender activity</a>
+            </nav>
+        }
+        @if (maximum == 0) { <p class="rpt-muted">No chart data for these filters.</p> }
+        else
+        {
+            <div class="rpt-chart-layout @(donut ? "rpt-chart-with-donut" : null)">
+                @if (donut)
+                {
+                    var stops = new List<string>();
+                    var start = 0m;
+                    for (var index = 0; index < chart.Points.Count; index++)
+                    {
+                        var end = start + Math.Max(0, chart.Points[index].Value) / total * 100;
+                        stops.Add($"var(--rpt-chart-{index % 4 + 1}) {start.ToString("0.####", CultureInfo.InvariantCulture)}% {end.ToString("0.####", CultureInfo.InvariantCulture)}%");
+                        start = end;
+                    }
+                    <div class="rpt-donut" style="background:conic-gradient(@string.Join(",", stops))" aria-hidden="true"><span>@total.ToString("N0")</span></div>
+                }
+                <ul class="rpt-chart" aria-label="@chart.Title values">
+                    @for (var index = 0; index < chart.Points.Count; index++)
+                    {
+                        var point = chart.Points[index];
+                        var width = Math.Clamp(point.Value / maximum * 100, 0, 100).ToString("0.####", CultureInfo.InvariantCulture);
+                        <li style="--rpt-bar-color:var(--rpt-chart-@(index % 4 + 1))">
+                            @if (point.Drill != null)
+                            {
+                                <a href="@Model.Link(drill: point.Drill)" class="rpt-chart-point"><span class="rpt-chart-label">@point.Label</span><span class="rpt-bar" aria-hidden="true"><span style="width:@(width)%"></span></span><strong>@point.Value.ToString("0.##")</strong></a>
+                            }
+                            else
+                            {
+                                <div class="rpt-chart-point"><span class="rpt-chart-label">@point.Label</span><span class="rpt-bar" aria-hidden="true"><span style="width:@(width)%"></span></span><strong>@point.Value.ToString("0.##")</strong></div>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </section>
+}

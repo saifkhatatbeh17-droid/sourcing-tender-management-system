@@ -7,6 +7,7 @@ namespace SourcingTenderManagement.Data;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : IdentityDbContext<ApplicationUser>(options)
 {
+    public DbSet<ReportAccessRule> ReportAccessRules { get; set; }
     public DbSet<AuditEntry> AuditEntries { get; set; }
     public DbSet<TenderContract> TenderContracts { get; set; }
     public DbSet<AiAnalysis> AiAnalyses { get; set; }
@@ -70,6 +71,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<ApplicationUser>().Property(user => user.PhoneNumber).Metadata.SetMaxLength(null);
         modelBuilder.ApplyConfiguration(new Configurations.UserFaceCredentialConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.AiInteractionConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.ReportAccessRuleConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.SpecMatchAnalysisConfiguration());
         var reportsData = new Configurations.ReportsDataConfiguration();
         modelBuilder.ApplyConfiguration<AuditEntry>(reportsData);

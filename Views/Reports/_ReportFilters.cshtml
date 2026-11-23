@@ -1,0 +1,43 @@
+@using System.Globalization
+@using SourcingTenderManagement.Models.Reports
+@model ReportPageModel
+    <form action="@Model.ReportPath" method="get" class="rpt-panel rpt-filters" aria-labelledby="report-filters-title">
+        <h2 id="report-filters-title">@(Model.Report.Filters.Count > 0 ? "Filter and export" : "Export report")</h2>
+        @if (Model.Query.Drill != null) { <input type="hidden" name="drill" value="@Model.Query.Drill" /> }
+        <div class="rpt-filter-grid">
+            @if (Model.Supports("search"))
+            {
+                <div class="rpt-field rpt-search"><label for="report-search">Search</label><input id="report-search" class="form-control" type="search" name="search" value="@Model.Query.Search" maxlength="200" placeholder="Search this report" /></div>
+            }
+            @if (Model.Supports("date"))
+            {
+                <div class="rpt-field"><label for="report-from">From date · UTC</label><input id="report-from" class="form-control" type="date" name="from" value="@Model.Query.From?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" /></div>
+                <div class="rpt-field"><label for="report-to">To date · UTC</label><input id="report-to" class="form-control" type="date" name="to" value="@Model.Query.To?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" /></div>
+            }
+            @if (Model.Supports("department"))
+            {
+                <div class="rpt-field"><label for="report-department">Department</label><select id="report-department" class="form-select" name="departmentId"><option value="">All departments</option>@foreach (var option in Model.Choices.Departments) { <option value="@option.Id" selected="@(Model.Query.DepartmentId == option.Id)">@option.Label</option> }</select></div>
+            }
+            @if (Model.Supports("supplier"))
+            {
+                <div class="rpt-field"><label for="report-supplier">Supplier</label><select id="report-supplier" class="form-select" name="supplierId"><option value="">All suppliers</option>@foreach (var option in Model.Choices.Suppliers) { <option value="@option.Id" selected="@(Model.Query.SupplierId == option.Id)">@option.Label</option> }</select></div>
+            }
+            @if (Model.Supports("tender"))
+            {
+                <div class="rpt-field"><label for="report-tender">Tender</label><select id="report-tender" class="form-select" name="tenderId"><option value="">All tenders</option>@foreach (var option in Model.Choices.Tenders) { <option value="@option.Id" selected="@(Model.Query.TenderId == option.Id)">@option.Label</option> }</select></div>
+            }
+            @if (Model.Supports("status"))
+            {
+                <div class="rpt-field"><label for="report-status">Status</label><select id="report-status" class="form-select" name="status"><option value="">All statuses</option>@foreach (var status in Model.Report.StatusOptions) { <option value="@status" selected="@(Model.Query.Status == status)">@status</option> }</select></div>
+            }
+        </div>
+        <div class="rpt-filter-footer">
+            @if (Model.Report.Filters.Count > 0)
+            { <div class="rpt-actions"><button type="submit" class="btn btn-primary">Apply filters</button><a href="@Model.ReportPath" class="btn btn-outline-primary">Clear filters</a></div> }
+            <div class="rpt-actions rpt-export-actions" aria-label="Export current report">
+                <a href="@Model.ExportLink("pdf")" class="btn btn-outline-primary">Export PDF</a>
+                <a href="@Model.ExportLink("xlsx")" class="btn btn-outline-primary">Export Excel</a>
+            </div>
+        </div>
+        <p class="rpt-export-note">Exports use the applied filters and drill-down, with up to 5,000 records. Apply filter changes before exporting.</p>
+    </form>
