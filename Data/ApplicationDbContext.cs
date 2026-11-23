@@ -12,6 +12,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<AiAnalysis> AiAnalyses { get; set; }
     public DbSet<SpecMatchAnalysis> SpecMatchAnalyses { get; set; }
     public DbSet<AiInteraction> AiInteractions { get; set; }
+    public DbSet<BidGuarantee> BidGuarantees { get; set; }
     public DbSet<Bid> Bids { get; set; }
     public DbSet<BidDocument> BidDocuments { get; set; }
     public DbSet<BidItem> BidItems { get; set; }
@@ -39,7 +40,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+
         base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<BidGuarantee>(entity =>
+        {
+            entity.HasIndex(g => new { g.BidId, g.Kind }).IsUnique();
+            entity.HasIndex(g => g.VerificationToken).IsUnique();
+            entity.HasOne(g => g.Bid).WithMany().HasForeignKey(g => g.BidId).OnDelete(DeleteBehavior.NoAction);
+            entity.Ignore(g => g.Label);
+            entity.Ignore(g => g.DurationDays);
+            entity.ToTable("BidGuarantees", table =>
+            {
+                table.HasCheckConstraint("CK_BidGuarantees_Kind", "[Kind] IN ('Legal', 'Bank')");
+                table.HasCheckConstraint("CK_BidGuarantees_Dates", "[ExpiresOn] >= [StartsOn]");
+                table.HasCheckConstraint("CK_BidGuarantees_Coverage", "[Coverage] IN ('Product', 'Service')");
+            });
+        });
         // Keep existing Identity column sizes when enabling passkey storage.
         modelBuilder.Entity<Microsoft.AspNetCore.Identity.IdentityUserLogin<string>>(entity =>
         {

@@ -1,0 +1,63 @@
+.guarantee-section { margin:24px 0; color:var(--color-text,#152c32); font-size:14px; line-height:1.7; }
+.guarantee-section h2,.guarantee-section h3,.guarantee-section h4 { color:inherit; margin:0 0 8px; font-weight:600; }
+.guarantee-section h2 { font-size:21px; }
+.guarantee-section h3 { font-size:18px; }
+.guarantee-section h4 { font-size:16px; }
+.guarantee-section p { margin:0 0 16px; }
+.guarantee-section>header>p,.guarantee-editor-heading p { color:var(--color-text-secondary,#607278); }
+.guarantee-editor { margin-top:16px; padding:20px; border:1px solid var(--color-border,#dfe7e8); border-radius:16px; background:var(--color-surface,#fff); }
+.guarantee-editor-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+.guarantee-editor-heading p { margin-bottom:0; }
+.guarantee-toggle { display:flex; align-items:center; gap:10px; min-height:44px; cursor:pointer; white-space:nowrap; }
+.guarantee-toggle input { width:19px; height:19px; accent-color:var(--pharma-primary,#1c515b); }
+.guarantee-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 20px; margin-top:20px; }
+.guarantee-fields .form-label { display:block; }
+.guarantee-duration,.guarantee-note { padding:10px 14px; border-radius:10px; background:var(--color-surface-alt,#f3f7f8); color:var(--color-link,#1c515b); margin:16px 0!important; }
+.guarantee-record { display:flex; justify-content:space-between; gap:24px; padding:20px; margin:14px 0; border:1px solid var(--color-border,#dfe7e8); border-radius:16px; background:var(--color-surface,#fff); }
+.guarantee-record-body { flex:1; min-width:0; }
+.guarantee-record header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.guarantee-status { font-size:12px; padding:4px 10px; background:var(--color-surface-alt,#eef5f5); border-radius:20px; }
+.guarantee-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:16px 0; }
+.guarantee-facts dt { font-weight:400; color:var(--color-text-secondary,#607278); font-size:12px; }
+.guarantee-facts dd { margin:3px 0 0; overflow-wrap:anywhere; }
+.guarantee-qr { display:flex; flex-direction:column; align-items:center; gap:6px; min-width:220px; }
+.guarantee-qr img { display:block; width:220px; height:220px; max-width:100%; background:white; border:1px solid #dce5e7; border-radius:12px; padding:6px; }
+.guarantee-qr small { color:var(--color-text-secondary,#607278); font-size:11px; }
+.guarantee-portal { margin:0; background:#f3f6f8; color:#18343d; font:16px/1.6 "Segoe UI",Arial,sans-serif; }
+.guarantee-portal * { box-sizing:border-box; }
+.bank-header { padding:24px max(24px,calc((100vw - 1000px)/2)); display:flex; align-items:center; justify-content:space-between; gap:20px; background:#1c515b; color:white; }
+.bank-brand { color:inherit; text-decoration:none; font-size:24px; font-weight:700; }
+.bank-brand span { display:block; font-size:12px; font-weight:400; letter-spacing:.06em; }
+.bank-sandbox { font-size:11px; letter-spacing:.1em; border:1px solid #7fa0a7; border-radius:7px; padding:7px 10px; }
+.bank-main { max-width:960px; margin:44px auto; padding:0 24px; }
+.bank-heading h1 { font-size:clamp(28px,5vw,38px); line-height:1.25; margin:4px 0 14px; letter-spacing:-.03em; }
+.bank-heading>p:first-child { color:#1c515b; font-size:13px; font-weight:600; }
+.bank-heading p { color:#5d737b; margin:0 0 12px; }
+.bank-simulation-note { margin:24px 0; padding:15px 18px; border:1px solid #ecd6a6; background:#fffbef; color:#665126; border-radius:12px; font-size:14px; }
+.bank-card { padding:30px; background:white; border:1px solid #dbe5e8; border-radius:20px; box-shadow:0 8px 24px #16343c06; }
+.bank-result { display:flex; gap:18px; align-items:flex-start; }
+.bank-result-icon { display:grid; place-items:center; width:48px; height:48px; flex-shrink:0; border-radius:50%; background:#edf5f4; color:#1c515b; font-size:23px; }
+.bank-result p { margin:0; color:#5d737b; font-size:14px; }
+.bank-result h2 { margin:0 0 5px; font-size:25px; line-height:1.4; }
+.bank-record { display:grid; grid-template-columns:1fr 1fr; gap:22px; padding-top:26px; margin:26px 0; border-top:1px solid #e1e8ea; }
+.bank-record dt { color:#60747c; font-size:13px; }
+.bank-record dd { font-weight:600; margin:4px 0 0; overflow-wrap:anywhere; }
+.bank-wide { grid-column:1/-1; }
+.bank-check { border-top:1px solid #e1e8ea; padding-top:24px; margin-top:24px; }
+.bank-check label { display:block; font-weight:600; font-size:14px; margin-bottom:10px; }
+.bank-check>div { display:flex; gap:12px; }
+.bank-check input { min-width:0; flex:1; padding:13px; border:1px solid #b8cbd0; border-radius:10px; font:inherit; }
+.bank-check button { border:0; border-radius:10px; padding:13px 20px; color:white; background:#1c515b; font:600 14px "Segoe UI",sans-serif; cursor:pointer; }
+.bank-check :focus-visible { outline:3px solid #efb652; outline-offset:3px; }
+.bank-footer { font-size:12px; color:#647a82; text-align:center; margin:24px 0; }
+@media(max-width:640px) {
+ .guarantee-fields,.guarantee-facts,.bank-record { grid-template-columns:1fr; }
+ .guarantee-record { flex-direction:column; }
+ .guarantee-qr { align-self:flex-start; }
+ .guarantee-editor-heading { gap:12px; }
+ .guarantee-editor { padding:16px; }
+ .bank-header { padding:18px 20px; }
+ .bank-main { margin:28px auto; padding:0 16px; }
+ .bank-card { padding:20px; }
+ .bank-check>div { flex-direction:column; }
+}

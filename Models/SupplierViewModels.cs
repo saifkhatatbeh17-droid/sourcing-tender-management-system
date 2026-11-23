@@ -20,12 +20,14 @@ public class SupplierDashboardViewModel
 
 public class OfferFormViewModel
 {
+    public GuaranteeInput LegalWarranty { get; set; } = new();
+    public GuaranteeInput BankGuarantee { get; set; } = new();
     public int InvitationId { get; set; }
     public int TenderId { get; set; }
     public int? BidId { get; set; }
     public string TenderTitle { get; set; } = "";
     public DateTime ClosesAt { get; set; }
-    [Required, StringLength(3, MinimumLength = 3)] public string Currency { get; set; } = "JOD";
+    [Required, RegularExpression(@"^[A-Za-z]{3}$", ErrorMessage = "Use a 3-letter currency code.")] public string Currency { get; set; } = "JOD";
     [Range(0, 3650)] public int DeliveryDays { get; set; }
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever] public decimal TaxAmount { get; set; }
     // Fixed rate shown on the form; never read from the request, so a posted value cannot change it.

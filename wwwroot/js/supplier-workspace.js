@@ -91,6 +91,16 @@
             add('Payment terms', form.querySelector('#PaymentTerms').value || 'Not specified');
             add('Technical notes', form.querySelector('#TechnicalDetails').value || 'Not provided');
             add('New documents', [...form.querySelector('#documents').files].map(file => file.name).join(', ') || 'No new documents selected');
+
+            form.querySelectorAll('[data-guarantee-editor]').forEach(editor => {
+                if (!editor.querySelector('[data-guarantee-toggle]').checked) return;
+                const reference = editor.querySelector('input[name$=".ReferenceNumber"]').value;
+                const issuer = editor.querySelector('input[name$=".Issuer"]').value;
+                const duration = editor.querySelector('[data-guarantee-duration]').textContent;
+                const file = editor.querySelector('[data-guarantee-document]');
+                add(editor.dataset.title, reference + ' · ' + issuer + ' · ' + duration);
+                add('Guarantee document', file.files[0]?.name || file.dataset.existingFile || 'Not provided');
+            });
             target.append(list);
             form.querySelector('[data-review-total]').textContent = `${document.querySelector('#offer-total').textContent} ${displayCurrency()}`;
         };

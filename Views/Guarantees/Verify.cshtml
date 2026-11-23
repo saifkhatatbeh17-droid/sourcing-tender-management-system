@@ -1,0 +1,47 @@
+@model GuaranteeVerificationView
+@{
+    Layout = null;
+    var record = Model.Guarantee;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Guarantee verification · Tiryaq Bank Sandbox</title>
+    <link rel="stylesheet" href="~/css/guarantees.css" asp-append-version="true" />
+</head>
+<body class="guarantee-portal">
+    <header class="bank-header"><a href="/" class="bank-brand">Tiryaq <span>Bank Sandbox</span></a><span class="bank-sandbox">DEMO VERIFICATION</span></header>
+    <main class="bank-main">
+        <div class="bank-heading"><p>Independent verification portal</p><h1>Bank guarantee verification</h1><p>Match the reference on your document and review its recorded validity.</p></div>
+        <div class="bank-simulation-note">This page simulates a bank portal using supplier-submitted Tiryaq records. It does not authenticate a document with the issuing bank.</div>
+        <section class="bank-card" aria-labelledby="verification-status">
+            <div class="bank-result"><span class="bank-result-icon" aria-hidden="true">@(Model.Status == "Within validity period" ? "✓" : "!")</span><div><p>Verification result</p><h2 id="verification-status">@Model.Status</h2><p>@Model.Description</p></div></div>
+            @if (record is not null)
+            {
+                <dl class="bank-record">
+                    <div><dt>Guarantee reference</dt><dd>@record.ReferenceNumber</dd></div>
+                    <div><dt>Issuing bank / authority</dt><dd>@record.Issuer</dd></div>
+                    <div><dt>Type</dt><dd>@record.Label</dd></div>
+                    <div><dt>Covers</dt><dd>@record.Coverage</dd></div>
+                    <div class="bank-wide"><dt>Product or service</dt><dd>@record.Scope</dd></div>
+                    <div><dt>Valid from</dt><dd>@record.StartsOn.ToString("dd MMM yyyy")</dd></div>
+                    <div><dt>Valid until</dt><dd>@record.ExpiresOn.ToString("dd MMM yyyy")</dd></div>
+                    <div><dt>Duration</dt><dd>@record.DurationDays days</dd></div>
+                    <div><dt>Record updated (UTC)</dt><dd>@record.UpdatedAt.ToString("dd MMM yyyy, HH:mm")</dd></div>
+                </dl>
+            }
+            @if (Context.Response.StatusCode != 404)
+            {
+                <form method="get" class="bank-check">
+                    <label for="guarantee-number">Check the reference printed on your document</label>
+                    <div><input id="guarantee-number" name="number" value="@Context.Request.Query["number"]" maxlength="100" required autocomplete="off" placeholder="Enter guarantee reference" /><button type="submit">Check reference</button></div>
+                </form>
+            }
+        </section>
+        <p class="bank-footer">Tiryaq bank simulation · Document authenticity requires confirmation from the issuing institution.</p>
+    </main>
+</body>
+</html>
