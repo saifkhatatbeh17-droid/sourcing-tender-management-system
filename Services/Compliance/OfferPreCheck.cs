@@ -78,7 +78,7 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
             flags.Add(new(PreCheckSeverity.Warning, "validity", $"The offer is valid only until {validUntil:dd MMM yyyy}, before the tender closes on {tender.ClosesAt:dd MMM yyyy}."));
 
         var subtotal = bid.BidItems.Sum(i => i.Quantity * i.UnitPrice);
-        if (subtotal > 0 && bid.TaxAmount != OfferTax.Amount(subtotal))
+        if (subtotal > 0 && bid.TaxAmount != 0 && bid.TaxAmount != OfferTax.Amount(subtotal))
         {
             var rate = Math.Round(bid.TaxAmount / subtotal * 100m, 2);
             flags.Add((bid.SubmittedAt ?? bid.CreatedAt) >= OfferTax.FixedRateSinceUtc

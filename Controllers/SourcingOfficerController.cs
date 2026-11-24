@@ -163,7 +163,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
 
         var request = await db.PurchaseRequests.AsNoTracking()
             .Where(r => r.PurchaseRequestId == id)
-            .Select(r => new { r.Status, r.ReviewedByUserId })
+            .Select(r => new { r.Status, r.ReviewedByUserId, r.RequestedByUserId })
             .SingleOrDefaultAsync();
         if (request == null || request.Status == "Draft") return NotFound();
         if (request.ReviewedByUserId != userId && !(request.Status == "Submitted" && request.ReviewedByUserId == null)) return Forbid();
@@ -192,6 +192,19 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         }
         await HttpContext.RequestServices.GetRequiredService<IAuditLog>().WriteAsync("Modified", "PurchaseRequest", id.ToString(),
             "Purchase request review decision recorded.", changesJson: System.Text.Json.JsonSerializer.Serialize(new { Before = request.Status, After = decision }));
+        if (decision == "Rejected")
+        {
+            db.Notifications.Add(new Notification
+            {
+                UserId = request.RequestedByUserId,
+                Title = $"Purchase request #{id} rejected",
+                Message = cleanNotes!,
+                RelativeUrl = $"/Department/Details/{id}",
+                IsRead = false,
+                CreatedAt = reviewedAt
+            });
+            await db.SaveChangesAsync();
+        }
         await auditTransaction.CommitAsync();
 
         TempData["RequestSuccess"] = $"Purchase Request {decision.ToLowerInvariant()} successfully.";

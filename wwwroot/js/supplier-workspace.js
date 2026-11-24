@@ -50,13 +50,13 @@
                 item.querySelector('.line-total').textContent = format.format(amount);
                 item.querySelector('[data-line-currency]').textContent = (currency.value.toUpperCase() === 'JOD' ? 'JD' : currency.value.toUpperCase());
             });
-            const percentage = Number(form.querySelector('#TaxPercentage').value) || 0;
+            const percentage = form.querySelector('#ApplyTax').checked ? Number(form.querySelector('#TaxPercentage').value) || 0 : 0;
             const tax = Math.round((sum * percentage / 100 + Number.EPSILON) * 100) / 100;
             const extras = Number(form.querySelector('#AdditionalCosts').value) || 0;
             document.querySelector('#offer-total').textContent = format.format(sum + tax + extras);
             document.querySelector('#offer-currency').textContent = (currency.value.toUpperCase() === 'JOD' ? 'JD' : currency.value.toUpperCase());
         };
-        form.querySelectorAll('.line-quantity,.line-price,#Currency,#AdditionalCosts').forEach(input => input.addEventListener('input', update));
+        form.querySelectorAll('.line-quantity,.line-price,#Currency,#AdditionalCosts,#ApplyTax').forEach(input => input.addEventListener('input', update));
         update();
         const panels = [...form.querySelectorAll('[data-offer-step]')];
         const steps = form.querySelector('[data-offer-steps]');
@@ -85,7 +85,7 @@
                 add('Product photo', productPhoto?.files[0]?.name || (item.querySelector('[data-product-photo-preview]')?.getAttribute('src') ? 'Saved product photo' : 'Not provided'));
             });
             add('Currency', displayCurrency());
-            add('Sales tax', `${form.querySelector('#TaxPercentage').value}% of the item subtotal (fixed)`);
+            add('Sales tax', form.querySelector('#ApplyTax').checked ? '16% of the item subtotal' : 'Not applied (0%)');
             add('Extra costs', `${form.querySelector('#AdditionalCosts').value} ${displayCurrency()}`);
             add('Delivery', `${form.querySelector('#DeliveryDays').value} days`);
             add('Payment terms', form.querySelector('#PaymentTerms').value || 'Not specified');

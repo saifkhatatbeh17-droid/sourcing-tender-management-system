@@ -145,16 +145,16 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         if (bidId.HasValue)
         {
             bid = await db.Bids.Include(b => b.BidItems).SingleOrDefaultAsync(b => b.BidId == bidId && b.InvitationId == inv.InvitationId &&
-                (b.Status == "Draft" || (extended && (b.Status == "NonCompliant" || b.Status == "Withdrawn"))));
+                (b.Status == "Draft" || ((b.Status == "Submitted" || b.Status == "UnderReview") && b.ComplianceStatus != "Compliant") || (extended && (b.Status == "NonCompliant" || b.Status == "Withdrawn"))));
             if (bid == null) return NotFound();
         }
         ViewData["IsOfferRevision"] = bid is { Status: not "Draft" };
         var form = new OfferFormViewModel { InvitationId = inv.InvitationId, TenderId = inv.TenderId, BidId = bid?.BidId,
             TenderTitle = inv.Tender.Title, ClosesAt = inv.Tender.ClosesAt, Currency = bid?.Currency ?? "JOD",
-            DeliveryDays = bid?.DeliveryDays ?? 0, TaxPercentage = OfferTax.RatePercent, AdditionalCosts = bid?.AdditionalCosts ?? 0, PaymentTerms = bid?.PaymentTerms, TechnicalDetails = bid?.TechnicalDetails,
+            DeliveryDays = bid?.DeliveryDays ?? 0, ApplyTax = bid == null || bid.TaxAmount != 0, TaxPercentage = OfferTax.RatePercent, AdditionalCosts = bid?.AdditionalCosts ?? 0, PaymentTerms = bid?.PaymentTerms, TechnicalDetails = bid?.TechnicalDetails,
             Items = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(i => new OfferLineViewModel { PurchaseRequestItemId = i.PurchaseRequestItemId,
                 ItemName = i.ItemName, Unit = i.Unit, RequestedQuantity = i.Quantity, RequestedSpecifications = i.Specifications, RequestedLegalWarrantyMonths = i.LegalWarrantyMonths,
-                Quantity = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.Quantity ?? i.Quantity,
+                Quantity = i.Quantity,
                 UnitPrice = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.UnitPrice ?? 0,
                 Specifications = bid?.BidItems.FirstOrDefault(x => x.PurchaseRequestItemId == i.PurchaseRequestItemId)?.OfferedSpecifications ?? i.Specifications }).ToList() };
         await HttpContext.RequestServices.GetRequiredService<SourcingTenderManagement.Services.OfferGuarantees>().LoadAsync(form);
@@ -174,13 +174,21 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         if (profile.Status != "Approved" || inv.Status != "Accepted" || !inv.Tender.IsAcceptingOffers(DateTime.UtcNow)) return Forbid();
         var extended = await db.Set<TenderOfferExtension>().AnyAsync(e => e.TenderId == inv.TenderId);
         var editableBid = db.Bids.Where(b => b.BidId == model.BidId && b.InvitationId == inv.InvitationId &&
-            (b.Status == "Draft" || (extended && (b.Status == "NonCompliant" || b.Status == "Withdrawn"))));
+            (b.Status == "Draft" || ((b.Status == "Submitted" || b.Status == "UnderReview") && b.ComplianceStatus != "Compliant") || (extended && (b.Status == "NonCompliant" || b.Status == "Withdrawn"))));
         var existingStatus = await editableBid.Select(b => b.Status).SingleOrDefaultAsync();
         if (model.BidId.HasValue && existingStatus == null) return NotFound();
-        var isRevision = existingStatus is "NonCompliant" or "Withdrawn";
+        var isRevision = existingStatus is "NonCompliant" or "Withdrawn" or "Submitted" or "UnderReview";
         if (submissionCommand is not ("Draft" or "Submit") || (isRevision && submissionCommand != "Submit"))
             return BadRequest();
         ViewData["IsOfferRevision"] = isRevision;
+        // Tender quantities are authoritative, including when a client tampers with posted values.
+        for (var index = 0; index < model.Items.Count; index++)
+        {
+            var requested = inv.Tender.PurchaseRequest.PurchaseRequestItems.FirstOrDefault(x => x.PurchaseRequestItemId == model.Items[index].PurchaseRequestItemId);
+            if (requested == null) continue;
+            model.Items[index].Quantity = requested.Quantity;
+            ModelState.Remove($"Items[{index}].Quantity");
+        }
         var validItemIds = inv.Tender.PurchaseRequest.PurchaseRequestItems.Select(x => x.PurchaseRequestItemId).ToHashSet();
         if (model.Items.Count == 0 || model.Items.Any(i => !validItemIds.Contains(i.PurchaseRequestItemId))) ModelState.AddModelError(nameof(model.Items), "Offer items must match the tender request.");
         if (model.Items.Select(i => i.PurchaseRequestItemId).Distinct().Count() != model.Items.Count) ModelState.AddModelError(nameof(model.Items), "Each requested item can appear only once.");
@@ -194,9 +202,9 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         try
         {
             var amount = model.Items.Aggregate(0m, (sum, line) => checked(sum + checked(line.Quantity * line.UnitPrice)));
-            // Tax is fixed at 16% of the item subtotal (OfferTax); suppliers cannot set it.
-            model.TaxPercentage = OfferTax.RatePercent;
-            model.TaxAmount = OfferTax.Amount(amount);
+            // Suppliers opt in to the fixed rate; amounts are always calculated server-side.
+            model.TaxPercentage = model.ApplyTax ? OfferTax.RatePercent : 0;
+            model.TaxAmount = model.ApplyTax ? OfferTax.Amount(amount) : 0;
             if (checked(amount + model.TaxAmount + model.AdditionalCosts) > 9999999999999999.99m) ModelState.AddModelError(nameof(model.Items), "The total offer amount is above the supported limit.");
         }
         catch (OverflowException) { ModelState.AddModelError(nameof(model.Items), "The total offer amount is above the supported limit."); }
@@ -353,9 +361,9 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         if (bid == null) return NotFound();
 
         if (!bid.Invitation.Tender.IsAcceptingOffers(DateTime.UtcNow) ||
-            bid.SubmittedAt == null || bid.Status is not ("Submitted" or "UnderReview" or "Compliant" or "NonCompliant"))
+            bid.SubmittedAt == null || bid.ComplianceStatus == "Compliant" || bid.Status is not ("Submitted" or "UnderReview" or "NonCompliant"))
         {
-            TempData["Error"] = "Only a submitted offer on an active tender can be canceled before the tender deadline.";
+            TempData["Error"] = "An offer can only be canceled before officer acceptance and while the tender is accepting offers.";
             return RedirectToAction(nameof(Offer), new { id });
         }
 

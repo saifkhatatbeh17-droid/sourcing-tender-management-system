@@ -10,8 +10,9 @@
     var canRevise = approvedSupplier && Model.Invitation.Status == "Accepted" && acceptingOffers &&
         tender.OfferExtensions.Count > 0 && Model.Status is "NonCompliant" or "Withdrawn";
     var canClarify = Model.SubmittedAt.HasValue && status is not ("Withdrawn" or "Cancelled");
-    var canCancel = acceptingOffers && Model.SubmittedAt.HasValue &&
-        (Model.Status is "Submitted" or "UnderReview" or "Compliant" or "NonCompliant");
+    var canEdit = approvedSupplier && acceptingOffers && Model.Invitation.Status == "Accepted" && Model.ComplianceStatus != "Compliant" && (Model.Status is "Submitted" or "UnderReview");
+    var canCancel = acceptingOffers && Model.SubmittedAt.HasValue && Model.ComplianceStatus != "Compliant" &&
+        (Model.Status is "Submitted" or "UnderReview" or "NonCompliant");
     const string wait = "No action needed from you right now.";
     (int Step, string Heading, string Current, string Next) progress = status switch
     {
@@ -185,6 +186,10 @@
         </section>
     </div>
 
+    @if (canEdit)
+    {
+        <section class="supplier-card"><h2>Edit this offer</h2><p>You can update your offer before the officer accepts it and before the tender deadline.</p><a class="btn btn-outline-primary" asp-action="CreateOffer" asp-route-invitationId="@Model.InvitationId" asp-route-bidId="@Model.BidId">Edit offer</a></section>
+    }
     @if (canCancel)
     {
         <section class="supplier-card supplier-offer-cancel">
