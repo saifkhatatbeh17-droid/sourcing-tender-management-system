@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.Evaluation;

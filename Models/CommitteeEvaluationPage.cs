@@ -1,5 +1,4 @@
 using SourcingTenderManagement.Services.Evaluation;
-using System.ComponentModel.DataAnnotations;
 using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Models;
