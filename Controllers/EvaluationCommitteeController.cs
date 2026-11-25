@@ -14,7 +14,7 @@ using SourcingTenderManagement.Services.Reports;
 namespace SourcingTenderManagement.Controllers;
 
 [Authorize(Roles = RoleNames.EvaluationCommittee)]
-public partial class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users, BidRecommendationService ai, ILogger<EvaluationCommitteeController> logger) : Controller
+public class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users, BidRecommendationService ai, ILogger<EvaluationCommitteeController> logger) : Controller
 {
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));

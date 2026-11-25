@@ -5,6 +5,7 @@ using SourcingTenderManagement.Contracts.TopCommittee;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Models.TopCommittee;
+using System.Text.RegularExpressions;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
@@ -212,5 +213,274 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
             ];
         return evaluation.EvaluationScores.OrderBy(s => s.EvaluationCriterionId)
             .Select(s => new CommitteeScore(s.EvaluationCriterion.Name, s.EvaluationCriterion.Category, s.EvaluationCriterion.Weight, s.Score, s.Notes)).ToList();
+    }
+}
+
+public sealed class TopCommitteeHistory(ApplicationDbContext db, TopCommitteeAccessService access)
+{
+    public async Task<CommitteeHistoryPage> GetAsync(ClaimsPrincipal actor, CommitteeHistoryFilter filter, CancellationToken ct = default)
+    {
+        var memberId = await access.RequireRoleAsync(actor, RoleNames.TopCommittee, ct);
+        Validator.ValidateObject(filter, new ValidationContext(filter), true);
+        if ((!string.IsNullOrEmpty(filter.Status) && !TopCommitteeReports.Statuses.Contains(filter.Status)) ||
+            (!string.IsNullOrEmpty(filter.Decision) && filter.Decision is not ("Approved" or "Rejected")))
+            throw new ValidationException("Choose an existing tender status and Approved or Rejected decision.");
+        var query = db.TenderApprovals.AsNoTracking().Where(v => v.Stage == "Top" && v.UserId == memberId &&
+            (v.Decision == "Approved" || v.Decision == "Rejected") &&
+            v.Tender.CommitteeAssignments.Any(a => a.CommitteeType == "Top" && a.UserId == memberId));
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(v => v.Tender.Title.Contains(search));
+        }
+        if (!string.IsNullOrEmpty(filter.Status)) query = query.Where(v => v.Tender.Status == filter.Status);
+        if (!string.IsNullOrEmpty(filter.Decision)) query = query.Where(v => v.Decision == filter.Decision);
+        var total = await query.CountAsync(ct);
+        var rows = await query.OrderByDescending(v => v.DecidedAt).ThenByDescending(v => v.TenderApprovalId)
+            .Skip((filter.Page - 1) * filter.PageSize).Take(filter.PageSize)
+            .Select(v => new CommitteeHistoryRow(v.TenderApprovalId, v.TenderId, v.Tender.Title, v.Tender.Status,
+                v.Decision, v.DecidedAt, v.Tender.EvaluationReport == null ? null : v.Tender.EvaluationReport.RecommendedBidId,
+                v.Tender.AwardedBidId, v.Tender.TenderApprovals.Count(a => a.Stage == "Top" && a.Decision == "Approved"),
+                v.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected"), v.Tender.AwardedAt)).ToListAsync(ct);
+        return new(filter, rows, total);
+    }
+}
+
+public sealed class TopCommitteeReports(ApplicationDbContext db,TopCommitteeAccessService access)
+{
+ public static readonly string[] Statuses=["Draft","Published","Open","Closed","UnderEvaluation","AwaitingOfficerSummary","AwaitingManagerReview","AwaitingCommitteeDecision","Awarded","Cancelled"];
+ public async Task<CommitteeReportPage> GetAsync(ClaimsPrincipal actor,CommitteeReportFilter f,bool export=false,CancellationToken ct=default)
+ {
+  return await ReadAsync(await access.RequireRoleAsync(actor,RoleNames.TopCommittee,ct), f, export, false, false, ct);
+ }
+
+ public async Task<CommitteeReportPage> GetHubAsync(ClaimsPrincipal actor, CommitteeReportFilter filter, bool admin, CancellationToken ct)
+ {
+     var id = await access.RequireRoleAsync(actor, admin ? RoleNames.Admin : RoleNames.TopCommittee, ct);
+     return await ReadAsync(id, filter, false, true, admin, ct);
+ }
+
+ private async Task<CommitteeReportPage> ReadAsync(string id, CommitteeReportFilter f, bool export, bool hub, bool admin, CancellationToken ct)
+ {
+  Validator.ValidateObject(f,new ValidationContext(f),true);
+  if(f.FromDate>f.ToDate||f.Status is {Length:>0}&&!Statuses.Contains(f.Status)||f.Decision is {Length:>0}&&f.Decision is not("Approved" or "Rejected" or "NotVoted"))throw new ValidationException("Check status, decision and date range.");
+  var assigned=admin ? db.Tenders.AsNoTracking() : AssignedTenders(db,id);var q=assigned;
+  if(!string.IsNullOrWhiteSpace(f.Search)){var text=f.Search.Trim();q=q.Where(t=>t.Title.Contains(text));}if(!string.IsNullOrEmpty(f.Status))q=q.Where(t=>t.Status==f.Status);
+  if(f.FromDate is {} from){var start=from.ToDateTime(TimeOnly.MinValue,DateTimeKind.Utc);q=q.Where(t=>t.CreatedAt>=start);}if(f.ToDate is {} to){var end=to.ToDateTime(TimeOnly.MaxValue,DateTimeKind.Utc);q=q.Where(t=>t.CreatedAt<=end);}
+  if(f.Decision=="NotVoted")q=q.Where(t=>!t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.UserId==id));else if(!string.IsNullOrEmpty(f.Decision))q=q.Where(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.UserId==id&&v.Decision==f.Decision));
+  var count=await q.CountAsync(ct);if(export&&count>5000)throw new ValidationException("More than 5000 matching tenders. Narrow the filters before exporting.");
+  var summary=new CommitteeReportSummary(await assigned.CountAsync(ct),count,await q.CountAsync(t=>t.Status=="AwaitingCommitteeDecision"&&!t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.Decision=="Rejected"),ct),await q.CountAsync(t=>t.Status=="Awarded",ct),await q.CountAsync(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.Decision=="Rejected"),ct),await q.CountAsync(t=>t.Status=="AwaitingManagerReview",ct),await q.CountAsync(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.UserId==id),ct));
+  var ordered=q.OrderByDescending(t=>t.CreatedAt).ThenByDescending(t=>t.TenderId);
+  var rows=await ProjectRows(hub ? ordered : export ? ordered.Take(5000) : ordered.Skip((f.Page-1)*20).Take(20),id).ToListAsync(ct);
+  // System-wide aggregates are export-only. Detail rows retain their assignment scope above.
+  var stats = await ScopedSuppliersAsync(q, f.FromDate, f.ToDate, ct);
+  if (!export) return new(f,summary,rows,DateTime.UtcNow) { Suppliers = stats };
+  var supplierCount = await db.SupplierProfiles.AsNoTracking().CountAsync(ct);
+  if (supplierCount > 10000) throw new ValidationException("More than 10000 suppliers. The comprehensive export exceeds its safe size; contact the administrator.");
+  var suppliers = stats;
+  var system = new CommitteeSystemStatistics(supplierCount, await db.Tenders.AsNoTracking().CountAsync(ct),
+      await db.Tenders.AsNoTracking().CountAsync(t => t.Status == "Awarded",ct))
+  {
+      SuppliersByStatus = await db.SupplierProfiles.AsNoTracking().GroupBy(s => s.Status)
+          .Select(g => new { Status = g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Status, x => x.Count, ct)
+  };
+  return new(f,summary,rows,DateTime.UtcNow) { SystemStatistics = system, Suppliers = suppliers };
+ }
+ private async Task<IReadOnlyList<CommitteeSupplierStatistics>> ScopedSuppliersAsync(IQueryable<Tender> tenders,
+     DateOnly? from, DateOnly? to, CancellationToken ct)
+ {
+     var ids = tenders.Select(t => t.TenderId);
+     var rows = await db.SupplierProfiles.AsNoTracking().Where(s => s.Invitations.Any(i => ids.Contains(i.TenderId)))
+         .OrderBy(s => s.CompanyName).ThenBy(s => s.SupplierProfileId)
+         .Select(s => new
+         {
+             s.SupplierProfileId, s.CompanyName, s.Status,
+             Invited = s.Invitations.Where(i => ids.Contains(i.TenderId)).Select(i => i.TenderId).Distinct().Count(),
+             Dealings = s.Invitations.Where(i => ids.Contains(i.TenderId) && i.Bids.Any(b => b.SubmittedAt != null))
+                 .Select(i => i.TenderId).Distinct().Count(),
+             First = s.Invitations.Where(i => ids.Contains(i.TenderId)).SelectMany(i => i.Bids).Min(b => b.SubmittedAt),
+             Awards = tenders.Count(t => t.Status == "Awarded" && t.Bid != null && t.Bid.TenderId == t.TenderId &&
+                 t.Bid.Invitation.SupplierProfileId == s.SupplierProfileId)
+         }).ToListAsync(ct);
+     var today = DateOnly.FromDateTime(DateTime.UtcNow);
+     return rows.Select(s => new CommitteeSupplierStatistics(s.SupplierProfileId, s.CompanyName, s.Awards)
+     {
+         Status = s.Status, Invited = s.Invited, Dealings = s.Dealings,
+         Frequency = Frequency(s.Dealings, from ?? (s.First is DateTime first ? DateOnly.FromDateTime(first) : today), to ?? today)
+     }).ToArray();
+ }
+
+ internal static decimal Frequency(int dealings, DateOnly from, DateOnly to) =>
+     Math.Round(dealings / (Math.Max(1, to.DayNumber - from.DayNumber + 1) / 30.4375m), 1);
+
+ internal static IQueryable<Tender> AssignedTenders(ApplicationDbContext context,string memberId) =>
+     context.Tenders.AsNoTracking().Where(t=>t.CommitteeAssignments.Any(a=>a.UserId==memberId&&a.CommitteeType=="Top"));
+ // One projection is shared by production SQL and database-free regression tests.
+ internal static IQueryable<CommitteeReportRow> ProjectRows(IQueryable<Tender> tenders, string memberId) =>
+     tenders.Select(t => new CommitteeReportRow(t.TenderId,t.Title,t.Status,t.CreatedAt,
+         t.EvaluationReport == null ? null : t.EvaluationReport.RecommendedBidId,t.AwardedBidId,
+         t.TenderApprovals.Count(v=>v.Stage=="Top"&&v.Decision=="Approved"),
+         t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.Decision=="Rejected"),
+         t.TenderApprovals.Where(v=>v.Stage=="Top"&&v.UserId==memberId).Select(v=>v.Decision).FirstOrDefault(),
+         t.TenderApprovals.Where(v=>v.Stage=="Top"&&v.UserId==memberId).Select(v=>(DateTime?)v.DecidedAt).FirstOrDefault())
+     {
+         AwardedAt = t.AwardedAt,
+         CommitteeOutcomeAt = t.AwardedAt ?? t.TenderApprovals.Where(v=>v.Stage=="Top").Max(v=>(DateTime?)v.DecidedAt)
+     });
+}
+
+public sealed class TopCommitteeNotifications(ApplicationDbContext db,TopCommitteeAccessService access)
+{
+ public async Task<CommitteeNotificationPage> GetAsync(ClaimsPrincipal actor,int page=1,CancellationToken ct=default)
+ {
+  var id=await access.RequireRoleAsync(actor,RoleNames.TopCommittee,ct);if(page<1||page>1000000)throw new ValidationException("Choose a valid notification page.");var q=db.Notifications.AsNoTracking().Where(n=>n.UserId==id);var total=await q.CountAsync(ct);var unread=await q.CountAsync(n=>!n.IsRead,ct);var rows=await q.OrderByDescending(n=>n.CreatedAt).ThenByDescending(n=>n.NotificationId).Skip((page-1)*20).Take(20).ToListAsync(ct);
+  var assigned=await db.CommitteeAssignments.AsNoTracking().Where(a=>a.UserId==id&&a.CommitteeType=="Top").Select(a=>a.TenderId).ToListAsync(ct);
+  return new(rows.Select(n=>{int? tender=null;var match=Regex.Match(n.RelativeUrl??"","^/TopCommittee/TenderDetails/([1-9][0-9]*)$",RegexOptions.CultureInvariant);if(match.Success&&int.TryParse(match.Groups[1].Value,out var t)&&assigned.Contains(t))tender=t;return new CommitteeNotificationItem(n.NotificationId,n.Title,n.Message,n.IsRead,n.CreatedAt,tender);}).ToList(),total,unread,page);
+ }
+ public async Task<bool> MarkAsync(ClaimsPrincipal actor,int notificationId,CancellationToken ct=default)
+ {
+  var id=await access.RequireRoleAsync(actor,RoleNames.TopCommittee,ct);
+  return await db.Notifications.Where(n=>n.NotificationId==notificationId&&n.UserId==id).ExecuteUpdateAsync(s=>s.SetProperty(n=>n.IsRead,true),ct)>0;
+ }
+ public async Task MarkAllAsync(ClaimsPrincipal actor,CancellationToken ct=default)
+ {
+  var id=await access.RequireRoleAsync(actor,RoleNames.TopCommittee,ct);await db.Notifications.Where(n=>n.UserId==id&&!n.IsRead).ExecuteUpdateAsync(s=>s.SetProperty(n=>n.IsRead,true),ct);
+ }
+}
+
+public static class TopCommitteeNotificationEvents
+{
+ private static async Task AddAsync(ApplicationDbContext db,int tenderId,IEnumerable<string> recipients,string title,CancellationToken ct)
+ {
+  await TopCommitteeTenderTransaction.RequireLockAsync(db,tenderId,ct);var url=$"/TopCommittee/TenderDetails/{tenderId}";
+  foreach(var recipient in recipients.Distinct())
+   if(!db.Notifications.Local.Any(n=>n.UserId==recipient&&n.Title==title&&n.RelativeUrl==url)&&!await db.Notifications.AnyAsync(n=>n.UserId==recipient&&n.Title==title&&n.RelativeUrl==url,ct))db.Notifications.Add(new(){UserId=recipient,Title=title,Message="Open the tender to review its current committee status.",RelativeUrl=url,IsRead=false,CreatedAt=DateTime.UtcNow});
+ }
+ internal static async Task DecisionAsync(ApplicationDbContext db,CommitteeVotingContext context,CancellationToken ct)
+ {
+  if (context.Access.Tender!.Status == "AwaitingManagerReview")
+  {
+   var isEditRequest = context.Access.Tender.TopEditState == "WithManager";
+   foreach (var manager in context.Access.Managers.Where(m => m.IsActive && m.HasManagerRole))
+    db.Notifications.Add(new Notification { UserId = manager.UserId,
+     Title = isEditRequest ? "Top Committee requested edits on tender" : "Top Committee rejected tender",
+     Message = isEditRequest
+      ? $"CEO & Chiefs requested edits/clarification on Tender #{context.Access.Tender.TenderId}. Answer directly or push back to the Sourcing Officer."
+      : $"Tender #{context.Access.Tender.TenderId} was completely rejected. Review the reason and forward to its officer.",
+     RelativeUrl = $"/SourcingManager/Submissions?rejectedTenderId={context.Access.Tender.TenderId}&showRejections=true", CreatedAt = DateTime.UtcNow });
+  }
+  var tender=context.Access.Tender!;if(tender.Status is "Awarded" or "AwaitingManagerReview")await AddAsync(db,tender.TenderId,context.Access.Members.Where(m=>m.IsEligible).Select(m=>m.UserId),$"Tender #{tender.TenderId}: {(tender.Status=="Awarded"?"awarded":tender.TopEditState=="WithManager"?"returned to Manager for edits":"rejected and returned to Manager")}",ct);
+  if (tender.Status == "Awarded" && tender.AwardedBidId.HasValue)
+  {
+   var offers = await db.Bids.Where(b => b.TenderId == tender.TenderId && b.SubmittedAt.HasValue && b.Status != "Draft" && b.Status != "Withdrawn")
+    .Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile).ToListAsync(ct);
+   foreach (var offer in offers)
+   {
+    var won = offer.BidId == tender.AwardedBidId;
+    offer.Status = won ? "Accepted" : "Rejected";
+    var recipient = offer.Invitation.SupplierProfile.UserId;
+    var url = $"/Supplier/Offer/{offer.BidId}";
+    var title = won ? "Your offer was selected" : "Your offer was not selected";
+    if (!db.Notifications.Local.Any(n => n.UserId == recipient && n.RelativeUrl == url && n.Title == title)
+     && !await db.Notifications.AnyAsync(n => n.UserId == recipient && n.RelativeUrl == url && n.Title == title, ct))
+     db.Notifications.Add(new Notification { UserId = recipient, Title = title, RelativeUrl = url,
+      Message = won ? $"Your offer #{offer.BidId} for {tender.Title} won the tender." : $"The tender {tender.Title} has been awarded. Your offer #{offer.BidId} was not selected.",
+      IsRead = false, CreatedAt = DateTime.UtcNow });
+   }
+   // Reuse the locked award context and the caller's SaveChanges/commit. Never broadcast by role.
+   var request = await db.PurchaseRequests.AsNoTracking()
+       .SingleOrDefaultAsync(r => r.PurchaseRequestId == tender.PurchaseRequestId, ct);
+   var candidates = RelatedAwardCandidates(tender, context.Access.Managers, request);
+   var ids = candidates.Select(c => c.UserId).Distinct().ToArray();
+   var accounts = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id))
+       .Select(u => new AwardRecipientAccount(u.Id, u.IsActive, u.DepartmentId)).ToListAsync(ct);
+   var roles = await (from userRole in db.UserRoles.AsNoTracking()
+       join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+       where ids.Contains(userRole.UserId)
+       select new { userRole.UserId, Role = role.Name! }).ToListAsync(ct);
+   var existingRecipients = context.Access.Members.Where(m => m.IsEligible).Select(m => m.UserId)
+       .Concat(offers.Select(b => b.Invitation.SupplierProfile.UserId)).ToHashSet(StringComparer.Ordinal);
+   var notices = RelatedAwardNotices(tender, candidates, accounts,
+       roles.Select(r => (r.UserId, r.Role)), existingRecipients);
+   foreach (var notice in notices)
+       if (!db.Notifications.Local.Any(n => SameNotice(n, notice)) &&
+           !await db.Notifications.AnyAsync(n => n.UserId == notice.UserId && n.Title == notice.Title && n.RelativeUrl == notice.RelativeUrl, ct))
+           db.Notifications.Add(notice);
+  }
+ }
+ internal sealed record AwardRecipientCandidate(string UserId, string Role, string Url, string Message, int? DepartmentId = null);
+ internal sealed record AwardRecipientAccount(string UserId, bool IsActive, int? DepartmentId);
+
+ internal static IReadOnlyList<AwardRecipientCandidate> RelatedAwardCandidates(Tender tender,
+     IReadOnlyList<Models.TopCommittee.CommitteeManager> managers, PurchaseRequest? request)
+ {
+  var recipients = new List<AwardRecipientCandidate>();
+  if (tender.Status != "Awarded" || !tender.AwardedBidId.HasValue || !tender.AwardedAt.HasValue) return recipients;
+  if (managers.Count == 1 && managers[0].IsActive && managers[0].HasManagerRole)
+      recipients.Add(new(managers[0].UserId, Data.RoleNames.SourcingManager, "/SourcingManager/ChosenOffers",
+          $"Tender #{tender.TenderId} has been awarded. Review the award outcome in Chosen Offers."));
+  if (!string.IsNullOrWhiteSpace(tender.CreatedByUserId))
+      recipients.Add(new(tender.CreatedByUserId, Data.RoleNames.SourcingOfficer, $"/SourcingOfficer/Tenders?id={tender.TenderId}",
+          $"Tender #{tender.TenderId} has been awarded. Review the selected offer in your tender workspace."));
+  if (request != null && request.PurchaseRequestId == tender.PurchaseRequestId && !string.IsNullOrWhiteSpace(request.RequestedByUserId))
+      recipients.Add(new(request.RequestedByUserId, Data.RoleNames.Department, $"/Department/Details/{request.PurchaseRequestId}",
+          $"Tender #{tender.TenderId} for your purchase request #{request.PurchaseRequestId} has been awarded. View your request for reference.", request.DepartmentId));
+  return recipients;
+ }
+
+ internal static IReadOnlyList<Notification> RelatedAwardNotices(Tender tender,
+     IEnumerable<AwardRecipientCandidate> candidates, IEnumerable<AwardRecipientAccount> accounts,
+     IEnumerable<(string UserId, string Role)> roles, IEnumerable<string> existingRecipients)
+ {
+  var result = new List<Notification>();
+  if (tender.Status != "Awarded" || !tender.AwardedBidId.HasValue || !tender.AwardedAt.HasValue) return result;
+  var seen = existingRecipients.ToHashSet(StringComparer.Ordinal);
+  var active = accounts.Where(a => a.IsActive).ToDictionary(a => a.UserId, StringComparer.Ordinal);
+  var authorized = roles.ToHashSet();
+  foreach (var candidate in candidates)
+  {
+   if (!active.TryGetValue(candidate.UserId, out var account) || !authorized.Contains((candidate.UserId,candidate.Role)) ||
+       candidate.DepartmentId.HasValue && account.DepartmentId != candidate.DepartmentId) continue;
+   if (seen.Add(candidate.UserId)) result.Add(new Notification { UserId=candidate.UserId,
+       Title=$"Tender #{tender.TenderId}: awarded", Message=candidate.Message, RelativeUrl=candidate.Url,
+       IsRead=false, CreatedAt=DateTime.UtcNow });
+  }
+  return result;
+ }
+ internal static bool SameNotice(Notification left, Notification right) =>
+     left.UserId == right.UserId && left.Title == right.Title && left.RelativeUrl == right.RelativeUrl;
+ internal static async Task ClarificationsAsync(ApplicationDbContext db,CommitteeClarificationContext context,CancellationToken ct)
+ {
+  db.ChangeTracker.DetectChanges();
+  foreach(var entry in db.ChangeTracker.Entries<Clarification>().Where(e=>e.State==EntityState.Modified&&e.Property(c=>c.Status).IsModified).ToList()){
+   var q=entry.Entity;if(!TopCommitteeClarificationScope.Contains(q,context))continue;
+   if(q.Status=="Answered"&&entry.Property(c=>c.Status).OriginalValue=="Pending")await AddAsync(db,q.TenderId!.Value,[q.SenderUserId],$"Tender #{q.TenderId}: clarification #{q.ClarificationId} answered",ct);
+   if(q.Status=="Resolved"&&entry.Property(c=>c.Status).OriginalValue=="Answered"&&TopCommitteeClarificationScope.OpenCount(context)==0)await AddAsync(db,q.TenderId!.Value,context.Members.Where(m=>m.IsEligible).Select(m=>m.UserId),$"Tender #{q.TenderId}: clarification #{q.ClarificationId} resolved",ct);
+  }
+ }
+ // Manager team calls after persisting a valid referral, using its authenticated principal.
+}
+
+public static class TopCommitteeServiceCollectionExtensions
+{
+    public static IServiceCollection AddTopCommitteeFoundation(this IServiceCollection services)
+    {
+        services.AddScoped<TopCommitteeAccessService>();
+        services.AddScoped<TopCommitteeReports>();
+        services.AddScoped<TopCommitteeHistory>();
+        services.AddScoped<TopCommitteeNotifications>();
+        services.AddSingleton<TopCommitteeReportExport>();
+        services.AddScoped<ITopCommitteeQueries, TopCommitteeQueryService>();
+        services.AddScoped<ITopCommitteeTenderTransaction, TopCommitteeTenderTransaction>();
+        services.AddScoped<ITopCommitteeVotingPause, TopCommitteeVotingPause>();
+        services.AddScoped<ITopCommitteeClarificationStore, TopCommitteeClarificationStore>();
+        services.AddScoped<TopCommitteeClarificationService>();
+        services.AddScoped<ITopCommitteeClarifications>(provider => provider.GetRequiredService<TopCommitteeClarificationService>());
+        services.AddScoped<ITopCommitteeManagerAnswers>(provider => provider.GetRequiredService<TopCommitteeClarificationService>());
+        services.AddScoped<ITopCommitteeClarificationQueries, TopCommitteeClarificationQueries>();
+        services.AddScoped<ITopCommitteeVotingStore, TopCommitteeVotingStore>();
+        services.AddScoped<ITopCommitteeVoting, TopCommitteeVotingService>();
+        services.AddScoped<ITopCommitteeVotingReadiness, TopCommitteeVotingDatabase>();
+        return services;
     }
 }

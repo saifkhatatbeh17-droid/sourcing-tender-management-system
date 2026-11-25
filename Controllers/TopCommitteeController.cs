@@ -11,7 +11,7 @@ namespace SourcingTenderManagement.Controllers;
 
 [Authorize(Roles = RoleNames.TopCommittee)]
 [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
-public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCommitteeClarifications clarifications,
+public class TopCommitteeController(ITopCommitteeQueries queries, ITopCommitteeClarifications clarifications,
     ITopCommitteeClarificationQueries clarificationQueries, ITopCommitteeVoting voting,
     ITopCommitteeVotingReadiness votingReadiness) : Controller
 {

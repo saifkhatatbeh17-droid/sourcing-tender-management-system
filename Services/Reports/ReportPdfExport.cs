@@ -6,6 +6,10 @@ using SourcingTenderManagement.Models.TopCommittee;
 using SourcingTenderManagement.Services.TopCommittee;
 using static SourcingTenderManagement.Services.TopCommittee.TopCommitteeReportExport;
 using EvaluationRecord = SourcingTenderManagement.Models.Entities.Evaluation;
+using Microsoft.AspNetCore.Mvc;
+using System.Text.RegularExpressions;
+using System.Globalization;
+using System.Text;
 
 namespace SourcingTenderManagement.Services.Reports;
 
@@ -352,4 +356,162 @@ public static class ReportPdfExport
         }
         public byte[] Pdf()=>RenderPdf(doc);
     }
+}
+
+internal static class ReportPdfDownload
+{
+    // Ordinary FileResult: the existing global watermark filter runs exactly once.
+    public static IActionResult Create(Controller controller,Func<byte[]> render,string name)
+    {
+        try { return controller.File(render(),"application/pdf",name); }
+        catch(Exception error) when(error is IOException or InvalidOperationException or ArgumentException
+            or NotSupportedException or UnauthorizedAccessException)
+        {
+            controller.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("ReportPdf")
+                .LogWarning("Report PDF rendering failed ({FailureType}).",error.GetType().Name);
+            return controller.StatusCode(503,new ProblemDetails { Status=503,Title="The complete report could not be exported.",
+                Detail="No partial PDF was returned. Check the report font configuration and try again." });
+        }
+    }
+}
+
+// Interpret a small text format. All content is still encoded by Razor; AI HTML is never executed.
+public static class ReportContent
+{
+    private static readonly HashSet<string> Headings = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Committee marks", "Member reviews", "Chosen offer", "Why it was chosen", "Comparison", "Observations", "Conclusion",
+        "Evaluation basis", "Recommended offer", "Financial review", "Technical review", "Alternatives",
+        "Limitations and conclusion", "Decision basis", "Cost and terms", "Technical fit and delivery",
+        "Tradeoffs and limitations", "Why this offer", "Cost comparison", "Technical fit", "Tradeoffs",
+        "Recommendation", "Cost", "Technical fit & delivery", "Offer score comparison"
+    };
+    public record Block(string Kind, string[] Lines);
+    public record Span(string Text, bool Emphasis);
+
+    public static List<Block> Parse(string? text)
+    {
+        var blocks = new List<Block>();
+        var pending = new List<string>();
+        string kind = "paragraph";
+        void Flush()
+        {
+            if (pending.Count > 0) blocks.Add(new(kind, pending.ToArray()));
+            pending.Clear();
+        }
+        foreach (var raw in (text ?? "").Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.Length == 0) { Flush(); continue; }
+            var title = Regex.Replace(line, @"^(?:#{1,6}\s+|\d+[.)]\s+)", "").Trim('*', ' ', ':');
+            if (Headings.Contains(title) || Regex.IsMatch(line, @"^#{1,6}\s+.{1,100}$"))
+            { Flush(); blocks.Add(new("heading", [title])); continue; }
+            var bullet = Regex.IsMatch(line, @"^[-*•]\s+");
+            var nextKind = bullet ? "list" : "paragraph";
+            if (nextKind != kind) Flush();
+            kind = nextKind;
+            pending.Add(bullet ? line[2..].TrimStart() : line);
+        }
+        Flush();
+        return blocks;
+    }
+
+    public static IEnumerable<Span> Inline(string text)
+    {
+        var offset = 0;
+        foreach (Match match in Regex.Matches(text, @"\*\*(.+?)\*\*"))
+        {
+            if (match.Index > offset) yield return new(text[offset..match.Index], false);
+            yield return new(match.Groups[1].Success ? match.Groups[1].Value : match.Value, true);
+            offset = match.Index + match.Length;
+        }
+        if (offset < text.Length) yield return new(text[offset..], false);
+    }
+}
+
+/// <summary>
+/// Wording for committee reports in the Sourcing Officer workspace. The Reports page and its PDF exports
+/// both use these, so a downloaded PDF says exactly what the page says.
+/// </summary>
+public static class OfficerReportLabels
+{
+    public static bool NeedsReview(EvaluationReport report) =>
+        report.Status == "CommitteeApproved" && report.Tender.Status == "AwaitingOfficerSummary";
+
+    public static string StatusLabel(string status) => status switch
+    {
+        "Draft" => "In preparation",
+        "CommitteeApproved" => "Committee approved",
+        "OfficerSubmitted" => "With sourcing manager",
+        "ManagerApproved" => "Manager approved",
+        "TopApproved" => "CEO & Chiefs approved",
+        "ReturnedForReview" => "Returned to committee",
+        "ManagerRejected" => "Manager rejected",
+        _ => status
+    };
+
+    /// <summary>The status as the officer sees it, including the prompt when the report waits on them.</summary>
+    public static string Status(EvaluationReport report) =>
+        NeedsReview(report) ? "Your review needed" : StatusLabel(report.Status);
+
+    public static string Reference(EvaluationReport report) =>
+        $"Report #{report.EvaluationReportId} · Tender #{report.TenderId}";
+
+    /// <summary>Submitted time as shown in the report detail facts, e.g. "14 Nov 2026, 12:34 UTC".</summary>
+    public static string SubmittedDetail(DateTime? submittedAt) =>
+        submittedAt.HasValue
+            ? submittedAt.Value.ToString("dd MMM yyyy, HH:mm", CultureInfo.InvariantCulture) + " UTC"
+            : "Not submitted";
+
+    public static string Submitted(DateTime? submittedAt) =>
+        submittedAt.HasValue
+            ? submittedAt.Value.ToString("dd MMM yyyy HH:mm", CultureInfo.InvariantCulture) + " UTC"
+            : "Not submitted";
+}
+
+public static class ManagerReferralContext
+{
+    // Saved purchase facts accompany every referral, including manually written referrals.
+    public static string Describe(Tender tender, Bid winner)
+    {
+        var request = tender.PurchaseRequest;
+        var text = new StringBuilder().AppendLine("## Tender and purchase requirements")
+            .AppendLine($"Tender #{tender.TenderId}: {tender.Title}")
+            .AppendLine($"Scope: {Value(tender.Description)}")
+            .AppendLine($"Request: {request.Title}. Department: {request.Department.Name}.")
+            .AppendLine($"Purchase purpose: {Value(request.Reason)}")
+            .AppendLine($"Recorded priority: {Value(request.Priority)}. Required date: {request.TargetDate:yyyy-MM-dd}.")
+            .AppendLine("Requested items:");
+        foreach (var item in request.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId))
+            text.AppendLine($"- {item.ItemName}: {Number(item.Quantity)} {item.Unit}. Specifications: {Value(item.Specifications)}");
+        text.AppendLine($"Tender terms: {Value(tender.Terms)}").AppendLine().AppendLine("## Winning offer")
+            .AppendLine($"{winner.Invitation.SupplierProfile.CompanyName}, offer #{winner.BidId}: {CommitteeEvaluationPage.Total(winner).ToString("N2", CultureInfo.InvariantCulture)} {winner.Currency} including tax and fees; {winner.DeliveryDays}-day delivery.")
+            .AppendLine($"Payment: {Value(winner.PaymentTerms)}")
+            .AppendLine($"Supplier-stated technical details: {Value(winner.TechnicalDetails)}");
+        text.AppendLine("Purchase requirements are recorded facts; supplier statements require verification. Missing or unclear requirements must be clarified, not inferred.");
+        var rounds = OfferRoundContext.Describe(tender);
+        if (rounds.Length > 0) text.AppendLine().AppendLine(rounds);
+        return text.ToString().Trim();
+    }
+    private static string Value(string? value) => string.IsNullOrWhiteSpace(value) ? "Not specified" : value.Trim();
+    private static string Number(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}
+
+public static class OfferRoundContext
+{
+    public static string Describe(Tender tender)
+    {
+        if (tender.OfferExtensions.Count == 0 && string.IsNullOrWhiteSpace(tender.OfferShortfallReason)) return "";
+        var text = new StringBuilder("## Offer rounds and exception\n");
+        foreach (var round in tender.OfferExtensions.OrderBy(r => r.Round))
+        {
+            text.AppendLine($"Round {round.Round - 1} closed {Utc(round.PreviousDeadline)} with {round.PreviousCompliantOffers} compliant offers.")
+                .AppendLine($"Round {round.Round} opened {Utc(round.OpenedAt)}; deadline {Utc(round.Deadline)}.");
+        }
+        if (!string.IsNullOrWhiteSpace(tender.OfferShortfallReason))
+            text.AppendLine("Reason for proceeding with fewer than three compliant offers:").AppendLine(tender.OfferShortfallReason.Trim());
+        return text.ToString().Trim();
+    }
+
+    private static string Utc(DateTime value) => value.ToString("dd MMM yyyy HH:mm 'UTC'", CultureInfo.InvariantCulture);
 }

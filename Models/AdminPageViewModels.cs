@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using SourcingTenderManagement.Models.Entities;
+using System.Net.Mail;
 
 namespace SourcingTenderManagement.Models;
 
@@ -94,3 +95,68 @@ public sealed class ReviewSupplierViewModel
     [StringLength(2000)]
     public string Notes { get; set; } = "";
 }
+
+public sealed class ContactMessageInput
+{
+    [Required, StringLength(120)]
+    public string FullName { get; set; } = "";
+
+    private string email = "";
+
+    [Required, StringLength(254), EmailAddress]
+    public string Email
+    {
+        get => email;
+        set => email = value?.Trim() ?? "";
+    }
+
+    [Required, StringLength(150)]
+    public string Subject { get; set; } = "";
+
+    [Required, StringLength(2000)]
+    public string Message { get; set; } = "";
+
+    public static bool IsValidAddress(string address) =>
+        !address.Any(char.IsControl) && MailAddress.TryCreate(address, out var parsed)
+        && string.Equals(parsed.Address, address, StringComparison.Ordinal);
+}
+
+public sealed record ContactMessagesPage(
+    IReadOnlyList<ContactMessage> Messages, string? Search, string? Status, int Page, int TotalPages);
+
+public sealed record SupplierTenderActivity(int TenderId, string Title, int BidId, DateTime SubmittedAt,
+    string Outcome, decimal Total, string Currency, string? Compliance);
+
+public sealed record SupplierActivityRow(int SupplierId, string Company, string Status, string RegistrationNumber,
+    string? Category, IReadOnlyList<SupplierTenderActivity> History)
+{
+    public int Awarded => History.Count(row => row.Outcome == "Awarded");
+    public int Rejected => History.Count(row => row.Outcome == "Rejected");
+}
+
+public sealed record DashboardSlice(string Label, int Count, string Tone = "active", string? Link = null);
+
+public sealed record DashboardOverview(string Title, string Scope, string Unit, string FocusLabel,
+    IReadOnlyList<DashboardSlice> Segments, string StagesTitle, string StagesDescription,
+    IReadOnlyList<DashboardSlice> Stages, string? Link = null)
+{
+    public int Total => Segments.Sum(s => s.Count);
+
+    public static DashboardOverview Tenders(IReadOnlyDictionary<string, int> states, string scope)
+    {
+        int Count(params string[] keys) => keys.Sum(k => states.GetValueOrDefault(k));
+        var stages = new List<DashboardSlice> {
+            new("Receiving offers", Count("Published", "Open")), new("Reviewing offers", Count("Closed")),
+            new("Committee evaluation", Count("UnderEvaluation")), new("Officer report review", Count("AwaitingOfficerSummary")),
+            new("Manager review", Count("AwaitingManagerReview")), new("CEO & Chiefs decision", Count("AwaitingCommitteeDecision"))
+        };
+        var active = stages.Sum(s => s.Count);
+        var other = states.Values.Sum() - active - Count("Awarded", "Cancelled");
+        var segments = new List<DashboardSlice> { new("Active", active), new("Awarded", Count("Awarded"), "positive"), new("Cancelled", Count("Cancelled"), "muted") };
+        if (other > 0) segments.Add(new("Other", other, "other"));
+        return new("Tender status", scope, "tenders", "active", segments,
+            "Where active tenders are", $"{active:N0} active tenders · current stage", stages);
+    }
+}
+
+public record DashboardMetric(string Label, string Value, string Note, bool Primary = false, string? Action = null, string? Link = null);

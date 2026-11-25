@@ -16,7 +16,7 @@ using System.Security.Claims;
 namespace SourcingTenderManagement.Controllers;
 
 [Authorize(Roles = RoleNames.Admin)]
-public partial class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
+public class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
     IConfiguration configuration, IWebHostEnvironment environment) : Controller
 {
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
