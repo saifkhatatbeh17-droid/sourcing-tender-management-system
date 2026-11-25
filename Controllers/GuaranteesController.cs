@@ -7,12 +7,13 @@ using QRCoder;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services;
+using Microsoft.AspNetCore.Identity;
 
 namespace SourcingTenderManagement.Controllers;
 
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class GuaranteesController(
-    ApplicationDbContext db, OfferGuarantees guarantees, OfferProductPhotos access) : Controller
+    ApplicationDbContext db, OfferGuarantees guarantees, OfferProductPhotos access, UserManager<ApplicationUser> users) : Controller
 {
     [AllowAnonymous, HttpGet("/Guarantees/Verify/{token}")]
     public async Task<IActionResult> Verify(string token, string? number)
@@ -57,5 +58,18 @@ public sealed class GuaranteesController(
             .Include(g => g.Bid).ThenInclude(b => b.Invitation).ThenInclude(i => i.Tender)
             .SingleOrDefaultAsync(g => g.Kind == "Bank" && g.VerificationToken == token &&
                 (g.Bid.SubmittedAt != null || owner != null && g.Bid.Invitation.SupplierProfile.UserId == owner));
+    }
+
+    // Offer product photos (/OfferProductPhotos/{id}).
+    [Authorize, HttpGet("/OfferProductPhotos/{id:int}")]
+    public async Task<IActionResult> Image(int id)
+    {
+        if ((await users.GetUserAsync(User))?.IsActive != true) return Forbid();
+        var document = await db.BidDocuments.AsNoTracking().SingleOrDefaultAsync(d => d.BidDocumentId == id && d.DocumentType.StartsWith(OfferProductPhotos.Prefix));
+        if (document == null || !await access.VisibleBids(User).AnyAsync(b => b.BidId == document.BidId)) return NotFound();
+        var path = access.PathFor(document.StoredFileName);
+        if (!System.IO.File.Exists(path)) return NotFound();
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return PhysicalFile(path, "image/jpeg");
     }
 }

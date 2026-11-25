@@ -51,10 +51,9 @@
             @if (ReportUrl("tenders") is { } tendersUrl) { <a href="@tendersUrl" class="btn btn-outline-primary">Tenders · @Model.TendersCount.ToString("N0")</a> }
             @if (ReportUrl("suppliers") is { } suppliersUrl) { <a href="@suppliersUrl" class="btn btn-outline-primary">Suppliers · @Model.SuppliersCount.ToString("N0")</a> }
             @if (ReportUrl("bids-evaluation") is { } evaluationsUrl) { <a href="@evaluationsUrl" class="btn btn-outline-primary">Offers &amp; evaluation</a> }
-            <a asp-controller="ReportAccess" asp-action="Index" class="btn btn-outline-primary">Manage report access</a>
+            <a asp-controller="Reports" asp-action="Access" class="btn btn-outline-primary">Manage report access</a>
         </div>
     </section>
-
 
     <div class="admin-dashboard-panels">
         <section class="workspace-section" aria-labelledby="pending-applications-heading">
@@ -96,7 +95,6 @@
                 </div>
             }
         </section>
-
 
     </div>
 </div>

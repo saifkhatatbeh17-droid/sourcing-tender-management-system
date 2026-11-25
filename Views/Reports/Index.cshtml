@@ -8,7 +8,7 @@
         <div><h1>Reports</h1><p>Explore procurement activity and follow decisions across your workspace.</p>
             <span class="rpt-context">@RoleNames.DisplayName(Model.Scope.Role) · @Model.Reports.Count available reports</span></div>
         @if (Model.Scope.IsAdmin)
-        { <a class="btn btn-outline-primary" asp-controller="ReportAccess" asp-action="Index">Manage report access</a> }
+        { <a class="btn btn-outline-primary" asp-controller="Reports" asp-action="Access">Manage report access</a> }
     </header>
     @if (Model.Reports.Count == 0)
     {

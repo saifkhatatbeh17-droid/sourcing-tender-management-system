@@ -6,7 +6,7 @@
     var profileController = User.IsInRole(RoleNames.Supplier) ? "Supplier" : "Account";
     var editingProfile = currentController == "Account" && currentAction == "EditProfile";
     var profileIsActive = editingProfile || (currentController == profileController && currentAction == "Profile");
-    var workspaceController = (currentController is "AiIntelligence" or "Reports" or "ReportAccess") && ViewData["WorkspaceController"]?.ToString() is { Length: > 0 } presetWorkspace
+    var workspaceController = (currentController is "AiIntelligence" or "Reports") && ViewData["WorkspaceController"]?.ToString() is { Length: > 0 } presetWorkspace
         ? presetWorkspace
         : currentController;
     if (profileIsActive && currentController == "Account")
@@ -24,7 +24,7 @@
         workspaceController = RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     var showWorkspace = !isHomeLanding && User.Identity?.IsAuthenticated == true
         && ViewData["HideWorkspaceSidebar"] is not true && PageNavigation.Menus.ContainsKey(workspaceController)
-        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "AiIntelligence" or "Clarification" or "Account" or "FaceEnrollment" or "Reports" or "ReportAccess");
+        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "AiIntelligence" or "Clarification" or "Account" or "FaceEnrollment" or "Reports");
     var showAdminSidebar = showWorkspace && workspaceController == "Admin";
     var showPublicSafi = !showWorkspace &&
         ((currentController == "Home" && currentAction is "Index" or "About" or "HowItWorks" or "Team" or "Contact") ||

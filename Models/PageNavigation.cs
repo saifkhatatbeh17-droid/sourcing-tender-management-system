@@ -8,7 +8,7 @@ public static class PageNavigation
 {
     public static readonly Dictionary<string, PageNavigationItem[]> Menus = new()
     {
-        ["Admin"] = [("Dashboard", "Dashboard"), ("AiIntelligence", "AI Intelligence"), ("AiLog", "AI log"), ("Users", "Users"), ("Departments", "Departments"), ("SupplierApplications", "Supplier Applications"), ("Suppliers", "Suppliers"), new("Index", "Reports", "Reports"), new("Index", "Report access", "ReportAccess"), ("ContactMessages", "Contact Messages")],
+        ["Admin"] = [("Dashboard", "Dashboard"), ("AiIntelligence", "AI Intelligence"), ("AiLog", "AI log"), ("Users", "Users"), ("Departments", "Departments"), ("SupplierApplications", "Supplier Applications"), ("Suppliers", "Suppliers"), new("Index", "Reports", "Reports"), new("Access", "Report access", "Reports"), ("ContactMessages", "Contact Messages")],
         ["Department"] = [("Dashboard", "Dashboard"), ("AiIntelligence", "AI Intelligence"), ("Create", "New request"), ("Requests", "Requests history"), ("Clarifications", "Clarifications"), new("Index", "Reports", "Reports")],
         ["SourcingOfficer"] = [("Dashboard", "Dashboard"), ("AiIntelligence", "AI Intelligence"), ("Requests", "Request Review"), ("Offers", "Tender workspace"), ("Clarifications", "Clarifications"), ("Reports", "Report review"), new("Index", "Reports", "Reports")],
         ["EvaluationCommittee"] = [("Dashboard", "Dashboard"), ("AiIntelligence", "AI Intelligence"), ("Evaluations", "Evaluations"), ("Reports", "Committee report"), ("Clarifications", "Clarifications"), new("Index", "Reports", "Reports")],

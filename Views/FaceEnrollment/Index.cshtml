@@ -23,8 +23,8 @@
                 <h2 id="passkey-heading">Fingerprint or passkey</h2>
             </div>
             <p class="biometric-description">Use your device’s fingerprint, screen lock, or a compatible nearby phone to sign in with a passkey.</p>
-            <form asp-controller="Passkeys" asp-action="Enroll" method="post"
-                  data-passkey-form="enroll" data-options-url="@Url.Action("EnrollmentOptions", "Passkeys")">
+            <form asp-controller="Account" asp-action="PasskeyEnroll" method="post"
+                  data-passkey-form="enroll" data-options-url="@Url.Action("PasskeyEnrollmentOptions", "Account")">
                 <label for="passkey-password" class="form-label">Current password</label>
                 <input id="passkey-password" name="password" type="password" class="form-control"
                        autocomplete="current-password" required />

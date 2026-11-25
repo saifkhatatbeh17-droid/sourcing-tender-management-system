@@ -27,7 +27,7 @@ builder.Services.AddHttpClient<AiChatClient>(client => client.Timeout = TimeSpan
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHttpClient<AiChatAttachmentAnalysis>(client => client.Timeout = TimeSpan.FromSeconds(60))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
-builder.Services.AddHttpClient(nameof(SourcingTenderManagement.Controllers.PublicSafiController),
+builder.Services.AddHttpClient("PublicSafi",
         client => client.Timeout = TimeSpan.FromSeconds(12))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHttpClient<AiChatSpeechClient>(client => client.Timeout = TimeSpan.FromSeconds(40))

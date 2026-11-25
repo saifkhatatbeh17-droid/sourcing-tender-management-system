@@ -175,7 +175,7 @@
                 <div class="ai-chat-messages" role="log" aria-label="Conversation with Safi" tabindex="-1"></div>
                 <button class="ai-chat-latest" type="button" data-chat-latest hidden>Latest <span aria-hidden="true">↓</span></button>
             </div>
-            <form class="ai-chat-form" asp-controller="@(isPublic ? "PublicSafi" : "AiChat")" asp-action="Ask" method="post" data-voice-dictation
+            <form class="ai-chat-form" asp-controller="AiChat" asp-action="@(isPublic ? "PublicAsk" : "Ask")" method="post" data-voice-dictation
                   data-speech-url="@Url.Action("Speak", "AiChat")" data-speech-clip-limit="@SpeechClient.ClipLimit"
                   data-transcribe-url="@Url.Action("Transcribe", "AiChat")" data-workspace="@workspace">
                 <p class="ai-chat-status" role="status" aria-atomic="true"></p>

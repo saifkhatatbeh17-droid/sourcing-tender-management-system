@@ -7,7 +7,7 @@
 <div class="reports-page">
     <a asp-controller="Reports" asp-action="Index" class="rpt-back">← All reports</a>
     <header class="rpt-heading"><div><h1>Report access</h1><p>Choose which roles can open each report. Data remains limited to each user's workspace.</p></div></header>
-    <form asp-controller="ReportAccess" asp-action="Save" method="post" asp-antiforgery="false" class="rpt-panel" data-report-access>
+    <form asp-controller="Reports" asp-action="SaveAccess" method="post" asp-antiforgery="false" class="rpt-panel" data-report-access>
         @Html.AntiForgeryToken()
         <div class="rpt-section-heading"><h2>Permissions by role</h2><span>Default = report setting · Custom = saved override</span></div>
         <p class="rpt-muted">Admin always has access. Supplier access is always blocked. Unavailable combinations are restricted by the report itself and cannot be enabled.</p>

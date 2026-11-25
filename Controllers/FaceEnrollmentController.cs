@@ -46,7 +46,7 @@ public sealed class FaceEnrollmentController(ApplicationDbContext db, FaceEnroll
         { return Conflict(new { message = "Enrollment changed. Reload this page before trying again." }); }
     }
 
-    [HttpGet("/FaceSetup"), HttpGet("/FaceSetup/Index")]
+    [HttpGet("/FaceSetup"), HttpGet("/FaceSetup/Index", Order = 1)]
     public async Task<IActionResult> Setup(CancellationToken ct)
     {
         if (!await FaceSetupFlow.ShouldPromptAsync(db, User, Request, ct)) return RedirectToAction("GoToDashboard", "Account");

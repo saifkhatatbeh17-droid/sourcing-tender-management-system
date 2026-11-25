@@ -102,8 +102,8 @@
                 </span>
                 <strong>Face ID</strong>
             </button>
-            <form asp-controller="Passkeys" asp-action="SignInWithPasskey" method="post"
-                  data-passkey-form="login" data-options-url="@Url.Action("LoginOptions", "Passkeys")">
+            <form asp-controller="Account" asp-action="SignInWithPasskey" method="post"
+                  data-passkey-form="login" data-options-url="@Url.Action("PasskeyLoginOptions", "Account")">
                 <input name="returnUrl" value="@Model.ReturnUrl" type="hidden" />
                 <button class="btn login-method" type="submit" aria-label="Sign in with fingerprint or passkey" data-biometric-hover="passkey">
                     <span class="login-method-icon" aria-hidden="true">

@@ -34,11 +34,11 @@
             {
                 if (role == "Supplier" && item.Action == "History") { continue; }
                 var targetController = item.Controller ?? role;
-                var isReports = targetController == "Reports";
+                var isReports = targetController == "Reports" && item.Action == "Index";
                 if (isReports && (reportsRendered || !await ReportNavigation.HasReportsAsync(role, Context.RequestAborted))) { continue; }
                 if (isReports) { reportsRendered = true; }
-                var isActive = isReports ? routeController is "Reports" or "ReportAccess" :
-                    item.Controller == null && controller == role && routeController is not ("Reports" or "ReportAccess") && activeAction == item.Action;
+                var isActive = isReports ? routeController is "Reports" :
+                    item.Controller == null && controller == role && routeController is not "Reports" && activeAction == item.Action;
                 <a class="admin-sidebar-item @(isActive ? "is-active" : null)" asp-controller="@targetController" asp-action="@item.Action"
                    aria-current="@(isActive ? "page" : null)" aria-label="@SourcingTenderManagement.Data.RoleNames.DisplayName(role) — @item.Title" title="@SourcingTenderManagement.Data.RoleNames.DisplayName(role) — @item.Title">
                     <partial name="_AdminSidebarIcon" model='@(item.Controller != null ? "Reports" : item.Action)' />
