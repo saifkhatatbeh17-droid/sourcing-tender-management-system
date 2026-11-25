@@ -12,3 +12,5 @@ Resume checkpoint: read PROJECT-STATE.md for role coverage, preserved UX/workflo
 Latest completed task: full local QA and remaining-role UX rework,16 November2026. Read QA-REPORT-2026-11-16.md and the latest PROJECT-STATE.md before resuming. All seven roles have now received the scoped review/rework documented there. User requested laptop shutdown after saving the report; do not treat shutdown scheduling as proof the machine actually powered off. Changes from this QA task are local on ghaith, not automatically authorized for another remote push.
 
 Latest follow-up: read UI-FOLLOWUP-2026-11-16.md for staged forms, request pagination/voice/QR, offer popups, percentage-tax contract and timed feedback. Leave the local app running; the earlier overnight shutdown request was completed/attempted for that task and must not be repeated for this active session.
+
+Latest structure cleanup (25 November 2026): branch `simplify-structure`; read the "Structure cleanup" section at the end of PROJECT-STATE.md for the merged controllers, removed pages and known pre-existing check failures.
