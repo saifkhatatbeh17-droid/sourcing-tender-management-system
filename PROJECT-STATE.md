@@ -55,5 +55,5 @@ Branch `simplify-structure` (from `ghaith-changes`, local only, not pushed). Beh
 - Services, models and entity configurations are grouped by topic in fewer files; namespaces are unchanged. Entities and migrations were not touched.
 - Removed as unreachable: `/FaceLogin`, `/FaceVerification`, `/FaceSetup/Modal` and their views/scripts, unused partial views, methods, images and scripts. They remain in git history.
 - Phase reports in `docs/` describe the code at the time they were written and may name files that were merged or removed since.
-- Verification: build clean; offline and database checks and `full-qa-checks.py` give the same results as before the cleanup; a crawl of 434 pages and a comparison of every endpoint's security/caching attributes match the previous build.
+- Verification: build clean; offline and database checks and `full-qa-checks.py` give the same results as before the cleanup; a crawl of 1,072 pages across all seven roles and a comparison of every endpoint's security/caching attributes match the previous build.
 - Checks that already failed before the cleanup: Top Committee Phase 2 "Bid comparison", `rejection-workflow`, `all-offer-scoring-checks.py` and `procurement-entry-checks.py` (their test hosts do not register `ReportNavigation`), and the outdated expected-menu list in `TopCommitteeNotificationNavigationChecks`.
