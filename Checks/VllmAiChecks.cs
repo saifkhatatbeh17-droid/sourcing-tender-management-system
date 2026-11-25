@@ -70,17 +70,12 @@ public static class VllmAiChecks
                 $"{role} must not contain any demo data seeding tools.");
         }
 
-        var supplierTools = AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.Supplier).Select(t => t.Name).ToHashSet();
-        Require(supplierTools.Contains("supplier_upsert_offer") && supplierTools.Contains("supplier_respond_invitation"),
-            "Supplier tools missing expected entries.");
-        Require(!supplierTools.Any(n => n.StartsWith("evaluator_") || n.StartsWith("manager_") || n.StartsWith("admin_") || n.StartsWith("officer_")),
-            "Supplier must never receive internal committee, officer, manager, or admin tools.");
-
-        var evalTools = AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.EvaluationCommittee).Select(t => t.Name).ToHashSet();
-        Require(evalTools.Contains("evaluator_score_offers") && evalTools.Contains("evaluator_confirm_weight"),
-            "EvaluationCommittee tools missing expected entries.");
-        Require(!evalTools.Any(n => n.StartsWith("supplier_") || n.StartsWith("admin_") || n.StartsWith("manager_")),
-            "EvaluationCommittee must not receive supplier, manager, or admin tools.");
+        foreach (var role in RoleNames.Primary)
+        {
+            var names = AiChatWorkspaceActions.GetAuthorizedTools(role).Select(t => t.Name).Order().ToArray();
+            Require(names.SequenceEqual(["export_downloadable_file", "inspect_record_details", "navigate_to_page"]),
+                $"{role} must only get the read-only tools (navigate, inspect, export); Safi must never change workflow data.");
+        }
 
         // 4. Remote HTTPS API-key flow + automatic 400 fallback + <think> stripping + Agentic navigation & action loop
         var cloudCfg = new ConfigurationBuilder()
@@ -112,11 +107,10 @@ public static class VllmAiChecks
             [],
             initialSnap,
             AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.EvaluationCommittee),
-            (_, _) => Task.FromResult(new AiChatToolExecutionResult(false, false, "Should not run")),
-            _ => Task.FromResult(initialSnap),
+            (_, _) => Task.FromResult(new AiChatToolExecutionResult(false, "Should not run")),
             CancellationToken.None);
 
-        Require(!capResult.Mutated && capResult.NavigateUrl == null &&
+        Require(capResult.NavigateUrl == null &&
                 capResult.Answer.Contains("Evaluation Committee", StringComparison.OrdinalIgnoreCase),
             "Capability question should return a smart natural reply.");
         Require(cloudHandler.SawBearerAuth && cloudHandler.FallbackTriggered, "Bearer API key or 400 json_object fallback did not run.");
@@ -145,13 +139,11 @@ public static class VllmAiChecks
                 navToolExecuted = call.ToolName == "navigate_to_page";
                 return Task.FromResult(new AiChatToolExecutionResult(
                     true,
-                    false,
                     "Transferring user to Combined Reports (/EvaluationCommittee/Reports).",
                     "/EvaluationCommittee/Reports",
                     "Open Combined Reports",
                     "/EvaluationCommittee/Reports"));
             },
-            _ => Task.FromResult(initialSnap),
             CancellationToken.None);
 
         Require(navToolExecuted && navResult.NavigateUrl == "/EvaluationCommittee/Reports",
@@ -182,10 +174,9 @@ public static class VllmAiChecks
             initialSnap,
             AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.SourcingOfficer),
             (_, _) => throw new InvalidOperationException("No action should run during an outage."),
-            _ => Task.FromResult(initialSnap),
             CancellationToken.None);
 
-        Require(groqReply.WorkspaceOnly && !groqReply.Mutated && groqReply.Answer.Contains("Requests"),
+        Require(groqReply.WorkspaceOnly  && groqReply.Answer.Contains("Requests"),
             "A long Groq cooldown should return workspace help.");
         Require(groqMock.SawQwenEffortNone && groqMock.Calls == 2,
             "Safi must try Qwen first, then GPT-OSS 120B once during a long cooldown.");
@@ -194,8 +185,7 @@ public static class VllmAiChecks
         var recoveryChat = new AiChatClient(recoveryHttp, groqCfg);
         var recovered = await recoveryChat.RunAsync(
             RoleNames.SourcingOfficer, ["Requests"], "Summarize my queue", [], initialSnap, [],
-            (_, _) => throw new InvalidOperationException("No action was requested."),
-            _ => Task.FromResult(initialSnap), CancellationToken.None);
+            (_, _) => throw new InvalidOperationException("No action was requested."), CancellationToken.None);
         Require(!recovered.WorkspaceOnly && recovered.Answer == "Queue is clear.",
             "Safi should return the valid fallback reply after a Qwen rate limit.");
 
@@ -203,10 +193,9 @@ public static class VllmAiChecks
         var scopeChat = new AiChatClient(scopeHttp, groqCfg);
         var scopeResult = await scopeChat.RunAsync(
             RoleNames.EvaluationCommittee, ["Evaluations"], "اقترح لي هدية لعيد ميلاد", [], initialSnap, [],
-            (_, _) => throw new InvalidOperationException("Off-topic questions must not call tools."),
-            _ => Task.FromResult(initialSnap), CancellationToken.None);
+            (_, _) => throw new InvalidOperationException("Off-topic questions must not call tools."), CancellationToken.None);
         Require(scopeResult.Answer == "بقدر أساعدك فقط بأسئلة Tiryaq ضمن دورك." &&
-                !scopeResult.WorkspaceOnly && !scopeResult.Mutated,
+                !scopeResult.WorkspaceOnly,
             "An out-of-scope model decision must produce the localized refusal.");
 
         // 5b. Recover from structured output rejection using the same model.
@@ -220,8 +209,7 @@ public static class VllmAiChecks
             [],
             initialSnap,
             AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.EvaluationCommittee),
-            (_, _) => Task.FromResult(new AiChatToolExecutionResult(false, false, "Should not run")),
-            _ => Task.FromResult(initialSnap),
+            (_, _) => Task.FromResult(new AiChatToolExecutionResult(false, "Should not run")),
             CancellationToken.None);
 
         Require(formatReply.Answer.Contains("Recovered via fallback", StringComparison.OrdinalIgnoreCase),
@@ -358,7 +346,7 @@ public static class VllmAiChecks
                     "After edit cycle returns to Top Committee, 4 fresh approvals must award the (updated) nominated offer.");
         }
 
-        Console.WriteLine("PASS: vLLM /v1/chat/completions, thinking=false, Bearer API key auth, Groq 120B fallback and cooldown handling, AI Intelligence hub (Supplier-excluded + Excel/PDF upload/download), downloadable PDF/Excel exports, Top Committee complete-reject vs ask-for-edit cycle, role-scoped actions, page transfer (navigate_to_page), and Agentic AiChatClient.");
+        Console.WriteLine("PASS: vLLM /v1/chat/completions, thinking=false, Bearer API key auth, Groq 120B fallback and cooldown handling, AI Intelligence hub (Supplier-excluded + Excel/PDF upload/download), downloadable PDF/Excel exports, Top Committee complete-reject vs ask-for-edit cycle, read-only chat tools, page transfer (navigate_to_page), and Agentic AiChatClient.");
     }
 
     private static async Task CheckElevenLabsSpeechAsync()

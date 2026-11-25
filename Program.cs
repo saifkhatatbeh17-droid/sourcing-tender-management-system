@@ -252,4 +252,18 @@ app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
+if (args.Contains("--chat-navigation-checks"))
+{
+    // Routes only exist once the host is running, so check right after startup and then stop.
+    var navigationFailure = (Exception?)null;
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        try { SourcingTenderManagement.Checks.ChatNavigationChecks.Run(app.Services); }
+        catch (Exception ex) { navigationFailure = ex; }
+        finally { app.Lifetime.StopApplication(); }
+    });
+    await app.RunAsync();
+    if (navigationFailure != null) { Console.Error.WriteLine(navigationFailure.Message); Environment.ExitCode = 1; }
+    return;
+}
 app.Run();

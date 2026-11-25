@@ -19,3 +19,8 @@ __pycache__/
 *.pyc
 
 output/supplier-build/
+
+# Local Safi documentation and Understand-Anything graph (not part of the site)
+.ua/
+.understand-anything/
+Safi-Flow/

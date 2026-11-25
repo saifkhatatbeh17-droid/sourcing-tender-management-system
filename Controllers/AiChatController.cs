@@ -156,15 +156,9 @@ public sealed class AiChatController(
     public async Task<IActionResult> Ask(AiChatInput input, CancellationToken ct)
     {
         var workspace = input.Workspace?.Trim() ?? "";
-        if (!PageNavigation.Menus.TryGetValue(workspace, out var pages) || !User.IsInRole(workspace))
+        if (!await CanUseWorkspaceAsync(workspace))
             return Forbid();
-
-        var user = await users.GetUserAsync(User);
-        if (user?.IsActive != true || !await users.IsInRoleAsync(user, workspace))
-            return Forbid();
-
-        if (workspace == RoleNames.Supplier && !(await authorization.AuthorizeAsync(User, HttpContext, "ApprovedSupplier")).Succeeded)
-            return Forbid();
+        var user = (await users.GetUserAsync(User))!;
 
         var question = input.Question.Trim();
         if (question.Length == 0)
@@ -181,21 +175,18 @@ public sealed class AiChatController(
 
             var result = await client.RunAsync(
                 workspace,
-                pages.Select(p => p.Title).ToArray(),
+                PageNavigation.Menus[workspace].Select(p => p.Title).ToArray(),
                 question,
                 history,
                 initialSnapshot,
                 authorizedTools,
-                (toolCall, token) => actions.ExecuteAsync(workspace, User, user, toolCall.ToolName, toolCall.ArgumentsJson, token),
-                token => context.BuildSnapshotAsync(workspace, input.Page, input.RecordId, User, user, token),
+                (toolCall, token) => actions.ExecuteAsync(workspace, User, user, toolCall.ToolName, toolCall.ArgumentsJson, input.Page, input.RecordId, token),
                 ct);
 
             return Ok(new
             {
                 answer = result.Answer,
                 workspaceOnly = result.WorkspaceOnly,
-                mutated = result.Mutated,
-                actionSummaries = result.ActionSummaries,
                 navigateUrl = result.NavigateUrl,
                 source = result.SourceUrl,
                 sourceLabel = result.SourceLabel ?? "Open record",
@@ -206,35 +197,18 @@ public sealed class AiChatController(
             KeyNotFoundException || (ex is OperationCanceledException && !ct.IsCancellationRequested))
         {
             logger.LogWarning(ex, "AiChat request failed for workspace {Workspace} (page={Page}, recordId={RecordId}).", workspace, input.Page, input.RecordId);
-            return StatusCode(503, new { error = "Safi could not confirm the result. Check your workspace before resending any action." });
+            return StatusCode(503, new { error = "Safi could not confirm the result. Please try again." });
         }
     }
 
     private static List<AiChatHistoryTurn>? NormalizeHistory(AiChatInput input)
     {
-        var list = new List<AiChatHistoryTurn>();
-        if (input.History is { Length: > 0 })
-        {
-            if (input.History.Length > AiChatClient.HistoryMessageLimit) return null;
-            foreach (var item in input.History)
-            {
-                if (item == null || string.IsNullOrWhiteSpace(item.Content) || item.Content.Length > 4500)
-                    return null;
-                var role = item.Role?.Trim().ToLowerInvariant() == "assistant" ? "assistant" : "user";
-                list.Add(new AiChatHistoryTurn(role, item.Content.Trim()));
-            }
-            return list;
-        }
-
-        if (input.EarlierQuestions is { Length: > 0 })
-        {
-            if (input.EarlierQuestions.Length > 6 || input.EarlierQuestions.Any(q => string.IsNullOrWhiteSpace(q) || q.Length > 1500))
-                return null;
-            foreach (var q in input.EarlierQuestions)
-                list.Add(new AiChatHistoryTurn("user", q.Trim()));
-        }
-
-        return list;
+        var turns = input.History ?? [];
+        if (turns.Length > AiChatClient.HistoryMessageLimit ||
+            turns.Any(t => t == null || string.IsNullOrWhiteSpace(t.Content) || t.Content.Length > 4500))
+            return null;
+        return turns.Select(t => new AiChatHistoryTurn(
+            t.Role?.Trim().ToLowerInvariant() == "assistant" ? "assistant" : "user", t.Content.Trim())).ToList();
     }
 }
 
@@ -256,5 +230,4 @@ public sealed record AiChatInput(
     [Required, StringLength(40)] string Workspace,
     [StringLength(40)] string? Page,
     int? RecordId,
-    string[]? EarlierQuestions,
     AiChatTurnInput[]? History);

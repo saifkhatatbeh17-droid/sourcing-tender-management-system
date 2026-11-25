@@ -24,6 +24,14 @@ public sealed record AiChatExportDocument(
     IReadOnlyList<string> Highlights,
     IReadOnlyList<AiChatExportTable> Tables);
 
+/// <summary>One authorized record (tender, request or supplier) loaded for the signed-in user's role.</summary>
+public sealed record AiChatRecordData(string Kind, int Id, string Title, object Data, string? Url, string Label);
+
+/// <summary>
+/// Loads records exactly as the user's role may see them, and turns any of them (or the workspace summary)
+/// into a PDF/Excel file. Every export is built from the same role-scoped data the chat reads, so a file can
+/// never contain more than the user could already open.
+/// </summary>
 public sealed partial class AiChatExportService(
     ApplicationDbContext db,
     ITopCommitteeQueries topCommittee,
@@ -32,23 +40,30 @@ public sealed partial class AiChatExportService(
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public async Task<AiChatToolExecutionResult> InspectRecordAsync(
-        string workspace,
-        ClaimsPrincipal principal,
-        ApplicationUser user,
-        JsonElement args,
-        CancellationToken ct)
+        string workspace, ClaimsPrincipal principal, ApplicationUser user, JsonElement args, CancellationToken ct)
     {
-        var recordType = (GetString(args, "recordType") ?? "tender").Trim().ToLowerInvariant();
-        var id = GetInt(args, "id") ?? GetInt(args, "tenderId") ?? GetInt(args, "requestId") ?? GetInt(args, "supplierId");
-        var search = GetString(args, "search")?.Trim();
+        var record = await LoadRecordAsync(workspace, principal, user,
+            Str(args, "recordType") ?? "tender",
+            Int(args, "id") ?? Int(args, "tenderId") ?? Int(args, "requestId") ?? Int(args, "supplierId"),
+            Str(args, "search"), ct);
+        return record == null
+            ? new(false, "No matching record was found in your authorized workspace.")
+            : new(true, $"Loaded {record.Kind} #{record.Id} ('{record.Title}'): {JsonSerializer.Serialize(record.Data, Json)}", record.Url, record.Label);
+    }
+
+    /// <summary>Loads one tender, request or supplier by id (or title search) if the role may see it.</summary>
+    public async Task<AiChatRecordData?> LoadRecordAsync(
+        string workspace, ClaimsPrincipal principal, ApplicationUser user,
+        string recordType, int? id, string? search, CancellationToken ct)
+    {
+        recordType = recordType.Trim().ToLowerInvariant();
+        search = search?.Trim();
 
         if (recordType.Contains("request"))
         {
             var req = await LoadAuthorizedRequestAsync(workspace, user, id, search, ct);
-            if (req == null)
-                return new(false, false, "No matching Purchase Request was found in your authorized workspace.");
-
-            var detail = new
+            if (req == null) return null;
+            var data = new
             {
                 req.PurchaseRequestId,
                 req.Title,
@@ -61,49 +76,32 @@ public sealed partial class AiChatExportService(
                 req.ReviewNotes,
                 CreatedUtc = FormatUtc(req.CreatedAt),
                 SubmittedUtc = FormatUtc(req.SubmittedAt),
-                Items = req.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId).Select(i => new
-                {
-                    i.PurchaseRequestItemId,
-                    i.ItemName,
-                    i.Quantity,
-                    i.Unit,
-                    i.Specifications
-                }).ToArray(),
-                LinkedTenders = req.Tenders.OrderByDescending(t => t.TenderId).Select(t => new
-                {
-                    t.TenderId,
-                    t.Title,
-                    t.Status,
-                    ClosesUtc = FormatUtc(t.ClosesAt)
-                }).ToArray()
+                Items = req.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId)
+                    .Select(i => new { i.PurchaseRequestItemId, i.ItemName, i.Quantity, i.Unit, i.Specifications }).ToArray(),
+                LinkedTenders = req.Tenders.OrderByDescending(t => t.TenderId)
+                    .Select(t => new { t.TenderId, t.Title, t.Status, ClosesUtc = FormatUtc(t.ClosesAt) }).ToArray()
             };
-
-            return new(
-                true,
-                false,
-                $"Loaded Purchase Request #{req.PurchaseRequestId} ('{req.Title}'): {JsonSerializer.Serialize(detail, Json)}",
-                ResolveRequestUrl(workspace, req.PurchaseRequestId),
-                $"Open Request #{req.PurchaseRequestId}");
+            return new("Purchase Request", req.PurchaseRequestId, req.Title, data,
+                workspace switch
+                {
+                    RoleNames.Department => $"/Department/Details/{req.PurchaseRequestId}",
+                    RoleNames.SourcingOfficer => $"/SourcingOfficer/Requests?id={req.PurchaseRequestId}",
+                    _ => null
+                }, $"Open Request #{req.PurchaseRequestId}");
         }
 
-        if (recordType.Contains("supplier") && workspace != RoleNames.Supplier && workspace != RoleNames.Department)
+        if (recordType.Contains("supplier") && workspace is not (RoleNames.Supplier or RoleNames.Department))
         {
             var query = db.SupplierProfiles.AsNoTracking()
                 .Include(s => s.Invitations).ThenInclude(i => i.Tender)
-                .Include(s => s.Invitations).ThenInclude(i => i.Bids).ThenInclude(b => b.BidItems)
-                .AsQueryable();
-
-            SupplierProfile? supplier = null;
-            if (id is > 0)
-                supplier = await query.FirstOrDefaultAsync(s => s.SupplierProfileId == id.Value, ct);
-            else if (!string.IsNullOrWhiteSpace(search))
-                supplier = await query.FirstOrDefaultAsync(s => s.CompanyName.Contains(search), ct);
-
-            if (supplier == null)
-                return new(false, false, "No matching Supplier profile was found.");
+                .Include(s => s.Invitations).ThenInclude(i => i.Bids).ThenInclude(b => b.BidItems);
+            var supplier = id is > 0
+                ? await query.FirstOrDefaultAsync(s => s.SupplierProfileId == id.Value, ct)
+                : !string.IsNullOrWhiteSpace(search) ? await query.FirstOrDefaultAsync(s => s.CompanyName.Contains(search), ct) : null;
+            if (supplier == null) return null;
 
             var bids = supplier.Invitations.SelectMany(i => i.Bids).Where(b => b.SubmittedAt != null).ToList();
-            var detail = new
+            var data = new
             {
                 supplier.SupplierProfileId,
                 supplier.CompanyName,
@@ -125,123 +123,149 @@ public sealed partial class AiChatExportService(
                     b.DeliveryDays
                 }).ToArray()
             };
-
-            return new(
-                true,
-                false,
-                $"Loaded Supplier #{supplier.SupplierProfileId} ('{supplier.CompanyName}'): {JsonSerializer.Serialize(detail, Json)}",
-                workspace == RoleNames.Admin ? $"/Admin/SupplierDetails/{supplier.SupplierProfileId}" : null,
-                workspace == RoleNames.Admin ? $"Open Supplier #{supplier.SupplierProfileId}" : null);
+            var isAdmin = workspace == RoleNames.Admin;
+            return new("Supplier", supplier.SupplierProfileId, supplier.CompanyName, data,
+                isAdmin ? $"/Admin/SupplierDetails/{supplier.SupplierProfileId}" : null,
+                $"Open Supplier #{supplier.SupplierProfileId}");
         }
 
         var tender = await LoadAuthorizedTenderAsync(workspace, principal, user, id, search, ct);
-        if (tender == null)
-            return new(false, false, "No matching Tender was found in your authorized workspace.");
-
-        var snapshotJson = JsonSerializer.Serialize(await BuildAuthorizedTenderSnapshotAsync(workspace, user, tender, ct), Json);
-        return new(
-            true,
-            false,
-            $"Loaded Tender #{tender.TenderId} ('{tender.Title}'): {snapshotJson}",
-            ResolveTenderUrl(workspace, tender.TenderId),
-            $"Open Tender #{tender.TenderId}");
+        if (tender == null) return null;
+        return new("Tender", tender.TenderId, tender.Title,
+            await BuildAuthorizedTenderSnapshotAsync(workspace, user, tender, ct),
+            workspace switch
+            {
+                RoleNames.SourcingOfficer => $"/SourcingOfficer/Offers?tenderId={tender.TenderId}",
+                RoleNames.EvaluationCommittee => $"/EvaluationCommittee/Evaluations/{tender.TenderId}",
+                RoleNames.TopCommittee => $"/TopCommittee/TenderDetails/{tender.TenderId}",
+                _ => null
+            }, $"Open Tender #{tender.TenderId}");
     }
 
     public async Task<AiChatToolExecutionResult> GenerateDownloadAsync(
-        string workspace,
-        ClaimsPrincipal principal,
-        ApplicationUser user,
-        JsonElement args,
-        CancellationToken ct)
+        string workspace, ClaimsPrincipal principal, ApplicationUser user, JsonElement args,
+        object? workspaceData, CancellationToken ct)
     {
-        var rawScope = (GetString(args, "scope") ?? "").Trim().ToLowerInvariant();
-        var rawFormat = (GetString(args, "format") ?? "both").Trim().ToLowerInvariant();
-        var tenderId = GetInt(args, "tenderId");
-        var requestId = GetInt(args, "requestId");
-        var search = GetString(args, "search")?.Trim();
-        var customTitle = GetString(args, "title")?.Trim();
-        var executiveSummary = GetString(args, "executiveSummary")?.Trim();
-        var highlights = GetStringArray(args, "highlights");
-        var customColumns = GetStringArray(args, "columns");
-        var customRows = GetStringMatrix(args, "rows");
-
-        AiChatExportDocument? docModel = null;
-        string? targetUrl = null;
-        string? targetLabel = null;
-
-        if (rawScope == "tender" || tenderId is > 0)
-        {
-            var tender = await LoadAuthorizedTenderAsync(workspace, principal, user, tenderId, search ?? customTitle, ct);
-            if (tender == null)
-                return new(false, false, "Could not find an authorized Tender matching that ID or title to export.");
-
-            docModel = await BuildTenderExportDocumentAsync(workspace, user, tender, customTitle, executiveSummary, highlights, customColumns, customRows, ct);
-            targetUrl = ResolveTenderUrl(workspace, tender.TenderId);
-            targetLabel = $"Open Tender #{tender.TenderId}";
-        }
-        else if (rawScope == "request" || requestId is > 0)
-        {
-            var req = await LoadAuthorizedRequestAsync(workspace, user, requestId, search ?? customTitle, ct);
-            if (req == null)
-                return new(false, false, "Could not find an authorized Purchase Request matching that ID or title to export.");
-
-            docModel = BuildRequestExportDocument(req, customTitle, executiveSummary, highlights, customColumns, customRows);
-            targetUrl = ResolveRequestUrl(workspace, req.PurchaseRequestId);
-            targetLabel = $"Open Request #{req.PurchaseRequestId}";
-        }
-        else if (rawScope == "workspace")
-        {
-            docModel = await BuildWorkspaceExportDocumentAsync(workspace, principal, user, customTitle, executiveSummary, highlights, customColumns, customRows, ct);
-        }
-        else
-        {
-            docModel = BuildCustomExportDocument(workspace, user, customTitle, executiveSummary, highlights, customColumns, customRows);
-        }
-
-        var wantPdf = rawFormat is "pdf" or "both" or "all" || (rawFormat != "excel" && rawFormat != "xlsx");
-        var wantExcel = rawFormat is "excel" or "xlsx" or "both" or "all";
-
-        var links = new List<AiChatDownloadLink>();
+        var scope = (Str(args, "scope") ?? "").Trim().ToLowerInvariant();
+        var format = (Str(args, "format") ?? "both").Trim().ToLowerInvariant();
+        var tenderId = Int(args, "tenderId");
+        var requestId = Int(args, "requestId");
+        var search = Str(args, "search")?.Trim();
+        var title = Str(args, "title")?.Trim();
         var roleLabel = RoleNames.DisplayName(workspace);
 
-        if (wantPdf)
+        object? data = null;
+        string? subject = null, targetUrl = null, targetLabel = null;
+        var slug = "";
+
+        if (scope == "tender" || tenderId is > 0 || scope == "request" || requestId is > 0)
         {
-            var pdfBytes = RenderPdfDocument(docModel, roleLabel);
-            links.Add(downloads.Save(
-                user.Id,
-                workspace,
-                $"{docModel.FileSlug}.pdf",
-                "application/pdf",
-                "Download PDF",
-                "pdf",
-                pdfBytes));
+            var isTender = scope == "tender" || tenderId is > 0;
+            var record = await LoadRecordAsync(workspace, principal, user, isTender ? "tender" : "request",
+                isTender ? tenderId : requestId, search ?? title, ct);
+            if (record == null)
+                return new(false, $"Could not find an authorized {(isTender ? "Tender" : "Purchase Request")} matching that ID or title to export.");
+            data = record.Data;
+            subject = $"{record.Kind} #{record.Id} — {record.Title}";
+            slug = $"{record.Kind.Replace(" ", "")}-{record.Id}";
+            (targetUrl, targetLabel) = (record.Url, record.Label);
+        }
+        else if (scope == "workspace")
+        {
+            data = workspaceData;
+            subject = $"{roleLabel} Workspace Summary";
+            slug = $"{roleLabel}-Workspace-Summary";
         }
 
-        if (wantExcel)
-        {
-            var xlsxBytes = RenderExcelDocument(docModel, roleLabel);
-            links.Add(downloads.Save(
-                user.Id,
-                workspace,
-                $"{docModel.FileSlug}.xlsx",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "Download Excel (.xlsx)",
-                "excel",
-                xlsxBytes));
-        }
+        var doc = BuildDocument(workspace, user, title ?? subject, slug, data,
+            Str(args, "executiveSummary")?.Trim(), StrList(args, "highlights"), StrList(args, "columns"), StrMatrix(args, "rows"));
 
-        var formatsList = string.Join(" & ", links.Select(l => l.FileName));
-        return new AiChatToolExecutionResult(
-            true,
-            false,
-            $"Generated downloadable file(s) ({formatsList}) for '{docModel.Title}'. Clickable download buttons are now attached directly below your chat reply.",
-            targetUrl,
-            targetLabel,
-            null,
-            links);
+        var links = new List<AiChatDownloadLink>();
+        if (format is not ("excel" or "xlsx"))
+            links.Add(downloads.Save(user.Id, workspace, $"{doc.FileSlug}.pdf", "application/pdf", "Download PDF", "pdf", RenderPdfDocument(doc, roleLabel)));
+        if (format is "excel" or "xlsx" or "both" or "all")
+            links.Add(downloads.Save(user.Id, workspace, $"{doc.FileSlug}.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Download Excel (.xlsx)", "excel", RenderExcelDocument(doc, roleLabel)));
+
+        return new(true,
+            $"Generated downloadable file(s) ({string.Join(" & ", links.Select(l => l.FileName))}) for '{doc.Title}'. Clickable download buttons are now attached directly below your chat reply.",
+            targetUrl, targetLabel, null, links);
     }
 
-    // ---------------- AUTHORIZED DATA LOADERS ----------------
+    // ---------------- ONE GENERIC DOCUMENT BUILDER ----------------
+
+    /// <summary>
+    /// Turns role-scoped data (a tender, a request, the workspace summary) into a document: single values become the
+    /// metadata table, and every list of records becomes its own table/sheet. Optional custom columns/rows are added last.
+    /// </summary>
+    private static AiChatExportDocument BuildDocument(
+        string workspace, ApplicationUser user, string? title, string slug, object? data,
+        string? summary, IReadOnlyList<string> highlights, IReadOnlyList<string> columns, IReadOnlyList<string[]> rows)
+    {
+        var roleLabel = RoleNames.DisplayName(workspace);
+        title = string.IsNullOrWhiteSpace(title) ? $"Safi Summary — {roleLabel}" : title;
+
+        var metrics = new List<(string, string)>
+        {
+            ("Prepared For", $"{user.FullName} ({user.Email})"),
+            ("Workspace", roleLabel),
+            ("Generated (UTC)", FormatUtc(DateTime.UtcNow))
+        };
+        var tables = new List<AiChatExportTable>();
+
+        if (data != null)
+        {
+            var root = JsonSerializer.SerializeToElement(data, Json);
+            if (root.ValueKind == JsonValueKind.Object)
+                foreach (var prop in root.EnumerateObject())
+                    AddValue(Humanize(prop.Name), prop.Value, metrics, tables);
+        }
+
+        if (columns.Count > 0 && rows.Count > 0)
+        {
+            var headers = columns.Take(10).Select((c, i) => string.IsNullOrWhiteSpace(c) ? $"Column {i + 1}" : c.Trim()).ToArray();
+            tables.Add(new("Structured Data", headers, rows.Take(150)
+                .Select(r => headers.Select((_, i) => i < r.Length ? r[i] ?? "" : "").ToArray()).ToList()));
+        }
+
+        return new(title, $"Prepared by Safi · Tiryaq {roleLabel}", SanitizeSlug(string.IsNullOrWhiteSpace(slug) ? title : slug),
+            metrics, summary ?? $"Generated by Safi for {user.FullName} in the {roleLabel} workspace.", highlights, tables);
+    }
+
+    private static void AddValue(string name, JsonElement value, List<(string, string)> metrics, List<AiChatExportTable> tables)
+    {
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var inner in value.EnumerateObject())
+                    AddValue($"{name} · {Humanize(inner.Name)}", inner.Value, metrics, tables);
+                break;
+            case JsonValueKind.Array when value.EnumerateArray().Any(e => e.ValueKind == JsonValueKind.Object):
+                var items = value.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Object).Take(150).ToList();
+                var keys = items.SelectMany(i => i.EnumerateObject().Select(p => p.Name)).Distinct().Take(10).ToArray();
+                tables.Add(new(name, keys.Select(Humanize).ToArray(),
+                    items.Select(i => keys.Select(k => i.TryGetProperty(k, out var v) ? Cell(v) : "").ToArray()).ToList()));
+                break;
+            case JsonValueKind.Null or JsonValueKind.Undefined:
+                break;
+            default:
+                metrics.Add((name, Cell(value)));
+                break;
+        }
+    }
+
+    private static string Cell(JsonElement v) => v.ValueKind switch
+    {
+        JsonValueKind.String => v.GetString() ?? "",
+        JsonValueKind.Null => "",
+        JsonValueKind.Array => string.Join("; ", v.EnumerateArray().Select(Cell)),
+        JsonValueKind.Object => string.Join(", ", v.EnumerateObject().Select(p => $"{Humanize(p.Name)}: {Cell(p.Value)}")),
+        _ => v.GetRawText()
+    };
+
+    private static string Humanize(string name) => HumpRegex().Replace(name, " $1").Trim();
+
+    // ---------------- ROLE-SCOPED LOADERS ----------------
 
     private async Task<Tender?> LoadAuthorizedTenderAsync(
         string workspace,
@@ -475,549 +499,6 @@ public sealed partial class AiChatExportService(
         };
     }
 
-    // ---------------- DOCUMENT BUILDERS ----------------
-
-    private async Task<AiChatExportDocument> BuildTenderExportDocumentAsync(
-        string workspace,
-        ApplicationUser user,
-        Tender tender,
-        string? customTitle,
-        string? executiveSummary,
-        IReadOnlyList<string> highlights,
-        IReadOnlyList<string> customColumns,
-        IReadOnlyList<string[]> customRows,
-        CancellationToken ct)
-    {
-        var title = !string.IsNullOrWhiteSpace(customTitle)
-            ? customTitle
-            : $"Tender #{tender.TenderId} Summary — {tender.Title}";
-
-        var metrics = new List<(string Label, string Value)>
-        {
-            ("Tender ID", $"#{tender.TenderId}"),
-            ("Status", tender.Status),
-            ("Category", tender.Category ?? "General"),
-            ("Offer Round", (1 + tender.OfferExtensions.Count).ToString(CultureInfo.InvariantCulture)),
-            ("Opens (UTC)", FormatUtc(tender.OpensAt)),
-            ("Closes (UTC)", FormatUtc(tender.ClosesAt))
-        };
-
-        if (tender.AwardedAt.HasValue)
-            metrics.Add(("Awarded (UTC)", FormatUtc(tender.AwardedAt)));
-
-        if (workspace != RoleNames.Supplier)
-        {
-            metrics.Add(("Purchase Request", $"#{tender.PurchaseRequestId} ({tender.PurchaseRequest.Department.Name})"));
-        }
-
-        var tables = new List<AiChatExportTable>();
-
-        // 1. Requested Items Table
-        var reqItems = tender.PurchaseRequest.PurchaseRequestItems
-            .OrderBy(i => i.PurchaseRequestItemId)
-            .Select(i => new[]
-            {
-                $"#{i.PurchaseRequestItemId}",
-                i.ItemName,
-                $"{i.Quantity:0.###} {i.Unit}",
-                string.IsNullOrWhiteSpace(i.Specifications) ? "Standard specification" : i.Specifications
-            })
-            .ToList();
-
-        tables.Add(new AiChatExportTable(
-            "Requested Items",
-            ["Item ID", "Item Name", "Quantity", "Requested Specifications"],
-            reqItems));
-
-        // 2. Role-Scoped Offers / Invitations Table
-        if (workspace == RoleNames.Supplier)
-        {
-            var myInv = tender.Invitations.FirstOrDefault(i => i.SupplierProfile.UserId == user.Id);
-            var myBids = myInv?.Bids.OrderByDescending(b => b.BidId).ToList() ?? [];
-            metrics.Add(("Invitation Status", myInv?.Status ?? "Invited"));
-            tables.Add(new AiChatExportTable(
-                "My Quotations",
-                ["Offer ID", "Status", "Compliance", "Subtotal", "Tax", "Add. Costs", "Total", "Delivery", "Payment Terms"],
-                myBids.Select(b => new[]
-                {
-                    $"#{b.BidId}",
-                    b.Status,
-                    b.ComplianceStatus ?? "Pending",
-                    $"{b.BidItems.Sum(x => x.Quantity * x.UnitPrice):N2} {b.Currency}",
-                    $"{b.TaxAmount:N2} {b.Currency}",
-                    $"{b.AdditionalCosts:N2} {b.Currency}",
-                    $"{CommitteeEvaluationPage.Total(b):N2} {b.Currency}",
-                    $"{b.DeliveryDays} days",
-                    b.PaymentTerms ?? "Not specified"
-                }).ToList()));
-        }
-        else if (workspace != RoleNames.Department)
-        {
-            var evals = await db.Evaluations.AsNoTracking()
-                .Where(e => e.TenderId == tender.TenderId)
-                .ToListAsync(ct);
-            var evalPage = new CommitteeEvaluationPage { Tender = tender, UserId = user.Id, Evaluations = evals };
-            var ranking = AllOfferScoring.Ranking(evalPage);
-
-            var visibleBids = tender.Invitations.SelectMany(i => i.Bids)
-                .Where(b => b.SubmittedAt != null && b.Status != "Withdrawn")
-                .Where(b => workspace != RoleNames.EvaluationCommittee || b.ComplianceStatus == "Compliant")
-                .OrderBy(b => CommitteeEvaluationPage.Total(b))
-                .ToList();
-
-            metrics.Add(("Invited Suppliers", tender.Invitations.Count.ToString(CultureInfo.InvariantCulture)));
-            metrics.Add(("Submitted Offers", visibleBids.Count.ToString(CultureInfo.InvariantCulture)));
-            metrics.Add(("Compliant Offers", visibleBids.Count(b => b.ComplianceStatus == "Compliant").ToString(CultureInfo.InvariantCulture)));
-
-            if (evalPage.ConsensusLocked)
-            {
-                metrics.Add(("Locked Weights", $"{evalPage.FinancialWeight:0.##}% Financial / {evalPage.TechnicalWeight:0.##}% Technical"));
-            }
-
-            tables.Add(new AiChatExportTable(
-                "Submitted Supplier Offers",
-                ["Offer", "Supplier", "Compliance", "Total", "Delivery", "Payment Terms", "Avg Score", "Status"],
-                visibleBids.Select(b =>
-                {
-                    var rank = ranking.FirstOrDefault(r => r.BidId == b.BidId);
-                    return new[]
-                    {
-                        $"#{b.BidId}",
-                        b.Invitation.SupplierProfile.CompanyName,
-                        b.ComplianceStatus ?? "Pending",
-                        $"{CommitteeEvaluationPage.Total(b):N2} {b.Currency}",
-                        $"{b.DeliveryDays} days",
-                        b.PaymentTerms ?? "Not specified",
-                        rank != null ? $"{rank.Score:0.##} / 100" : "N/A",
-                        b.BidId == tender.AwardedBidId ? "Awarded Winner" : b.Status
-                    };
-                }).ToList()));
-
-            // Itemized quotation lines sheet/table when offers exist
-            var lineRows = visibleBids.SelectMany(b => b.BidItems.OrderBy(bi => bi.BidItemId).Select(bi =>
-            {
-                var reqItem = tender.PurchaseRequest.PurchaseRequestItems.FirstOrDefault(ri => ri.PurchaseRequestItemId == bi.PurchaseRequestItemId);
-                return new[]
-                {
-                    $"#{b.BidId} ({b.Invitation.SupplierProfile.CompanyName})",
-                    reqItem?.ItemName ?? $"Item #{bi.PurchaseRequestItemId}",
-                    $"{bi.Quantity:0.###} {reqItem?.Unit ?? ""}".Trim(),
-                    $"{bi.UnitPrice:N2} {b.Currency}",
-                    $"{bi.Quantity * bi.UnitPrice:N2} {b.Currency}",
-                    bi.OfferedSpecifications ?? ""
-                };
-            })).ToList();
-
-            if (lineRows.Count > 0)
-            {
-                tables.Add(new AiChatExportTable(
-                    "Itemized Offer Pricing",
-                    ["Offer & Supplier", "Item", "Quantity", "Unit Price", "Line Subtotal", "Offered Specifications"],
-                    lineRows));
-            }
-
-            if (tender.EvaluationReport is { } rep)
-            {
-                var recSupplier = visibleBids.FirstOrDefault(b => b.BidId == rep.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName
-                                  ?? (rep.RecommendedBidId.HasValue ? $"Offer #{rep.RecommendedBidId}" : "None");
-                tables.Add(new AiChatExportTable(
-                    "Evaluation & Approval Summary",
-                    ["Report ID", "Report Status", "Recommended Offer", "Officer Review", "Manager Review"],
-                    [
-                        [
-                            $"#{rep.EvaluationReportId}",
-                            rep.Status,
-                            recSupplier,
-                            rep.OfficerSummary ?? "Pending",
-                            rep.ManagerSummary ?? "Pending"
-                        ]
-                    ]));
-            }
-        }
-
-        if (customColumns.Count > 0 && customRows.Count > 0)
-        {
-            tables.Add(NormalizeCustomTable("Custom Analysis", customColumns, customRows));
-        }
-
-        var summaryText = !string.IsNullOrWhiteSpace(executiveSummary)
-            ? executiveSummary
-            : $"Live Tiryaq summary for Tender #{tender.TenderId} ({tender.Title}). Scope: {tender.Description}" +
-              (string.IsNullOrWhiteSpace(tender.Terms) ? "" : $" Terms: {tender.Terms}");
-
-        return new AiChatExportDocument(
-            title,
-            $"Tender #{tender.TenderId} · {RoleNames.DisplayName(workspace)} Workspace",
-            SanitizeSlug($"Tender-{tender.TenderId}-Summary"),
-            metrics,
-            summaryText,
-            highlights,
-            tables);
-    }
-
-    private static AiChatExportDocument BuildRequestExportDocument(
-        PurchaseRequest req,
-        string? customTitle,
-        string? executiveSummary,
-        IReadOnlyList<string> highlights,
-        IReadOnlyList<string> customColumns,
-        IReadOnlyList<string[]> customRows)
-    {
-        var title = !string.IsNullOrWhiteSpace(customTitle)
-            ? customTitle
-            : $"Purchase Request #{req.PurchaseRequestId} — {req.Title}";
-
-        var metrics = new List<(string Label, string Value)>
-        {
-            ("Request ID", $"#{req.PurchaseRequestId}"),
-            ("Department", req.Department.Name),
-            ("Requester", req.RequestedByUser.FullName),
-            ("Priority", req.Priority),
-            ("Status", req.Status),
-            ("Target Date", req.TargetDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
-            ("Created (UTC)", FormatUtc(req.CreatedAt))
-        };
-
-        var tables = new List<AiChatExportTable>
-        {
-            new(
-                "Requested Items",
-                ["Item ID", "Item Name", "Quantity", "Unit", "Specifications"],
-                req.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId).Select(i => new[]
-                {
-                    $"#{i.PurchaseRequestItemId}",
-                    i.ItemName,
-                    i.Quantity.ToString("0.###", CultureInfo.InvariantCulture),
-                    i.Unit,
-                    i.Specifications ?? ""
-                }).ToList())
-        };
-
-        if (req.Tenders.Count > 0)
-        {
-            tables.Add(new AiChatExportTable(
-                "Linked Tenders",
-                ["Tender ID", "Title", "Category", "Status", "Closes (UTC)"],
-                req.Tenders.OrderByDescending(t => t.TenderId).Select(t => new[]
-                {
-                    $"#{t.TenderId}",
-                    t.Title,
-                    t.Category ?? "General",
-                    t.Status,
-                    FormatUtc(t.ClosesAt)
-                }).ToList()));
-        }
-
-        if (customColumns.Count > 0 && customRows.Count > 0)
-            tables.Add(NormalizeCustomTable("Custom Notes", customColumns, customRows));
-
-        var summary = !string.IsNullOrWhiteSpace(executiveSummary)
-            ? executiveSummary
-            : $"Justification: {req.Reason}" + (string.IsNullOrWhiteSpace(req.ReviewNotes) ? "" : $"\nReview Notes: {req.ReviewNotes}");
-
-        return new AiChatExportDocument(
-            title,
-            $"Purchase Request #{req.PurchaseRequestId} · {req.Department.Name}",
-            SanitizeSlug($"Request-{req.PurchaseRequestId}-Summary"),
-            metrics,
-            summary,
-            highlights,
-            tables);
-    }
-
-    private async Task<AiChatExportDocument> BuildWorkspaceExportDocumentAsync(
-        string workspace,
-        ClaimsPrincipal principal,
-        ApplicationUser user,
-        string? customTitle,
-        string? executiveSummary,
-        IReadOnlyList<string> highlights,
-        IReadOnlyList<string> customColumns,
-        IReadOnlyList<string[]> customRows,
-        CancellationToken ct)
-    {
-        var roleDisplay = RoleNames.DisplayName(workspace);
-        var title = !string.IsNullOrWhiteSpace(customTitle) ? customTitle : $"{roleDisplay} Workspace Summary Report";
-        var metrics = new List<(string Label, string Value)>
-        {
-            ("Prepared For", $"{user.FullName} ({user.Email})"),
-            ("Workspace", roleDisplay)
-        };
-        var tables = new List<AiChatExportTable>();
-
-        switch (workspace)
-        {
-            case RoleNames.SourcingOfficer:
-            {
-                var requests = await db.PurchaseRequests.AsNoTracking()
-                    .ReviewableBy(user.Id)
-                    .Include(r => r.Department)
-                    .Include(r => r.PurchaseRequestItems)
-                    .OrderByDescending(r => r.PurchaseRequestId)
-                    .Take(30)
-                    .ToListAsync(ct);
-
-                var tenders = await db.Tenders.AsNoTracking()
-                    .Where(t => t.CreatedByUserId == user.Id)
-                    .AsSplitQuery()
-                    .Include(t => t.Invitations).ThenInclude(i => i.Bids)
-                    .Include(t => t.EvaluationReport)
-                    .OrderByDescending(t => t.TenderId)
-                    .Take(30)
-                    .ToListAsync(ct);
-
-                metrics.Add(("Reviewable Requests", requests.Count.ToString(CultureInfo.InvariantCulture)));
-                metrics.Add(("Managed Tenders", tenders.Count.ToString(CultureInfo.InvariantCulture)));
-
-                tables.Add(new AiChatExportTable(
-                    "Managed Tenders",
-                    ["Tender ID", "Title", "Category", "Status", "Invited", "Submitted Offers", "Compliant", "Closes (UTC)"],
-                    tenders.Select(t =>
-                    {
-                        var bids = t.Invitations.SelectMany(i => i.Bids).Where(b => b.SubmittedAt != null && b.Status != "Withdrawn").ToList();
-                        return new[]
-                        {
-                            $"#{t.TenderId}",
-                            t.Title,
-                            t.Category ?? "General",
-                            t.Status,
-                            t.Invitations.Count.ToString(CultureInfo.InvariantCulture),
-                            bids.Count.ToString(CultureInfo.InvariantCulture),
-                            bids.Count(b => b.ComplianceStatus == "Compliant").ToString(CultureInfo.InvariantCulture),
-                            FormatUtc(t.ClosesAt)
-                        };
-                    }).ToList()));
-
-                tables.Add(new AiChatExportTable(
-                    "Incoming Purchase Requests",
-                    ["Request ID", "Title", "Department", "Priority", "Status", "Items", "Target Date"],
-                    requests.Select(r => new[]
-                    {
-                        $"#{r.PurchaseRequestId}",
-                        r.Title,
-                        r.Department.Name,
-                        r.Priority,
-                        r.Status,
-                        r.PurchaseRequestItems.Count.ToString(CultureInfo.InvariantCulture),
-                        r.TargetDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-                    }).ToList()));
-                break;
-            }
-
-            case RoleNames.Department when user.DepartmentId.HasValue:
-            {
-                var requests = await db.PurchaseRequests.AsNoTracking()
-                    .InDepartment(user.DepartmentId)
-                    .Include(r => r.PurchaseRequestItems)
-                    .Include(r => r.Tenders)
-                    .OrderByDescending(r => r.PurchaseRequestId)
-                    .Take(40)
-                    .ToListAsync(ct);
-
-                metrics.Add(("Department Requests", requests.Count.ToString(CultureInfo.InvariantCulture)));
-                tables.Add(new AiChatExportTable(
-                    "Department Requests",
-                    ["Request ID", "Title", "Priority", "Status", "Items", "Target Date", "Linked Tender"],
-                    requests.Select(r => new[]
-                    {
-                        $"#{r.PurchaseRequestId}",
-                        r.Title,
-                        r.Priority,
-                        r.Status,
-                        r.PurchaseRequestItems.Count.ToString(CultureInfo.InvariantCulture),
-                        r.TargetDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                        r.Tenders.Any() ? string.Join(", ", r.Tenders.Select(t => $"#{t.TenderId} ({t.Status})")) : "None"
-                    }).ToList()));
-                break;
-            }
-
-            case RoleNames.EvaluationCommittee:
-            {
-                var tenders = await db.Tenders.AsNoTracking()
-                    .InEvaluationWorkspace(user.Id)
-                    .AsSplitQuery()
-                    .Include(t => t.Invitations).ThenInclude(i => i.Bids.Where(b => b.ComplianceStatus == "Compliant"))
-                    .Include(t => t.CommitteeWeightProposals)
-                    .Include(t => t.EvaluationReport)
-                    .OrderByDescending(t => t.TenderId)
-                    .Take(30)
-                    .ToListAsync(ct);
-
-                metrics.Add(("Evaluation Tenders", tenders.Count.ToString(CultureInfo.InvariantCulture)));
-                tables.Add(new AiChatExportTable(
-                    "Evaluation Queue",
-                    ["Tender ID", "Title", "Status", "Compliant Offers", "Weights Confirmed", "Report Status"],
-                    tenders.Select(t => new[]
-                    {
-                        $"#{t.TenderId}",
-                        t.Title,
-                        t.Status,
-                        t.Invitations.SelectMany(i => i.Bids).Count().ToString(CultureInfo.InvariantCulture),
-                        $"{t.CommitteeWeightProposals.Count} / 4",
-                        t.EvaluationReport?.Status ?? "Not generated"
-                    }).ToList()));
-                break;
-            }
-
-            case RoleNames.SourcingManager:
-            {
-                var submissions = await db.EvaluationReports.AsNoTracking()
-                    .Include(r => r.Tender)
-                    .Include(r => r.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.SupplierProfile)
-                    .Include(r => r.Bid).ThenInclude(b => b!.BidItems)
-                    .OrderByDescending(r => r.EvaluationReportId)
-                    .Take(35)
-                    .ToListAsync(ct);
-
-                metrics.Add(("Committee Reports", submissions.Count.ToString(CultureInfo.InvariantCulture)));
-                tables.Add(new AiChatExportTable(
-                    "Submissions & Recommendations",
-                    ["Report ID", "Tender", "Tender Status", "Report Status", "Recommended Supplier", "Total"],
-                    submissions.Select(r => new[]
-                    {
-                        $"#{r.EvaluationReportId}",
-                        $"#{r.TenderId} - {r.Tender.Title}",
-                        r.Tender.Status,
-                        r.Status,
-                        r.Bid?.Invitation.SupplierProfile.CompanyName ?? "None",
-                        r.Bid != null ? $"{CommitteeEvaluationPage.Total(r.Bid):N2} {r.Bid.Currency}" : "N/A"
-                    }).ToList()));
-                break;
-            }
-
-            case RoleNames.TopCommittee:
-            {
-                var dash = await topCommittee.GetDashboardAsync(principal, ct);
-                metrics.Add(("Assigned Tenders", dash.AssignedTenders.ToString(CultureInfo.InvariantCulture)));
-                metrics.Add(("Awaiting Decision", dash.AwaitingDecision.ToString(CultureInfo.InvariantCulture)));
-                metrics.Add(("Awarded", dash.AwardedTenders.ToString(CultureInfo.InvariantCulture)));
-                tables.Add(new AiChatExportTable(
-                    "Pending Executive Votes",
-                    ["Tender ID", "Title", "Nominated Supplier", "Approvals / 4"],
-                    dash.PendingTenders.Select(p => new[]
-                    {
-                        $"#{p.TenderId}",
-                        p.Title,
-                        p.NominatedSupplier ?? "N/A",
-                        $"{p.RecordedApprovals} / 4"
-                    }).ToList()));
-                break;
-            }
-
-            case RoleNames.Supplier:
-            {
-                var profile = await db.SupplierProfiles.AsNoTracking()
-                    .Include(s => s.Invitations).ThenInclude(i => i.Tender)
-                    .Include(s => s.Invitations).ThenInclude(i => i.Bids).ThenInclude(b => b.BidItems)
-                    .FirstOrDefaultAsync(s => s.UserId == user.Id && s.Status == "Approved", ct);
-
-                if (profile != null)
-                {
-                    metrics.Add(("Company", profile.CompanyName));
-                    tables.Add(new AiChatExportTable(
-                        "My Invitations & Quotations",
-                        ["Invitation", "Tender", "Invitation Status", "Tender Status", "My Offer", "Quoted Total", "Closes (UTC)"],
-                        profile.Invitations.OrderByDescending(i => i.InvitationId).Select(i =>
-                        {
-                            var b = i.Bids.OrderByDescending(x => x.BidId).FirstOrDefault();
-                            return new[]
-                            {
-                                $"#{i.InvitationId}",
-                                $"#{i.TenderId} - {i.Tender.Title}",
-                                i.Status,
-                                i.Tender.Status,
-                                b != null ? $"#{b.BidId} ({b.Status})" : "None",
-                                b != null ? $"{CommitteeEvaluationPage.Total(b):N2} {b.Currency}" : "N/A",
-                                FormatUtc(i.Tender.ClosesAt)
-                            };
-                        }).ToList()));
-                }
-                break;
-            }
-
-            case RoleNames.Admin:
-            {
-                var tenders = await db.Tenders.AsNoTracking().OrderByDescending(t => t.TenderId).Take(30).ToListAsync(ct);
-                var suppliers = await db.SupplierProfiles.AsNoTracking().OrderByDescending(s => s.SupplierProfileId).Take(40).ToListAsync(ct);
-                metrics.Add(("Total Users", (await db.Users.CountAsync(ct)).ToString(CultureInfo.InvariantCulture)));
-                metrics.Add(("Total Suppliers", suppliers.Count.ToString(CultureInfo.InvariantCulture)));
-                metrics.Add(("Recent Tenders", tenders.Count.ToString(CultureInfo.InvariantCulture)));
-
-                tables.Add(new AiChatExportTable(
-                    "Recent Tenders",
-                    ["Tender ID", "Title", "Category", "Status", "Opens (UTC)", "Closes (UTC)"],
-                    tenders.Select(t => new[]
-                    {
-                        $"#{t.TenderId}",
-                        t.Title,
-                        t.Category ?? "General",
-                        t.Status,
-                        FormatUtc(t.OpensAt),
-                        FormatUtc(t.ClosesAt)
-                    }).ToList()));
-
-                tables.Add(new AiChatExportTable(
-                    "Suppliers Directory",
-                    ["Supplier ID", "Company Name", "Registration #", "Category", "Status"],
-                    suppliers.Select(s => new[]
-                    {
-                        $"#{s.SupplierProfileId}",
-                        s.CompanyName,
-                        s.RegistrationNumber,
-                        s.Category ?? "Not specified",
-                        s.Status
-                    }).ToList()));
-                break;
-            }
-        }
-
-        if (customColumns.Count > 0 && customRows.Count > 0)
-            tables.Add(NormalizeCustomTable("Custom Breakdown", customColumns, customRows));
-
-        return new AiChatExportDocument(
-            title,
-            $"Tiryaq {roleDisplay} Live Snapshot",
-            SanitizeSlug($"{roleDisplay}-Workspace-Summary"),
-            metrics,
-            executiveSummary ?? $"Live summary generated by Safi for {user.FullName} in the {roleDisplay} workspace.",
-            highlights,
-            tables);
-    }
-
-    private static AiChatExportDocument BuildCustomExportDocument(
-        string workspace,
-        ApplicationUser user,
-        string? customTitle,
-        string? executiveSummary,
-        IReadOnlyList<string> highlights,
-        IReadOnlyList<string> customColumns,
-        IReadOnlyList<string[]> customRows)
-    {
-        var roleDisplay = RoleNames.DisplayName(workspace);
-        var title = !string.IsNullOrWhiteSpace(customTitle) ? customTitle : $"Safi Summary — {roleDisplay}";
-        var metrics = new List<(string Label, string Value)>
-        {
-            ("Prepared For", $"{user.FullName} ({user.Email})"),
-            ("Workspace", roleDisplay),
-            ("Generated (UTC)", FormatUtc(DateTime.UtcNow))
-        };
-
-        var tables = new List<AiChatExportTable>();
-        if (customColumns.Count > 0 && customRows.Count > 0)
-        {
-            tables.Add(NormalizeCustomTable("Structured Data", customColumns, customRows));
-        }
-
-        return new AiChatExportDocument(
-            title,
-            $"Prepared by Safi · Tiryaq {roleDisplay}",
-            SanitizeSlug(title),
-            metrics,
-            executiveSummary ?? "Summary exported from your Tiryaq conversation with Safi.",
-            highlights,
-            tables);
-    }
-
     // ---------------- PDF & EXCEL RENDERERS ----------------
 
     internal static byte[] RenderPdfDocument(AiChatExportDocument model, string ownerWorkspace)
@@ -1224,19 +705,6 @@ public sealed partial class AiChatExportService(
         return widths;
     }
 
-    private static AiChatExportTable NormalizeCustomTable(string defaultTitle, IReadOnlyList<string> cols, IReadOnlyList<string[]> rows)
-    {
-        var headers = cols.Take(10).Select((c, idx) => string.IsNullOrWhiteSpace(c) ? $"Column {idx + 1}" : c.Trim()).ToArray();
-        var normalizedRows = rows.Take(150).Select(r =>
-        {
-            var arr = new string[headers.Length];
-            for (var i = 0; i < headers.Length; i++)
-                arr[i] = i < r.Length ? (r[i] ?? "") : "";
-            return arr;
-        }).ToList();
-        return new AiChatExportTable(defaultTitle, headers, normalizedRows);
-    }
-
     private static string MakeSafeSheetName(string rawTitle, HashSet<string> used, ref int index)
     {
         var cleaned = InvalidSheetCharsRegex().Replace(rawTitle ?? "", " ").Trim();
@@ -1261,29 +729,14 @@ public sealed partial class AiChatExportService(
     private static string FormatUtc(DateTime? dt) =>
         dt.HasValue ? dt.Value.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "N/A";
 
-    private static string? ResolveTenderUrl(string workspace, int tenderId) => workspace switch
-    {
-        RoleNames.SourcingOfficer => $"/SourcingOfficer/Offers?tenderId={tenderId}",
-        RoleNames.EvaluationCommittee => $"/EvaluationCommittee/Evaluations/{tenderId}",
-        RoleNames.TopCommittee => $"/TopCommittee/TenderDetails/{tenderId}",
-        _ => null
-    };
-
-    private static string? ResolveRequestUrl(string workspace, int requestId) => workspace switch
-    {
-        RoleNames.Department => $"/Department/Details/{requestId}",
-        RoleNames.SourcingOfficer => $"/SourcingOfficer/Requests?id={requestId}",
-        _ => null
-    };
-
     // ---------------- JSON ARG HELPERS ----------------
 
-    private static string? GetString(JsonElement el, string prop) =>
+    public static string? Str(JsonElement el, string prop) =>
         el.ValueKind == JsonValueKind.Object && el.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.String
             ? v.GetString()
             : null;
 
-    private static int? GetInt(JsonElement el, string prop)
+    public static int? Int(JsonElement el, string prop)
     {
         if (el.ValueKind != JsonValueKind.Object || !el.TryGetProperty(prop, out var v)) return null;
         if (v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var n)) return n;
@@ -1291,45 +744,25 @@ public sealed partial class AiChatExportService(
         return null;
     }
 
-    private static IReadOnlyList<string> GetStringArray(JsonElement el, string prop)
-    {
-        if (el.ValueKind != JsonValueKind.Object || !el.TryGetProperty(prop, out var v) || v.ValueKind != JsonValueKind.Array)
-            return [];
-        var list = new List<string>();
-        foreach (var item in v.EnumerateArray())
-        {
-            if (item.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(item.GetString()))
-                list.Add(item.GetString()!.Trim());
-        }
-        return list;
-    }
+    private static IReadOnlyList<string> StrList(JsonElement el, string prop) =>
+        el.ValueKind == JsonValueKind.Object && el.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.Array
+            ? v.EnumerateArray().Where(i => i.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(i.GetString()))
+                .Select(i => i.GetString()!.Trim()).ToList()
+            : [];
 
-    private static IReadOnlyList<string[]> GetStringMatrix(JsonElement el, string prop)
-    {
-        if (el.ValueKind != JsonValueKind.Object || !el.TryGetProperty(prop, out var v) || v.ValueKind != JsonValueKind.Array)
-            return [];
-        var rows = new List<string[]>();
-        foreach (var rowEl in v.EnumerateArray())
-        {
-            if (rowEl.ValueKind != JsonValueKind.Array) continue;
-            var cells = new List<string>();
-            foreach (var cell in rowEl.EnumerateArray())
-            {
-                cells.Add(cell.ValueKind switch
-                {
-                    JsonValueKind.String => cell.GetString() ?? "",
-                    JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False => cell.GetRawText(),
-                    _ => ""
-                });
-            }
-            rows.Add(cells.ToArray());
-        }
-        return rows;
-    }
+    private static IReadOnlyList<string[]> StrMatrix(JsonElement el, string prop) =>
+        el.ValueKind == JsonValueKind.Object && el.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.Array
+            ? v.EnumerateArray().Where(r => r.ValueKind == JsonValueKind.Array)
+                .Select(r => r.EnumerateArray().Select(c => c.ValueKind is JsonValueKind.String or JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False
+                    ? (c.ValueKind == JsonValueKind.String ? c.GetString() ?? "" : c.GetRawText()) : "").ToArray()).ToList()
+            : [];
 
     [GeneratedRegex(@"[:\\/?*\[\]]+")]
     private static partial Regex InvalidSheetCharsRegex();
 
     [GeneratedRegex(@"[^A-Za-z0-9._-]+")]
     private static partial Regex NonSlugRegex();
+
+    [GeneratedRegex(@"(?<=[a-z0-9])([A-Z])")]
+    private static partial Regex HumpRegex();
 }
