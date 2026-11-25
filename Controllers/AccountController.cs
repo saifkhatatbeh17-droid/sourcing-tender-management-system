@@ -440,10 +440,10 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     }
 
     // Passkeys (/Account/Passkeys/...).
-    [HttpGet("/Account/Passkeys"), Authorize]
+    [HttpGet("/Account/Passkeys"), Authorize, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public IActionResult Passkeys() => RedirectToAction("Index", "FaceEnrollment", null, "passkey");
 
-    [HttpPost("/Account/Passkeys/EnrollmentOptions"), Authorize, ValidateAntiForgeryToken]
+    [HttpPost("/Account/Passkeys/EnrollmentOptions"), ResponseCache(NoStore = true, Location = ResponseCacheLocation.None), Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> PasskeyEnrollmentOptions()
     {
         var user = await users.GetUserAsync(User);
@@ -458,7 +458,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return Content(options, "application/json");
     }
 
-    [HttpPost("/Account/Passkeys/Enroll"), Authorize, ValidateAntiForgeryToken, EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
+    [HttpPost("/Account/Passkeys/Enroll"), ResponseCache(NoStore = true, Location = ResponseCacheLocation.None), Authorize, ValidateAntiForgeryToken, EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
     public async Task<IActionResult> PasskeyEnroll(string? credential, string? password)
     {
         var user = await users.GetUserAsync(User);
@@ -478,7 +478,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return saved.Succeeded ? Ok() : BadRequest(new { message = "The passkey could not be saved." });
     }
 
-    [HttpPost("/Account/Passkeys/LoginOptions"), AllowAnonymous, ValidateAntiForgeryToken, EnableRateLimiting("FaceLogin")]
+    [HttpPost("/Account/Passkeys/LoginOptions"), ResponseCache(NoStore = true, Location = ResponseCacheLocation.None), AllowAnonymous, ValidateAntiForgeryToken, EnableRateLimiting("FaceLogin")]
     public async Task<IActionResult> PasskeyLoginOptions()
     {
         if (User.Identity?.IsAuthenticated == true) return Conflict();
@@ -486,7 +486,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return Content(options, "application/json");
     }
 
-    [HttpPost("/Account/Passkeys/SignIn"), AllowAnonymous, ValidateAntiForgeryToken, EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
+    [HttpPost("/Account/Passkeys/SignIn"), ResponseCache(NoStore = true, Location = ResponseCacheLocation.None), AllowAnonymous, ValidateAntiForgeryToken, EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
     public async Task<IActionResult> SignInWithPasskey(string? credential, string? returnUrl = null)
     {
         if (User.Identity?.IsAuthenticated == true) return Conflict();
