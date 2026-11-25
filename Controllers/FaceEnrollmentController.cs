@@ -5,14 +5,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.FaceEnrollment;
 using SourcingTenderManagement.Services.FaceEnrollment;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Face ID enrollment (/FaceEnrollment) and the optional setup prompt after sign-in (/FaceSetup).
 [Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class FaceEnrollmentController(FaceEnrollmentService enrollment) : Controller
+public sealed class FaceEnrollmentController(ApplicationDbContext db, FaceEnrollmentService enrollment) : Controller
 {
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
 
@@ -42,5 +44,22 @@ public sealed class FaceEnrollmentController(FaceEnrollmentService enrollment) :
         catch (DbUpdateConcurrencyException) { return Conflict(new { message = "Enrollment changed. Reload this page before trying again." }); }
         catch (DbUpdateException error) when (error.InnerException is SqlException { Number: 2601 or 2627 })
         { return Conflict(new { message = "Enrollment changed. Reload this page before trying again." }); }
+    }
+
+    [HttpGet("/FaceSetup"), HttpGet("/FaceSetup/Index")]
+    public async Task<IActionResult> Setup(CancellationToken ct)
+    {
+        if (!await FaceSetupFlow.ShouldPromptAsync(db, User, Request, ct)) return RedirectToAction("GoToDashboard", "Account");
+        try { return View(await enrollment.GetAsync(UserId, ct)); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+    }
+
+    [HttpPost("/FaceSetup/Decline"), ValidateAntiForgeryToken, RequestSizeLimit(4_000)]
+    public IActionResult Decline()
+    {
+        Response.Cookies.Append(FaceSetupFlow.CookieName, "1", FaceSetupFlow.CookieOptions(Request));
+        if (Request.Headers.Accept.ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase))
+            return Ok(new { redirectUrl = Url.Action("GoToDashboard", "Account") });
+        return RedirectToAction("GoToDashboard", "Account");
     }
 }

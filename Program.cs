@@ -8,8 +8,6 @@ using SourcingTenderManagement.Services.Reports.Data;
 using SourcingTenderManagement.Services.Reports.Hub;
 using SourcingTenderManagement.Services.TopCommittee;
 using SourcingTenderManagement.Services.FaceEnrollment;
-using SourcingTenderManagement.Services.FaceVerification;
-using SourcingTenderManagement.Services.FaceLogin;
 using SourcingTenderManagement.Services.PdfWatermark;
 using SourcingTenderManagement.Services.Chat;
 using SourcingTenderManagement.Services.Intelligence;
@@ -76,9 +74,7 @@ builder.Services.AddScoped<ReportExport>();
 builder.Services.AddDbContext<ApplicationDbContext>((services, o) =>
     o.UseSqlServer(connection).AddInterceptors(services.GetRequiredService<AuditSaveChangesInterceptor>()));
 builder.Services.AddTopCommitteeFoundation();
-builder.Services.AddFaceEnrollment();
-builder.Services.AddFaceVerification(builder.Configuration);
-builder.Services.AddFaceLogin();
+builder.Services.AddFaceEnrollment(builder.Configuration);
 builder.Services.AddRateLimiter(options =>
 {
     options.OnRejected = (context, _) =>

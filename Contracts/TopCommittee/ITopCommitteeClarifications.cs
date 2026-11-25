@@ -25,7 +25,6 @@ public interface ITopCommitteeManagerAnswers
 
 public interface ITopCommitteeVotingPause
 {
-    Task<CommitteeVotingPause> GetAsync(ClaimsPrincipal member, int tenderId, CancellationToken cancellationToken = default);
     // Phase 4 must use this INSIDE ITopCommitteeTenderTransaction, before inserting any vote.
     Task AssertNotPausedAsync(ApplicationDbContext lockedContext, int tenderId, CancellationToken cancellationToken = default);
 }

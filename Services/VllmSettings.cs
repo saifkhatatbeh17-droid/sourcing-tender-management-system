@@ -63,20 +63,6 @@ internal static partial class VllmSettings
         return (new Uri(fullUrl), baseUri.IsLoopback, apiKey);
     }
 
-    public static async Task<string> CompleteJsonAsync(
-        HttpClient http,
-        IConfiguration configuration,
-        string systemPrompt,
-        string userPrompt,
-        string schemaName,
-        object schema,
-        int maxTokens,
-        CancellationToken ct,
-        IReadOnlyList<(string Role, string Content)>? conversationHistory = null,
-        bool retryWithSchema = false) =>
-        (await CompleteJsonWithModelAsync(http, configuration, systemPrompt, userPrompt, schemaName,
-            schema, maxTokens, ct, conversationHistory, retryWithSchema)).Content;
-
     public static async Task<(string Content, string Model)> CompleteJsonWithModelAsync(
         HttpClient http,
         IConfiguration configuration,

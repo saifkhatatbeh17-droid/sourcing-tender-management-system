@@ -1,12 +1,106 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Models.Entities;
+using SourcingTenderManagement.Services.Evaluation;
+using SourcingTenderManagement.Services.Reports;
+using Microsoft.AspNetCore.RateLimiting;
+using SourcingTenderManagement.Services.Ai;
+using SourcingTenderManagement.Services.Compliance;
 
 namespace SourcingTenderManagement.Controllers;
 
+public sealed record OfficerSpecMatchPage(SpecMatchInput Input, SpecMatchResult? Result, bool Outdated, DateTime? CreatedAt,
+    IReadOnlyDictionary<int, BidGuarantee>? LegalWarranties = null);
+
 public partial class SourcingOfficerController
 {
+    // Serialize concurrent runs for the same tender in this application instance.
+    private static readonly SemaphoreSlim[] SpecMatchLocks =
+        Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1)).ToArray();
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RunSpecMatch(int id, [FromServices] SpecMatchService service, CancellationToken ct)
+    {
+        if (User.FindFirstValue(ClaimTypes.NameIdentifier) is not { } userId) return Forbid();
+
+        var tender = await db.Tenders.AsNoTracking()
+            .Include(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
+            .SingleOrDefaultAsync(t => t.TenderId == id && t.CreatedByUserId == userId, ct);
+        if (tender is null) return NotFound();
+
+        var gate = SpecMatchLocks[id % SpecMatchLocks.Length];
+        await gate.WaitAsync(ct);
+        try
+        {
+            // Spec match is a reading aid for the compliance decision, so offers still waiting for that decision are included.
+            var bids = await db.Bids.AsNoTracking().Where(b => b.TenderId == id && b.SubmittedAt != null &&
+                b.ComplianceStatus != "NonCompliant" && b.Status != "Withdrawn" && b.Status != "Rejected" &&
+                b.Status != "Draft" && b.Status != "NonCompliant")
+                .Include(b => b.Invitation).Include(b => b.BidItems).ToListAsync(ct);
+            var input = SpecMatchInputFor(tender, bids);
+            if (input.Items.Count == 0 || input.Offers.Count == 0)
+                return RedirectToAction(nameof(Offers), new { tenderId = id });
+
+            var fingerprint = SpecMatchService.Fingerprint(input);
+            var latest = await LatestSpecMatchAsync(id, ct);
+            if (latest?.Fingerprint != fingerprint)
+            {
+                var result = await service.RunAsync(input, ct);
+                db.SpecMatchAnalyses.Add(new SpecMatchAnalysis
+                {
+                    TenderId = id,
+                    Fingerprint = fingerprint,
+                    ResultJson = JsonSerializer.Serialize(result.Cells),
+                    ModelName = result.ModelName,
+                    AiAvailable = result.AiAvailable,
+                    CreatedByUserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await db.SaveChangesAsync(ct);
+                TempData["TenderSuccess"] = "Spec match updated";
+            }
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        return RedirectToAction(nameof(Offers), null, new { tenderId = id }, "spec-match");
+    }
+
+    private async Task<OfficerSpecMatchPage> LoadSpecMatchAsync(Tender tender, List<Bid> bids, CancellationToken ct)
+    {
+        var input = SpecMatchInputFor(tender, bids);
+        var latest = await LatestSpecMatchAsync(tender.TenderId, ct);
+        // The legal warranty is compared in code on every page load, so it needs no AI run and never goes stale.
+        var offerIds = input.Offers.Select(b => b.BidId).ToArray();
+        var legal = (await db.BidGuarantees.AsNoTracking().Where(g => g.Kind == "Legal" && offerIds.Contains(g.BidId)).ToListAsync(ct))
+            .GroupBy(g => g.BidId).ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.UpdatedAt).First());
+        if (latest is null) return new(input, null, false, null, legal);
+        if (latest.Fingerprint != SpecMatchService.Fingerprint(input))
+            return new(input, null, true, latest.CreatedAt, legal);
+
+        var cells = JsonSerializer.Deserialize<SpecMatchCell[]>(latest.ResultJson) ?? [];
+        return new(input, new(cells, latest.AiAvailable, latest.ModelName), false, latest.CreatedAt, legal);
+    }
+
+    private Task<SpecMatchAnalysis?> LatestSpecMatchAsync(int tenderId, CancellationToken ct) =>
+        db.SpecMatchAnalyses.AsNoTracking().Where(a => a.TenderId == tenderId)
+            .OrderByDescending(a => a.SpecMatchAnalysisId).FirstOrDefaultAsync(ct);
+
+    private static SpecMatchInput SpecMatchInputFor(Tender tender, IEnumerable<Bid> bids)
+    {
+        var offers = bids.Where(b => b.SubmittedAt != null && b.ComplianceStatus != "NonCompliant" &&
+                b.Status is not ("Withdrawn" or "Rejected" or "Draft" or "NonCompliant"))
+            .GroupBy(b => b.Invitation.SupplierProfileId)
+            .Select(group => group.OrderByDescending(b => b.SubmittedAt).ThenByDescending(b => b.BidId).First())
+            .OrderBy(b => b.BidId).ToArray();
+        var items = tender.PurchaseRequest.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId).ToArray();
+        return new(tender.TenderId, items, offers);
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CloseSubmissionsEarly(int tenderId, bool sendToCommittee = false)
     {
@@ -200,5 +294,65 @@ public partial class SourcingOfficerController
             ? $"Round {round + 1} opened. No approved suppliers were available to contact."
             : $"Round {round + 1} opened and {outreach.Count} suppliers were contacted.";
         return RedirectToAction(nameof(Offers), new { tenderId });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ReportPdf(int? id)
+    {
+        var result=await Reports(id);
+        if(result is not ViewResult {Model:List<EvaluationReport> reports} view)return result;
+        if(id.HasValue)
+        {
+            var report=(EvaluationReport)view.ViewData["SelectedReport"]!;
+            return ReportPdfDownload.Create(this,()=>ReportPdfExport.OfficerReport(report),$"officer-report-{id}.pdf");
+        }
+        return ReportPdfDownload.Create(this,()=>ReportPdfExport.OfficerReports(reports),"officer-reports.pdf");
+    }
+    [HttpGet]
+    public async Task<IActionResult> EvaluationReportPdf(int tenderId)
+    {
+        var result=await Evaluations(tenderId);
+        if(result is not ViewResult view)return result;
+        if(view.ViewData["EvaluationReport"] is not EvaluationReport report||report.TenderId!=tenderId)return NotFound();
+        return ReportPdfDownload.Create(this,()=>ReportPdfExport.OfficerEvaluation(view.ViewData),$"officer-evaluation-{tenderId}.pdf");
+    }
+
+    // AI document review for one submitted offer. Read-only: it never changes the compliance decision.
+    [HttpPost, ValidateAntiForgeryToken]
+    [EnableRateLimiting("AiChat")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> AiOfferReview(int id, [FromServices] OfferPreCheck precheck, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Same scope as the Offers page: submitted offers on tenders this officer created.
+        var bid = await db.Bids.AsNoTracking()
+            .Include(b => b.BidItems)
+            .Include(b => b.BidDocuments)
+            .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
+            .SingleOrDefaultAsync(b => b.BidId == id && b.SubmittedAt != null && b.Invitation.Tender.CreatedByUserId == userId, ct);
+        if (bid == null) return NotFound(new { error = "This offer is not available in your workspace." });
+
+        var tender = bid.Invitation.Tender;
+        try
+        {
+            var review = await precheck.ReviewAsync(bid, tender, tender.PurchaseRequest.PurchaseRequestItems.ToList(), DateTime.UtcNow, ct);
+            return Ok(new
+            {
+                summary = review.Summary,
+                findings = review.Findings,
+                hiddenUnverifiable = review.HiddenUnverifiable,
+                documentNotes = review.DocumentNotes
+            });
+        }
+        catch (AiLimitReachedException ex)
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { error = ex.Message });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException ||
+                                   (ex is OperationCanceledException && !ct.IsCancellationRequested))
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { error = "The AI review is unavailable right now. The automatic checks above still apply; try again in a moment." });
+        }
     }
 }

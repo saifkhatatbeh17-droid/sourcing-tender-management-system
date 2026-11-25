@@ -24,7 +24,7 @@
         workspaceController = RoleNames.Primary.FirstOrDefault(User.IsInRole) ?? currentController;
     var showWorkspace = !isHomeLanding && User.Identity?.IsAuthenticated == true
         && ViewData["HideWorkspaceSidebar"] is not true && PageNavigation.Menus.ContainsKey(workspaceController)
-        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "AiIntelligence" or "Clarification" or "Account" or "FaceEnrollment" or "FaceSetup" or "FaceVerification" or "FaceLogin" or "Reports" or "ReportAccess");
+        && (PageNavigation.Menus.ContainsKey(currentController) || currentController is "AiIntelligence" or "Clarification" or "Account" or "FaceEnrollment" or "Reports" or "ReportAccess");
     var showAdminSidebar = showWorkspace && workspaceController == "Admin";
     var showPublicSafi = !showWorkspace &&
         ((currentController == "Home" && currentAction is "Index" or "About" or "HowItWorks" or "Team" or "Contact") ||

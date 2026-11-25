@@ -4,22 +4,14 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SourcingTenderManagement.Data;
-using SourcingTenderManagement.Models.FaceVerification;
-using SourcingTenderManagement.Services.FaceEnrollment;
+using SourcingTenderManagement.Models.FaceEnrollment;
 
-namespace SourcingTenderManagement.Services.FaceVerification;
+namespace SourcingTenderManagement.Services.FaceEnrollment;
 
 // Informational, read-only comparison. No authentication, authorization or account mutation.
 public sealed class FaceVerificationService(ApplicationDbContext db, FaceTemplateProtector protector,
     IOptions<FaceVerificationOptions> options)
 {
-    public async Task<FaceVerificationPage> GetAsync(string userId, CancellationToken ct)
-    {
-        await RequireActiveAccountAsync(userId, ct);
-        return new(await db.UserFaceCredentials.AsNoTracking()
-            .AnyAsync(x => x.UserId == userId && x.ProtectedTemplates != null, ct));
-    }
-
     public async Task<FaceVerificationResult> VerifyAsync(string userId, FaceVerificationRequest input, CancellationToken ct)
     {
         await RequireActiveAccountAsync(userId, ct);

@@ -12,7 +12,6 @@ public static class TopCommitteeServiceCollectionExtensions
         services.AddScoped<TopCommitteeNotifications>();
         services.AddSingleton<TopCommitteeReportExport>();
         services.AddScoped<ITopCommitteeQueries, TopCommitteeQueryService>();
-        services.AddScoped<ITopCommitteeReferralContract, TopCommitteeReferralContract>();
         services.AddScoped<ITopCommitteeTenderTransaction, TopCommitteeTenderTransaction>();
         services.AddScoped<ITopCommitteeVotingPause, TopCommitteeVotingPause>();
         services.AddScoped<ITopCommitteeClarificationStore, TopCommitteeClarificationStore>();

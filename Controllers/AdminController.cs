@@ -10,7 +10,11 @@ using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.Admin;
+using SourcingTenderManagement.Services.Reports;
+using System.Security.Claims;
+
 namespace SourcingTenderManagement.Controllers;
+
 [Authorize(Roles = RoleNames.Admin)]
 public partial class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
     IConfiguration configuration, IWebHostEnvironment environment) : Controller
@@ -440,5 +444,304 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
             ModelState.AddModelError("Name", "A department with this name already exists.");
             return false;
         }
+    }
+
+    // Read-only view of every AI call recorded by the AI gateway (AiInteractions).
+    [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> AiLog(string? search, string? feature, string? workspace, string? outcome,
+        DateOnly? from, DateOnly? to, int page = 1, CancellationToken ct = default)
+    {
+        search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+        feature = string.IsNullOrWhiteSpace(feature) ? null : feature;
+        workspace = string.IsNullOrWhiteSpace(workspace) ? null : workspace;
+        outcome = outcome is AiInteraction.Succeeded or AiInteraction.Failed or AiInteraction.Cancelled or AiInteraction.LimitReached ? outcome : null;
+
+        var query =
+            from a in db.AiInteractions.AsNoTracking()
+            join u in db.Users.AsNoTracking() on a.UserId equals u.Id into users
+            from u in users.DefaultIfEmpty()
+            select new { a, UserName = u != null ? u.FullName : null, UserEmail = u != null ? u.Email : null };
+
+        if (search != null)
+            query = query.Where(x => (x.UserName != null && x.UserName.Contains(search)) || (x.UserEmail != null && x.UserEmail.Contains(search)));
+        if (feature != null) query = query.Where(x => x.a.Feature == feature);
+        if (workspace != null) query = query.Where(x => x.a.Workspace == workspace);
+        if (outcome != null) query = query.Where(x => x.a.Outcome == outcome);
+        if (from is { } start) { var since = start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc); query = query.Where(x => x.a.CreatedAtUtc >= since); }
+        if (to is { } end) { var until = end.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc); query = query.Where(x => x.a.CreatedAtUtc < until); }
+
+        var total = await query.CountAsync(ct);
+        var succeeded = await query.CountAsync(x => x.a.Outcome == AiInteraction.Succeeded, ct);
+        var failed = await query.CountAsync(x => x.a.Outcome == AiInteraction.Failed, ct);
+        var cancelled = await query.CountAsync(x => x.a.Outcome == AiInteraction.Cancelled, ct);
+        var limited = await query.CountAsync(x => x.a.Outcome == AiInteraction.LimitReached, ct);
+        var averageMs = succeeded > 0 ? await query.Where(x => x.a.Outcome == AiInteraction.Succeeded).AverageAsync(x => (double)x.a.DurationMs, ct) : (double?)null;
+        var checkedCount = await query.CountAsync(x => x.a.SchemaConforms != null, ct);
+        var conforming = await query.CountAsync(x => x.a.SchemaConforms == true, ct);
+
+        var features = await query.GroupBy(x => x.a.Feature).Select(g => new
+        {
+            Feature = g.Key,
+            Calls = g.Count(),
+            Succeeded = g.Count(x => x.a.Outcome == AiInteraction.Succeeded),
+            AverageMs = g.Where(x => x.a.Outcome == AiInteraction.Succeeded).Average(x => (double?)x.a.DurationMs),
+            Checked = g.Count(x => x.a.SchemaConforms != null),
+            Conforming = g.Count(x => x.a.SchemaConforms == true),
+            PromptVersions = g.Select(x => x.a.PromptVersion).Distinct().Count(),
+            LastUsed = g.Max(x => x.a.CreatedAtUtc)
+        }).OrderByDescending(f => f.Calls).ToListAsync(ct);
+
+        var pages = Math.Max(1, (int)Math.Ceiling(total / (double)AiLogPageViewModel.PageSize));
+        page = Math.Clamp(page, 1, pages);
+        var rows = await query.OrderByDescending(x => x.a.AiInteractionId)
+            .Skip((page - 1) * AiLogPageViewModel.PageSize).Take(AiLogPageViewModel.PageSize)
+            .Select(x => new AiLogRow(x.a.AiInteractionId, x.a.CreatedAtUtc, x.UserName, x.UserEmail, x.a.Workspace, x.a.Feature,
+                x.a.RecordType, x.a.RecordId, x.a.Outcome, x.a.Model, x.a.DurationMs, x.a.SchemaConforms, x.a.SchemaIssues,
+                x.a.ErrorType, x.a.PromptVersion, x.a.InputChars, x.a.OutputChars, x.a.OutputPreview, x.a.IsInteractive))
+            .ToListAsync(ct);
+
+        ViewData["Title"] = "AI log";
+        return View(new AiLogPageViewModel
+        {
+            Search = search, Feature = feature, Workspace = workspace, Outcome = outcome, From = from, To = to,
+            Page = page, TotalPages = pages, TotalMatching = total,
+            Summary = new AiLogSummary(total, succeeded, failed, cancelled, limited, averageMs,
+                checkedCount > 0 ? conforming / (double)checkedCount : null),
+            Features = features.Select(f => new AiLogFeatureRow(f.Feature, f.Calls, f.Calls > 0 ? f.Succeeded / (double)f.Calls : 0,
+                f.AverageMs, f.Checked > 0 ? f.Conforming / (double)f.Checked : null, f.PromptVersions, f.LastUsed)).ToList(),
+            Rows = rows,
+            FeatureOptions = await db.AiInteractions.AsNoTracking().Select(a => a.Feature).Distinct().OrderBy(f => f).ToListAsync(ct),
+            WorkspaceOptions = await db.AiInteractions.AsNoTracking().Select(a => a.Workspace).Distinct().OrderBy(w => w).ToListAsync(ct)
+        });
+    }
+
+    [HttpGet, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> TenderEvaluationPdf(int id, CancellationToken ct)
+    {
+        var report = await db.EvaluationReports.AsNoTracking().Include(r => r.Tender).Include(r => r.PreparedByUser)
+            .Include(r => r.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.SupplierProfile)
+            .SingleOrDefaultAsync(r => r.TenderId == id, ct);
+        return report is null ? NotFound() : ReportPdfDownload.Create(this, () => ReportPdfExport.OfficerReport(report),
+            $"tender-{id}-evaluation.pdf");
+    }
+
+    [HttpGet, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> AuditEntry(long id, CancellationToken ct)
+    {
+        var entry = await db.AuditEntries.AsNoTracking().SingleOrDefaultAsync(a => a.AuditEntryId == id, ct);
+        return entry is null ? NotFound() : View(entry);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ContactMessages(string? search, string? status, int page = 1,
+        CancellationToken cancellationToken = default)
+    {
+        const int pageSize = 25;
+        search = search?.Trim();
+        if (search?.Length > 254) search = search[..254];
+        status = status is ContactMessage.Unread or ContactMessage.Read ? status : null;
+        var query = db.ContactMessages.AsNoTracking();
+        if (!string.IsNullOrEmpty(search))
+            query = query.Where(message => message.FullName.Contains(search)
+                || message.Email.Contains(search) || message.Subject.Contains(search));
+        if (status == ContactMessage.Unread)
+            query = query.Where(message => message.Status == ContactMessage.Unread);
+        if (status == ContactMessage.Read)
+            query = query.Where(message => message.Status != ContactMessage.Unread);
+
+        var total = await query.CountAsync(cancellationToken);
+        var totalPages = Math.Max(1, (int)Math.Ceiling((double)total / pageSize));
+        page = Math.Clamp(page, 1, totalPages);
+        var messages = await query.OrderByDescending(message => message.SubmittedAt)
+            .ThenByDescending(message => message.ContactMessageId)
+            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+
+        return View(new ContactMessagesPage(messages, search, status, page, totalPages));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ContactMessageDetails(int id, CancellationToken cancellationToken)
+    {
+        ViewData["ActivePage"] = nameof(ContactMessages);
+        var message = await db.ContactMessages.AsNoTracking()
+            .SingleOrDefaultAsync(message => message.ContactMessageId == id, cancellationToken);
+        return message == null ? NotFound() : View(message);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkContactMessageRead(int id, CancellationToken cancellationToken)
+    {
+        var adminId = users.GetUserId(User);
+        if (adminId == null) return Forbid();
+
+        var message = await db.ContactMessages.FindAsync([id], cancellationToken);
+        if (message == null) return NotFound();
+
+        if (message.IsUnread) message.Status = ContactMessage.Read;
+        var detailsUrl = Url.Action(nameof(ContactMessageDetails), new { id });
+        var relatedNotifications = await db.Notifications.Where(notification =>
+            notification.UserId == adminId && !notification.IsRead && notification.RelativeUrl == detailsUrl)
+            .ToListAsync(cancellationToken);
+        foreach (var notification in relatedNotifications)
+            notification.IsRead = true;
+
+        await db.SaveChangesAsync(cancellationToken);
+        TempData["ContactMessageFeedback"] = "Message marked as read.";
+        return RedirectToAction(nameof(ContactMessageDetails), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> OpenContactNotification(int id, CancellationToken cancellationToken)
+    {
+        var adminId = users.GetUserId(User);
+        if (adminId == null) return Forbid();
+
+        var notification = await db.Notifications.SingleOrDefaultAsync(item =>
+            item.NotificationId == id && item.UserId == adminId, cancellationToken);
+        var detailsPrefix = Url.Action(nameof(ContactMessageDetails), "Admin", new { id = "" }) + "/";
+        if (notification?.RelativeUrl is not string url || !Url.IsLocalUrl(url)
+            || !url.StartsWith(detailsPrefix, StringComparison.OrdinalIgnoreCase)
+            || !int.TryParse(url.AsSpan(detailsPrefix.Length), out var messageId) || messageId <= 0)
+            return NotFound();
+
+        if (!notification.IsRead)
+        {
+            notification.IsRead = true;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        return RedirectToAction(nameof(ContactMessageDetails), new { id = messageId });
+    }
+
+    [HttpGet, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> SupplierActivity(int? supplierId, [FromServices] SupplierActivityQuery activity, CancellationToken ct)
+    {
+        var suppliers = await db.SupplierProfiles.AsNoTracking()
+            .Where(s => supplierId == null || s.SupplierProfileId == supplierId)
+            .OrderBy(s => s.CompanyName).ThenBy(s => s.SupplierProfileId)
+            .Select(s => new { s.SupplierProfileId, s.CompanyName, s.Status, s.RegistrationNumber, s.Category }).ToListAsync(ct);
+        if (supplierId.HasValue && suppliers.Count == 0) return NotFound();
+        var history = await activity.ReadAsync(db.Tenders.Select(t => t.TenderId), supplierId, ct);
+        var report = suppliers.Select(s => new SupplierActivityRow(s.SupplierProfileId, s.CompanyName, s.Status, s.RegistrationNumber, s.Category,
+            history[s.SupplierProfileId].OrderByDescending(b => b.SubmittedAt).ToArray())).ToArray();
+        if (!supplierId.HasValue) return View(report);
+        return ReportPdfDownload.Create(this, () => ReportPdfExport.SupplierActivity(report[0]), $"supplier-{supplierId}-activity.pdf");
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetSupplierSuspension(int id, bool suspend, string? reason, CancellationToken ct)
+    {
+        reason = reason?.Trim();
+        if (suspend && (string.IsNullOrEmpty(reason) || reason.Length > 1000)) return BadRequest("Enter a suspension reason of up to 1,000 characters.");
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked=SupplierProfileId FROM dbo.SupplierProfiles WITH (UPDLOCK,HOLDLOCK) WHERE SupplierProfileId={id};", ct);
+        var supplier = await db.SupplierProfiles.SingleOrDefaultAsync(s => s.SupplierProfileId == id, ct);
+        if (supplier is null) return NotFound();
+        if (supplier.Status != (suspend ? "Approved" : "Suspended")) return Conflict("The supplier status has changed.");
+        supplier.Status = suspend ? "Suspended" : "Approved";
+        supplier.ReviewNotes = suspend ? reason : "Supplier reactivated.";
+        supplier.ReviewedAt = DateTime.UtcNow;
+        supplier.ReviewedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        TempData["SupplierReviewFeedback"] = suspend ? "Supplier suspended." : "Supplier reactivated.";
+        return RedirectToAction(nameof(SupplierDetails), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> VerifySupplierDocument(int id, string status, CancellationToken ct)
+    {
+        // A document can only be marked verified here. Rejecting a supplier is done on the Decision step.
+        if (status != "Verified") return BadRequest("Documents can only be marked as verified. Reject the supplier on the Decision step.");
+        var document = await db.SupplierDocuments.SingleOrDefaultAsync(d => d.SupplierDocumentId == id, ct);
+        if (document is null) return NotFound();
+        document.VerificationStatus = status;
+        document.VerificationNote = null;
+        document.VerifiedAt = DateTime.UtcNow;
+        document.VerifiedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await db.SaveChangesAsync(ct);
+        TempData["SupplierReviewFeedback"] = "Document verification saved.";
+        return RedirectToAction(nameof(SupplierDetails), new { id = document.SupplierProfileId });
+    }
+
+    // Account import from an Excel sheet, used from Safi's panel in the Admin workspace.
+    // No AI is involved: the sheet is read and validated here and never sent to the model.
+    [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> UserImportTemplate([FromServices] EmployeeImport import, CancellationToken ct) =>
+        File(await import.TemplateAsync(ct), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "tiryaq-account-import-template.xlsx");
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [RequestSizeLimit(EmployeeImport.MaxFileBytes + 64 * 1024)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> UserImportPreview(IFormFile? file, [FromServices] EmployeeImport import, CancellationToken ct)
+    {
+        var adminId = users.GetUserId(User);
+        if (adminId == null) return Forbid();
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "Choose an Excel (.xlsx) file with the accounts to create." });
+        if (!Path.GetExtension(file.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { error = "Only Excel .xlsx files can be imported." });
+        if (file.Length > EmployeeImport.MaxFileBytes)
+            return BadRequest(new { error = "The file is larger than 1 MB. Split it into smaller files." });
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var preview = await import.PreviewAsync(stream, adminId, ct);
+            return Ok(new
+            {
+                token = preview.Token,
+                readyCount = preview.ReadyCount,
+                ready = preview.Ready,
+                problems = preview.Problems,
+                notices = preview.Notices
+            });
+        }
+        catch (EmployeeImportFileException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    // Resets an employee's password to a temporary one, returned once in this response and never stored or logged.
+    [HttpPost, ValidateAntiForgeryToken]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> ResetUserPassword(string? id, [FromServices] EmployeeAccounts accounts,
+        [FromServices] ILogger<AdminController> logger)
+    {
+        var adminId = users.GetUserId(User);
+        if (adminId == null) return Forbid();
+        if (string.IsNullOrWhiteSpace(id)) return BadRequest(new { error = "Choose an account." });
+
+        var (password, error, account) = await accounts.ResetPasswordAsync(id, adminId);
+        if (error != null) return BadRequest(new { error });
+
+        await HttpContext.RequestServices.GetRequiredService<IAuditLog>().WriteAsync("Account.PasswordReset",
+            "ApplicationUser", account!.Id, "Administrator reset an employee password.");
+        logger.LogInformation("Administrator {AdminId} reset the password for account {UserId}.", adminId, account!.Id);
+        return Ok(new { name = account.FullName, email = account.Email, password });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> UserImportConfirm(string? token, [FromServices] EmployeeImport import, CancellationToken ct)
+    {
+        var adminId = users.GetUserId(User);
+        if (adminId == null) return Forbid();
+        var result = await import.ConfirmAsync(token ?? "", adminId, ct);
+        if (result == null)
+            return BadRequest(new { error = "This preview has expired or was already used. Upload the file again." });
+
+        await HttpContext.RequestServices.GetRequiredService<IAuditLog>().WriteAsync("Account.Import",
+            "ApplicationUser", "", $"Employee import created {result.CreatedCount} accounts.", ct: ct);
+        // Passwords are only in the one-time credentials file, never in this response.
+        return Ok(new
+        {
+            createdCount = result.CreatedCount,
+            failed = result.Failed,
+            credentials = result.Credentials
+        });
     }
 }

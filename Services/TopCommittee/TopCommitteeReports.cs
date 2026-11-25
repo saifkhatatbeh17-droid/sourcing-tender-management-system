@@ -74,12 +74,6 @@ public sealed class TopCommitteeReports(ApplicationDbContext db,TopCommitteeAcce
 
  internal static IQueryable<Tender> AssignedTenders(ApplicationDbContext context,string memberId) =>
      context.Tenders.AsNoTracking().Where(t=>t.CommitteeAssignments.Any(a=>a.UserId==memberId&&a.CommitteeType=="Top"));
- internal static IQueryable<CommitteeSupplierStatistics> SupplierRows(ApplicationDbContext context) =>
-     from supplier in context.SupplierProfiles.AsNoTracking()
-     join award in AwardCounts(context.Tenders.AsNoTracking()) on supplier.SupplierProfileId equals award.SupplierId into matches
-     from award in matches.DefaultIfEmpty()
-     orderby supplier.CompanyName, supplier.SupplierProfileId
-     select new CommitteeSupplierStatistics(supplier.SupplierProfileId,supplier.CompanyName,(int?)award.AwardedTenders ?? 0);
  // One projection is shared by production SQL and database-free regression tests.
  internal static IQueryable<CommitteeReportRow> ProjectRows(IQueryable<Tender> tenders, string memberId) =>
      tenders.Select(t => new CommitteeReportRow(t.TenderId,t.Title,t.Status,t.CreatedAt,
@@ -92,14 +86,5 @@ public sealed class TopCommitteeReports(ApplicationDbContext db,TopCommitteeAcce
          AwardedAt = t.AwardedAt,
          CommitteeOutcomeAt = t.AwardedAt ?? t.TenderApprovals.Where(v=>v.Stage=="Top").Max(v=>(DateTime?)v.DecidedAt)
      });
- internal static IQueryable<CommitteeSupplierAwardCount> AwardCounts(IQueryable<Tender> tenders) =>
-     tenders.Where(t=>t.Status=="Awarded" && t.AwardedBidId.HasValue && t.Bid != null && t.Bid.TenderId==t.TenderId)
-         .GroupBy(t=>t.Bid!.Invitation.SupplierProfileId)
-         .Select(g=>new CommitteeSupplierAwardCount { SupplierId=g.Key, AwardedTenders=g.Select(t=>t.TenderId).Distinct().Count() });
 }
 
-internal sealed class CommitteeSupplierAwardCount
-{
- public int SupplierId { get; init; }
- public int AwardedTenders { get; init; }
-}

@@ -81,8 +81,8 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     [HttpPost, ValidateAntiForgeryToken,
      Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
     public async Task<IActionResult> LoginWithFaceId(
-        SourcingTenderManagement.Models.FaceLogin.FaceSignInInput model,
-        [FromServices] SourcingTenderManagement.Services.FaceVerification.FaceVerificationService verification,
+        SourcingTenderManagement.Models.FaceEnrollment.FaceSignInInput model,
+        [FromServices] SourcingTenderManagement.Services.FaceEnrollment.FaceVerificationService verification,
         CancellationToken ct)
     {
         Response.Headers.CacheControl = "no-store";
@@ -95,7 +95,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         if (User.Identity?.IsAuthenticated == true)
             return Conflict(new { message = "You are already signed in. Sign out before using Face ID." });
         if (!ModelState.IsValid || model.Password.Length > 1024 ||
-            !SourcingTenderManagement.Services.FaceVerification.FaceVerificationService.ValidDescriptor(model.Descriptor) ||
+            !SourcingTenderManagement.Services.FaceEnrollment.FaceVerificationService.ValidDescriptor(model.Descriptor) ||
             model.ModelIdentifier != SourcingTenderManagement.Services.FaceEnrollment.FaceEnrollmentService.ModelIdentifier)
             return await RecordFailure();
 
@@ -110,7 +110,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
                 await users.AccessFailedAsync(user);
             return await RecordFailure();
         }
-        SourcingTenderManagement.Models.FaceVerification.FaceVerificationResult match;
+        SourcingTenderManagement.Models.FaceEnrollment.FaceVerificationResult match;
         try
         {
             match = await verification.VerifyAsync(user.Id, new()
@@ -146,15 +146,15 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
     [HttpPost, ValidateAntiForgeryToken,
      Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
     public async Task<IActionResult> DemoFaceSignIn(
-        SourcingTenderManagement.Models.FaceLogin.FaceDemoSignInInput model,
+        SourcingTenderManagement.Models.FaceEnrollment.FaceDemoSignInInput model,
         [FromServices] IWebHostEnvironment environment,
-        [FromServices] SourcingTenderManagement.Services.FaceVerification.FaceVerificationService verification,
+        [FromServices] SourcingTenderManagement.Services.FaceEnrollment.FaceVerificationService verification,
         CancellationToken ct)
     {
         Response.Headers.CacheControl = "no-store";
         if (!environment.IsDevelopment()) return NotFound();
         if (User.Identity?.IsAuthenticated == true) return Conflict(new { message = "Already signed in." });
-        if (!ModelState.IsValid || !SourcingTenderManagement.Services.FaceVerification.FaceVerificationService.ValidDescriptor(model.Descriptor)
+        if (!ModelState.IsValid || !SourcingTenderManagement.Services.FaceEnrollment.FaceVerificationService.ValidDescriptor(model.Descriptor)
             || model.ModelIdentifier != SourcingTenderManagement.Services.FaceEnrollment.FaceEnrollmentService.ModelIdentifier)
             return BadRequest(new { message = "Invalid camera sample." });
 
@@ -204,7 +204,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         if (SafeReturnUrl(returnUrl) is { } destination)
             return LocalRedirect(destination);
         if (await SourcingTenderManagement.Services.FaceEnrollment.FaceSetupFlow.ShouldPromptAsync(db, User, Request))
-            return RedirectToAction("Index", "FaceSetup");
+            return RedirectToAction("Setup", "FaceEnrollment");
         foreach (var role in RoleNames.Primary)
             if (User.IsInRole(role)) return RedirectToAction("Dashboard", role);
         return RedirectToAction(nameof(AccessDenied));

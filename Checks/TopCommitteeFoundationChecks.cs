@@ -115,7 +115,6 @@ public static class TopCommitteeFoundationChecks
         Check(model.Votes.Count == 1 && model.Votes[0].UserId == "member-1", "Recorded committee votes must remain visible.");
 
         _ = services.GetRequiredService<ITopCommitteeQueries>();
-        _ = services.GetRequiredService<ITopCommitteeReferralContract>();
         var configured = services.GetRequiredService<ApplicationDbContext>();
         Check(!configured.Database.HasPendingModelChanges(), "Phase 1 must not change the EF database model.");
         var readOnly = new ReadOnlyCommandGuard();
@@ -124,7 +123,6 @@ public static class TopCommitteeFoundationChecks
         await using var db = new ApplicationDbContext(options);
         var access = new TopCommitteeAccessService(db);
         var queries = new TopCommitteeQueryService(db, access);
-        var referral = new TopCommitteeReferralContract(db, access);
         var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
         await Rejects<CommitteeAccessDeniedException>(() => queries.GetDashboardAsync(anonymous), "Anonymous access must fail.");
         await Rejects<CommitteeAccessDeniedException>(() => queries.GetDashboardAsync(Principal("missing-user", RoleNames.TopCommittee)), "Cookie claims alone must not authorize access.");
@@ -150,11 +148,6 @@ public static class TopCommitteeFoundationChecks
             db.Roles.Any(r => r.Id == ur.RoleId && r.Name == RoleNames.TopCommittee))).Select(u => u.Id).FirstOrDefaultAsync();
         if (nonMemberId != null)
             await Rejects<CommitteeAccessDeniedException>(() => queries.GetDashboardAsync(Principal(nonMemberId, RoleNames.TopCommittee)), "Forged/stale role claim must fail against database membership.");
-        await Rejects<CommitteeAccessDeniedException>(() => referral.PrepareAsync(principal, int.MaxValue), "Committee member must not impersonate a referring manager.");
-        var managerId = await db.Users.Where(u => u.IsActive && db.UserRoles.Any(ur => ur.UserId == u.Id &&
-            db.Roles.Any(r => r.Id == ur.RoleId && r.Name == RoleNames.SourcingManager))).Select(u => u.Id).FirstOrDefaultAsync();
-        if (managerId != null)
-            await Rejects<CommitteeIntegrationException>(() => referral.PrepareAsync(Principal(managerId, RoleNames.SourcingManager), -1), "A manager cannot refer an unapproved/missing tender.");
 
         var assignedId = await db.CommitteeAssignments.Where(a => a.CommitteeType == "Top" && a.UserId == memberId)
             .Select(a => (int?)a.TenderId).FirstOrDefaultAsync();

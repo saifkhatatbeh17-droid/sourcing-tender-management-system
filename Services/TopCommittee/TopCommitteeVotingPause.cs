@@ -5,14 +5,8 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
-public sealed class TopCommitteeVotingPause(ApplicationDbContext db, TopCommitteeAccessService access) : ITopCommitteeVotingPause
+public sealed class TopCommitteeVotingPause : ITopCommitteeVotingPause
 {
-    public async Task<CommitteeVotingPause> GetAsync(ClaimsPrincipal member, int tenderId, CancellationToken cancellationToken = default)
-    {
-        await access.RequireAssignmentAsync(member, tenderId, cancellationToken);
-        return await ReadAsync(db, tenderId, cancellationToken);
-    }
-
     public async Task AssertNotPausedAsync(ApplicationDbContext lockedContext, int tenderId, CancellationToken cancellationToken = default)
     {
         await TopCommitteeTenderTransaction.RequireLockAsync(lockedContext, tenderId, cancellationToken);

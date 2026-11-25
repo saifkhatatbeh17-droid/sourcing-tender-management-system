@@ -115,9 +115,4 @@ public static class TopCommitteeNotificationEvents
   }
  }
  // Manager team calls after persisting a valid referral, using its authenticated principal.
- public static Task PublishAssignmentsAsync(ITopCommitteeTenderTransaction transaction,ClaimsPrincipal manager,int tenderId,CancellationToken ct=default)=>transaction.ExecuteAsync(tenderId,async(db,token)=>{
-  var access=new TopCommitteeAccessService(db);var id=await access.RequireRoleAsync(manager,RoleNames.SourcingManager,token);var managers=await access.GetManagersAsync(tenderId,token);if(managers.Count!=1||managers[0].UserId!=id||!managers[0].IsActive||!managers[0].HasManagerRole)throw new CommitteeAccessDeniedException();
-  if(!await db.Tenders.AnyAsync(t=>t.TenderId==tenderId&&t.Status=="AwaitingCommitteeDecision"&&!t.TenderApprovals.Any(v=>v.Stage=="Top"),token))throw new CommitteeStateConflictException("Assignment notifications require a valid referral before committee voting.");
-  foreach(var member in await access.GetMembersAsync(tenderId,token))if(member.IsEligible)await AddAsync(db,tenderId,[member.UserId],$"Tender #{tenderId}: committee assignment #{member.AssignmentId}",token);await db.SaveChangesAsync(token);return true;
- },ct);
 }

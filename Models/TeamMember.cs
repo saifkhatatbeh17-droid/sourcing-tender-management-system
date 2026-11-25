@@ -10,7 +10,7 @@ public sealed record TeamMember(int Id, string Name, string Role, string Departm
     // Face position inside the photo (CSS object-position) and crop zoom for the team reel.
     public string PortraitFocus { get; init; } = "50% 25%";
     public double PortraitZoom { get; init; } = 1;
-    public string Portrait => $"~/images/team/{PortraitFile ?? $"member-{Id:D2}.jpg"}";
+    public string Portrait => $"~/images/team/{PortraitFile}";
 
     public static IReadOnlyList<TeamMember> Roster { get; } =
     [

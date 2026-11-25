@@ -8,7 +8,7 @@
         <div class="modal-body">
             <form id="face-form" method="post" data-save-url="@Url.Action("Save", "FaceEnrollment")" data-delete-url="@Url.Action("Delete", "FaceEnrollment")"
                   data-model-url="@Url.Content("~/lib/face-api/model")" data-row-version="@Model.RowVersion" data-enrolled="false"
-                  data-success-redirect="@Url.Action("GoToDashboard", "Account", new { returnUrl = ViewData["ReturnUrl"] })" data-decline-url="@Url.Action("Decline", "FaceSetup")">
+                  data-success-redirect="@Url.Action("GoToDashboard", "Account", new { returnUrl = ViewData["ReturnUrl"] })" data-decline-url="@Url.Action("Decline", "FaceEnrollment")">
                 @Html.AntiForgeryToken()
                 <div class="face-setup-grid">
                     <div class="face-setup-checks">

@@ -459,17 +459,6 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> SendToEvaluation(int id) => ReviewAndSend(id, new Dictionary<int, string>());
 
-    private async Task<bool> HasCompletedComplianceForEvaluation(int tenderId)
-    {
-        if (await db.TenderApprovals.AnyAsync(a => a.TenderId == tenderId && a.Stage == "Top" && a.Decision == "Rejected")) return false;
-        var submittedBids = db.Bids.AsNoTracking()
-            .Where(b => b.TenderId == tenderId && b.SubmittedAt != null && b.Status != "Withdrawn");
-        var hasCompliantBid = await submittedBids.AnyAsync(b => b.ComplianceStatus == "Compliant");
-        var hasUnresolvedDecision = await submittedBids.AnyAsync(b =>
-            b.ComplianceStatus != "Compliant" && b.ComplianceStatus != "NonCompliant");
-        return hasCompliantBid && !hasUnresolvedDecision;
-    }
-
     private IQueryable<SupplierProfile> SuppliersForCategory(string? category)
     {
         var approved = db.SupplierProfiles.Where(s => s.Status == "Approved");

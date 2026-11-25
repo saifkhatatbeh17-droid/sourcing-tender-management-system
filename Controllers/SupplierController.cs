@@ -482,19 +482,4 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
 
     private static bool AllowedFile(string name) => new[] { ".pdf", ".docx", ".xlsx", ".jpg", ".jpeg", ".png" }.Contains(Path.GetExtension(name).ToLowerInvariant());
 
-    private static byte[] BuildPdf(IEnumerable<string> lines)
-    {
-        var content = new StringBuilder("BT /F1 10 Tf 48 790 Td 14 TL\n");
-        foreach (var line in lines.Take(50)) content.Append('(').Append(EscapePdf(Encoding.ASCII.GetString(Encoding.ASCII.GetBytes(line)))).Append(") Tj T*\n");
-        content.Append("ET"); var stream = Encoding.ASCII.GetBytes(content.ToString());
-        using var output = new MemoryStream(); void Write(string s) { var b = Encoding.ASCII.GetBytes(s); output.Write(b); }
-        Write("%PDF-1.4\n"); var offsets = new List<long> { 0 };
-        void Obj(int n, string body) { offsets.Add(output.Position); Write($"{n} 0 obj\n{body}\nendobj\n"); }
-        Obj(1, "<< /Type /Catalog /Pages 2 0 R >>"); Obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
-        Obj(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>");
-        Obj(4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-        offsets.Add(output.Position); Write($"5 0 obj\n<< /Length {stream.Length} >>\nstream\n"); output.Write(stream); Write("\nendstream\nendobj\n");
-        var xref = output.Position; Write($"xref\n0 {offsets.Count}\n0000000000 65535 f \n"); foreach (var off in offsets.Skip(1)) Write($"{off:0000000000} 00000 n \n"); Write($"trailer\n<< /Size {offsets.Count} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF"); return output.ToArray();
-    }
-    private static string EscapePdf(string s) => s.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)").Replace("\r", " ").Replace("\n", " ");
 }

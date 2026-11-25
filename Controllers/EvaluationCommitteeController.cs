@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
+using SourcingTenderManagement.Services.Reports;
 
 namespace SourcingTenderManagement.Controllers;
 
@@ -242,22 +243,6 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult SaveComment(int id) => BadRequest("Add your comment to the review for each offer. Submitted reviews are locked.");
 
-    internal static Evaluation UpdateMemberComment(CommitteeEvaluationPage page, string comment)
-    {
-        var member = page.Members.Single(m => m.UserId == page.UserId);
-        var bid = page.Offers.First();
-        var entry = page.Evaluation(member, bid);
-        if (entry == null)
-        {
-            entry = new Evaluation { TenderId = page.Tender!.TenderId, BidId = bid.BidId,
-                CommitteeAssignmentId = member.CommitteeAssignmentId, Status = "Draft" };
-            page.Evaluations.Add(entry);
-        }
-        entry.Notes = comment;
-        entry.SubmittedAt = DateTime.UtcNow;
-        return entry;
-    }
-
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult SaveWeights(int id) => BadRequest("Each member must confirm their own percentage. The calculated average cannot be edited.");
 
@@ -282,4 +267,60 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
         }
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> ConfirmPercentage(int id, decimal? financialWeight, string version) => Change(id, page =>
+    {
+        if (version != page.SharedVersion) return Task.FromResult<string?>("The committee changed. Reload before confirming your percentage.");
+        var error = CommitteeConsensus.ConfirmWeight(page, financialWeight, DateTime.UtcNow);
+        TempData["EvaluationTab"] = "offers";
+        return Task.FromResult(error);
+    });
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> ScoreOffer(int id, int bidId, decimal? financialMark, decimal? technicalMark, string? comment, string version) => Change(id, async page =>
+    {
+        if (page.SharedVersion != version) return "The reviews changed. Reload before submitting your marks.";
+        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" && (c.TenderId == id || c.Bid != null && c.Bid.TenderId == id))) return "Resolve open clarifications before submitting marks.";
+        var error = AllOfferScoring.Save(page, bidId, financialMark, technicalMark, comment, DateTime.UtcNow);
+        if (error != null) return error;
+        foreach (var entry in page.Evaluations.Where(e => e.EvaluationId == 0)) db.Evaluations.Add(entry);
+        AllOfferScoring.SelectWinner(page, DateTime.UtcNow);
+        TempData["EvaluationTab"] = page.SelectionReady ? "report" : "forms";
+        TempData["EvaluationOffer"] = bidId;
+        return null;
+    });
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> ResolveScoreTie(int id, int bidId, string version) => Change(id, page =>
+    {
+        if (version != page.SharedVersion) return Task.FromResult<string?>("Tie decisions changed. Reload before confirming.");
+        var leaders = AllOfferScoring.Leaders(page);
+        if (leaders.Count < 2 || !leaders.Any(r => r.BidId == bidId)) return Task.FromResult<string?>("Choose one of the tied highest-scoring offers after every review is complete.");
+        var member = page.Members.Single(m => m.UserId == UserId);
+        var vote = page.Tender!.CommitteeTieVotes.SingleOrDefault(v => v.CommitteeAssignmentId == member.CommitteeAssignmentId);
+        if (vote == null) { vote = new CommitteeTieVote { CommitteeAssignmentId = member.CommitteeAssignmentId }; page.Tender.CommitteeTieVotes.Add(vote); }
+        vote.BidId = bidId; vote.ConfirmedAt = DateTime.UtcNow;
+        AllOfferScoring.SelectWinner(page, DateTime.UtcNow); TempData["EvaluationTab"] = "report";
+        return Task.FromResult<string?>(null);
+    });
+
+    [HttpGet]
+    public async Task<IActionResult> ReportPdf(int id)=>await CommitteePdf(id);
+    [HttpGet]
+    public async Task<IActionResult> EvaluationReportPdf(int id)=>await CommitteePdf(id);
+    private async Task<IActionResult> CommitteePdf(int id)
+    {
+        var result=await Reports(id);
+        if(result is not ViewResult { Model:CommitteeEvaluationPage page })return result;
+        if(page.Tender?.TenderId!=id||string.IsNullOrWhiteSpace(page.Tender.EvaluationReport?.CommitteeSummary))return NotFound();
+        return ReportPdfDownload.Create(this,()=>ReportPdfExport.CommitteeReport(page),$"committee-report-{id}.pdf");
+    }
+    [HttpGet]
+    public async Task<IActionResult> RecommendationPdf(int id)
+    {
+        var result=await Evaluations(id);
+        if(result is not ViewResult { Model:CommitteeEvaluationPage page })return result;
+        if(page.Tender?.TenderId!=id||page.AiRecommendation?.Scenarios.FirstOrDefault()==null)return NotFound();
+        return ReportPdfDownload.Create(this,()=>ReportPdfExport.SavedRecommendation(page),$"saved-recommendation-{id}.pdf");
+    }
 }

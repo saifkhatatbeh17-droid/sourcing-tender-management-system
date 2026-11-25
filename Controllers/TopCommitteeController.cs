@@ -4,7 +4,11 @@ using System.ComponentModel.DataAnnotations;
 using SourcingTenderManagement.Contracts.TopCommittee;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.TopCommittee;
+using SourcingTenderManagement.Services.TopCommittee;
+using SourcingTenderManagement.Services.Reports;
+
 namespace SourcingTenderManagement.Controllers;
+
 [Authorize(Roles = RoleNames.TopCommittee)]
 [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
 public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCommitteeClarifications clarifications,
@@ -184,4 +188,44 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
                 return RedirectToAction(nameof(Clarifications));
             }
         });
+
+    [HttpGet]
+    public async Task<IActionResult> History([FromServices] TopCommitteeHistory history,
+        [FromQuery] CommitteeHistoryFilter filter, CancellationToken ct) => await ReadAsync(async () =>
+    {
+        ViewData["ActivePage"] = nameof(History);
+        try
+        {
+            if (!ModelState.IsValid) throw new ValidationException("Check the history search, filters and page settings.");
+            return View(await history.GetAsync(User, filter, ct));
+        }
+        catch (ValidationException error)
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            ModelState.AddModelError("", error.Message);
+            return View(new CommitteeHistoryPage(filter, [], 0));
+        }
+    });
+
+ [HttpGet]
+ public async Task<IActionResult> Notifications([FromServices]TopCommitteeNotifications notifications,int page=1,CancellationToken ct=default)=>await ReadAsync(async()=>{try{if(!ModelState.IsValid)throw new ValidationException("Choose a valid page.");return View(await notifications.GetAsync(User,page,ct));}catch(ValidationException e){return BadRequest(e.Message);}});
+ [HttpPost,ValidateAntiForgeryToken]
+ public async Task<IActionResult> MarkNotificationRead([FromServices]TopCommitteeNotifications notifications,int id,CancellationToken ct,string? returnUrl=null)=>await ReadAsync(async()=>{if(!await notifications.MarkAsync(User,id,ct))return NotFound();TempData["NotificationSuccess"]="Notification marked as read.";return NotificationReturn(returnUrl);});
+ [HttpPost,ValidateAntiForgeryToken]
+ public async Task<IActionResult> MarkAllNotificationsRead([FromServices]TopCommitteeNotifications notifications,CancellationToken ct,string? returnUrl=null)=>await ReadAsync(async()=>{await notifications.MarkAllAsync(User,ct);TempData["NotificationSuccess"]="Your notifications are marked as read.";return NotificationReturn(returnUrl);});
+ private IActionResult NotificationReturn(string? returnUrl)=>Url.IsLocalUrl(returnUrl)?LocalRedirect(returnUrl!):RedirectToAction(nameof(Notifications));
+
+    [HttpGet]
+    public async Task<IActionResult> UnifiedReportPdf(int id,int? bidId,CancellationToken cancellationToken)
+    {
+        var result=await TenderDetails(id,bidId,cancellationToken);
+        if(result is not ViewResult {Model:CommitteeTenderPage page})return result;
+        if(page.Tender.Report==null)return NotFound();
+        return ReportPdfDownload.Create(this,()=>ReportPdfExport.UnifiedReport(page),$"unified-report-{id}.pdf");
+    }
+
+ [HttpGet]
+ public async Task<IActionResult> Reports([FromServices]TopCommitteeReports reports,[FromQuery]CommitteeReportFilter filter,CancellationToken ct)=>await ReadAsync(async()=>{try{if(!ModelState.IsValid)throw new ValidationException("Check the report filter values.");return View(await reports.GetAsync(User,filter,false,ct));}catch(ValidationException e){Response.StatusCode=400;ModelState.AddModelError("",e.Message);return View(new CommitteeReportPage(filter,new(0,0,0,0,0,0,0),[],DateTime.UtcNow));}});
+ [HttpGet]
+ public async Task<IActionResult> ReportExport([FromServices]TopCommitteeReports reports,[FromServices]TopCommitteeReportExport exporter,[FromQuery]CommitteeReportFilter filter,string format,CancellationToken ct)=>await ReadAsync(async()=>{try{if(!ModelState.IsValid||format is not("pdf" or "xlsx"))throw new ValidationException("Choose PDF or Excel and valid filters.");var p=await reports.GetAsync(User,filter,true,ct);return format=="pdf"?File(exporter.Pdf(p),"application/pdf","top-committee-report.pdf"):File(exporter.Excel(p),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","top-committee-report.xlsx");}catch(ValidationException e){return BadRequest(e.Message);}});
 }
