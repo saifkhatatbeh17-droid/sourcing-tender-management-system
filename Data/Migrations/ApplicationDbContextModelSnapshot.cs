@@ -959,6 +959,67 @@ namespace SourcingTenderManagement.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.CompanyProfile", b =>
+                {
+                    b.Property<int>("CompanyProfileId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CompanyProfileId"));
+
+                    b.Property<decimal>("AnnualProcurementBudget")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AnnualRevenue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<int>("Employees")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FiscalYearStartMonth")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Industry")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Overview")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Sites")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("CompanyProfileId");
+
+                    b.ToTable("CompanyProfiles", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_CompanyProfiles_FiscalMonth", "[FiscalYearStartMonth] BETWEEN 1 AND 12");
+                        });
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.ContactMessage", b =>
                 {
                     b.Property<int>("ContactMessageId")
@@ -1028,6 +1089,52 @@ namespace SourcingTenderManagement.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Departments", (string)null);
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.DepartmentBudget", b =>
+                {
+                    b.Property<int>("DepartmentBudgetId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DepartmentBudgetId"));
+
+                    b.Property<decimal>("AllocatedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CommittedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FiscalYear")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("SpentToDate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("DepartmentBudgetId");
+
+                    b.HasIndex("DepartmentId", "FiscalYear")
+                        .IsUnique();
+
+                    b.ToTable("DepartmentBudgets", "dbo");
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.Evaluation", b =>
@@ -1323,6 +1430,68 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.ToTable("Notifications", (string)null);
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.PastPurchase", b =>
+                {
+                    b.Property<int>("PastPurchaseId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PastPurchaseId"));
+
+                    b.Property<int?>("ActualDeliveryDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("PromisedDeliveryDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("PurchasedOn")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("PastPurchaseId");
+
+                    b.HasIndex("DepartmentId", "PurchasedOn");
+
+                    b.ToTable("PastPurchases", "dbo");
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.PurchaseRequest", b =>
                 {
                     b.Property<int>("PurchaseRequestId")
@@ -1331,13 +1500,25 @@ namespace SourcingTenderManagement.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseRequestId"));
 
+                    b.Property<string>("BusinessImpact")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("(sysutcdatetime())");
 
+                    b.Property<decimal?>("DelayCostPerDay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("DepartmentId")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("EstimatedBudget")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Priority")
                         .IsRequired()
@@ -2066,7 +2247,7 @@ namespace SourcingTenderManagement.Data.Migrations
 
                     b.ToTable("UserFaceCredentials", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_UserFaceCredentials_EnrollmentState", "(\r\n    [SampleCount] = 0\r\n    AND [ProtectedTemplates] IS NULL\r\n    AND [TemplateFormatVersion] IS NULL\r\n    AND [ModelIdentifier] IS NULL\r\n    AND [ConsentVersion] IS NULL\r\n    AND [ConsentGrantedAt] IS NULL\r\n    AND [EnrolledAt] IS NULL\r\n)\r\nOR\r\n(\r\n    [SampleCount] BETWEEN 3 AND 5\r\n    AND [ProtectedTemplates] IS NOT NULL\r\n    AND DATALENGTH([ProtectedTemplates]) > 0\r\n    AND [TemplateFormatVersion] IS NOT NULL\r\n    AND [TemplateFormatVersion] > 0\r\n    AND [ModelIdentifier] IS NOT NULL\r\n    AND LEN([ModelIdentifier]) > 0\r\n    AND [ConsentVersion] IS NOT NULL\r\n    AND LEN([ConsentVersion]) > 0\r\n    AND [ConsentGrantedAt] IS NOT NULL\r\n    AND [EnrolledAt] IS NOT NULL\r\n)");
+                            t.HasCheckConstraint("CK_UserFaceCredentials_EnrollmentState", "(\n    [SampleCount] = 0\n    AND [ProtectedTemplates] IS NULL\n    AND [TemplateFormatVersion] IS NULL\n    AND [ModelIdentifier] IS NULL\n    AND [ConsentVersion] IS NULL\n    AND [ConsentGrantedAt] IS NULL\n    AND [EnrolledAt] IS NULL\n)\nOR\n(\n    [SampleCount] BETWEEN 3 AND 5\n    AND [ProtectedTemplates] IS NOT NULL\n    AND DATALENGTH([ProtectedTemplates]) > 0\n    AND [TemplateFormatVersion] IS NOT NULL\n    AND [TemplateFormatVersion] > 0\n    AND [ModelIdentifier] IS NOT NULL\n    AND LEN([ModelIdentifier]) > 0\n    AND [ConsentVersion] IS NOT NULL\n    AND LEN([ConsentVersion]) > 0\n    AND [ConsentGrantedAt] IS NOT NULL\n    AND [EnrolledAt] IS NOT NULL\n)");
                         });
                 });
 
@@ -2388,6 +2569,17 @@ namespace SourcingTenderManagement.Data.Migrations
                     b.Navigation("Tender");
                 });
 
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.DepartmentBudget", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+                });
+
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.Evaluation", b =>
                 {
                     b.HasOne("SourcingTenderManagement.Models.Entities.Bid", "Bid")
@@ -2503,6 +2695,17 @@ namespace SourcingTenderManagement.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SourcingTenderManagement.Models.Entities.PastPurchase", b =>
+                {
+                    b.HasOne("SourcingTenderManagement.Models.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Department");
                 });
 
             modelBuilder.Entity("SourcingTenderManagement.Models.Entities.PurchaseRequest", b =>

@@ -24,6 +24,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<CommitteeTieVote> CommitteeTieVotes { get; set; }
     public DbSet<ContactMessage> ContactMessages { get; set; }
     public DbSet<Department> Departments { get; set; }
+    public DbSet<CompanyProfile> CompanyProfiles { get; set; }
+    public DbSet<DepartmentBudget> DepartmentBudgets { get; set; }
+    public DbSet<PastPurchase> PastPurchases { get; set; }
     public DbSet<Evaluation> Evaluations { get; set; }
     public DbSet<EvaluationCriterion> EvaluationCriteria { get; set; }
     public DbSet<EvaluationReport> EvaluationReports { get; set; }
@@ -73,6 +76,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.ApplyConfiguration(new Configurations.AiInteractionConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.ReportAccessRuleConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.SpecMatchAnalysisConfiguration());
+        var companyContext = new Configurations.CompanyContextConfiguration();
+        modelBuilder.ApplyConfiguration<CompanyProfile>(companyContext);
+        modelBuilder.ApplyConfiguration<DepartmentBudget>(companyContext);
+        modelBuilder.ApplyConfiguration<PastPurchase>(companyContext);
         var reportsData = new Configurations.ReportsDataConfiguration();
         modelBuilder.ApplyConfiguration<AuditEntry>(reportsData);
         modelBuilder.ApplyConfiguration<TenderContract>(reportsData);
@@ -446,6 +453,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasKey(e => e.PurchaseRequestId);
 
             entity.HasIndex(e => e.DepartmentId);
+            entity.Property(e => e.EstimatedBudget).HasPrecision(18, 2);
+            entity.Property(e => e.DelayCostPerDay).HasPrecision(18, 2);
+            entity.Property(e => e.BusinessImpact).HasMaxLength(2000);
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Priority).HasMaxLength(20);

@@ -753,7 +753,7 @@ html[data-theme="dark"] .tc-workspace textarea[readonly] { background: var(--col
 .tc-workspace .tc-member-form h3 { margin-top:8px; }
 .tc-workspace .tc-nominated-offer { margin-block:14px; }
 .tc-workspace .tc-importance {
-    width: min(34rem, calc(100% - 2rem));
+    width: min(38rem, calc(100% - 2rem));
     max-height: calc(100dvh - 2rem);
     padding: 0;
     overflow: hidden;
@@ -764,8 +764,40 @@ html[data-theme="dark"] .tc-workspace textarea[readonly] { background: var(--col
 }
 .tc-importance[open] { display: flex; flex-direction: column; }
 .tc-importance::backdrop { background: rgb(12 31 35 / 54%); }
-.tc-importance :is(.modal-header, .modal-footer) { flex-shrink: 0; }
-.tc-importance .modal-body { overflow-y: auto; }
+.tc-importance-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 24px 16px; border-bottom: 1px solid var(--tc-line); flex-shrink: 0; }
+.tc-importance-head h2 { margin: 0; font-size: 18px; line-height: 1.4; }
+.tc-importance-head p { margin: 4px 0 0; font-size: 13px; color: var(--color-text-secondary); }
+.tc-importance-head .btn-close { flex-shrink: 0; margin: 2px 0 0; }
+.tc-importance-body { padding: 20px 24px; overflow-y: auto; font-size: 14px; line-height: 1.6; }
+.tc-importance-intro p { margin: 0 0 8px; }
+.tc-importance-intro ul { margin: 0; padding-inline-start: 20px; color: var(--color-text-secondary); }
+.tc-importance-intro li + li { margin-top: 4px; }
+.tc-importance-empty { margin: 0; }
+.tc-importance-loading { display: flex; align-items: center; gap: 10px; padding: 14px 16px; margin-top: 16px; border-radius: 10px; background: var(--tc-selection); }
+.tc-importance-error { margin: 16px 0 0; padding: 12px 16px; border-radius: 10px; border: 1px solid #f1b5b5; background: #fdf1f1; color: #8a1c1c; }
+.tc-importance-level { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--tc-line); }
+.tc-importance-label { font-weight: 600; }
+.tc-importance-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: .02em; }
+.tc-importance-badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.tc-importance-badge[data-level="High"] { background: #fdecea; color: #a4231b; }
+.tc-importance-badge[data-level="Medium"] { background: #fff4dc; color: #8a5a00; }
+.tc-importance-badge[data-level="Low"] { background: #e7f5ee; color: #1e6b45; }
+.tc-importance-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 12px 0 0; border: 1px solid var(--tc-line); border-radius: 12px; overflow: hidden; background: var(--tc-line); }
+.tc-importance-facts > div { padding: 10px 14px; background: var(--tc-surface); }
+.tc-importance-facts dt { font-size: 12px; font-weight: 400; color: var(--color-text-secondary); }
+.tc-importance-facts dd { margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tc-importance-facts dd small { display: block; font-weight: 400; font-size: 12px; color: var(--color-text-secondary); }
+.tc-importance-facts .is-warning dd { color: #a4231b; }
+.tc-importance-result section { margin-top: 18px; }
+.tc-importance-result h3 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
+.tc-importance-result section p { margin: 0; }
+.tc-importance-result ul { margin: 0; padding-inline-start: 20px; }
+.tc-importance-result li + li { margin-top: 6px; }
+.tc-importance-note { margin: 18px 0 0; font-size: 12px; color: var(--color-text-secondary); }
+.tc-importance-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 24px; border-top: 1px solid var(--tc-line); flex-shrink: 0; }
+.tc-importance-foot .btn { min-height: 44px; padding-inline: 18px; border-radius: 10px; }
+@media (max-width: 520px) { .tc-importance-facts { grid-template-columns: 1fr; } .tc-importance-head, .tc-importance-body, .tc-importance-foot { padding-inline: 16px; } }
+
 .tc-workspace .tc-tab-nav { flex-wrap:wrap; overflow:visible; padding:0; gap:0; }
 .tc-workspace .tc-tab-nav .nav-link { white-space:normal; min-height:48px; padding:12px 16px; }
 .tc-workspace .tc-pane-overview.active { display:block; }

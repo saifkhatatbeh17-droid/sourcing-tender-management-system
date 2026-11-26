@@ -20,6 +20,15 @@ public class PurchaseRequest
 
     public DateOnly TargetDate { get; set; }
 
+    /// <summary>Requester's cost estimate in the company currency.</summary>
+    public decimal? EstimatedBudget { get; set; }
+
+    /// <summary>What happens to operations if this purchase is late or not made.</summary>
+    public string? BusinessImpact { get; set; }
+
+    /// <summary>Estimated cost per day of delay, in the company currency.</summary>
+    public decimal? DelayCostPerDay { get; set; }
+
     public string Status { get; set; } = null!;
 
     public string? ReviewNotes { get; set; }

@@ -296,25 +296,56 @@
 </details>
     <div class="tc-review-navigation"><a class="btn btn-outline-secondary" href="#recommendation">Back to review</a></div>
 </div>
-<dialog class="tc-importance" id="tender-importance" aria-labelledby="importance-heading">
-    <header class="modal-header">
-        <h2 class="modal-title fs-5" id="importance-heading">AI report assessment</h2>
+<dialog class="tc-importance" id="tender-importance" aria-labelledby="importance-heading" aria-describedby="importance-intro">
+    <header class="tc-importance-head">
+        <div>
+            <h2 id="importance-heading">AI report assessment</h2>
+            <p id="importance-intro">Advisory only. Your vote is recorded separately.</p>
+        </div>
         <button type="button" class="btn-close" data-importance-close aria-label="Close AI report assessment"></button>
     </header>
-    <div class="modal-body">
-        <p>AI reads the evaluation report and the nominated offer to identify urgency, risks, and missing information. Your vote is recorded separately.</p>
+    <div class="tc-importance-body">
         @if (string.IsNullOrWhiteSpace(tender.Report?.CommitteeSummary))
-        { <p class="mb-0">An evaluation report is needed before analysis can run.</p> }
-        <p class="form-text mb-0" data-importance-status role="status"></p>
-        <div data-importance-result hidden>
-            <p class="mt-3"><strong>Suggested importance: <span data-importance-level></span></strong></p>
-            <p data-importance-reason></p>
-            <div data-importance-missing hidden><h3 class="fs-6">Information to verify</h3><ul class="mb-0"></ul></div>
+        { <p class="tc-importance-empty">An evaluation report is needed before analysis can run.</p> }
+        else
+        {
+        <div class="tc-importance-intro" data-importance-intro>
+            <p>The AI weighs this tender against:</p>
+            <ul>
+                <li>The evaluation report and the nominated offer</li>
+                <li>The department’s budget for this fiscal year</li>
+                <li>The requester’s estimate, business impact and cost of delay</li>
+                <li>Comparable past purchases and their delivery records</li>
+            </ul>
+        </div>
+        }
+        <div class="tc-importance-loading" data-importance-loading hidden>
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            <span>Analyzing the report and budget…</span>
+        </div>
+        <p class="tc-importance-error" data-importance-error role="alert" hidden></p>
+        <p class="visually-hidden" data-importance-status role="status"></p>
+        <div class="tc-importance-result" data-importance-result hidden>
+            <div class="tc-importance-level">
+                <span class="tc-importance-label">Suggested importance</span>
+                <span class="tc-importance-badge" data-importance-level></span>
+            </div>
+            <dl class="tc-importance-facts" data-importance-facts hidden></dl>
+            <section aria-labelledby="importance-reason-heading">
+                <h3 id="importance-reason-heading">Why</h3>
+                <p data-importance-reason></p>
+            </section>
+            <section data-importance-missing hidden aria-labelledby="importance-missing-heading">
+                <h3 id="importance-missing-heading">Check before voting</h3>
+                <ul></ul>
+            </section>
+            <p class="tc-importance-note">AI can be wrong. Verify the figures against the report before deciding.</p>
         </div>
     </div>
-    <form class="modal-footer" asp-action="AssessImportance" method="post" data-importance-form>
+    <form class="tc-importance-foot" asp-action="AssessImportance" method="post" data-importance-form>
         <input type="hidden" name="id" value="@tender.TenderId" />
-        <button class="btn btn-primary" type="submit" disabled="@(string.IsNullOrWhiteSpace(tender.Report?.CommitteeSummary))">Analyze report</button>
+        <button type="button" class="btn btn-outline-secondary" data-importance-close>Close</button>
+        <button class="btn btn-primary" type="submit" autofocus disabled="@(string.IsNullOrWhiteSpace(tender.Report?.CommitteeSummary))">Analyze report</button>
     </form>
 </dialog>
 </div>

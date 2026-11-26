@@ -64,24 +64,52 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
 
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> AssessImportance(int id,
-        [FromServices] SourcingTenderManagement.Services.Evaluation.BidRecommendationService ai, CancellationToken cancellationToken) => ReadAsync(async () =>
+        [FromServices] SourcingTenderManagement.Services.Evaluation.BidRecommendationService ai,
+        [FromServices] ApplicationDbContext db, CancellationToken cancellationToken) => ReadAsync(async () =>
     {
         var tender = await queries.GetTenderDetailsAsync(User, id, cancellationToken);
         if (tender.Report == null || string.IsNullOrWhiteSpace(tender.Report.CommitteeSummary))
             return BadRequest(new { error = "A committee report is required before analysis." });
         var bid = tender.Bids.FirstOrDefault(b => b.IsNominated);
+        // Budget and history facts are computed here so the AI cites real numbers instead of guessing scale.
+        var business = await SourcingTenderManagement.Services.Evaluation.ProcurementBusinessContext.LoadAsync(db, tender.TenderId,
+            bid?.Total, bid?.Currency, DateOnly.FromDateTime(DateTime.Now), cancellationToken);
         try
         {
             var result = await ai.AssessImportance(new { tender.Title, tender.Description, tender.Terms,
                 purchaseRequest = tender.PurchaseRequest,
-                report = new { tender.Report.ManagerSummary, tender.Report.OfficerSummary },
+                report = new { tender.Report.CommitteeSummary, tender.Report.ManagerSummary, tender.Report.OfficerSummary },
                 offer = bid == null ? null : new { bid.BidId, bid.SupplierName, bid.Total, bid.Currency, bid.DeliveryDays,
-                    bid.PaymentTerms, bid.TechnicalDetails, bid.Items, bid.ComplianceStatus, bid.ComplianceNotes } }, cancellationToken);
-            return Json(result);
+                    bid.PaymentTerms, bid.TechnicalDetails, bid.Items, bid.ComplianceStatus, bid.ComplianceNotes },
+                businessContext = business }, cancellationToken);
+            return Json(new { result.Level, result.Reason, result.MissingInformation, facts = AssessmentFacts(business) });
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or InvalidOperationException or KeyNotFoundException)
         { return StatusCode(503, new { error = "Could not assess importance. Check your vLLM / AI endpoint or API key and try again." }); }
     });
+
+    private static object AssessmentFacts(SourcingTenderManagement.Services.Evaluation.BusinessContext business)
+    {
+        var budget = business.DepartmentBudget;
+        var offer = business.Offer;
+        return new
+        {
+            currency = budget?.Currency ?? business.Company?.Currency,
+            fiscalYear = budget?.FiscalYear,
+            department = budget?.Department,
+            allocated = budget?.Allocated,
+            remaining = budget?.Remaining,
+            usedPercent = budget?.UsedPercent,
+            fiscalYearElapsedPercent = budget?.FiscalYearElapsedPercent,
+            offerTotal = offer?.OfferTotal,
+            offerCurrency = offer?.OfferCurrency,
+            percentOfRemaining = offer?.PercentOfDepartmentRemaining,
+            varianceFromEstimatePercent = offer?.VarianceFromEstimatePercent,
+            estimatedBudget = business.Request.EstimatedBudget,
+            comparablePurchases = business.ComparablePurchases.Count,
+            missingData = business.MissingData
+        };
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SubmitVote([Bind(Prefix = "Vote")] CommitteeVoteInput input, CancellationToken cancellationToken)
