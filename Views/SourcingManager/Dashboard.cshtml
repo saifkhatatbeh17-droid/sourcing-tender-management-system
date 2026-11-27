@@ -39,8 +39,24 @@
             }
         </section>
 @{
- var reportStates = ViewBag.DashboardReportStates as Dictionary<string,int> ?? new();
- int N(params string[] keys) => keys.Sum(k => reportStates.GetValueOrDefault(k));
+ var reportStates = ViewBag.DashboardReportStates as List<ManagerReportStatus> ?? new List<ManagerReportStatus>();
+
+ int N(params string[] statuses)
+ {
+     int count = 0;
+     foreach (string status in statuses)
+     {
+         foreach (var item in reportStates)
+         {
+             if (item.Status == status)
+             {
+                 count += item.Count;
+                 break;
+             }
+         }
+     }
+     return count;
+ }
  var reportStages = new List<DashboardSlice> { new("Needs your review", N("Needs your review")), new("Ready to forward", N("Ready to forward")), new("With CEO & Chiefs", N("With CEO & Chiefs")), new("Back with committee", N("Back with committee")), new("Awarded", N("Awarded")), new("Rejected or cancelled", N("Rejected", "Cancelled")) };
  if(N("With sourcing team") > 0) reportStages.Add(new("With sourcing team", N("With sourcing team")));
  var overview = new DashboardOverview("Recommendation status", "Reports that reached manager review", "recommendations", "in progress",

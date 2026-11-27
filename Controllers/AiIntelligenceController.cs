@@ -26,6 +26,7 @@ public sealed class AiIntelligenceController(
     [HttpGet("/Department/AiIntelligence")]
     [HttpGet("/SourcingOfficer/AiIntelligence")]
     [HttpGet("/EvaluationCommittee/AiIntelligence")]
+    // AI Intelligence
     [HttpGet("/SourcingManager/AiIntelligence")]
     [HttpGet("/TopCommittee/AiIntelligence")]
     public async Task<IActionResult> Index(string? workspace, int? tenderId, int? from, CancellationToken ct)

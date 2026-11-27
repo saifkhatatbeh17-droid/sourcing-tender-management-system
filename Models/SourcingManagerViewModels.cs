@@ -49,3 +49,15 @@ public sealed class ManagerClarificationReply
     [Range(1, int.MaxValue)] public int Id { get; set; }
     [Required, StringLength(4000)] public string Message { get; set; } = "";
 }
+
+public sealed class ManagerReportStatus
+{
+    public string Status { get; set; } = "";
+    public int Count { get; set; }
+}
+
+public sealed class ManagerRequester
+{
+    public string UserId { get; set; } = "";
+    public string FullName { get; set; } = "";
+}
