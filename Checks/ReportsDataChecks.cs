@@ -1,3 +1,4 @@
+// Self-test, not part of the website. Run it with: dotnet run -- --reports-data-checks
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Identity;
@@ -14,7 +15,6 @@ using SourcingTenderManagement.Services.Reports.Hub;
 using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
-// Self-test, not part of the website. Run it with: dotnet run -- --reports-data-checks
 
 public static class ReportsDataChecks
 {
