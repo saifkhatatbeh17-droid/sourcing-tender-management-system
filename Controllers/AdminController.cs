@@ -359,6 +359,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
     {
         var user = await users.FindByIdAsync(model.Id);
         if (user == null) return NotFound();
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         var isDepartmentAccount = await users.IsInRoleAsync(user, RoleNames.Department);
         if (isDepartmentAccount && model.DepartmentId == null)

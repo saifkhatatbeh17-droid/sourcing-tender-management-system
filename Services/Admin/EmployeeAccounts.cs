@@ -76,6 +76,7 @@ public sealed class EmployeeAccounts(ApplicationDbContext db, UserManager<Applic
     public async Task<EmployeeAccountResult> CreateAsync(
         EmployeeAccountInput input, string password, bool requirePasswordChange, CancellationToken ct = default)
     {
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         if (input.CommitteeRole != null && await ActivePositionHolderAsync(input.CommitteeRole, ct) is string holder)
             return new EmployeeAccountResult(null, holder, []);

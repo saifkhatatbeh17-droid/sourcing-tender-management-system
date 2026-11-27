@@ -12,7 +12,9 @@ public partial class SourcingOfficerController
     public async Task<IActionResult> CloseSubmissionsEarly(int tenderId, bool sendToCommittee = false)
     {
         var officerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};");
         var tender = await db.Tenders.SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == officerId);
         if (tender == null) return NotFound();
@@ -84,7 +86,9 @@ public partial class SourcingOfficerController
         if (!environment.IsDevelopment()) return NotFound();
 
         var officerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};");
         var tender = await db.Tenders.Include(t => t.OfferExtensions)
             .SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == officerId);
@@ -112,7 +116,9 @@ public partial class SourcingOfficerController
     public async Task<IActionResult> ExtendOfferRound(int tenderId, int currentRound, DateTime? newDeadline)
     {
         var officerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};");
         var tender = await db.Tenders.Include(t => t.OfferExtensions)
             .SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == officerId);

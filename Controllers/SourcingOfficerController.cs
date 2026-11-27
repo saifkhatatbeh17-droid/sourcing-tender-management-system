@@ -121,6 +121,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             .ExecuteUpdateAsync(update => update
                 .SetProperty(r => r.Status, "UnderReview")
                 .SetProperty(r => r.ReviewedByUserId, userId));
+        // ExecuteUpdateAsync returns how many rows it changed. Anything but 1 means the record was changed by someone else or is no longer allowed.
         if (updatedRows != 1)
         {
             var assignedToAnotherOfficer = await db.PurchaseRequests.AsNoTracking()
@@ -186,6 +187,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
                 .SetProperty(r => r.ReviewedByUserId, userId)
                 .SetProperty(r => r.ReviewNotes, r => cleanNotes ?? r.ReviewNotes)
                 .SetProperty(r => r.ReviewedAt, reviewedAt));
+        // ExecuteUpdateAsync returns how many rows it changed. Anything but 1 means the record was changed by someone else or is no longer allowed.
         if (updatedRows != 1)
         {
             TempData["RequestError"] = await db.Clarifications.AnyAsync(c => c.PurchaseRequestId == id && c.Status != "Resolved")
@@ -293,6 +295,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         Tender? rejectedSource = null;
         if (tender.ReplacesTenderId.HasValue)
         {
+            // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @source int; SELECT @source = TenderId FROM dbo.Tenders WITH (UPDLOCK,HOLDLOCK) WHERE TenderId = {tender.ReplacesTenderId.Value};");
             rejectedSource = await db.Tenders.SingleOrDefaultAsync(t => t.TenderId == tender.ReplacesTenderId && t.CreatedByUserId == User.FindFirstValue(ClaimTypes.NameIdentifier) &&
                 t.Status == "Closed" && t.RejectionForwardedAt != null && t.PurchaseRequestId == tender.PurchaseRequestId &&
@@ -301,6 +304,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             if (await db.Tenders.AnyAsync(t => t.ReplacesTenderId == rejectedSource.TenderId))
                 return Conflict("A replacement may be created only once.");
         }
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = PurchaseRequestId FROM dbo.PurchaseRequests WITH (UPDLOCK, HOLDLOCK) WHERE PurchaseRequestId = {tender.PurchaseRequestId};");
         var request = await db.PurchaseRequests
             .SingleOrDefaultAsync(r => r.PurchaseRequestId == tender.PurchaseRequestId);
@@ -407,7 +411,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     public async Task<IActionResult> PublishAndInvite(int id, List<int>? supplierProfileIds, bool allSuppliers = false)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};");
         var tender = await db.Tenders.Include(t => t.Invitations).SingleOrDefaultAsync(t => t.TenderId == id && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
@@ -435,6 +441,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};");
         var tender = await db.Tenders.SingleOrDefaultAsync(t => t.TenderId == id && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
@@ -527,6 +534,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         }
         var selectedIds = (supplierProfileIds ?? []).Distinct().ToList();
         await using var invitationTransaction = db.Database.CurrentTransaction is null
+            // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
             ? await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
             : null;
         var approvedIds = await SuppliersForCategory(tender.Category)
@@ -642,7 +650,9 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
     public async Task<IActionResult> ReviewAndSend(int tenderId, Dictionary<int, string> decisions, bool saveOnly = false, string? shortfallReason = null)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};");
         var tender = await db.Tenders.SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == userId);
         if (tender == null) return NotFound();
@@ -765,6 +775,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         if (tenderId == null) return NotFound();
 
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId.Value};");
         var bid = await db.Bids
             .Include(b => b.Clarifications).ThenInclude(c => c.ClarificationResponses)
@@ -913,6 +924,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         if (reason?.Length > 4000 || (decision != "Approve" && string.IsNullOrWhiteSpace(reason)))
             return Error("Enter a reason of up to 4,000 characters when requesting edits or rejecting.");
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};");
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var tender = await db.Tenders.Include(t => t.EvaluationReport).Include(t => t.CommitteeAssignments).Include(t => t.TenderApprovals)
@@ -974,6 +986,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};");
 
         var tender = await db.Tenders

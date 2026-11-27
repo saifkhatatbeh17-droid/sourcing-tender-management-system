@@ -34,6 +34,7 @@ public sealed class TenderContractsController(ApplicationDbContext db, IWebHostE
     {
         if (UserId is not { } userId) return Forbid();
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @id int; SELECT @id= TenderId FROM dbo.Tenders WITH (UPDLOCK,HOLDLOCK) WHERE TenderId={id};", ct);
         var tender = await AwardQuery(id).Include(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems).SingleOrDefaultAsync(ct);
         if (tender is null) return NotFound();
@@ -70,6 +71,7 @@ public sealed class TenderContractsController(ApplicationDbContext db, IWebHostE
         var content = buffer.ToArray();
         if (!IsPdf(content)) return BadRequest("The signed copy must be a valid PDF.");
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @id int; SELECT @id=TenderId FROM dbo.Tenders WITH (UPDLOCK,HOLDLOCK) WHERE TenderId={id};", ct);
         var contract = await db.TenderContracts.SingleOrDefaultAsync(c => c.TenderId == id && AwardQuery(id).Any(), ct);
         if (contract is null) return NotFound();

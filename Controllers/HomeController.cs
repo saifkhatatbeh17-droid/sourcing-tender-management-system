@@ -44,6 +44,7 @@ public class HomeController(ApplicationDbContext db, ILogger<HomeController> log
 
         try
         {
+            // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
             await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
             var recent = message.SubmittedAt.AddMinutes(-1);
             var alreadySaved = await db.ContactMessages.AnyAsync(existing => existing.SubmittedAt >= recent

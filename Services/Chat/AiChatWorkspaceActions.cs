@@ -484,6 +484,7 @@ public sealed class AiChatWorkspaceActions(
         if (requestId <= 0)
             return new(false, false, "Specify a valid requestId.");
 
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var request = await db.PurchaseRequests
             .Include(r => r.PurchaseRequestItems)
@@ -702,6 +703,7 @@ public sealed class AiChatWorkspaceActions(
         var sendToCommittee = GetBool(args, "sendToCommittee") ?? false;
         var shortfallReason = TrimTo(GetString(args, "shortfallReason"), 2000);
 
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var tender = await db.Tenders
             .Include(t => t.OfferExtensions)
@@ -835,6 +837,7 @@ public sealed class AiChatWorkspaceActions(
         if (decision != "Approve" && string.IsNullOrWhiteSpace(reason))
             return new(false, false, $"Provide a reason when choosing {decision}.");
 
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var tender = await db.Tenders
             .Include(t => t.EvaluationReport)
@@ -915,6 +918,7 @@ public sealed class AiChatWorkspaceActions(
             return new(false, false, "Provide tenderId and a whole-number financialWeight between 1 and 99.");
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};", ct);
 
         var tender = await LoadEvaluationTenderQuery().SingleOrDefaultAsync(t => t.TenderId == tenderId, ct);
@@ -960,6 +964,7 @@ public sealed class AiChatWorkspaceActions(
             return new(false, false, "Provide tenderId and a non-empty scores array of { bidId, financialMark, technicalMark, comment }.");
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};", ct);
 
         var tender = await LoadEvaluationTenderQuery().SingleOrDefaultAsync(t => t.TenderId == tenderId, ct);
@@ -1017,6 +1022,7 @@ public sealed class AiChatWorkspaceActions(
         var tenderId = GetInt(args, "tenderId") ?? 0;
         var bidId = GetInt(args, "bidId") ?? 0;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};", ct);
 
         var tender = await LoadEvaluationTenderQuery().SingleOrDefaultAsync(t => t.TenderId == tenderId, ct);
@@ -1058,6 +1064,7 @@ public sealed class AiChatWorkspaceActions(
         var summaryNote = TrimTo(GetString(args, "summaryNote"), 800);
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};", ct);
 
         var tender = await LoadEvaluationTenderQuery().SingleOrDefaultAsync(t => t.TenderId == tenderId, ct);
@@ -1122,6 +1129,7 @@ public sealed class AiChatWorkspaceActions(
         if (decision != "Approved" && string.IsNullOrWhiteSpace(notes))
             return new(false, false, $"Provide notes explaining why the submission is {decision}.");
 
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var report = await db.EvaluationReports
             .Include(r => r.Tender)
@@ -1189,6 +1197,7 @@ public sealed class AiChatWorkspaceActions(
         var tenderId = GetInt(args, "tenderId");
         var reason = TrimTo(GetString(args, "reason"), 2000) ?? "Referred to CEO & Chiefs for final award decision in accordance with Tiryaq governance policy.";
 
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var report = await db.EvaluationReports
             .Include(r => r.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(pr => pr.Department)

@@ -235,6 +235,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         {
             // Serialize submission with deadline closure and concurrent draft edits.
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {inv.TenderId};");
+            // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = SupplierProfileId FROM dbo.SupplierProfiles WITH (UPDLOCK,HOLDLOCK) WHERE SupplierProfileId = {profile.SupplierProfileId};");
             if (!await db.SupplierProfiles.AnyAsync(s => s.SupplierProfileId == profile.SupplierProfileId && s.Status == "Approved"))
                 return Forbid();
@@ -355,6 +356,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         if (tenderId == null) return NotFound();
 
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId.Value};");
         var bid = await db.Bids.Include(b => b.Invitation).ThenInclude(i => i.Tender)
             .SingleOrDefaultAsync(b => b.BidId == id && b.Invitation.SupplierProfile.UserId == UserId);

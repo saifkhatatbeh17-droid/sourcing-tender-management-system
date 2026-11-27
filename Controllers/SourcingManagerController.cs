@@ -157,6 +157,7 @@ public partial class SourcingManagerController : Controller
             return SubmissionMessage("Choose a valid decision and provide comments when rejecting or returning a report.", input.ReportId);
         }
 
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         using var transaction = _context.Database.BeginTransaction(IsolationLevel.Serializable);
 
         var evaluationReport = _context.EvaluationReports.Find(input.ReportId);
@@ -301,6 +302,7 @@ public partial class SourcingManagerController : Controller
             return SubmissionMessage("Enter the policy reason for referral.", input.ReportId);
         }
 
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         using var transaction = _context.Database.BeginTransaction(IsolationLevel.Serializable);
 
         var evaluationReport = _context.EvaluationReports.Find(input.ReportId);

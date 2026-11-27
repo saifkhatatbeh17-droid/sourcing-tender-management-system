@@ -123,6 +123,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         var user = await users.GetUserAsync(User);
         if (user?.DepartmentId == null) return Forbid();
 
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var request = await db.PurchaseRequests.Include(r => r.PurchaseRequestItems)
             .SingleOrDefaultAsync(r => r.PurchaseRequestId == id && r.DepartmentId == user.DepartmentId

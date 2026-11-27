@@ -131,6 +131,7 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         if (subject is not { Length: > 0 and <= 200 } || description is not { Length: > 0 and <= 4000 })
             return BadRequest("Enter a subject and question within the displayed limits.");
 
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         if (!(await Recipients(actor, kind, recordId, ct)).Any(u => u.Id == recipient)) return Forbid();
         var thread = new Clarification

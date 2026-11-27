@@ -102,6 +102,7 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
                 ? await ai.FinalReport(page, financialWeight, cancellationToken)
                 : await ai.Recommend(page, financialWeight, cancellationToken);
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
             await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};", cancellationToken);
             var currentTender = await TenderQuery().AsNoTracking().SingleAsync(t => t.TenderId == id, cancellationToken);
             if (!currentTender.CommitteeAssignments.Any(m => m.CommitteeType == "Evaluation" && m.UserId == UserId)) return Forbid();
@@ -178,6 +179,7 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db, User
             return RedirectToAction(nameof(Evaluations), new { id });
         }
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {id};");
         var tender = await TenderQuery().SingleOrDefaultAsync(t => t.TenderId == id);
         if (tender == null) return NotFound();

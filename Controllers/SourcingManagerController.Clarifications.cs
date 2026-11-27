@@ -126,6 +126,7 @@ public partial class SourcingManagerController
             return ClarificationMessage("Enter a response of up to 4,000 characters.", id: input.Id);
         }
 
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         using var transaction = _context.Database.BeginTransaction(IsolationLevel.Serializable);
         var clarification = _context.Clarifications.Find(input.Id);
 
@@ -175,6 +176,7 @@ public partial class SourcingManagerController
     [HttpPost]
     public IActionResult ResolveClarification(int id)
     {
+        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         using var transaction = _context.Database.BeginTransaction(IsolationLevel.Serializable);
 
         var clarification = _context.Clarifications.Find(id);
