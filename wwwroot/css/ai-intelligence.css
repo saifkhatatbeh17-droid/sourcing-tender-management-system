@@ -322,9 +322,6 @@
     margin-bottom: 1.1rem;
 }
 
-
-
-
 .ai-intel-note {
     margin: 1rem 0 0;
     padding: 0.7rem 0.95rem;
@@ -464,17 +461,6 @@
 }
 
 /* Ask AI and insight cards */
-.ai-intel-prompt-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-    margin-bottom: 0.75rem;
-}
-
-.ai-intel-prompt-bar .ai-intel-input {
-    flex: 1 1 18rem;
-    min-width: 0;
-}
 
 .ai-intel-live { margin-top: 1rem; }
 .ai-intel-live:focus { outline: none; }
@@ -484,11 +470,6 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0.45rem;
-}
-
-.ai-intel-suggestions-label {
-    font-size: 0.85rem;
-    color: var(--ai-muted);
 }
 
 .ai-intel-chip {
@@ -507,71 +488,6 @@
 .ai-intel-chip:hover {
     border-color: var(--ai-teal);
     color: var(--ai-teal);
-}
-
-.ai-intel-cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-    gap: 1rem;
-}
-
-.ai-intel-card {
-    --tone: var(--ai-teal);
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    padding: 1.05rem 1.15rem;
-    border-radius: 12px;
-    background: var(--ai-surface-alt);
-    border: 1px solid var(--ai-line);
-    border-top: 3px solid var(--tone);
-}
-
-.ai-intel-card[data-tone="positive"] { --tone: #2e7d4f; }
-.ai-intel-card[data-tone="warning"] { --tone: #c98b2e; }
-.ai-intel-card[data-tone="danger"] { --tone: #b8323f; }
-
-.ai-intel-card-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-}
-
-.ai-intel-card-cat {
-    font-size: 0.82rem;
-    font-weight: 720;
-    color: var(--ai-teal);
-}
-
-.ai-intel-card-metric {
-    padding: 0.14rem 0.55rem;
-    border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    background: var(--ai-surface);
-    border: 1px solid var(--ai-line);
-}
-
-.ai-intel-card h4 {
-    margin: 0;
-    font-size: 0.98rem;
-    font-weight: 730;
-}
-
-.ai-intel-card p {
-    margin: 0;
-    font-size: 0.88rem;
-    line-height: 1.5;
-    color: var(--ai-muted);
-}
-
-.ai-intel-rec {
-    margin-top: 0.35rem;
-    padding-top: 0.5rem;
-    border-top: 1px dashed var(--ai-line);
-    font-size: 0.86rem;
-    line-height: 1.5;
 }
 
 /* Tender report */
@@ -601,13 +517,6 @@
 .ai-intel-report-name {
     font-size: 1.15rem;
     font-weight: 750;
-}
-
-.ai-intel-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    margin-bottom: 0.75rem;
 }
 
 .ai-intel-stepper {
@@ -709,8 +618,6 @@
     border-style: solid;
     border-color: #b8323f;
 }
-
-.ai-intel-dropzone .ai-intel-prompt-bar { margin-bottom: 0; }
 
 /* Tables */
 .ai-intel-table-controls {

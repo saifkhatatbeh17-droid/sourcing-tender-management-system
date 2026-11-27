@@ -69,16 +69,13 @@ html[data-theme="dark"] body:not(#tq-x) .admin-sidebar { background: #12343c !im
 html body:not(#tq-x) .form-control:focus, html body:not(#tq-x) .form-select:focus { border-color: var(--tq-primary) !important; box-shadow: 0 0 0 .2rem rgba(29, 85, 96, .22) !important; }
 html[data-theme="dark"] body:not(#tq-x) .form-control:focus, html[data-theme="dark"] body:not(#tq-x) .form-select:focus { border-color: var(--tq-secondary) !important; box-shadow: 0 0 0 .2rem rgba(239, 184, 92, .3) !important; }
 html body:not(#tq-x) .form-check-input:checked { background-color: var(--tq-primary) !important; border-color: var(--tq-primary) !important; }
-html body:not(#tq-x) .form-range::-webkit-slider-thumb { background: var(--tq-primary); }
+
 html body:not(#tq-x) :is(.nav-pills .nav-link.active, .page-item.active .page-link, .progress-bar, .bg-primary, .badge.bg-primary, .list-group-item.active) {
   background-color: var(--tq-primary) !important; border-color: var(--tq-primary) !important; color: var(--tq-on-primary) !important;
 }
-html body:not(#tq-x) .page-link { color: var(--tq-primary); }
-html body:not(#tq-x) .text-primary { color: var(--tq-primary) !important; }
-html[data-theme="dark"] body:not(#tq-x) .text-primary, html[data-theme="dark"] body:not(#tq-x) .page-link { color: var(--tq-secondary) !important; }
-html body:not(#tq-x) .border-primary { border-color: var(--tq-primary) !important; }
+
 html body:not(#tq-x) :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--tq-focus); }
 
 /* ---------- Public header (Contact, Register, Team pages) ---------- */
 html body:not(#tq-x) .landing-header:is(.is-past-hero, .registration-navbar, .is-scrolled) { background: rgba(12, 37, 45, .94) !important; }
-html body:not(#tq-x) .pharma-footer { background: var(--tq-primary-deep) !important; }
+

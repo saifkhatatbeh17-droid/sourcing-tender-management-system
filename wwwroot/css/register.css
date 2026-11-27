@@ -49,8 +49,7 @@
 .registration-submit-row { display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid #edf1f3; }.registration-submit-row>span { color:#81919b;font-size:.65rem; }.registration-submit-row>span i { margin-right:.25rem;color:var(--reg-teal);font-style:normal;font-size:1rem; }.registration-submit { display:inline-flex;align-items:center;gap:1rem;padding:.72rem 1rem;border:0;border-radius:9px;background: var(--pharma-primary);box-shadow:0 7px 16px #0f766e25;font-size:.75rem;font-weight:750;transition:transform .2s,box-shadow .2s; }.registration-submit:hover { transform:translateY(-2px);box-shadow:0 10px 20px #0f766e38; }.registration-submit span { font-size:1rem;transition:transform .2s; }.registration-submit:hover span { transform:translateX(3px); }.registration-login-note { margin:1.1rem 0 0;text-align:center;color:#84939b;font-size:.7rem; }.registration-login-note a { color:var(--reg-teal);font-weight:750;text-decoration:none; }.registration-login-note a:hover { text-decoration:underline; }
 
 .registration-form-card .form-heading { text-align: left; }
-.landing-header.registration-navbar { position: sticky; top: 0; }
-.registration-navbar .landing-register[aria-current="page"] { text-decoration: underline; text-underline-offset: .3em; }
+
 .registration-page {
     --reg-copy: #425b65;
     --reg-control-bg: #fbfcfd;
@@ -117,7 +116,7 @@ html[data-theme="dark"] .registration-page {
 .registration-form-card .document-dropzone:focus-within { outline: 2px solid var(--pharma-focus); outline-offset: 3px; }
 
 @media (max-width: 560px) {
-    .landing-header.registration-navbar { position: relative; }
+    
     .registration-form-area { width: calc(100% - 1.25rem); }
     .registration-fields { grid-template-columns: 1fr; padding-left: 0; }
     .document-field { margin-left: 0; }
@@ -127,7 +126,7 @@ html[data-theme="dark"] .registration-page {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .registration-capsule-stage { display: none; }
+    
     .registration-page:not(.registration-has-errors) .registration-form-card { animation: none; }
 }
 /* Three real stages, with immediate feedback and a stable action row. */

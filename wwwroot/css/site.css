@@ -4,9 +4,7 @@ a { color: var(--accent); }
 h1 { font-size: 1.8rem; margin-bottom: 1.5rem; } h2 { font-size: 1.15rem; }
 .app-shell { display: flex; min-height: calc(100vh - 80px); }
 .sidebar { width: 255px; flex-shrink: 0; background: var(--surface); }
-.workspace-link, .page-link-item { display: block; padding: .5rem; border-radius: 4px; text-decoration: none; }
-.workspace-link { font-weight: 600; overflow-wrap: anywhere; }
-.page-link-item.active { background: var(--line); color: var(--ink); }
+
 .main-content { flex: 1; min-width: 0; }
 .committee-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1rem; }
 .committee-section { border: 1px solid var(--line); border-radius: 4px; padding: 1rem; min-height: 210px; }
@@ -156,15 +154,7 @@ h1 { font-size: 1.8rem; margin-bottom: 1.5rem; } h2 { font-size: 1.15rem; }
     gap: .3rem .65rem;
 }
 /* Older Razor markup can still be served while the application is running. */
-.notice-center-item-heading {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: .3rem .75rem;
-}
-.notice-center-state { font-size: .75rem; color: var(--notice-muted); }
-.notice-center-actions { margin-top: .4rem; }
+
 .notice-center-item:not(:has(> .notice-center-icon)) .notice-center-time { display: block; margin-top: .3rem; }
 .notice-center-item[hidden], .notice-center-empty[hidden] { display: none; }
 .notice-center-item.is-unread { background: var(--notice-unread); }
@@ -246,10 +236,9 @@ html[data-theme="dark"] .notice-center-icon[data-notice-tone="review"] { color: 
 .notice-center-empty, .notice-center-feedback { margin: 0; padding: .9rem 1rem; color: var(--notice-muted); }
 .notice-center-empty strong, .notice-center-empty span { display: block; }
 .notice-center-empty strong { color: var(--notice-text); }
-.supplier-details summary { cursor: pointer; }
+
 .pharma-brand { display: inline-flex; align-items: center; gap: .65rem; font-size: 1.25rem; font-weight: 800; letter-spacing: -.025em; }
-.pharma-brand-icon { display: grid; flex: 0 0 2.65rem; place-items: center; width: 2.65rem; height: 2.65rem; border: 1px solid #b7dbd3; border-radius: .75rem; background: #eef9f6; }
-.pharma-brand-icon img { display: block; width: 2.25rem; height: 2.25rem; }
+
 @media(max-width:650px) { .workspace-columns { grid-template-columns: 1fr; } .workspace-tabs .nav-link { padding: .6rem; } }
 @media(max-width:1000px) { .committee-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:650px) { .app-shell { flex-direction: column; } .sidebar { width: 100%; border-bottom: 1px solid var(--line); } .committee-grid { grid-template-columns: 1fr; } }
@@ -258,9 +247,7 @@ html[data-theme="dark"] .notice-center-icon[data-notice-tone="review"] { color: 
 .tiryaq-logo img { display:block; width:100%; height:auto; }
 /* Keep the bottle's two tones visible on dark surfaces. */
 :root { --tiryaq-logo-on-dark: url("../images/tiryaq-logo-colors.svg#on-dark"); }
-html[data-theme="dark"] .tiryaq-logo img,
-.landing-header .tiryaq-logo img,
-.pharma-footer .tiryaq-logo img { filter:var(--tiryaq-logo-on-dark); }
+html[data-theme="dark"] .tiryaq-logo img { filter:var(--tiryaq-logo-on-dark); }
 .dashboard-mark { object-fit:contain; }
 /* Secondary brand accent: reserve coral for moments that need attention. */
 :root { --brand-highlight:#efb85c; --brand-highlight-hover:#e5a23e; --brand-highlight-ink:#0c252d; }

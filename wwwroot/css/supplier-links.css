@@ -1,5 +1,5 @@
 /* Supplier links: bid-rigging warning signs. Used on Admin AI Intelligence (map) and on tender offer pages (banner). */
-.sl, .sl-banner {
+.sl {
     --sl-high: #b8323f;
     --sl-high-soft: #fbecee;
     --sl-medium: #c98b2e;
@@ -11,7 +11,7 @@
     --sl-surface-alt: var(--color-surface-alt, #f5f7fa);
     --sl-teal: #1d5560;
 }
-[data-theme="dark"] .sl, [data-theme="dark"] .sl-banner {
+[data-theme="dark"] .sl {
     --sl-high: #f07580;
     --sl-high-soft: rgba(240, 117, 128, 0.13);
     --sl-medium: #f0be6a;
@@ -30,9 +30,9 @@
 @media (max-width: 960px) { .sl-layout { grid-template-columns: 1fr; } }
 /* On phones the map is too small to read; the pair list carries the same information. */
 @media (max-width: 600px) {
-    .sl .sl-graph, .sl .sl-legend { display: none; }
+    .sl .sl-graph { display: none; }
     .sl .sl-graph-card { padding: .8rem 1rem; }
-    .sl .sl-stat { margin: 0; }
+    
 }
 
 .sl-graph-card, .sl-panel {
@@ -43,9 +43,6 @@
     min-width: 0;
 }
 .sl-graph-card { background: var(--sl-surface-alt); }
-
-.sl-stat { margin: 0 0 .4rem; display: flex; flex-wrap: wrap; gap: .35rem; color: var(--sl-muted); font-size: .93rem; }
-.sl-stat strong { color: var(--sl-ink); }
 
 .sl-graph { display: block; width: 100%; height: auto; max-height: 480px; overflow: visible; }
 .sl-ring { fill: none; stroke: var(--sl-line); stroke-dasharray: 2 6; }
@@ -67,8 +64,6 @@
 .sl-graph.has-selection .sl-node.is-selected circle { fill: var(--sl-high); }
 .sl-empty-text { fill: var(--sl-muted); font-size: 14px; }
 
-.sl-legend { display: flex; flex-wrap: wrap; gap: 1.1rem; margin: .6rem 0 0; padding: 0; list-style: none; font-size: .85rem; color: var(--sl-muted); }
-.sl-legend li { display: flex; align-items: center; gap: .45rem; }
 .sl-key { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--sl-high); }
 .sl-key.is-medium { border-top: 3px dashed var(--sl-medium); }
 .sl-key.is-node { width: 10px; height: 10px; border: 2px solid #9aa9b2; border-radius: 50%; }
@@ -89,10 +84,6 @@
 .sl-pair-why { color: var(--sl-muted); font-size: .9rem; line-height: 1.4; }
 .sl-pair-why::first-letter { text-transform: uppercase; }
 .sl-pair-names span { color: var(--sl-muted); }
-.sl-pair-meta { color: var(--sl-muted); font-size: .85rem; white-space: nowrap; }
-
-.sl-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--sl-high); }
-.sl-dot.is-medium { background: var(--sl-medium); }
 
 .sl-empty h3 { margin: 0 0 .3rem; font-size: 1.1rem; }
 .sl-empty p { margin: 0; color: var(--sl-muted); }
@@ -119,8 +110,8 @@
 }
 .sl-kind { font-size: .82rem; font-weight: 700; color: var(--sl-muted); }
 .sl-text { line-height: 1.45; }
-.sl-text a, .sl-tender { margin-left: .35rem; font-size: .85rem; white-space: nowrap; }
-.sl-tender { color: var(--sl-muted); }
+.sl-text a { margin-left: .35rem; font-size: .85rem; white-space: nowrap; }
+
 @media (max-width: 520px) { .sl-evidence li { grid-template-columns: 1fr; gap: .15rem; } }
 
 .sl-brief { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--sl-line); }
@@ -130,38 +121,17 @@
 .sl-brief-error { margin: .6rem 0 0; color: var(--sl-muted); font-size: .9rem; }
 
 /* ---------- Tender banner ---------- */
-.sl-banner {
-    margin: 0 0 1.25rem; border: 1px solid color-mix(in srgb, var(--sl-high) 35%, transparent);
-    border-left: 4px solid var(--sl-high); border-radius: 12px; background: var(--sl-high-soft); color: var(--sl-ink);
-}
-.sl-banner.is-medium { border-color: color-mix(in srgb, var(--sl-medium) 40%, transparent); border-left-color: var(--sl-medium); background: var(--sl-medium-soft); }
-.sl-banner > summary {
-    display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem; padding: .9rem 1.1rem; cursor: pointer; list-style: none;
-}
-.sl-banner > summary::-webkit-details-marker { display: none; }
-.sl-banner > summary:focus-visible { outline: 3px solid rgba(0, 163, 166, .45); outline-offset: 2px; border-radius: 12px; }
-.sl-banner-title { font-weight: 740; }
-.sl-banner-sub { color: var(--sl-muted); font-size: .92rem; flex: 1 1 18rem; }
-.sl-banner-toggle { margin-left: auto; font-weight: 650; color: var(--sl-teal); white-space: nowrap; }
-.sl-banner-toggle::after { content: "›"; display: inline-block; margin-left: .4rem; transition: transform .2s; }
-.sl-banner[open] .sl-banner-toggle::after { transform: rotate(90deg); }
-.sl-banner-toggle .is-open, .sl-banner[open] .sl-banner-toggle .is-closed { display: none; }
-.sl-banner[open] .sl-banner-toggle .is-open { display: inline; }
-.sl-banner-body { padding: 0 1.1rem 1.1rem; display: grid; gap: 1rem; }
-.sl-banner-pair h4 { margin: 0 0 .5rem; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: .5rem; }
-.sl-banner .sl-evidence li { background: var(--sl-surface); }
 
 @media (prefers-reduced-motion: reduce) {
-    .sl-edge-line, .sl-pair, .sl-banner-toggle::after { transition: none; }
+    .sl-edge-line,
+    .sl-pair { transition: none; }
 }
 
 /* ---------- Plain-language additions ---------- */
-.sl-edge-tag { fill: var(--sl-surface); stroke: currentColor; stroke-width: 1.5; }
+
 .sl-edge.is-high { color: var(--sl-high); }
 .sl-edge.is-medium { color: var(--sl-medium); }
-.sl-edge-tag-text { fill: currentColor; font-size: 12px; font-weight: 700; pointer-events: none; }
-.sl-graph.has-selection .sl-edge:not(.is-selected) .sl-edge-tag,
-.sl-graph.has-selection .sl-edge:not(.is-selected) .sl-edge-tag-text { opacity: .25; }
+
 .sl-node text { font-size: 14px; }
 .sl-verdict { margin: .6rem 0 1rem; padding: .7rem .85rem; border-radius: 10px; background: var(--sl-high-soft); line-height: 1.45; }
 .sl-verdict strong { color: var(--sl-high); }
@@ -169,9 +139,7 @@
 .sl-verdict.is-medium strong { color: var(--sl-medium); }
 .sl-why-title { margin: 0 0 .5rem; font-size: .95rem; font-weight: 700; }
 .sl-empty h3 { margin: 0 0 .3rem; }
-.sl-banner-pairs { font-weight: 600; }
-.sl-banner-why { margin: 0 0 .5rem; color: var(--sl-muted); font-size: .92rem; }
-.sl-banner-why::first-letter { text-transform: uppercase; }
+
 /* ---------- Map key beside the map ---------- */
 .sl .sl-graph-card { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 1rem; align-items: center; }
 .sl-key-panel { border-left: 1px solid var(--sl-line); padding-left: 1rem; font-size: .85rem; }

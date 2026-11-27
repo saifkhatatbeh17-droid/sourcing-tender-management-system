@@ -25,8 +25,6 @@
     margin-bottom: 1rem;
 }
 
-.admin-sidebar-brand { display: inline-flex; }
-.admin-sidebar-brand svg { display: block; width: 108px; height: auto; }
 .admin-sidebar-nav, .admin-sidebar-bottom { display: grid; gap: .25rem; }
 .admin-sidebar-bottom { padding-top: .75rem; border-top: 1px solid var(--sidebar-line); }
 .admin-sidebar-bottom form { margin: 0; }
@@ -142,15 +140,6 @@ body:has(.admin-shell) {
 }
 .admin-shell .workspace-section h2 { color: #1a3a5c; font-weight: 700; }
 
-.admin-metric {
-    height: 100%;
-    padding: 1.25rem;
-    background: #fff;
-    border: 1px solid #dce6f1;
-    border-radius: 18px;
-    box-shadow: 0 4px 12px #163d360c;
-}
-
 @media (min-width: 651px) and (prefers-reduced-motion: no-preference) {
     .admin-shell > .admin-sidebar {
         transition: width 440ms cubic-bezier(.25,.8,.25,1), padding-inline 440ms cubic-bezier(.25,.8,.25,1);
@@ -200,39 +189,16 @@ body:has(.admin-shell) {
     font-size: .6rem;
     background: #285c9c !important;
 }
-.admin-card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
-    gap: 1rem;
-}
-.admin-record {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: .9rem;
-    padding: 1.25rem;
-    background: #fff;
-    border: 1px solid #d5e2f0;
-    border-radius: 18px;
-    box-shadow: 0 4px 14px #173e4810;
-}
-.admin-record:focus-within, .admin-record:hover { border-color: #8caed2; }
-.admin-record h2 { margin: 0; font-weight: 750; }
-.admin-record h2 a { color: #1a3a5c; text-decoration: none; }
-.admin-record-top, .admin-pager, .admin-reminder {
+
+.admin-pager {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: .75rem;
 }
-.admin-record-icon { padding: .55rem; border-radius: 12px; background: #e4effc; color: #1d5560; }
-.admin-record-icon svg { display: block; width: 21px; height: 21px; }
-.admin-record-meta { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .3rem .75rem; margin: 0; font-size: .85rem; }
-.admin-record-meta dd { margin: 0; overflow-wrap: anywhere; }
-.admin-record-action { margin-top: auto; padding-top: .75rem; border-top: 1px solid #e5edf8; color: #1d5560; font-weight: 650; }
+
 .admin-pager { margin-top: 1rem; padding: .75rem 0; }
-.admin-reminder { padding: .75rem 0; border-top: 1px solid #e5edf8; }
 
 .admin-shell > .main-content {
     width: 100%;
@@ -425,8 +391,7 @@ body:has(.admin-shell) {
     max-width: 1340px;
     margin-inline: auto;
 }
-.admin-dashboard > .admin-metrics { margin-inline: 0; }
-.admin-dashboard .admin-metric,
+
 .admin-dashboard-panels > .workspace-section {
     box-shadow: var(--dashboard-shadow);
     border-color: var(--admin-panel-line);
@@ -440,7 +405,6 @@ body:has(.admin-shell) {
 .admin-dashboard-panels .table th,
 .admin-dashboard-panels .table td { padding-block: .75rem; }
 .admin-dashboard-panels time { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.admin-dashboard-panels .admin-reminder { border-color: var(--admin-panel-line); }
 
 @media (min-width: 1100px) {
     .admin-dashboard-panels { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
@@ -452,42 +416,12 @@ html[data-theme="dark"] .admin-dashboard {
 
 .admin-shell .admin-record-filters:has(#user-search) { border-bottom: 0; }
 
-
-
 .admin-shell .admin-review-controls[hidden] { display: none; }
 
 .admin-dashboard {
     --dashboard-glass: var(--color-surface, #fff);
     --dashboard-glass-hover: var(--color-surface-alt, #f5f7f9);
     --dashboard-glass-shadow: 0 4px 12px #233e6026, inset 0 1px 0 #fffc;
-}
-
-.admin-dashboard .admin-metric {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: .45rem;
-    padding: 1.2rem 1.3rem;
-    border: 0;
-    border-radius: 22px;
-    background: var(--dashboard-glass);
-}
-
-.admin-dashboard .admin-metric dt {
-    color: var(--muted);
-    font-size: .92rem;
-    font-weight: 400;
-}
-
-.admin-dashboard .admin-metric dd {
-    order: -1;
-    margin: 0;
-    color: var(--admin-ink);
-    font-size: clamp(2.75rem, 3.8vw, 3.85rem);
-    font-weight: 400;
-    line-height: 1;
-    letter-spacing: -.045em;
-    font-variant-numeric: tabular-nums;
 }
 
 .admin-dashboard .btn:is(.admin-review-button, .admin-applications-button) {
@@ -512,11 +446,6 @@ html[data-theme="dark"] .admin-dashboard {
     --dashboard-glass-hover: var(--color-surface-alt, #f5f7f9);
     --dashboard-glass-shadow: 0 5px 14px #0006, inset 0 1px 0 #ffffff28;
 }
-
-html[data-theme="dark"] .admin-dashboard .admin-metric {
-    background: var(--dashboard-glass) !important;
-}
-
 
 @media (prefers-reduced-motion: no-preference) {
     .admin-shell > .main-content > :is(.admin-dashboard, .workspace-heading, .admin-records, .admin-card-grid) {

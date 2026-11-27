@@ -64,7 +64,6 @@ html[data-theme="dark"] #login-stage :focus-visible { outline-color:#91c9c4; }
 @media (max-width:760px) { .login-main #login-stage.cinematic-login { grid-template-columns:1fr; padding:10px; } #login-stage.cinematic-login .login-identity { min-height:320px; padding:22px; } #login-stage .pharma-scene { inset:15px 0 10px 25%; } #login-stage .identity-story { padding-top:190px; max-width:49%; } #login-stage .login-identity-copy { font-size:21px; } #login-stage .identity-status { display:none; } #login-stage .login-brand { width:110px; } html body .login-main #login-stage.cinematic-login .login-panel { max-width:460px; padding:28px 18px; margin:0; } #login-stage .login-panel-top { margin-bottom:28px; } #login-stage .fallback-bottle { transform:rotate(-12deg) scale(.66); } }
 @media (prefers-reduced-motion:reduce) { #login-stage *, #login-stage *::before, #login-stage *::after { transition:none!important; animation:none!important; } }
 
-
 /* ===== Polish pass ===== */
 #login-stage{font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif}
 #login-stage .login-identity{animation:tqpop .9s cubic-bezier(.2,.7,.2,1) both}

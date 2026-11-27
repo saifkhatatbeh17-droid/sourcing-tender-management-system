@@ -56,7 +56,7 @@ html[data-theme="dark"] .admin-sidebar {
     --sidebar-active: #303e50;
     --sidebar-accent: #aed6ff;
 }
-html[data-theme="dark"] .admin-sidebar .logo__word { fill: #f1f3f2; }
+
 html[data-theme="dark"] .btn-outline-primary {
     --bs-btn-color: #aed6ff;
     --bs-btn-border-color: #6385b2;
@@ -125,7 +125,6 @@ html[data-theme="dark"] .notification-dropdown {
     background: #232a35;
     box-shadow: 0 16px 42px #0008, inset 0 1px 0 #ffffff26;
 }
-html[data-theme="dark"] .notification-dropdown .notification-item { background: #d4e5ff12; }
 
 html[data-theme="dark"] #supplier-review-dialog {
     --supplier-dialog-border: #536f99;

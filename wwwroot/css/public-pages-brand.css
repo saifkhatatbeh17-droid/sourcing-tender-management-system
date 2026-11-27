@@ -1,23 +1,8 @@
 /* Public destinations share the production journey's teal, honey and ivory. */
 .main-content:has(.public-contact-page),.main-content:has(.campus-page) { padding:0!important;max-width:none; }
-.public-contact-page,.campus-page { --public-night:var(--tq-primary-deep,#0c252d);--public-ink:var(--tq-on-secondary,#0a1f26);--public-paper:#fbf7ef;--public-ivory:#f4eee2;--public-muted:#526765;--public-line:#d1d9ce;color-scheme:light;font-family:'Geist','Segoe UI',sans-serif; }
+.campus-page { --public-night:var(--tq-primary-deep,#0c252d);--public-ink:var(--tq-on-secondary,#0a1f26);--public-paper:#fbf7ef;--public-ivory:#f4eee2;--public-muted:#526765;--public-line:#d1d9ce;color-scheme:light;font-family:'Geist','Segoe UI',sans-serif; }
 /* Contact retains its live correspondence preview and validated form. */
-.public-contact-page { background:var(--public-ivory);color:var(--public-ink);display:flow-root; }
-.public-contact-page .contact-studio { width:calc(100% - 80px);max-width:1240px;margin:54px auto 64px;color:var(--public-ink); }
-.public-contact-page .contact-intro { margin-bottom:36px;max-width:760px; }
-.public-contact-page .contact-intro h1 { font-family:'Instrument Serif',Georgia,serif;font-size:clamp(44px,5vw,68px);font-weight:400;letter-spacing:-.035em; }
-.public-contact-page .contact-intro p { color:var(--public-muted);font-size:17px;max-width:52ch; }
-.public-contact-page .contact-layout { gap:clamp(24px,4vw,72px); }
-.public-contact-page .contact-panel { background:var(--public-paper);border:1px solid var(--public-line);border-radius:8px;padding:28px;color:var(--public-ink); }
-.public-contact-page .contact-panel h2 { font-size:22px;margin:0 0 24px;color:var(--tq-primary); }
-.public-contact-page .contact-form .form-control { background:#fffdf8;color:var(--public-ink);border-color:#9baba5;border-radius:4px; }
-.public-contact-page .contact-form .contact-send { background:var(--tq-secondary);border-color:var(--tq-secondary);color:var(--tq-on-secondary);border-radius:4px; }
-.public-contact-page .contact-form .contact-send:hover { background:var(--tq-secondary-hover);border-color:var(--tq-secondary-hover); }
-.public-contact-page .contact-clipboard { background:var(--tq-primary);box-shadow:0 14px 32px #0c252d18; }
-.public-contact-page .contact-paper { background:var(--public-paper);color:var(--public-ink);border-top-color:var(--tq-secondary); }
-.public-contact-page .contact-paper-header { border-color:var(--tq-primary); }
-.public-contact-page .contact-rx,.public-contact-page .contact-stamp { color:var(--tq-primary);border-color:var(--tq-primary); }
-.public-contact-page .contact-preview-caption { color:var(--public-muted); }
+
 /* City: cool ivory/paper surfaces, deep teal wayfinding, and honey for primary actions and active stops. */
 .campus-page { --campus-ink:var(--public-ink);--campus-teal:var(--tq-primary);--campus-teal-deep:var(--tq-primary-deep);--campus-honey:var(--tq-secondary);--campus-honey-hover:var(--tq-secondary-hover);--campus-honey-deep:var(--tq-secondary-deep); }
 .campus-page .campus-story h1 { font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spacing:-.02em; }
@@ -28,17 +13,9 @@
 .campus-page .campus-access-primary:hover { background:var(--tq-secondary-hover);border-color:var(--tq-secondary-hover);color:var(--tq-on-secondary); }
 .campus-page :is(button,a):focus-visible { outline:2px solid var(--tq-primary);outline-offset:3px; }
 .campus-page .campus-access :is(button,a):focus-visible { outline-color:var(--tq-secondary); }
-.campus-page .public-page-nav a:focus-visible { outline-color:var(--tq-secondary); }
-@media(max-width:700px) {
- .public-contact-page .contact-studio { width:calc(100% - 40px);margin-block:32px 40px; }
- .public-contact-page .contact-panel { padding:22px; }
- .public-contact-page .contact-intro { margin-bottom:28px; }
-}
-@media(min-width:701px) and (max-width:1000px) {
- .public-contact-page .contact-layout>.contact-preview { top:150px; }
-}
 
 /* Consistent, comfortable public-page button corners. */
-.public-contact-page .contact-form .contact-send,.campus-page .campus-primary,
-.campus-page .campus-back,.campus-page .campus-access-actions a { border-radius:10px; }
+.campus-page .campus-primary,
+.campus-page .campus-back,
+.campus-page .campus-access-actions a { border-radius:10px; }
 .campus-page .campus-zoom { border-radius:10px; }

@@ -62,12 +62,10 @@ html body:has(.admin-shell) :is(.workspace-section, .admin-records, .admin-recor
     box-shadow: none;
     backdrop-filter: none;
 }
-.admin-shell .workspace-section, .admin-shell .admin-record { padding: var(--space-24); }
+.admin-shell .workspace-section { padding: var(--space-24); }
 html body:has(.admin-shell) :is(.workspace-section h2, .admin-record h2 a, .admin-navbar nav > a, .admin-navbar .notification-bell) { color: var(--color-text); }
 .admin-shell h2 { font-size: 1.125rem; font-weight: var(--font-weight-semibold); }
-.admin-dashboard .admin-metric { padding: var(--space-24); min-height: 120px; gap: var(--space-8); }
-.admin-dashboard .admin-metric dd { font-size: var(--font-size-heading); font-weight: var(--font-weight-semibold); line-height: var(--line-height-heading); color: var(--color-text); }
-html .admin-dashboard .admin-metric dt { color: var(--color-text-secondary); font-size: var(--font-size-small); }
+
 .admin-shell .btn, .admin-dashboard .btn:is(.admin-review-button, .admin-applications-button) {
     background: var(--color-surface);
     color: var(--color-link);
@@ -97,7 +95,7 @@ html body:has(.admin-shell) :is(.form-control, .form-select):focus { border-colo
 .admin-shell .table > thead > tr > th { color: var(--color-text-secondary); background: var(--color-surface-alt); font-weight: var(--font-weight-semibold); }
 .admin-shell .table > tbody > tr > * { padding-block: var(--space-16); }
 html .admin-shell :is(.admin-record-avatar, .admin-record-icon) { background: var(--color-selection); color: var(--color-link); }
-.admin-shell .admin-record-action { color: var(--color-link); border-color: var(--color-border); }
+
 .admin-sidebar-item { border-radius: var(--radius-small); min-height: var(--control-min-height); }
 .admin-sidebar-item { font-size: var(--font-size-body); }
 html body:has(.admin-shell) .admin-navbar .notification-bell .badge { background: var(--color-primary) !important; color: var(--color-on-primary); }
@@ -235,10 +233,7 @@ html body:has(.admin-shell) .admin-shell .form-control, html body:has(.admin-she
 .admin-shell .badge { font-weight: 600; font-size: 12px; padding: 6px 10px; }
 .admin-shell .badge.text-bg-success { background: #eef8f6 !important; color: #006b5b !important; }
 .admin-shell .badge.text-bg-secondary { background: var(--color-surface-alt) !important; color: var(--color-text-secondary) !important; border: 1px solid var(--color-border); }
-.admin-shell .admin-department-results .admin-card-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 20px; }
-.admin-shell .admin-record { gap: 18px; }
-.admin-shell .admin-record h2 { font-size: 18px; line-height: 1.5; font-weight: 600; }
-.admin-shell .admin-record > .btn { margin-top: auto; }
+
 .admin-shell .admin-pager { padding: 16px 20px; margin: 0; color: var(--color-text-secondary); font-size: 14px; }
 .admin-shell .admin-record-empty { padding: 40px 24px; margin: 0; color: var(--color-text-secondary); }
 body:has(.admin-shell) .modal-dialog { --bs-modal-width: 600px; }
