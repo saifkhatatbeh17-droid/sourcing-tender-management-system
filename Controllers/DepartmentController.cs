@@ -10,16 +10,14 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
-// The Department workspace: create and edit purchase requests and follow their progress.
 [Authorize(Roles = RoleNames.Department)]
 [AutoValidateAntiforgeryToken]
 public class DepartmentController(ApplicationDbContext db, UserManager<ApplicationUser> users)
     : Controller
 {
-    // GET /Department/Index: Opens the start page of this area.
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
 
-    // GET /Department/Dashboard: Shows the "Department dashboard" page.
+    // Pass all department requests to the dashboard for totals, progress, and the five latest requests.
     public async Task<IActionResult> Dashboard()
     {
         var user = await users.GetUserAsync(User);
@@ -27,7 +25,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return View(await DepartmentRequests(user).OrderByDescending(r => r.CreatedAt).ToListAsync());
     }
 
-    // GET /Department/Requests: Shows the "Requests history" page.
+    // Show the department's request history, with optional search and progress filters, newest first.
     public async Task<IActionResult> Requests(string? q, string? status)
     {
         var user = await users.GetUserAsync(User);
@@ -44,7 +42,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return View(await requests.OrderByDescending(r => r.CreatedAt).ToListAsync());
     }
 
-    // GET /Department/Details: Opens the details page.
+    // Open one request from the user's department and allow its author to edit it if it was returned.
     public async Task<IActionResult> Details(int id)
     {
         var user = await users.GetUserAsync(User);
@@ -61,7 +59,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return View(request);
     }
 
-    // GET /Department/Create: Opens the create page.
+    // Open the new purchase request form with one blank item row.
     [HttpGet]
     public async Task<IActionResult> Create()
     {
@@ -70,7 +68,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return View("RequestForm", new PurchaseRequestForm { Items = [new()] });
     }
 
-    // POST /Department/Create: Create. Runs when its form or button is submitted.
+    // Validate and save a new purchase request, notify sourcing officers, and open its details page.
     [HttpPost]
     public async Task<IActionResult> Create(PurchaseRequestForm form)
     {
@@ -87,6 +85,8 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         await using var transaction = await db.Database.BeginTransactionAsync();
         db.PurchaseRequests.Add(request);
         await db.SaveChangesAsync();
+
+        // Queue in-app notifications for sourcing officers about the new request.
         await AddSubmissionNotifications(request, resubmitted: false);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
@@ -94,7 +94,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return RedirectToAction(nameof(Details), new { id = request.PurchaseRequestId });
     }
 
-    // GET /Department/Edit: Opens the edit page.
+    // Open the edit form for a returned request and prefill it with the original values and items.
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
@@ -124,14 +124,13 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         });
     }
 
-    // POST /Department/Edit: Edit. Runs when its form or button is submitted.
+    // Save the author's changes to a returned request and resubmit it to Sourcing.
     [HttpPost]
     public async Task<IActionResult> Edit(int id, PurchaseRequestForm form)
     {
         var user = await users.GetUserAsync(User);
         if (user?.DepartmentId == null) return Forbid();
 
-        // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var request = await db.PurchaseRequests.Include(r => r.PurchaseRequestItems)
             .SingleOrDefaultAsync(r => r.PurchaseRequestId == id && r.DepartmentId == user.DepartmentId
@@ -154,9 +153,9 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return RedirectToAction(nameof(Details), new { id });
     }
 
-    // GET /Department/Clarifications: Opens the clarifications page.
     public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
 
+    // Queue a notification for each eligible sourcing officer with a link to review the request.
     private async Task AddSubmissionNotifications(PurchaseRequest request, bool resubmitted)
     {
         var officers = await users.GetUsersInRoleAsync(RoleNames.SourcingOfficer);
@@ -175,10 +174,12 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         }));
     }
 
+    // Build the shared query for requests in the signed-in user's department.
     private IQueryable<PurchaseRequest> DepartmentRequests(ApplicationUser user) =>
         db.PurchaseRequests.AsNoTracking().AsSplitQuery().Include(r => r.Department).Include(r => r.Tenders)
             .InDepartment(user.DepartmentId);
 
+    // Give the shared request form the ID to edit and the officer's review notes to display.
     private void SetEditViewData(PurchaseRequest request)
     {
         ViewData["RequestId"] = request.PurchaseRequestId;
