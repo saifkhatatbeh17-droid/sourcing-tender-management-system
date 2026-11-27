@@ -2,7 +2,7 @@
 @model IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender>
 @{
     var editRequests = ViewBag.TopEditRequests as IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender> ?? [];
-    var editRequesters = ViewBag.TopEditRequesters as Dictionary<string, string> ?? new Dictionary<string, string>();
+    var editRequesters = ViewBag.TopEditRequesters as List<ManagerRequester> ?? new List<ManagerRequester>();
 }
 <div class="modal fade mr-rejections-modal" id="manager-rejections" tabindex="-1" aria-labelledby="manager-rejections-title" aria-hidden="true">
 <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
@@ -12,7 +12,15 @@
 
 @foreach (var editTender in editRequests)
 {
-    var requesterName = editTender.TopEditRequestedByUserId != null && editRequesters.TryGetValue(editTender.TopEditRequestedByUserId, out var rn) ? rn : "CEO & Chiefs Member";
+    string requesterName = "CEO & Chiefs Member";
+    foreach (var requester in editRequesters)
+    {
+        if (requester.UserId == editTender.TopEditRequestedByUserId)
+        {
+            requesterName = requester.FullName;
+            break;
+        }
+    }
     <section class="mr-rejection-record mb-3">
         <span class="mr-reference">Tender #@editTender.TenderId · Edit Requested</span>
         <h3>@editTender.Title</h3>

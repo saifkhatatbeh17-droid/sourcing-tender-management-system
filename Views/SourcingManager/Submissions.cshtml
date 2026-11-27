@@ -11,7 +11,7 @@
     };
     var rejections = (IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender>)ViewBag.RejectedTenders;
     var editRequests = ViewBag.TopEditRequests as IReadOnlyList<SourcingTenderManagement.Models.Entities.Tender> ?? [];
-    var editRequesters = ViewBag.TopEditRequesters as Dictionary<string, string> ?? new Dictionary<string, string>();
+    var editRequesters = ViewBag.TopEditRequesters as List<ManagerRequester> ?? new List<ManagerRequester>();
     var totalTopReturns = rejections.Count + editRequests.Count;
     var message = TempData["ManagerMessage"] as string;
     var requestedId = ViewContext.RouteData.Values["id"]?.ToString() ?? Context.Request.Query["id"].ToString();
@@ -42,7 +42,15 @@
             <h2 class="fs-5 mb-2">CEO &amp; Chiefs Edit Requests (@editRequests.Count)</h2>
             @foreach (var editTender in editRequests)
             {
-                var requesterName = editTender.TopEditRequestedByUserId != null && editRequesters.TryGetValue(editTender.TopEditRequestedByUserId, out var rn) ? rn : "CEO & Chiefs Member";
+                string requesterName = "CEO & Chiefs Member";
+                foreach (var requester in editRequesters)
+                {
+                    if (requester.UserId == editTender.TopEditRequestedByUserId)
+                    {
+                        requesterName = requester.FullName;
+                        break;
+                    }
+                }
                 var nomBid = editTender.EvaluationReport?.Bid;
                 var nomTotal = nomBid != null ? nomBid.BidItems.Sum(x => x.Quantity * x.UnitPrice) + nomBid.TaxAmount + nomBid.AdditionalCosts : (decimal?)null;
                 <div class="border rounded p-3 mb-3">
