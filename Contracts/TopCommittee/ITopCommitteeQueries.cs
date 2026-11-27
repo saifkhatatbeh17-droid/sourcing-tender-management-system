@@ -3,6 +3,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Contracts.TopCommittee;
 
+// Interface for loading the CEO & Chiefs pages, plus the errors for 'not allowed', 'tender not found' and integration problems.
 public interface ITopCommitteeQueries
 {
     Task<CommitteeDashboard> GetDashboardAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);

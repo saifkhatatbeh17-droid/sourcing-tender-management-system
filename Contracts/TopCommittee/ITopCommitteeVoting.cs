@@ -3,6 +3,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Contracts.TopCommittee;
 
+// Interfaces for recording a CEO & Chiefs vote and checking the database is ready for voting.
 public interface ITopCommitteeVoting
 {
     Task<CommitteeVoteResult> SubmitAsync(ClaimsPrincipal member, CommitteeVoteInput input, CancellationToken cancellationToken = default);

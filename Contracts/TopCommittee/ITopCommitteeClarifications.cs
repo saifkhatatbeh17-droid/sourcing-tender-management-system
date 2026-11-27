@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Contracts.TopCommittee;
 
+// Interfaces for CEO & Chiefs clarifications, voting pauses and tender locking, plus the error raised when a tender is in the wrong state.
 public interface ITopCommitteeClarifications
 {
     Task<CommitteeClarificationResult> CreateAsync(ClaimsPrincipal actor, CommitteeCreateClarification input, CancellationToken cancellationToken = default);

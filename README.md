@@ -14,6 +14,8 @@
   </p>
 </div>
 
+> **New to the code?** Start with the [code guide](CODE-GUIDE.md): folder map, how a request flows through the code, and where each feature lives.
+
 > **Testing branch:** Use `ghaith-changes` for the latest AI Intelligence and committee edit-cycle changes. Follow the complete [tester setup guide](VLLM-SETUP.md#3-step-by-step-setup-after-cloning-from-github), including database migrations and Groq/Qwen 3.8 configuration.
 
 ## About TIRYAQ
