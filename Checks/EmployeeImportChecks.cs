@@ -22,7 +22,8 @@ public static class EmployeeImportChecks
             ["Omar Nasser", "omar@example.invalid", "Department", "Pharmacy", ""]), out var notices);
         Require(rows.Count == 2 && rows[0].Name == "Rania Haddad" && rows[1].Department == "Pharmacy" && rows[1].RowNumber == 4,
             "Rows must be read from Arabic headings with blank rows skipped and sheet row numbers kept.");
-        Require(notices.Count == 1 && notices[0].Contains("Password column was ignored"), "A Password column must be ignored with a notice.");
+        Require(notices.Count == 1
+            && notices[0].Contains("Password column was ignored"), "A Password column must be ignored with a notice.");
         Require(typeof(EmployeeImport.SheetRow).GetProperties().All(p => !p.Name.Contains("Password", StringComparison.OrdinalIgnoreCase))
                 && typeof(EmployeeImportRow).GetProperties().All(p => !p.Name.Contains("Password", StringComparison.OrdinalIgnoreCase)),
             "A parsed or previewed row must have no password field, so sheet passwords can never be carried forward.");

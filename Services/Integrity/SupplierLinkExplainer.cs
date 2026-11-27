@@ -59,9 +59,13 @@ public sealed partial class SupplierLinkExplainer(HttpClient http, IConfiguratio
         var root = doc.RootElement;
         var allowed = string.Join(' ', link.Evidence.Select(e => e.Text).Append(link.NameA).Append(link.NameB)
             .Append(link.SharedTenders.Count.ToString()));
-        var summary = Keep(root.TryGetProperty("summary", out var s) && s.ValueKind == JsonValueKind.String ? s.GetString() : null, allowed);
+        var summary = Keep(root.TryGetProperty("summary", out var s)
+            && s.ValueKind == JsonValueKind.String ? s
+            .GetString() : null, allowed);
         var checks = root.TryGetProperty("checks", out var c) && c.ValueKind == JsonValueKind.Array
-            ? c.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => Keep(x.GetString(), allowed))
+            ? c.EnumerateArray()
+                .Where(x => x.ValueKind == JsonValueKind.String)
+                .Select(x => Keep(x.GetString(), allowed))
                 .Where(x => x.Length > 0).Take(3).ToList()
             : [];
         if (summary.Length == 0) throw new InvalidOperationException("The AI brief did not match the evidence.");

@@ -61,8 +61,11 @@ public sealed class PurchaseRequestsReport(ApplicationDbContext db) : IReport
             Department = request.Department.Name, request.SubmittedAt, request.ReviewedAt }).ToListAsync(ct);
         var kpis = new List<ReportKpi> { new("Total purchase requests", facts.Count.ToString(CultureInfo.InvariantCulture)) };
         foreach (var status in StatusOptions.Where(status => status != "Draft"))
-            kpis.Add(new(status, facts.Count(request => request.Status == status).ToString(CultureInfo.InvariantCulture), "status:" + status));
-        var durations = facts.Select(request => ReviewDays(request.Status, request.SubmittedAt, request.ReviewedAt)).Where(days => days.HasValue).ToList();
+            kpis.Add(new(status, facts.Count(request => request.Status == status)
+                .ToString(CultureInfo.InvariantCulture), "status:" + status));
+        var durations = facts.Select(request => ReviewDays(request.Status, request.SubmittedAt, request.ReviewedAt))
+            .Where(days => days.HasValue)
+            .ToList();
         kpis.Add(new("Average review time", AverageDays(durations), Hint: "ReviewedAt minus SubmittedAt for finalized reviews with both dates."));
         var returned = facts.Count(request => request.Status == "Returned");
         kpis.Add(new("Returned request rate", (facts.Count == 0 ? 0 : returned * 100d / facts.Count).ToString("F1", CultureInfo.InvariantCulture) + "%",
@@ -71,7 +74,9 @@ public sealed class PurchaseRequestsReport(ApplicationDbContext db) : IReport
             .OrderBy(group => group.Key.Department).ThenBy(group => group.Key.DepartmentId).ToList();
         foreach (var group in departments)
         {
-            var times = group.Select(request => ReviewDays(request.Status, request.SubmittedAt, request.ReviewedAt)).Where(days => days.HasValue).ToList();
+            var times = group.Select(request => ReviewDays(request.Status, request.SubmittedAt, request.ReviewedAt))
+                .Where(days => days.HasValue)
+                .ToList();
             if (times.Count > 0) kpis.Add(new("Average review · " + group.Key.Department, AverageDays(times), "department:" + group.Key.DepartmentId));
         }
         var chart = new ReportChart("Purchase Requests by Department", "bar", departments.Select(group =>
@@ -82,7 +87,8 @@ public sealed class PurchaseRequestsReport(ApplicationDbContext db) : IReport
             var status = query.Drill[7..];
             rows = rows.Where(request => request.Status == status);
         }
-        if (query.Drill?.StartsWith("department:", StringComparison.Ordinal) == true && int.TryParse(query.Drill[11..], out var departmentId))
+        if (query.Drill?.StartsWith("department:", StringComparison.Ordinal) == true
+            && int.TryParse(query.Drill[11..], out var departmentId))
             rows = rows.Where(request => request.DepartmentId == departmentId);
         var total = await rows.CountAsync(ct);
         var records = await rows.OrderByDescending(request => request.SubmittedAt ?? request.CreatedAt)
@@ -114,7 +120,9 @@ public sealed class PurchaseRequestsReport(ApplicationDbContext db) : IReport
     }
 
     private static double? ReviewDays(string status, DateTime? submitted, DateTime? reviewed) =>
-        status is "Approved" or "Returned" or "Rejected" or "ConvertedToTender" && submitted.HasValue && reviewed >= submitted
+        status is "Approved" or "Returned" or "Rejected" or "ConvertedToTender"
+            && submitted.HasValue
+            && reviewed >= submitted
             ? (reviewed!.Value - submitted.Value).TotalDays : null;
     private static string AverageDays(List<double?> times) => FormatDays(times.Count == 0 ? null : times.Average());
     private static string FormatDays(double? days) => days.HasValue ? days.Value.ToString("F1", CultureInfo.InvariantCulture) + " days" : "—";

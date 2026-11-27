@@ -32,7 +32,8 @@ public sealed class FaceEnrollmentController(FaceEnrollmentService enrollment) :
 
     private async Task<IActionResult> Change(FaceEnrollmentRequest input, bool delete, CancellationToken ct)
     {
-        if (!ModelState.IsValid || input == null) return BadRequest(new { message = "Invalid request. Check the form and try again." });
+        if (!ModelState.IsValid
+            || input == null) return BadRequest(new { message = "Invalid request. Check the form and try again." });
         try
         {
             await enrollment.SaveAsync(UserId, input, delete, ct);

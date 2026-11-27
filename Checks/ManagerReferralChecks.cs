@@ -24,7 +24,8 @@ public static class ManagerReferralChecks
         var manager = await db.Users.SingleAsync(u => u.Email == "manager@tender.local");
         var officer = await db.Users.SingleAsync(u => u.Email == "officer@tender.local");
         var tender = new Tender { Title = "ReferralCheck-" + Guid.NewGuid().ToString("N"), Description = "Temporary referral test",
-            PurchaseRequestId = await db.PurchaseRequests.Select(r => r.PurchaseRequestId).FirstAsync(), CreatedByUserId = officer.Id,
+            PurchaseRequestId = await db.PurchaseRequests.Select(r => r.PurchaseRequestId)
+                .FirstAsync(), CreatedByUserId = officer.Id,
             Status = "AwaitingManagerReview", OpensAt = DateTime.UtcNow.AddDays(-2), ClosesAt = DateTime.UtcNow.AddDays(-1) };
         void Check(bool ok, string message) { if (!ok) throw new Exception(message); }
         try
@@ -39,11 +40,18 @@ public static class ManagerReferralChecks
             await db.SaveChangesAsync();
             var http = new DefaultHttpContext { User = Actor(manager.Id, RoleNames.SourcingManager) };
             var controller = new SourcingManagerController(db, NullLogger<SourcingManagerController>.Instance)
-            { ControllerContext = new ControllerContext { HttpContext = http }, TempData = new TempDataDictionary(http, new MemoryTempData()), Url = new TestUrls() };
+            { ControllerContext = new ControllerContext { HttpContext = http },
+                TempData = new TempDataDictionary(http, new MemoryTempData()),
+                Url = new TestUrls() };
             var input = new ManagerForwardInput { ReportId = report.EvaluationReportId, Reason = "Demo referral test" };
             controller.Forward(input);
-            var assignments = await db.CommitteeAssignments.Where(a => a.TenderId == tender.TenderId && a.CommitteeType == "Top").ToListAsync();
-            Check(assignments.Count == 4 && assignments.Select(a => a.UserId).Distinct().Count() == 4, "Four distinct assignments were not created.");
+            var assignments = await db.CommitteeAssignments.Where(a => a.TenderId == tender.TenderId
+                && a.CommitteeType == "Top")
+                .ToListAsync();
+            Check(assignments.Count == 4
+                && assignments.Select(a => a.UserId)
+                .Distinct()
+                .Count() == 4, "Four distinct assignments were not created.");
             Check(tender.Status == "AwaitingCommitteeDecision", "Tender was not forwarded.");
             var notificationText = $"Tender #{tender.TenderId} has been referred for final decision.";
             Check(await db.Notifications.CountAsync(n => n.Message == notificationText) == 4, "Four member notifications were not created.");
@@ -54,7 +62,8 @@ public static class ManagerReferralChecks
                 Check(dashboard.PendingTenders.Any(t => t.TenderId == tender.TenderId), "A Top Committee member cannot see the referred tender.");
             }
             controller.Forward(input);
-            Check(await db.CommitteeAssignments.CountAsync(a => a.TenderId == tender.TenderId && a.CommitteeType == "Top") == 4, "Repeat referral created duplicates.");
+            Check(await db.CommitteeAssignments.CountAsync(a => a.TenderId == tender.TenderId
+                && a.CommitteeType == "Top") == 4, "Repeat referral created duplicates.");
             tender.Status = "AwaitingManagerReview";
             db.CommitteeAssignments.Remove(assignments[3]); await db.SaveChangesAsync();
             controller.Forward(input);
@@ -62,7 +71,10 @@ public static class ManagerReferralChecks
             Console.WriteLine("PASS: four assignments, notifications, visibility for every Top member, duplicate prevention and partial-assignment rejection.");
             if (verifyVoting)
             {
-                var otherProfiles = await db.SupplierProfiles.Where(s => s.SupplierProfileId != bid.Invitation.SupplierProfileId).OrderBy(s => s.SupplierProfileId).Take(3).ToListAsync();
+                var otherProfiles = await db.SupplierProfiles.Where(s => s.SupplierProfileId != bid.Invitation.SupplierProfileId)
+                    .OrderBy(s => s.SupplierProfileId)
+                    .Take(3)
+                    .ToListAsync();
                 Check(otherProfiles.Count == 3, "Four demo suppliers are needed for the award notification check.");
                 var otherOffers = new List<Bid>();
                 foreach (var status in new[] { "Submitted", "Draft", "Withdrawn" })
@@ -73,7 +85,10 @@ public static class ManagerReferralChecks
                         Currency = "JOD", Status = status, SubmittedAt = status == "Draft" ? null : DateTime.UtcNow };
                     db.Bids.Add(other); otherOffers.Add(other);
                 }
-                db.CommitteeAssignments.Add(new CommitteeAssignment { TenderId = tender.TenderId, UserId = assignments[3].UserId, CommitteeType = "Top", Position = 4 });
+                db.CommitteeAssignments.Add(new CommitteeAssignment { TenderId = tender.TenderId,
+                    UserId = assignments[3].UserId,
+                    CommitteeType = "Top",
+                    Position = 4 });
                 tender.Status = "AwaitingCommitteeDecision";
                 await db.SaveChangesAsync();
                 var services = new ServiceCollection().AddLogging();
@@ -83,29 +98,47 @@ public static class ManagerReferralChecks
                 using var scope = provider.CreateScope();
                 var voting = scope.ServiceProvider.GetRequiredService<ITopCommitteeVoting>();
                 var readiness = scope.ServiceProvider.GetRequiredService<ITopCommitteeVotingReadiness>();
-                var members = await db.CommitteeAssignments.AsNoTracking().Where(a => a.TenderId == tender.TenderId && a.CommitteeType == "Top").OrderBy(a => a.Position).ToListAsync();
+                var members = await db.CommitteeAssignments.AsNoTracking()
+                    .Where(a => a.TenderId == tender.TenderId && a.CommitteeType == "Top")
+                    .OrderBy(a => a.Position)
+                    .ToListAsync();
                 Check(await readiness.IsDatabaseReadyAsync(Actor(members[0].UserId, RoleNames.TopCommittee), tender.TenderId), "Existing approval-only constraint was rejected.");
                 try
                 {
-                    await voting.SubmitAsync(Actor(members[0].UserId, RoleNames.TopCommittee), new CommitteeVoteInput { TenderId = tender.TenderId, ExpectedNominatedBidId = bid.BidId, Decision = "Rejected", Notes = "Forged rejection", Confirmed = true });
+                    await voting.SubmitAsync(Actor(members[0].UserId,
+                        RoleNames.TopCommittee), new CommitteeVoteInput { TenderId = tender.TenderId,
+                        ExpectedNominatedBidId = bid.BidId,
+                        Decision = "Rejected",
+                        Notes = "Forged rejection",
+                        Confirmed = true });
                     throw new Exception("Rejection was accepted.");
                 }
                 catch (ValidationException) { }
                 for (var index = 0; index < members.Count; index++)
                 {
-                    await voting.SubmitAsync(Actor(members[index].UserId, RoleNames.TopCommittee), new CommitteeVoteInput { TenderId = tender.TenderId, ExpectedNominatedBidId = bid.BidId, Decision = "Approved", Confirmed = true });
+                    await voting.SubmitAsync(Actor(members[index].UserId,
+                        RoleNames.TopCommittee), new CommitteeVoteInput { TenderId = tender.TenderId,
+                        ExpectedNominatedBidId = bid.BidId,
+                        Decision = "Approved",
+                        Confirmed = true });
                     await db.Entry(tender).ReloadAsync();
                     Check(tender.Status == (index == 3 ? "Awarded" : "AwaitingCommitteeDecision"), "Incorrect award timing.");
                     if (index < 3) Check(!await db.Notifications.AnyAsync(n => n.RelativeUrl == $"/Supplier/Offer/{bid.BidId}"), "Supplier was notified before the final approval.");
                 }
-                Check(tender.AwardedBidId == bid.BidId && await db.TenderApprovals.CountAsync(a => a.TenderId == tender.TenderId && a.Stage == "Top") == 4, "Final award or vote count is incorrect.");
+                Check(tender.AwardedBidId == bid.BidId
+                    && await db.TenderApprovals.CountAsync(a => a.TenderId == tender.TenderId && a.Stage == "Top") == 4, "Final award or vote count is incorrect.");
                 var outcomes = await db.Bids.AsNoTracking().Where(b => b.TenderId == tender.TenderId).ToListAsync();
                 Check(outcomes.Single(b => b.BidId == bid.BidId).Status == "Accepted", "Winning offer was not accepted.");
                 Check(outcomes.Single(b => b.BidId == otherOffers[0].BidId).Status == "Rejected", "Losing submitted offer was not rejected.");
-                Check(outcomes.Single(b => b.BidId == otherOffers[1].BidId).Status == "Draft" && outcomes.Single(b => b.BidId == otherOffers[2].BidId).Status == "Withdrawn", "Draft or withdrawn offer was changed.");
+                Check(outcomes.Single(b => b.BidId == otherOffers[1].BidId).Status == "Draft"
+                    && outcomes
+                    .Single(b => b.BidId == otherOffers[2].BidId).Status == "Withdrawn", "Draft or withdrawn offer was changed.");
                 var urls = outcomes.Select(b => $"/Supplier/Offer/{b.BidId}").ToList();
-                var notices = await db.Notifications.AsNoTracking().Where(n => urls.Contains(n.RelativeUrl!)).ToListAsync();
-                Check(notices.Count == 2 && notices.Single(n => n.Title == "Your offer was not selected").UserId == otherProfiles[0].UserId, "Supplier results were not sent privately to each participant.");
+                var notices = await db.Notifications.AsNoTracking()
+                    .Where(n => urls.Contains(n.RelativeUrl!))
+                    .ToListAsync();
+                Check(notices.Count == 2
+                    && notices.Single(n => n.Title == "Your offer was not selected").UserId == otherProfiles[0].UserId, "Supplier results were not sent privately to each participant.");
                 var coordinator = scope.ServiceProvider.GetRequiredService<ITopCommitteeTenderTransaction>();
                 await coordinator.ExecuteAsync(tender.TenderId, async (locked, ct) =>
                 {
@@ -122,9 +155,17 @@ public static class ManagerReferralChecks
         finally
         {
             await using var cleanup = await db.Database.BeginTransactionAsync();
-            var supplierUrls = await db.Bids.Where(b => b.TenderId == tender.TenderId).Select(b => "/Supplier/Offer/" + b.BidId).ToListAsync();
-            await db.Notifications.Where(n => n.Message == $"Tender #{tender.TenderId} has been referred for final decision." || n.RelativeUrl == $"/TopCommittee/TenderDetails/{tender.TenderId}" || supplierUrls.Contains(n.RelativeUrl!)).ExecuteDeleteAsync();
-            await db.Tenders.Where(t => t.TenderId == tender.TenderId).ExecuteUpdateAsync(update => update.SetProperty(t => t.AwardedBidId, (int?)null).SetProperty(t => t.AwardedAt, (DateTime?)null).SetProperty(t => t.Status, "AwaitingCommitteeDecision"));
+            var supplierUrls = await db.Bids.Where(b => b.TenderId == tender.TenderId)
+                .Select(b => "/Supplier/Offer/" + b.BidId)
+                .ToListAsync();
+            await db.Notifications.Where(n => n.Message == $"Tender #{tender.TenderId} has been referred for final decision."
+                || n.RelativeUrl == $"/TopCommittee/TenderDetails/{tender.TenderId}"
+                || supplierUrls.Contains(n.RelativeUrl!))
+                .ExecuteDeleteAsync();
+            await db.Tenders.Where(t => t.TenderId == tender.TenderId)
+                .ExecuteUpdateAsync(update => update.SetProperty(t => t.AwardedBidId, (int?)null)
+                    .SetProperty(t => t.AwardedAt, (DateTime?)null)
+                    .SetProperty(t => t.Status, "AwaitingCommitteeDecision"));
             await db.TenderApprovals.Where(a => a.TenderId == tender.TenderId).ExecuteDeleteAsync();
             await db.EvaluationReports.Where(r => r.TenderId == tender.TenderId).ExecuteDeleteAsync();
             await db.CommitteeAssignments.Where(a => a.TenderId == tender.TenderId).ExecuteDeleteAsync();
@@ -135,7 +176,9 @@ public static class ManagerReferralChecks
             Console.WriteLine("Temporary referral fixtures removed.");
         }
     }
-    private static ClaimsPrincipal Actor(string id, string role) => new(new ClaimsIdentity([new(ClaimTypes.NameIdentifier, id), new(ClaimTypes.Role, role)], "Test"));
+    private static ClaimsPrincipal Actor(string id, string role) => new(new ClaimsIdentity([new(ClaimTypes.NameIdentifier,
+        id), new(ClaimTypes.Role,
+        role)], "Test"));
     private sealed class MemoryTempData : ITempDataProvider
     {
         public IDictionary<string, object> LoadTempData(HttpContext context) => new Dictionary<string, object>();

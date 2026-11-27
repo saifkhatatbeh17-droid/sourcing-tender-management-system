@@ -63,7 +63,8 @@ public sealed class AiChatAttachmentAnalysis(HttpClient http, IConfiguration con
     {
         using var data = SKData.Create(file);
         using var codec = SKCodec.Create(data);
-        if (codec is null || codec.EncodedFormat is not (SKEncodedImageFormat.Png or SKEncodedImageFormat.Jpeg or SKEncodedImageFormat.Webp))
+        if (codec is null
+            || codec.EncodedFormat is not (SKEncodedImageFormat.Png or SKEncodedImageFormat.Jpeg or SKEncodedImageFormat.Webp))
             throw new ValidationException("The attachment is not a readable PNG, JPEG or WebP image.");
         var info = codec.Info;
         if (info.Width <= 0 || info.Height <= 0 || (long)info.Width * info.Height > 20_000_000)
@@ -150,7 +151,13 @@ public sealed class AiChatAttachmentAnalysis(HttpClient http, IConfiguration con
     {
         var key = string.Concat(value.Where(char.IsLetterOrDigit)).ToLowerInvariant();
         return key.Contains("password") || key.Contains("passward") || key.Contains("apikey") ||
-               key.Contains("secret") || key.Contains("كلمةالمرور") || key.Contains("كلمةالسر") || key.Contains("باسورد");
+               key.Contains("secret")
+                   || key
+                   .Contains("كلمةالمرور")
+                   || key
+                   .Contains("كلمةالسر")
+                   || key
+                   .Contains("باسورد");
     }
 
     private static bool Append(StringBuilder excerpt, string section)

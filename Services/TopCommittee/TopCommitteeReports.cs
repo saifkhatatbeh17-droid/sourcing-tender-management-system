@@ -8,7 +8,16 @@ namespace SourcingTenderManagement.Services.TopCommittee;
 // Loads the CEO & Chiefs reports page data.
 public sealed class TopCommitteeReports(ApplicationDbContext db,TopCommitteeAccessService access)
 {
- public static readonly string[] Statuses=["Draft","Published","Open","Closed","UnderEvaluation","AwaitingOfficerSummary","AwaitingManagerReview","AwaitingCommitteeDecision","Awarded","Cancelled"];
+ public static readonly string[] Statuses=["Draft",
+     "Published",
+     "Open",
+     "Closed",
+     "UnderEvaluation",
+     "AwaitingOfficerSummary",
+     "AwaitingManagerReview",
+     "AwaitingCommitteeDecision",
+     "Awarded",
+     "Cancelled"];
  public async Task<CommitteeReportPage> GetAsync(ClaimsPrincipal actor,CommitteeReportFilter f,bool export=false,CancellationToken ct=default)
  {
   return await ReadAsync(await access.RequireRoleAsync(actor,RoleNames.TopCommittee,ct), f, export, false, false, ct);
@@ -23,15 +32,36 @@ public sealed class TopCommitteeReports(ApplicationDbContext db,TopCommitteeAcce
  private async Task<CommitteeReportPage> ReadAsync(string id, CommitteeReportFilter f, bool export, bool hub, bool admin, CancellationToken ct)
  {
   Validator.ValidateObject(f,new ValidationContext(f),true);
-  if(f.FromDate>f.ToDate||f.Status is {Length:>0}&&!Statuses.Contains(f.Status)||f.Decision is {Length:>0}&&f.Decision is not("Approved" or "Rejected" or "NotVoted"))throw new ValidationException("Check status, decision and date range.");
+  if(f.FromDate>f.ToDate
+      ||f.Status is {Length:>0}
+      &&!Statuses.Contains(f.Status)
+      ||f.Decision is {Length:>0}
+      &&f.Decision is not("Approved" or "Rejected" or "NotVoted"))throw new ValidationException("Check status, decision and date range.");
   var assigned=admin ? db.Tenders.AsNoTracking() : AssignedTenders(db,id);var q=assigned;
-  if(!string.IsNullOrWhiteSpace(f.Search)){var text=f.Search.Trim();q=q.Where(t=>t.Title.Contains(text));}if(!string.IsNullOrEmpty(f.Status))q=q.Where(t=>t.Status==f.Status);
-  if(f.FromDate is {} from){var start=from.ToDateTime(TimeOnly.MinValue,DateTimeKind.Utc);q=q.Where(t=>t.CreatedAt>=start);}if(f.ToDate is {} to){var end=to.ToDateTime(TimeOnly.MaxValue,DateTimeKind.Utc);q=q.Where(t=>t.CreatedAt<=end);}
-  if(f.Decision=="NotVoted")q=q.Where(t=>!t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.UserId==id));else if(!string.IsNullOrEmpty(f.Decision))q=q.Where(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.UserId==id&&v.Decision==f.Decision));
-  var count=await q.CountAsync(ct);if(export&&count>5000)throw new ValidationException("More than 5000 matching tenders. Narrow the filters before exporting.");
-  var summary=new CommitteeReportSummary(await assigned.CountAsync(ct),count,await q.CountAsync(t=>t.Status=="AwaitingCommitteeDecision"&&!t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.Decision=="Rejected"),ct),await q.CountAsync(t=>t.Status=="Awarded",ct),await q.CountAsync(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.Decision=="Rejected"),ct),await q.CountAsync(t=>t.Status=="AwaitingManagerReview",ct),await q.CountAsync(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.UserId==id),ct));
+  if(!string.IsNullOrWhiteSpace(f.Search)){var text=f.Search
+      .Trim();q=q
+      .Where(t=>t.Title.Contains(text));}if(!string
+      .IsNullOrEmpty(f.Status))q=q.Where(t=>t.Status==f.Status);
+  if(f.FromDate is {} from){var start=from.ToDateTime(TimeOnly.MinValue,DateTimeKind.Utc);q=q
+      .Where(t=>t.CreatedAt>=start);}if(f.ToDate is {} to){var end=to
+      .ToDateTime(TimeOnly.MaxValue,DateTimeKind.Utc);q=q
+      .Where(t=>t.CreatedAt<=end);}
+  if(f.Decision=="NotVoted")q=q.Where(t=>!t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.UserId==id));else if(!string
+      .IsNullOrEmpty(f.Decision))q=q
+      .Where(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.UserId==id&&v.Decision==f.Decision));
+  var count=await q.CountAsync(ct);if(export
+      &&count>5000)throw new ValidationException("More than 5000 matching tenders. Narrow the filters before exporting.");
+  var summary=new CommitteeReportSummary(await assigned.CountAsync(ct),count,await q
+      .CountAsync(t=>t.Status=="AwaitingCommitteeDecision"
+          &&!t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.Decision=="Rejected"),ct),await q
+      .CountAsync(t=>t.Status=="Awarded",ct),await q
+      .CountAsync(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.Decision=="Rejected"),ct),await q
+      .CountAsync(t=>t.Status=="AwaitingManagerReview",ct),await q
+      .CountAsync(t=>t.TenderApprovals.Any(v=>v.Stage=="Top"&&v.UserId==id),ct));
   var ordered=q.OrderByDescending(t=>t.CreatedAt).ThenByDescending(t=>t.TenderId);
-  var rows=await ProjectRows(hub ? ordered : export ? ordered.Take(5000) : ordered.Skip((f.Page-1)*20).Take(20),id).ToListAsync(ct);
+  var rows=await ProjectRows(hub ? ordered : export ? ordered.Take(5000) : ordered
+      .Skip((f.Page-1)*20)
+      .Take(20),id).ToListAsync(ct);
   // System-wide aggregates are export-only. Detail rows retain their assignment scope above.
   var stats = await ScopedSuppliersAsync(q, f.FromDate, f.ToDate, ct);
   if (!export) return new(f,summary,rows,DateTime.UtcNow) { Suppliers = stats };
@@ -66,7 +96,9 @@ public sealed class TopCommitteeReports(ApplicationDbContext db,TopCommitteeAcce
      return rows.Select(s => new CommitteeSupplierStatistics(s.SupplierProfileId, s.CompanyName, s.Awards)
      {
          Status = s.Status, Invited = s.Invited, Dealings = s.Dealings,
-         Frequency = Frequency(s.Dealings, from ?? (s.First is DateTime first ? DateOnly.FromDateTime(first) : today), to ?? today)
+         Frequency = Frequency(s.Dealings, from
+             ?? (s.First is DateTime first ? DateOnly.FromDateTime(first) : today), to
+             ?? today)
      }).ToArray();
  }
 
@@ -80,7 +112,8 @@ public sealed class TopCommitteeReports(ApplicationDbContext db,TopCommitteeAcce
      join award in AwardCounts(context.Tenders.AsNoTracking()) on supplier.SupplierProfileId equals award.SupplierId into matches
      from award in matches.DefaultIfEmpty()
      orderby supplier.CompanyName, supplier.SupplierProfileId
-     select new CommitteeSupplierStatistics(supplier.SupplierProfileId,supplier.CompanyName,(int?)award.AwardedTenders ?? 0);
+     select new CommitteeSupplierStatistics(supplier.SupplierProfileId,supplier.CompanyName,(int?)award.AwardedTenders
+         ?? 0);
  // One projection is shared by production SQL and database-free regression tests.
  internal static IQueryable<CommitteeReportRow> ProjectRows(IQueryable<Tender> tenders, string memberId) =>
      tenders.Select(t => new CommitteeReportRow(t.TenderId,t.Title,t.Status,t.CreatedAt,
@@ -96,7 +129,9 @@ public sealed class TopCommitteeReports(ApplicationDbContext db,TopCommitteeAcce
  internal static IQueryable<CommitteeSupplierAwardCount> AwardCounts(IQueryable<Tender> tenders) =>
      tenders.Where(t=>t.Status=="Awarded" && t.AwardedBidId.HasValue && t.Bid != null && t.Bid.TenderId==t.TenderId)
          .GroupBy(t=>t.Bid!.Invitation.SupplierProfileId)
-         .Select(g=>new CommitteeSupplierAwardCount { SupplierId=g.Key, AwardedTenders=g.Select(t=>t.TenderId).Distinct().Count() });
+         .Select(g=>new CommitteeSupplierAwardCount { SupplierId=g.Key, AwardedTenders=g.Select(t=>t.TenderId)
+             .Distinct()
+             .Count() });
 }
 
 internal sealed class CommitteeSupplierAwardCount

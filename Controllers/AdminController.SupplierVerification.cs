@@ -11,7 +11,8 @@ public partial class AdminController
     public async Task<IActionResult> SetSupplierSuspension(int id, bool suspend, string? reason, CancellationToken ct)
     {
         reason = reason?.Trim();
-        if (suspend && (string.IsNullOrEmpty(reason) || reason.Length > 1000)) return BadRequest("Enter a suspension reason of up to 1,000 characters.");
+        if (suspend
+            && (string.IsNullOrEmpty(reason) || reason.Length > 1000)) return BadRequest("Enter a suspension reason of up to 1,000 characters.");
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked=SupplierProfileId FROM dbo.SupplierProfiles WITH (UPDLOCK,HOLDLOCK) WHERE SupplierProfileId={id};", ct);

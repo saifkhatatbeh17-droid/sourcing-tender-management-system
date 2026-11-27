@@ -85,7 +85,8 @@ public static class ReportPdfExport
         r.Field("Submitted",OfficerReportLabels.SubmittedDetail(report.SubmittedAt));
         r.Field("Sourcing Manager Summary",report.ManagerSummary??"No manager summary has been recorded.");
         if(report.Bid is {} bid)
-        {r.Field("Recommended Bid Supplier",bid.Invitation.SupplierProfile.CompanyName);r.Field("Recommended Bid Status",bid.Status);}
+        {r.Field("Recommended Bid Supplier",bid.Invitation.SupplierProfile.CompanyName);r
+            .Field("Recommended Bid Status",bid.Status);}
         r.Text("This report is a recommendation and review record. Final award decisions belong to the authorized later workflow stages.");
         return r.Pdf();
     }
@@ -101,14 +102,17 @@ public static class ReportPdfExport
         var tender=(data["EvaluationTenders"] as List<Tender>)!.Single(t=>t.TenderId==report.TenderId);
         var r=new Report("Committee evaluation and review","Sourcing Officer");
         r.Field("Tender",$"#{tender.TenderId} - {tender.Title}");r.Field("Tender status",tender.Status);
-        r.Field("Committee assignments",assignments.Count.ToString());r.Field("Evaluation records",evaluations.Count.ToString());
-        r.Field("Approved positions",approvals.Count(a=>a.Stage=="Evaluation"&&a.Decision=="Approved").ToString());r.Field("Criteria",criteria.Count.ToString());
+        r.Field("Committee assignments",assignments.Count.ToString());r
+            .Field("Evaluation records",evaluations.Count.ToString());
+        r.Field("Approved positions",approvals.Count(a=>a.Stage=="Evaluation"&&a.Decision=="Approved").ToString());r
+            .Field("Criteria",criteria.Count.ToString());
         r.Heading("Committee Assignments");
         r.Text($"Submitted or approved evaluator positions: {assignments.Count(a=>evaluations.Any(e=>e.CommitteeAssignmentId==a.CommitteeAssignmentId&&e.Status is "Submitted" or "Approved"))} of {assignments.Count}.");
         r.Rows(["Position","Committee Member","Evaluation Records","Progress"],[2,10,5,9.7],assignments.Select(a=>
         {
             var records=evaluations.Where(e=>e.CommitteeAssignmentId==a.CommitteeAssignmentId).ToList();
-            var progress=records.Count==0?"Not started":records.All(e=>e.Status=="Approved")?"Approved":records.Any(e=>e.Status is "Submitted" or "Approved")?"Submitted":"Draft";
+            var progress=records.Count==0?"Not started":records.All(e=>e.Status=="Approved")?"Approved":records
+                .Any(e=>e.Status is "Submitted" or "Approved")?"Submitted":"Draft";
             return new[]{a.Position.ToString(),a.User.FullName,records.Count.ToString(),progress};
         }),"No Evaluation committee assignments are recorded for this Tender.");
         r.Heading("Committee Approval Handoff");
@@ -124,7 +128,8 @@ public static class ReportPdfExport
             evaluations.Select(e=>new[]{e.Bid.Invitation.SupplierProfile.CompanyName,$"{e.CommitteeAssignment.User.FullName} (position {e.CommitteeAssignment.Position})",e.Status,Date(e.SubmittedAt),
                 (e.Notes??"")+"\n"+string.Join("\n",e.EvaluationScores.Select(s=>$"{s.EvaluationCriterion.Name}: {s.Score} - {s.Notes}"))}),"No committee evaluation records are available for this Tender.");
         r.Heading("Committee report review");r.Field("Report status",report.Status);
-        r.Field("Recommended offer",bids.FirstOrDefault(b=>b.BidId==report.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName??(report.RecommendedBidId.HasValue?"Offer #"+report.RecommendedBidId:"No offer recommended"));
+        r.Field("Recommended offer",bids.FirstOrDefault(b=>b.BidId==report.RecommendedBidId)?.Invitation.SupplierProfile.CompanyName
+            ??(report.RecommendedBidId.HasValue?"Offer #"+report.RecommendedBidId:"No offer recommended"));
         r.Heading("Committee report");r.Formatted(report.CommitteeSummary);
         if(!string.IsNullOrWhiteSpace(report.OfficerSummary))r.Field("Officer decision",report.OfficerSummary);
         if(!string.IsNullOrWhiteSpace(report.ManagerSummary))r.Field("Manager review",report.ManagerSummary);
@@ -137,12 +142,18 @@ public static class ReportPdfExport
         var recommended=page.Offers.FirstOrDefault(b=>b.BidId==report.RecommendedBidId);
         var r=new Report("Combined committee report","Evaluation Committee");
         var rounds = OfferRoundContext.Describe(tender);
-        if (rounds.Length > 0 && report.CommitteeSummary?.Contains(rounds, StringComparison.Ordinal) != true) r.Formatted(rounds);
-        r.Field("Tender",$"#{tender.TenderId} - {tender.Title}");r.Field("Tender status",CommitteeEvaluationPage.StatusLabel(tender.Status));
+        if (rounds.Length > 0
+            && report.CommitteeSummary?.Contains(rounds, StringComparison.Ordinal) != true) r.Formatted(rounds);
+        r.Field("Tender",$"#{tender.TenderId} - {tender.Title}");r
+            .Field("Tender status",CommitteeEvaluationPage.StatusLabel(tender.Status));
         if(page.Criteria.Count>0)
         {
-            r.Field("Financial weight",page.Criteria.Where(c=>c.Category=="Financial").Sum(c=>c.Weight).ToString("0.##")+"%");
-            r.Field("Technical weight",page.Criteria.Where(c=>c.Category=="Requirements").Sum(c=>c.Weight).ToString("0.##")+"%");
+            r.Field("Financial weight",page.Criteria.Where(c=>c.Category=="Financial")
+                .Sum(c=>c.Weight)
+                .ToString("0.##")+"%");
+            r.Field("Technical weight",page.Criteria.Where(c=>c.Category=="Requirements")
+                .Sum(c=>c.Weight)
+                .ToString("0.##")+"%");
         }
         r.Field("Committee approvals",$"{page.Approvals.Count(a=>a.Decision=="Approved")} / 4");
         r.Heading("Recommended offer");
@@ -152,9 +163,12 @@ public static class ReportPdfExport
             r.Text($"Offer #{recommended.BidId} - {CommitteeEvaluationPage.Total(recommended):N2} {recommended.Currency} - {recommended.DeliveryDays}-day delivery");
         }
         else r.Text("No offer recommended yet");
-        r.Heading("Committee report");r.Field("Report status",CommitteeEvaluationPage.StatusLabel(report.Status));r.Formatted(report.CommitteeSummary);
+        r.Heading("Committee report");r
+            .Field("Report status",CommitteeEvaluationPage.StatusLabel(report.Status));r
+            .Formatted(report.CommitteeSummary);
         if(!string.IsNullOrWhiteSpace(report.OfficerSummary))r.Field("Sourcing officer review",report.OfficerSummary);
-        r.Heading("Approval record");r.Text("Shared weights and individual approvals. Four independent member approvals are required.");
+        r.Heading("Approval record");r
+            .Text("Shared weights and individual approvals. Four independent member approvals are required.");
         r.Rows(["Member","Approval"],[17,9.7],page.Members.Select(m=>new[]{CommitteeEvaluationPage.MemberName(m.Position)+(m.UserId==page.UserId?" (you)":""),
             page.Approvals.Any(a=>a.UserId==m.UserId&&a.Decision=="Approved")?"Approved":"Awaiting approval"}),"Approvals will appear after the committee evaluation is started.");
         if(page.Locked)r.Text("Evaluation complete. Current tender status: "+tender.Status+".");
@@ -166,7 +180,8 @@ public static class ReportPdfExport
         var result=page.AiRecommendation!;var scenario=result.Scenarios.First();
         var winner=page.Offers.FirstOrDefault(b=>b.BidId==scenario.RecommendedBidId);
         var r=new Report("Saved AI recommendation","Evaluation Committee");
-        r.Field("Tender",$"#{page.Tender!.TenderId} - {page.Tender.Title}");r.Field("Saved (UTC)",Date(page.AiCreatedAt));
+        r.Field("Tender",$"#{page.Tender!.TenderId} - {page.Tender.Title}");r
+            .Field("Saved (UTC)",Date(page.AiCreatedAt));
         r.Field("Suggested offer",winner?.Invitation.SupplierProfile.CompanyName??"No clear recommendation");
         if(winner!=null)r.Text($"{CommitteeEvaluationPage.Total(winner):N2} {winner.Currency} | Offer #{winner.BidId} | {winner.DeliveryDays}-day delivery");
         r.Text($"{scenario.FinancialWeight:0.##}% financial / {100-scenario.FinancialWeight:0.##}% technical");
@@ -178,7 +193,8 @@ public static class ReportPdfExport
             r.Heading($"Offer #{offer.BidId} - {offer.Invitation.SupplierProfile.CompanyName}");
             r.Field("Strengths",comparison.Strengths);r.Field("Tradeoffs",comparison.Tradeoffs);
         }
-        if(result.MissingInformation.Length>0){r.Heading("Information to verify");foreach(var item in result.MissingInformation)r.Text(item);}
+        if(result.MissingInformation.Length>0){r.Heading("Information to verify");foreach(var item in result.MissingInformation)r
+            .Text(item);}
         return r.Pdf();
     }
 
@@ -197,8 +213,10 @@ public static class ReportPdfExport
         var report=page.Selected!;var recommended=page.Offers.FirstOrDefault(o=>o.BidId==report.RecommendedBidId);
         var r=new Report("Committee submission and supplier comparison","Sourcing Manager");
         var rounds = OfferRoundContext.Describe(report.Tender);
-        if (rounds.Length > 0 && report.CommitteeSummary?.Contains(rounds, StringComparison.Ordinal) != true) r.Formatted(rounds);
-        r.Field("Tender",$"#{report.TenderId} - {report.Tender.Title}");r.Field("Report",$"#{report.EvaluationReportId} - {report.Status}");
+        if (rounds.Length > 0
+            && report.CommitteeSummary?.Contains(rounds, StringComparison.Ordinal) != true) r.Formatted(rounds);
+        r.Field("Tender",$"#{report.TenderId} - {report.Tender.Title}");r
+            .Field("Report",$"#{report.EvaluationReportId} - {report.Status}");
         r.Field("Recommended supplier",recommended?.Invitation.SupplierProfile.CompanyName??"Unavailable");
         r.Heading("Committee report");r.Formatted(report.CommitteeSummary??"No summary was provided.");
         if(!string.IsNullOrWhiteSpace(report.OfficerSummary))r.Field("Sourcing officer summary",report.OfficerSummary);
@@ -226,7 +244,8 @@ public static class ReportPdfExport
                 if(!string.IsNullOrWhiteSpace(evaluation.Notes))r.Text(evaluation.Notes);
             }
         }
-        if(report.Status=="ManagerApproved"&&!string.IsNullOrWhiteSpace(report.ManagerSummary))r.Field("Refer to the CEO & Chiefs",report.ManagerSummary);
+        if(report.Status=="ManagerApproved"
+            &&!string.IsNullOrWhiteSpace(report.ManagerSummary))r.Field("Refer to the CEO & Chiefs",report.ManagerSummary);
         return r.Pdf();
     }
 
@@ -235,38 +254,76 @@ public static class ReportPdfExport
         var t=page.Tender;var report=t.Report!;var request=t.PurchaseRequest;
         var r=new Report("Unified evaluation report","CEO & Chiefs");
         r.Field("Tender",$"#{t.TenderId} - {t.Title}");r.Field("Status",CommitteeDisplay.Status(t.Status));
-        r.Heading("Purchase request and tender");r.Field("Request",$"#{request.RequestId} - {request.Title}");r.Field("Department",request.Department);
-        r.Field("Reason",request.Reason);r.Field("Priority",request.Priority);r.Field("Target date",CommitteeDisplay.Date(request.TargetDate));
-        r.Field("Tender description",t.Description);r.Field("Terms",CommitteeDisplay.Text(t.Terms));r.Field("Opens",CommitteeDisplay.Utc(t.OpensAt));r.Field("Submission deadline",CommitteeDisplay.Utc(t.ClosesAt));
-        r.Rows(["Item","Quantity","Unit","Specifications"],[5,2.5,2.5,16.7],request.Items.Select(i=>new[]{i.Name,CommitteeDisplay.Quantity(i.Quantity),i.Unit,i.Specifications}),"No request items are recorded.");
-        if(t.Documents.Count>0){r.Heading("Tender documents");foreach(var d in t.Documents)r.Text($"{d.OriginalFileName} ({d.SizeBytes:N0} bytes)");}
-        r.Heading("Manager recommendation");r.Field("Responsible manager",t.ResponsibleManager?.FullName??"No single referring manager is recorded");
-        var nominated=t.Bids.FirstOrDefault(b=>b.IsNominated);r.Field("Nominated bid",nominated==null?"No submitted nomination is available.":$"{nominated.SupplierName} - Bid #{nominated.BidId}");r.Field("Recommendation",CommitteeDisplay.Text(report.ManagerSummary));
-        r.Heading("Bid comparison");r.Text("Totals include item prices, taxes and additional costs in each bid's own currency. Evaluation scores are shown as recorded; no currency conversion or combined ranking is applied.");
+        r.Heading("Purchase request and tender");r
+            .Field("Request",$"#{request.RequestId} - {request.Title}");r
+            .Field("Department",request.Department);
+        r.Field("Reason",request.Reason);r
+            .Field("Priority",request.Priority);r
+            .Field("Target date",CommitteeDisplay.Date(request.TargetDate));
+        r.Field("Tender description",t.Description);r
+            .Field("Terms",CommitteeDisplay.Text(t.Terms));r
+            .Field("Opens",CommitteeDisplay.Utc(t.OpensAt));r
+            .Field("Submission deadline",CommitteeDisplay.Utc(t.ClosesAt));
+        r.Rows(["Item","Quantity","Unit","Specifications"],
+            [5,2.5,2.5,16.7],
+            request.Items.Select(i=>new[]{i.Name,CommitteeDisplay.Quantity(i.Quantity),i.Unit,i.Specifications}),
+            "No request items are recorded.");
+        if(t.Documents.Count>0){r.Heading("Tender documents");foreach(var d in t.Documents)r
+            .Text($"{d.OriginalFileName} ({d.SizeBytes:N0} bytes)");}
+        r.Heading("Manager recommendation");r
+            .Field("Responsible manager",t.ResponsibleManager?.FullName??"No single referring manager is recorded");
+        var nominated=t.Bids.FirstOrDefault(b=>b.IsNominated);r
+            .Field("Nominated bid",nominated==null?"No submitted nomination is available.":$"{nominated.SupplierName} - Bid #{nominated.BidId}");r
+            .Field("Recommendation",CommitteeDisplay.Text(report.ManagerSummary));
+        r.Heading("Bid comparison");r
+            .Text("Totals include item prices, taxes and additional costs in each bid's own currency. Evaluation scores are shown as recorded; no currency conversion or combined ranking is applied.");
         r.Rows(["Supplier / bid","Total","Delivery","Compliance","Evaluation results"],[5,4,2.5,4,11.2],t.Bids.Select(b=>new[]{
             $"{b.SupplierName}\nBid #{b.BidId} - {CommitteeDisplay.Status(b.Status)}"+(b.IsNominated?"\nManager nominated":""),$"{CommitteeDisplay.Money(b.Total)} {b.Currency}",$"{b.DeliveryDays} days",CommitteeDisplay.Status(b.ComplianceStatus),
             b.Evaluations.Count==0?"No submitted evaluation results":string.Join("\n",b.Evaluations.Select(e=>$"{e.Evaluator} - {CommitteeDisplay.Status(e.Status)}\n"+(e.Scores.Count==0?"No scores recorded":string.Join("\n",e.Scores.Select(s=>$"{(s.Category=="Requirements"?"Technical":s.Category)}: {s.Criterion} - {CommitteeDisplay.Quantity(s.Score)}/{CommitteeDisplay.Quantity(s.Maximum)}")))))}),"No submitted bids are available for this tender.");
         if(page.SelectedBid is {} bid)
         {
-            r.Heading($"Bid #{bid.BidId} - {bid.SupplierName}");r.Field("Status",CommitteeDisplay.Status(bid.Status));r.Field("Submitted",CommitteeDisplay.Utc(bid.SubmittedAt));
-            r.Field("Item subtotal",$"{CommitteeDisplay.Money(bid.Subtotal)} {bid.Currency}");r.Field("Tax",$"{CommitteeDisplay.Money(bid.TaxAmount)} {bid.Currency}");
-            r.Field("Additional costs",$"{CommitteeDisplay.Money(bid.AdditionalCosts)} {bid.Currency}");r.Field("Total",$"{CommitteeDisplay.Money(bid.Total)} {bid.Currency}");
-            r.Field("Delivery timeframe",$"{bid.DeliveryDays} days");r.Field("Payment terms",CommitteeDisplay.Text(bid.PaymentTerms));r.Field("Valid until",CommitteeDisplay.Date(bid.ValidUntil));
-            r.Field("Technical details",CommitteeDisplay.Text(bid.TechnicalDetails));r.Field("Compliance",CommitteeDisplay.Status(bid.ComplianceStatus));r.Field("Compliance notes",CommitteeDisplay.Text(bid.ComplianceNotes));
-            r.Rows(["Item","Quantity","Unit price ("+bid.Currency+")","Offered specifications"],[5,3,4,14.7],bid.Items.Select(i=>new[]{i.ItemName,CommitteeDisplay.Quantity(i.Quantity),CommitteeDisplay.Money(i.UnitPrice),i.OfferedSpecifications}),"No bid items are recorded.");
-            r.Heading("Bid documents");if(bid.Documents.Count==0)r.Text("No bid documents are recorded.");foreach(var d in bid.Documents)r.Text($"{d.OriginalFileName} - {CommitteeDisplay.Text(d.DocumentType)} ({d.SizeBytes:N0} bytes)");
-            r.Heading("Evaluation details");if(bid.Evaluations.Count==0)r.Text("No submitted technical or financial evaluations are available.");
+            r.Heading($"Bid #{bid.BidId} - {bid.SupplierName}");r
+                .Field("Status",CommitteeDisplay.Status(bid.Status));r
+                .Field("Submitted",CommitteeDisplay.Utc(bid.SubmittedAt));
+            r.Field("Item subtotal",$"{CommitteeDisplay.Money(bid.Subtotal)} {bid.Currency}");r
+                .Field("Tax",$"{CommitteeDisplay.Money(bid.TaxAmount)} {bid.Currency}");
+            r.Field("Additional costs",$"{CommitteeDisplay.Money(bid.AdditionalCosts)} {bid.Currency}");r
+                .Field("Total",$"{CommitteeDisplay.Money(bid.Total)} {bid.Currency}");
+            r.Field("Delivery timeframe",$"{bid.DeliveryDays} days");r
+                .Field("Payment terms",CommitteeDisplay.Text(bid.PaymentTerms));r
+                .Field("Valid until",CommitteeDisplay.Date(bid.ValidUntil));
+            r.Field("Technical details",CommitteeDisplay.Text(bid.TechnicalDetails));r
+                .Field("Compliance",CommitteeDisplay.Status(bid.ComplianceStatus));r
+                .Field("Compliance notes",CommitteeDisplay.Text(bid.ComplianceNotes));
+            r.Rows(["Item","Quantity","Unit price ("+bid.Currency+")","Offered specifications"],[5,3,4,14.7],bid.Items.Select(i=>new[]{i.ItemName,CommitteeDisplay.Quantity(i.Quantity),CommitteeDisplay
+                .Money(i.UnitPrice),i.OfferedSpecifications}),"No bid items are recorded.");
+            r.Heading("Bid documents");if(bid.Documents.Count==0)r
+                .Text("No bid documents are recorded.");foreach(var d in bid.Documents)r
+                .Text($"{d.OriginalFileName} - {CommitteeDisplay.Text(d.DocumentType)} ({d.SizeBytes:N0} bytes)");
+            r.Heading("Evaluation details");if(bid.Evaluations.Count==0)r
+                .Text("No submitted technical or financial evaluations are available.");
             foreach(var e in bid.Evaluations)
             {
-                r.Heading(e.Evaluator+" - "+CommitteeDisplay.Status(e.Status));r.Text(CommitteeDisplay.Text(e.Notes));r.Text($"Submitted: {CommitteeDisplay.Utc(e.SubmittedAt)} - Approved: {CommitteeDisplay.Utc(e.ApprovedAt)}");
-                r.Rows(["Criterion","Category","Weight","Score","Notes"],[5,3,2.5,2.5,13.7],e.Scores.Select(s=>new[]{s.Criterion,s.Category=="Requirements"?"Technical":s.Category,CommitteeDisplay.Quantity(s.Weight)+"%",CommitteeDisplay.Quantity(s.Score)+"/"+CommitteeDisplay.Quantity(s.Maximum),CommitteeDisplay.Text(s.Notes)}),"No criterion scores are recorded for this evaluation.");
+                r.Heading(e.Evaluator+" - "+CommitteeDisplay.Status(e.Status));r
+                    .Text(CommitteeDisplay.Text(e.Notes));r
+                    .Text($"Submitted: {CommitteeDisplay.Utc(e.SubmittedAt)} - Approved: {CommitteeDisplay.Utc(e.ApprovedAt)}");
+                r.Rows(["Criterion","Category","Weight","Score","Notes"],[5,3,2.5,2.5,13.7],e.Scores.Select(s=>new[]{s.Criterion,s.Category=="Requirements"?"Technical":s.Category,CommitteeDisplay.Quantity(s.Weight)+"%",CommitteeDisplay
+                    .Quantity(s.Score)+"/"+CommitteeDisplay
+                    .Quantity(s.Maximum),CommitteeDisplay
+                    .Text(s.Notes)}),"No criterion scores are recorded for this evaluation.");
             }
         }
-        r.Heading("Unified evaluation report");r.Field("Report",$"#{report.ReportId} - {CommitteeDisplay.Status(report.Status)}");r.Field("Submitted",CommitteeDisplay.Utc(report.SubmittedAt));
-        r.Heading("Committee summary");r.Formatted(CommitteeDisplay.Text(report.CommitteeSummary));r.Field("Officer summary",CommitteeDisplay.Text(report.OfficerSummary));r.Field("Manager summary",CommitteeDisplay.Text(report.ManagerSummary));
+        r.Heading("Unified evaluation report");r
+            .Field("Report",$"#{report.ReportId} - {CommitteeDisplay.Status(report.Status)}");r
+            .Field("Submitted",CommitteeDisplay.Utc(report.SubmittedAt));
+        r.Heading("Committee summary");r
+            .Formatted(CommitteeDisplay.Text(report.CommitteeSummary));r
+            .Field("Officer summary",CommitteeDisplay.Text(report.OfficerSummary));r
+            .Field("Manager summary",CommitteeDisplay.Text(report.ManagerSummary));
         r.Heading("Committee records");r.Rows(["Member","Eligibility","Recorded decision","Recorded at"],[7,6,6,7.7],t.Members.Select(m=>
         {var vote=t.Votes.FirstOrDefault(v=>v.UserId==m.UserId);return new[]{m.FullName,m.IsEligible?"Active member":"Not currently eligible",vote==null?"No vote recorded":CommitteeDisplay.Status(vote.Decision),CommitteeDisplay.Utc(vote?.DecidedAt)};}),"No committee members are recorded.");
-        foreach(var vote in t.Votes)r.Field(vote.MemberName+" - "+CommitteeDisplay.Status(vote.Decision),CommitteeDisplay.Text(vote.Justification));
+        foreach(var vote in t.Votes)r.Field(vote.MemberName+" - "+CommitteeDisplay.Status(vote.Decision),CommitteeDisplay
+            .Text(vote.Justification));
         if(t.Votes.Count==0)r.Text("No CEO & Chiefs votes have been recorded.");
         return r.Pdf();
     }
@@ -274,8 +331,11 @@ public static class ReportPdfExport
     public static byte[] SupplierSummary(Bid bid)
     {
         var t=bid.Invitation.Tender;var r=new Report("Supplier offer summary","Supplier");
-        r.Field("Bid reference",$"BID-{bid.BidId:D6}");r.Field("Tender",$"{t.Title} - TND-{t.TenderId:D6}");r.Field("Status",bid.Status);
-        r.Field("Tender status",t.Status);if(t.EvaluationReport!=null)r.Field("Report review status",t.EvaluationReport.Status);
+        r.Field("Bid reference",$"BID-{bid.BidId:D6}");r
+            .Field("Tender",$"{t.Title} - TND-{t.TenderId:D6}");r
+            .Field("Status",bid.Status);
+        r.Field("Tender status",t.Status);if(t.EvaluationReport!=null)r
+            .Field("Report review status",t.EvaluationReport.Status);
         // Match the existing Offer.cshtml read-only tracker; this is display only.
         var reportStatus=t.EvaluationReport?.Status;
         var stage=bid.Status=="Draft"?0:reportStatus is "TopApproved"||bid.Status is "Accepted" or "Rejected"?7:
@@ -288,15 +348,32 @@ public static class ReportPdfExport
             reportStatus=="OfficerSubmitted"?"The Sourcing Officer approved the consolidated report; it is now with the Sourcing Manager.":
             reportStatus is "CommitteeApproved" or "ReturnedForReview"?"The four-member evaluation report is with the Sourcing Officer for review and approval.":
             t.Status=="UnderEvaluation"?"The evaluation committee is reviewing eligible offers and recording its shared decision.":
-            bid.ComplianceStatus=="Compliant"||bid.Status=="Compliant"?"The Sourcing Officer approved the requirements. Committee evaluation begins after the tender closes.":
-            bid.ComplianceStatus=="NonCompliant"||bid.Status=="NonCompliant"?"The Sourcing Officer marked this offer non-compliant. Check the officer's findings or clarifications.":
+            bid.ComplianceStatus=="Compliant"
+                ||bid.Status=="Compliant"?"The Sourcing Officer approved the requirements. Committee evaluation begins after the tender closes.":
+            bid.ComplianceStatus=="NonCompliant"
+                ||bid.Status=="NonCompliant"?"The Sourcing Officer marked this offer non-compliant. Check the officer's findings or clarifications.":
             bid.Status=="Submitted"?"Your offer was sent to the Sourcing Officer for requirements and document review.":"This offer is a draft and has not entered the review workflow.");
-        r.Field("Supplier",bid.Invitation.SupplierProfile.CompanyName);r.Field("Submission date",bid.SubmittedAt?.ToLocalTime().ToString("dd MMM yyyy, HH:mm")??"Draft");
-        r.Field("Submitted (UTC)",bid.SubmittedAt.HasValue?Date(bid.SubmittedAt):"Draft");r.Field("Delivery time",$"{bid.DeliveryDays} days");r.Field("Offer valid until",bid.ValidUntil?.ToString("dd MMM yyyy")??"Not specified");
-        r.Heading("Itemized pricing");r.Rows(["Item","Quantity","Unit price","Line total","Technical response"],[5,3,3.5,3.5,11.7],bid.BidItems.Select(i=>new[]{i.PurchaseRequestItem.ItemName,$"{i.Quantity:N3} {i.PurchaseRequestItem.Unit}",$"{i.UnitPrice:N2} {CurrencyLabel(bid.Currency)}",$"{i.Quantity*i.UnitPrice:N2} {CurrencyLabel(bid.Currency)}",i.OfferedSpecifications}),"No items recorded.");
-        r.Field("Item subtotal",$"{bid.BidItems.Sum(i=>i.Quantity*i.UnitPrice):N2} {CurrencyLabel(bid.Currency)}");r.Field("Tax",$"{bid.TaxAmount:N2} {CurrencyLabel(bid.Currency)}");r.Field("Additional costs",$"{bid.AdditionalCosts:N2} {CurrencyLabel(bid.Currency)}");
+        r.Field("Supplier",bid.Invitation.SupplierProfile.CompanyName);r
+            .Field("Submission date",bid.SubmittedAt?.ToLocalTime().ToString("dd MMM yyyy, HH:mm")??"Draft");
+        r.Field("Submitted (UTC)",bid.SubmittedAt.HasValue?Date(bid.SubmittedAt):"Draft");r
+            .Field("Delivery time",$"{bid.DeliveryDays} days");r
+            .Field("Offer valid until",bid.ValidUntil?.ToString("dd MMM yyyy")??"Not specified");
+        r.Heading("Itemized pricing");r
+            .Rows(["Item","Quantity","Unit price","Line total","Technical response"],
+                [5,3,3.5,3.5,11.7],
+                bid.BidItems.Select(i=>new[]{i.PurchaseRequestItem.ItemName,
+                    $"{i.Quantity:N3} {i.PurchaseRequestItem.Unit}",
+                    $"{i.UnitPrice:N2} {CurrencyLabel(bid.Currency)}",
+                    $"{i.Quantity*i.UnitPrice:N2} {CurrencyLabel(bid.Currency)}",
+                    i.OfferedSpecifications}),
+                "No items recorded.");
+        r.Field("Item subtotal",$"{bid.BidItems.Sum(i=>i.Quantity*i.UnitPrice):N2} {CurrencyLabel(bid.Currency)}");r
+            .Field("Tax",$"{bid.TaxAmount:N2} {CurrencyLabel(bid.Currency)}");r
+            .Field("Additional costs",$"{bid.AdditionalCosts:N2} {CurrencyLabel(bid.Currency)}");
         r.Field("Total amount",$"{CommitteeEvaluationPage.Total(bid):N2} {CurrencyLabel(bid.Currency)}");
-        r.Heading("Commercial terms");r.Field("Payment terms",bid.PaymentTerms??"Not specified");r.Field("Additional technical notes",bid.TechnicalDetails??"Not provided");
+        r.Heading("Commercial terms");r
+            .Field("Payment terms",bid.PaymentTerms??"Not specified");r
+            .Field("Additional technical notes",bid.TechnicalDetails??"Not provided");
         r.Heading("Supporting documents");if(bid.BidDocuments.Count==0)r.Text("No supporting documents uploaded.");
         foreach(var d in bid.BidDocuments)r.Text($"{d.OriginalFileName} - {d.FileSizeBytes/1024d:N0} KB - {d.UploadedAt.ToLocalTime():dd MMM yyyy}");
         return r.Pdf();
@@ -317,7 +394,11 @@ public static class ReportPdfExport
             doc=CreatePdfDocument(title);section=doc.LastSection;
             var p=section.AddParagraph(title);p.Format.Font.Size=20;p.Format.Font.Bold=true;
             Text("Generated "+CommitteeDisplay.Utc(DateTime.UtcNow));
-            var footer=section.Footers.Primary.AddParagraph();footer.AddText(owner+" | Page ");footer.AddPageField();footer.AddText(" of ");footer.AddNumPagesField();
+            var footer=section.Footers.Primary.AddParagraph();footer
+                .AddText(owner+" | Page ");footer
+                .AddPageField();footer
+                .AddText(" of ");footer
+                .AddNumPagesField();
         }
         public void Heading(string text)=>TopCommitteeReportExport.Heading(section,text);
         public void Field(string label,string? value){Heading(label);Text(value);}
@@ -341,7 +422,8 @@ public static class ReportPdfExport
                     heading.Format.KeepWithNext = true;
                 }
                 else if (block.Kind == "list")
-                    foreach (var line in block.Lines) Text("• " + string.Concat(ReportContent.Inline(line).Select(s => s.Text)));
+                    foreach (var line in block.Lines) Text("• " + string.Concat(ReportContent.Inline(line)
+                        .Select(s => s.Text)));
                 else Text(string.Concat(ReportContent.Inline(string.Join(" ", block.Lines)).Select(s => s.Text)));
             }
         }

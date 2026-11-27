@@ -23,7 +23,8 @@ public static class ReportPdfExportChecks
         var section=doc.LastSection;section.AddParagraph("Pagination stress: complete table and long token");
         TopCommitteeReportExport.Heading(section,new string('H',200));
         var table=TopCommitteeReportExport.Table(section,["Record","Full report content","Notes"],[3,16,7.7]);
-        var full=string.Join("\n",Enumerable.Range(1,160).Select(i=>$"FULL-LINE-{i:D3}: Complete persisted report observations and recommendations."));
+        var full=string.Join("\n",Enumerable.Range(1,160)
+            .Select(i=>$"FULL-LINE-{i:D3}: Complete persisted report observations and recommendations."));
         var token="LONGTOKENSTART"+new string('X',1800)+"LONGTOKENEND";
         TopCommitteeReportExport.AddRow(table,["RECORD-ONE",full,token]);
         for(var i=1;i<=180;i++)TopCommitteeReportExport.AddRow(table,[$"ROW-{i:D3}","All recorded values retained",$"NOTES-{i:D3}"]);
@@ -35,14 +36,17 @@ public static class ReportPdfExportChecks
             {SystemStatistics=new(1,1,0),Suppliers=[new(1,new string('S',200),0)]};
         await Save("top-long-tokens.pdf",new TopCommitteeReportExport().Pdf(longTokens));
         var controller=new TestController {ControllerContext=new ControllerContext{HttpContext=new DefaultHttpContext()}};
-        var services=new ServiceCollection().AddLogging().BuildServiceProvider();controller.HttpContext.RequestServices=services;
+        var services=new ServiceCollection().AddLogging()
+            .BuildServiceProvider();controller.HttpContext.RequestServices=services;
         var failure=ReportPdfDownload.Create(controller,()=>throw new InvalidOperationException("Synthetic generation failure"),"never.pdf");
         if(failure is not ObjectResult {StatusCode:503})throw new InvalidOperationException("Partial PDF returned on generation failure.");
         Console.WriteLine("PASS PDF EXPORT: continuation rows, full Unicode text path, empty report documents, fail-closed rendering fixture generated.");
 
         async Task Save(string name,byte[] source)
         {
-            var actor=new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier,"export-qa"),new Claim(ClaimTypes.Name,"pdf-qa-core@example.invalid")],"Synthetic"));
+            var actor=new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier,
+                "export-qa"),new Claim(ClaimTypes.Name,
+                "pdf-qa-core@example.invalid")],"Synthetic"));
             var http=new DefaultHttpContext{User=actor};var action=new ActionContext(http,new RouteData(),new ActionDescriptor());
             var context=new ResultExecutingContext(action,[],new FileContentResult(source,"application/pdf"),new object());
             var filter=new PdfWatermarkResultFilter(new PdfWatermarkService(),new FixedClock(),NullLogger<PdfWatermarkResultFilter>.Instance);

@@ -13,16 +13,31 @@ public sealed class TendersReport(ApplicationDbContext db, IConfiguration config
     public string Title => "Tenders";
     public string Description => "Tender progress, supplier participation, and evaluation age across your workspace.";
     public string Icon => "bar-chart";
-    public IReadOnlyList<string> DefaultRoles => [RoleNames.Admin, RoleNames.SourcingOfficer, RoleNames.SourcingManager, RoleNames.EvaluationCommittee, RoleNames.TopCommittee];
+    public IReadOnlyList<string> DefaultRoles => [RoleNames.Admin,
+        RoleNames.SourcingOfficer,
+        RoleNames.SourcingManager,
+        RoleNames.EvaluationCommittee,
+        RoleNames.TopCommittee];
     public IReadOnlyList<string> Filters => ["date", "department", "supplier", "status", "search"];
-    public IReadOnlyList<string> StatusOptions => ["Published", "Open", "Closed", "UnderEvaluation", "AwaitingOfficerSummary", "AwaitingManagerReview", "AwaitingCommitteeDecision", "Awarded", "Cancelled"];
+    public IReadOnlyList<string> StatusOptions => ["Published",
+        "Open",
+        "Closed",
+        "UnderEvaluation",
+        "AwaitingOfficerSummary",
+        "AwaitingManagerReview",
+        "AwaitingCommitteeDecision",
+        "Awarded",
+        "Cancelled"];
 
     internal static IQueryable<Tender> VisibleTenders(ApplicationDbContext db, ReportScope scope)
     {
-        if (string.IsNullOrWhiteSpace(scope.UserId) || scope.IsAdmin != (scope.Role == RoleNames.Admin) || scope.Role == RoleNames.Supplier)
+        if (string.IsNullOrWhiteSpace(scope.UserId)
+            || scope.IsAdmin != (scope.Role == RoleNames.Admin)
+            || scope.Role == RoleNames.Supplier)
             return db.Tenders.Where(_ => false);
         if (scope.Role == RoleNames.Department)
-            return db.Tenders.Where(tender => scope.DepartmentId != null && tender.PurchaseRequest.DepartmentId == scope.DepartmentId);
+            return db.Tenders.Where(tender => scope.DepartmentId != null
+                && tender.PurchaseRequest.DepartmentId == scope.DepartmentId);
         // Reuse the existing reports' ownership, manager history and committee-assignment boundaries.
         return ReportRows.Tenders(db, scope);
     }
@@ -35,7 +50,8 @@ public sealed class TendersReport(ApplicationDbContext db, IConfiguration config
         var now = DateTime.UtcNow;
         var setting = config["Reports:EvaluationDelayDays"];
         var warningDays = 7;
-        if (setting != null && (!int.TryParse(setting, NumberStyles.Integer, CultureInfo.InvariantCulture, out warningDays) || warningDays < 1 || warningDays > 36500))
+        if (setting != null
+            && (!int.TryParse(setting, NumberStyles.Integer, CultureInfo.InvariantCulture, out warningDays) || warningDays < 1 || warningDays > 36500))
         {
             warningDays = 7;
             messages.Add("The evaluation age warning setting was invalid; the 7-day default was used.");
@@ -63,13 +79,16 @@ public sealed class TendersReport(ApplicationDbContext db, IConfiguration config
             Department = tender.PurchaseRequest.Department.Name,
             Invited = tender.Invitations.Count(invitation => (!query.SupplierId.HasValue || invitation.SupplierProfileId == query.SupplierId) &&
                 (!from.HasValue || invitation.SentAt >= from) && (!through.HasValue || invitation.SentAt <= through)),
-            Received = tender.Invitations.Where(invitation => !query.SupplierId.HasValue || invitation.SupplierProfileId == query.SupplierId)
+            Received = tender.Invitations.Where(invitation => !query.SupplierId.HasValue
+                || invitation.SupplierProfileId == query.SupplierId)
                 .SelectMany(invitation => invitation.Bids).Count(bid => bid.SubmittedAt != null && bid.Status != "Withdrawn" &&
                     (!from.HasValue || bid.SubmittedAt >= from) && (!through.HasValue || bid.SubmittedAt <= through)),
-            Compliant = tender.Invitations.Where(invitation => !query.SupplierId.HasValue || invitation.SupplierProfileId == query.SupplierId)
+            Compliant = tender.Invitations.Where(invitation => !query.SupplierId.HasValue
+                || invitation.SupplierProfileId == query.SupplierId)
                 .SelectMany(invitation => invitation.Bids).Count(bid => bid.SubmittedAt != null && bid.Status != "Withdrawn" && bid.ComplianceStatus == "Compliant" &&
                     (!from.HasValue || bid.SubmittedAt >= from) && (!through.HasValue || bid.SubmittedAt <= through)),
-            HasAnyOffer = tender.Invitations.SelectMany(invitation => invitation.Bids).Any(bid => bid.SubmittedAt != null && bid.Status != "Withdrawn"),
+            HasAnyOffer = tender.Invitations.SelectMany(invitation => invitation.Bids)
+                .Any(bid => bid.SubmittedAt != null && bid.Status != "Withdrawn"),
             AwardedSupplier = tender.Bid == null ? null : tender.Bid.Invitation.SupplierProfile.CompanyName,
             EvaluationStatus = tender.EvaluationReport == null ? null : tender.EvaluationReport.Status,
             ManagerReviewId = db.EvaluationReports.InManagerReview().Where(report => report.TenderId == tender.TenderId)
@@ -92,17 +111,24 @@ public sealed class TendersReport(ApplicationDbContext db, IConfiguration config
         var invited = totals?.Invited ?? 0;
         var received = totals?.Received ?? 0;
         var rate = invited == 0 ? "—" : (100m * received / invited).ToString("F1", CultureInfo.InvariantCulture) + "%";
-        var kpis = new List<ReportKpi> { new("Total tenders", (totals?.Total ?? 0).ToString(CultureInfo.InvariantCulture)) };
+        var kpis = new List<ReportKpi> { new("Total tenders", (totals?.Total
+            ?? 0).ToString(CultureInfo.InvariantCulture)) };
         foreach (var status in StatusOptions)
-            kpis.Add(new(status, statusCounts.GetValueOrDefault(status).ToString(CultureInfo.InvariantCulture), "status:" + status));
-        kpis.Add(new("Supplier participation rate", rate, "activity:received", "Submitted non-withdrawn offers / invitations × 100, using the selected date range and supplier."));
+            kpis.Add(new(status, statusCounts.GetValueOrDefault(status)
+                .ToString(CultureInfo.InvariantCulture), "status:" + status));
+        kpis.Add(new("Supplier participation rate",
+            rate,
+            "activity:received",
+            "Submitted non-withdrawn offers / invitations × 100, using the selected date range and supplier."));
         kpis.Add(new("Invitations", invited.ToString(CultureInfo.InvariantCulture), "chart:activity"));
         kpis.Add(new("Received offers", received.ToString(CultureInfo.InvariantCulture), "activity:received"));
-        kpis.Add(new("Tenders with zero offers", (totals?.ZeroOffers ?? 0).ToString(CultureInfo.InvariantCulture), "activity:zero-offers"));
+        kpis.Add(new("Tenders with zero offers", (totals?.ZeroOffers
+            ?? 0).ToString(CultureInfo.InvariantCulture), "activity:zero-offers"));
         kpis.Add(new("Delayed evaluations", "Unavailable", Hint: "No evaluation due date or stage-start timestamp is recorded."));
         kpis.Add(new($"Evaluation age warnings (>{warningDays} days)", (totals?.AgeWarnings ?? 0)
             .ToString(CultureInfo.InvariantCulture), "activity:evaluation-age", "Age since tender closure; not a missed evaluation deadline."));
-        var showActivity = query.Drill?.StartsWith("activity:", StringComparison.Ordinal) == true || query.Drill == "chart:activity";
+        var showActivity = query.Drill?.StartsWith("activity:", StringComparison.Ordinal) == true
+            || query.Drill == "chart:activity";
         var chart = showActivity
             ? new ReportChart("Tender activity", "bar", [
                 new("With received offers", (totals?.WithOffers ?? 0), "activity:received"),
@@ -127,7 +153,8 @@ public sealed class TendersReport(ApplicationDbContext db, IConfiguration config
             _ => filtered
         };
         var total = await filtered.CountAsync(ct);
-        var page = await filtered.OrderByDescending(tender => tender.CreatedAt).ThenByDescending(tender => tender.TenderId)
+        var page = await filtered.OrderByDescending(tender => tender.CreatedAt)
+            .ThenByDescending(tender => tender.TenderId)
             .Skip(export ? 0 : (query.Page - 1) * 25).Take(export ? ReportExport.MaximumRows : 25).ToListAsync(ct);
         var notes = new List<string>(messages)
         {
@@ -143,9 +170,13 @@ public sealed class TendersReport(ApplicationDbContext db, IConfiguration config
         if (export && total > ReportExport.MaximumRows) notes.Add(ReportExport.LimitNote);
         var tableRows = page
             .Select(tender => new ReportRow(["#" + tender.TenderId, tender.Title, tender.Department, tender.Category ?? "Uncategorized", tender.Status,
-                Date(tender.CreatedAt), Date(tender.OpensAt), Date(tender.ClosesAt), tender.Invited.ToString(CultureInfo.InvariantCulture), tender.Received.ToString(CultureInfo.InvariantCulture),
-                tender.Compliant.ToString(CultureInfo.InvariantCulture), tender.AwardedSupplier ?? "—", tender.EvaluationStatus ?? "No report recorded",
-                tender.Status == "UnderEvaluation" ? Math.Max(0, (now - tender.ClosesAt).TotalDays).ToString("F1", CultureInfo.InvariantCulture) : "—",
+                Date(tender.CreatedAt), Date(tender.OpensAt), Date(tender.ClosesAt), tender.Invited.ToString(CultureInfo.InvariantCulture), tender.Received
+                    .ToString(CultureInfo.InvariantCulture),
+                tender.Compliant.ToString(CultureInfo.InvariantCulture), tender.AwardedSupplier
+                    ?? "—", tender.EvaluationStatus
+                    ?? "No report recorded",
+                tender.Status == "UnderEvaluation" ? Math.Max(0, (now - tender.ClosesAt).TotalDays)
+                    .ToString("F1", CultureInfo.InvariantCulture) : "—",
                 tender.Status == "UnderEvaluation" ? "Unavailable: no evaluation due date" : "—"],
                 scope.Role switch
                 {

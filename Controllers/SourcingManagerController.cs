@@ -44,7 +44,8 @@ public partial class SourcingManagerController : Controller
         var reportsAwaitingReview = _context.EvaluationReports.Count(report =>
             report.Tender.Status == AwaitingManagerReview &&
             (report.Status == "OfficerSubmitted" || report.Status == "CommitteeApproved"));
-        var approvedRecommendations = _context.EvaluationReports.Count(report => report.Status == ManagerApproved && report.Tender.Status == AwaitingManagerReview);
+        var approvedRecommendations = _context.EvaluationReports.Count(report => report.Status == ManagerApproved
+            && report.Tender.Status == AwaitingManagerReview);
         var tendersWithTopCommittee = _context.Tenders.Count(tender => tender.Status == AwaitingCommitteeDecision);
         var pendingQuestions = _context.Clarifications.Count(question =>
             question.RecipientUserId == ManagerId && question.Status == "Pending");
@@ -55,7 +56,8 @@ public partial class SourcingManagerController : Controller
                 r.Tender.Status == AwaitingCommitteeDecision || r.Tender.Status == "Awarded")
             .GroupBy(r => r.Status == "ManagerRejected" || r.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") ? "Rejected" :
             r.Tender.Status == AwaitingManagerReview && r.Status == ManagerApproved ? "Ready to forward" :
-            r.Tender.Status == AwaitingManagerReview && (r.Status == "OfficerSubmitted" || r.Status == "CommitteeApproved") ? "Needs your review" :
+            r.Tender.Status == AwaitingManagerReview
+                && (r.Status == "OfficerSubmitted" || r.Status == "CommitteeApproved") ? "Needs your review" :
             r.Tender.Status == AwaitingCommitteeDecision ? "With CEO & Chiefs" : r.Tender.Status == "Awarded" ? "Awarded" :
             r.Tender.Status == "Cancelled" ? "Cancelled" : r.Status == "ReturnedForReview" ? "Back with committee" : "With sourcing team")
             .Select(g => new { Status = g.Key, Count = g.Count() }).ToDictionary(g => g.Status, g => g.Count);
@@ -78,7 +80,10 @@ public partial class SourcingManagerController : Controller
             if (inEdits) editRequests = editRequests.Where(t => t.TenderId == rejectedTenderId);
         }
         var editList = editRequests.OrderByDescending(t => t.TopEditRequestedAt ?? t.CreatedAt).ToList();
-        var requesterIds = editList.Select(t => t.TopEditRequestedByUserId).Where(uid => !string.IsNullOrWhiteSpace(uid)).Distinct().ToArray();
+        var requesterIds = editList.Select(t => t.TopEditRequestedByUserId)
+            .Where(uid => !string.IsNullOrWhiteSpace(uid))
+            .Distinct()
+            .ToArray();
         ViewBag.TopEditRequests = editList;
         ViewBag.TopEditRequesters = requesterIds.Length == 0
             ? new Dictionary<string, string>()
@@ -171,7 +176,11 @@ public partial class SourcingManagerController : Controller
 
         var tender = _context.Tenders.Find(evaluationReport.TenderId);
 
-        if (tender == null || _context.TenderApprovals.Any(a => a.TenderId == tender.TenderId && a.Stage == "Top" && a.Decision == "Rejected") || tender.Status != AwaitingManagerReview)
+        if (tender == null
+            || _context.TenderApprovals.Any(a => a.TenderId == tender.TenderId
+                && a.Stage == "Top"
+                && a.Decision == "Rejected")
+            || tender.Status != AwaitingManagerReview)
         {
             return SubmissionMessage("This report changed. Review the latest submission before deciding.");
         }
@@ -204,7 +213,8 @@ public partial class SourcingManagerController : Controller
             tender.Status = "UnderEvaluation";
             evaluationReport.RecommendedBidId = null;
             evaluationReport.CommitteeSummary = null;
-            _context.TenderApprovals.RemoveRange(_context.TenderApprovals.Where(a => a.TenderId == tender.TenderId && a.Stage == "Evaluation"));
+            _context.TenderApprovals.RemoveRange(_context.TenderApprovals.Where(a => a.TenderId == tender.TenderId
+                && a.Stage == "Evaluation"));
             _context.CommitteeTieVotes.RemoveRange(_context.CommitteeTieVotes.Where(v => v.TenderId == tender.TenderId));
             foreach (var review in _context.Evaluations.Where(e => e.TenderId == tender.TenderId).ToList())
             { review.Status = "Submitted"; review.ApprovedAt = null; }
@@ -255,13 +265,22 @@ public partial class SourcingManagerController : Controller
     public async Task<IActionResult> DraftReferral(int reportId,
         [FromServices] SourcingTenderManagement.Services.Evaluation.BidRecommendationService ai, CancellationToken cancellationToken)
     {
-        var report = await _context.EvaluationReports.AsNoTracking().Include(r => r.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.Department)
+        var report = await _context.EvaluationReports.AsNoTracking()
+            .Include(r => r.Tender)
+            .ThenInclude(t => t.PurchaseRequest)
+            .ThenInclude(r => r.Department)
             .Include(r => r.Tender).ThenInclude(t => t.OfferExtensions)
             .Include(r => r.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
             .Include(r => r.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.SupplierProfile)
             .Include(r => r.Bid).ThenInclude(b => b!.BidItems)
             .SingleOrDefaultAsync(r => r.EvaluationReportId == reportId, cancellationToken);
-        if (report == null || _context.TenderApprovals.Any(a => a.TenderId == report.TenderId && a.Stage == "Top" && a.Decision == "Rejected") || report.Status != ManagerApproved || report.Tender.Status != AwaitingManagerReview || report.Bid == null)
+        if (report == null
+            || _context.TenderApprovals.Any(a => a.TenderId == report.TenderId
+                && a.Stage == "Top"
+                && a.Decision == "Rejected")
+            || report.Status != ManagerApproved
+            || report.Tender.Status != AwaitingManagerReview
+            || report.Bid == null)
             return BadRequest(new { error = "Only an approved recommendation awaiting referral can be summarized." });
         try
         {
@@ -269,7 +288,8 @@ public partial class SourcingManagerController : Controller
                 .Where(e => e.TenderId == report.TenderId && e.BidId == report.Bid.BidId && e.Status == "Approved"
                     && e.ApprovedAt != null && e.FinancialMark != null && e.TechnicalMark != null)
                 .Select(e => new { e.FinancialMark, e.TechnicalMark }).ToListAsync(cancellationToken);
-            var excludedSuppliers = await _context.Bids.AsNoTracking().Where(b => b.TenderId == report.TenderId && b.BidId != report.Bid.BidId)
+            var excludedSuppliers = await _context.Bids.AsNoTracking()
+                .Where(b => b.TenderId == report.TenderId && b.BidId != report.Bid.BidId)
                 .Select(b => b.Invitation.SupplierProfile.CompanyName).Distinct().ToListAsync(cancellationToken);
             var summary = await ai.DraftReferral(new { tender = report.Tender.Title, report.Tender.Description, report.Tender.Terms,
                 offerRoundsAndException = SourcingTenderManagement.Services.Reports.OfferRoundContext.Describe(report.Tender),
@@ -314,7 +334,11 @@ public partial class SourcingManagerController : Controller
 
         var tender = _context.Tenders.Find(evaluationReport.TenderId);
 
-        if (tender == null || _context.TenderApprovals.Any(a => a.TenderId == tender.TenderId && a.Stage == "Top" && a.Decision == "Rejected") || tender.Status != AwaitingManagerReview)
+        if (tender == null
+            || _context.TenderApprovals.Any(a => a.TenderId == tender.TenderId
+                && a.Stage == "Top"
+                && a.Decision == "Rejected")
+            || tender.Status != AwaitingManagerReview)
         {
             return SubmissionMessage("Only an approved recommendation awaiting referral can be forwarded.");
         }
@@ -361,7 +385,8 @@ public partial class SourcingManagerController : Controller
         _context.Entry(tender).Reference(t => t.PurchaseRequest).Query().Include(r => r.Department)
             .Include(r => r.PurchaseRequestItems).Load();
         var winningOffer = _context.Bids.Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile)
-            .Include(b => b.BidItems).SingleOrDefault(b => b.TenderId == tender.TenderId && b.BidId == evaluationReport.RecommendedBidId);
+            .Include(b => b.BidItems).SingleOrDefault(b => b.TenderId == tender.TenderId
+                && b.BidId == evaluationReport.RecommendedBidId);
         if (winningOffer == null) return SubmissionMessage("The recommended offer is missing. Return this report for correction.", input.ReportId);
 
         tender.Status = AwaitingCommitteeDecision;

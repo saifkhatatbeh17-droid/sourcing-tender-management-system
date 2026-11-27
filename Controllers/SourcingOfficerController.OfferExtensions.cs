@@ -16,10 +16,13 @@ public partial class SourcingOfficerController
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @locked int; SELECT @locked = TenderId FROM dbo.Tenders WITH (UPDLOCK, HOLDLOCK) WHERE TenderId = {tenderId};");
-        var tender = await db.Tenders.SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == officerId);
+        var tender = await db.Tenders.SingleOrDefaultAsync(t => t.TenderId == tenderId
+            && t.CreatedByUserId == officerId);
         if (tender == null) return NotFound();
 
-        if (await db.EvaluationReports.AnyAsync(r => r.TenderId == tenderId) || await db.Evaluations.AnyAsync(e => e.TenderId == tenderId))
+        if (await db.EvaluationReports.AnyAsync(r => r.TenderId == tenderId)
+            || await db.Evaluations
+            .AnyAsync(e => e.TenderId == tenderId))
         { TempData["TenderError"] = "This tender has already been sent to the committee."; return RedirectToAction(nameof(Offers), new { tenderId }); }
         var now = DateTime.UtcNow;
         if (!tender.IsAcceptingOffers(now) ||
@@ -45,7 +48,10 @@ public partial class SourcingOfficerController
                 .Where(b => b.TenderId == tenderId && b.SubmittedAt != null && b.Status != "Withdrawn").ToListAsync();
             string? error = offers.Any(b => b.ComplianceStatus is not ("Compliant" or "NonCompliant"))
                 ? "Review every offer for compliance before sending to the committee."
-                : offers.Where(b => b.ComplianceStatus == "Compliant").Select(b => b.Invitation.SupplierProfileId).Distinct().Count() < TenderOfferExtension.RequiredCompliantOffers
+                : offers.Where(b => b.ComplianceStatus == "Compliant")
+                    .Select(b => b.Invitation.SupplierProfileId)
+                    .Distinct()
+                    .Count() < TenderOfferExtension.RequiredCompliantOffers
                     ? "At least three compliant suppliers are required to close submissions and send to the committee." : null;
             if (error == null && await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
                 ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn"))))
@@ -94,7 +100,9 @@ public partial class SourcingOfficerController
             .SingleOrDefaultAsync(t => t.TenderId == tenderId && t.CreatedByUserId == officerId);
         if (tender == null) return NotFound();
 
-        if (await db.EvaluationReports.AnyAsync(r => r.TenderId == tenderId) || await db.Evaluations.AnyAsync(e => e.TenderId == tenderId))
+        if (await db.EvaluationReports.AnyAsync(r => r.TenderId == tenderId)
+            || await db.Evaluations
+            .AnyAsync(e => e.TenderId == tenderId))
         { TempData["TenderError"] = "This tender has already been sent to the committee."; return RedirectToAction(nameof(Offers), new { tenderId }); }
         var now = DateTime.UtcNow;
         if (!tender.IsAcceptingOffers(now) || tender.OfferExtensions.Count + 1 != currentRound ||
@@ -130,7 +138,9 @@ public partial class SourcingOfficerController
             return RedirectToAction(nameof(Offers), new { tenderId });
         }
 
-        if (await db.EvaluationReports.AnyAsync(r => r.TenderId == tenderId) || await db.Evaluations.AnyAsync(e => e.TenderId == tenderId))
+        if (await db.EvaluationReports.AnyAsync(r => r.TenderId == tenderId)
+            || await db.Evaluations
+            .AnyAsync(e => e.TenderId == tenderId))
         { TempData["TenderError"] = "This tender has already been sent to the committee."; return RedirectToAction(nameof(Offers), new { tenderId }); }
         var now = DateTime.UtcNow;
         var round = tender.OfferExtensions.Count + 1;

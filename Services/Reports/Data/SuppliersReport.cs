@@ -30,19 +30,24 @@ public sealed class SuppliersReport(ApplicationDbContext db, SupplierActivityQue
                 s.SupplierProfileId, s.CompanyName, s.Category, s.Status,
                 Documents = s.SupplierDocuments.Select(d => new { d.ExpiresOn, d.VerificationStatus }).ToList(),
                 Invitations = s.Invitations.Where(i => tenderIds.Contains(i.TenderId))
-                    .Select(i => new { i.SentAt, i.TenderId, Submitted = i.Bids.Where(b => b.SubmittedAt != null).Min(b => b.SubmittedAt) }).ToList()
+                    .Select(i => new { i.SentAt, i.TenderId, Submitted = i.Bids.Where(b => b.SubmittedAt != null)
+                        .Min(b => b.SubmittedAt) }).ToList()
             }).ToListAsync(ct);
         var history = await activity.ReadAsync(tenderIds, selectedId, ct);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var warning = config.GetValue("Reports:DocumentExpiryWarningDays", 30);
         var docs = suppliers.SelectMany(s => s.Documents).ToArray();
         var kpis = new List<ReportKpi> { new("Registered", suppliers.Count.ToString()) };
-        kpis.AddRange(StatusOptions.Select(status => new ReportKpi(status, suppliers.Count(s => s.Status == status).ToString(), "status:" + status)));
+        kpis.AddRange(StatusOptions.Select(status => new ReportKpi(status, suppliers.Count(s => s.Status == status)
+            .ToString(), "status:" + status)));
         kpis.AddRange(new[]
         {
-            new ReportKpi("Documents expired", docs.Count(d => DocumentExpiry.State(d.ExpiresOn, today, warning) == "Expired").ToString(), "document:Expired"),
-            new ReportKpi("Documents expiring soon", docs.Count(d => DocumentExpiry.State(d.ExpiresOn, today, warning) == "Expiring soon").ToString(), "document:Expiring soon"),
-            new ReportKpi("Awaiting verification", docs.Count(d => d.VerificationStatus == "Pending").ToString(), "document:Pending")
+            new ReportKpi("Documents expired", docs.Count(d => DocumentExpiry.State(d.ExpiresOn, today, warning) == "Expired")
+                .ToString(), "document:Expired"),
+            new ReportKpi("Documents expiring soon", docs.Count(d => DocumentExpiry.State(d.ExpiresOn, today, warning) == "Expiring soon")
+                .ToString(), "document:Expiring soon"),
+            new ReportKpi("Awaiting verification", docs.Count(d => d.VerificationStatus == "Pending")
+                .ToString(), "document:Pending")
         });
         var (_, chart) = ReportRows.Counts("Suppliers by status", suppliers.Select(s => s.Status));
         var statusFilter = ReportRows.ScopeFilter(query, "status:");
@@ -69,7 +74,9 @@ public sealed class SuppliersReport(ApplicationDbContext db, SupplierActivityQue
                 var invited = s.Invitations.Where(i => ReportRows.Within(i.SentAt, query)).ToArray();
                 var award = active.Count(b => b.Outcome == "Awarded");
                 var next = s.Documents.Where(d => d.ExpiresOn >= today).Min(d => d.ExpiresOn);
-                var response = invited.Where(i => i.Submitted >= i.SentAt).Select(i => (double?)(i.Submitted!.Value - i.SentAt).TotalDays).Average();
+                var response = invited.Where(i => i.Submitted >= i.SentAt)
+                    .Select(i => (double?)(i.Submitted!.Value - i.SentAt).TotalDays)
+                    .Average();
                 var expiry = next ?? s.Documents.Max(d => d.ExpiresOn);
                 return new ReportRow([s.CompanyName, s.Category ?? "—", s.Status,
                     $"{s.Documents.Count(d => d.VerificationStatus == "Verified")} / {s.Documents.Count}",

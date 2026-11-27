@@ -38,7 +38,8 @@ public partial class BidRecommendationService
             winnerBidId = new { type = "integer", @enum = new[] { shortlist[0].BidId } },
             offers = new { type = "array", minItems = shortlist.Count, maxItems = shortlist.Count, items = new {
                 type = "object", additionalProperties = false, properties = new {
-                    bidId = new { type = "integer", @enum = shortlist.Select(r => r.BidId).ToArray() }, assessment = narrative, caveats = narrative
+                    bidId = new { type = "integer", @enum = shortlist.Select(r => r.BidId)
+                        .ToArray() }, assessment = narrative, caveats = narrative
                 }, required = new[] { "bidId", "assessment", "caveats" }
             } }
         }, required = new[] { "winnerBidId", "offers" } };
@@ -90,14 +91,16 @@ public partial class BidRecommendationService
             }
         }
         var report = new StringBuilder();
-        report.AppendLine("## Committee recommendation").AppendLine($"{shortlist[0].Supplier}, offer #{shortlist[0].BidId}, progresses with the highest committee result of {N(shortlist[0].Score)} / 100.")
+        report.AppendLine("## Committee recommendation")
+            .AppendLine($"{shortlist[0].Supplier}, offer #{shortlist[0].BidId}, progresses with the highest committee result of {N(shortlist[0].Score)} / 100.")
             .AppendLine().AppendLine("## Evaluation basis")
             .AppendLine($"All {page.Offers.Count} eligible offers received four locked reviews. This report compares the top {shortlist.Count} offers using {N(page.FinancialWeight)}% financial and {N(page.TechnicalWeight)}% technical weights. Scores are exact averages of member marks, without double weighting. This is a recommendation for review, not a final award.");
         if (AllOfferScoring.Leaders(page).Count > 1) report.AppendLine("The highest score was tied; four unanimous committee decisions resolved the winner without changing marks.");
         for (var index = 0; index < shortlist.Count; index++)
         {
             var row = shortlist[index]; var bid = page.Offers.Single(b => b.BidId == row.BidId);
-            report.AppendLine().AppendLine("## " + new[] { "Highest-scoring offer", "Second-ranked offer", "Third-ranked offer" }[index])
+            report.AppendLine()
+                .AppendLine("## " + new[] { "Highest-scoring offer", "Second-ranked offer", "Third-ranked offer" }[index])
                 .AppendLine($"{row.Supplier} · Offer #{row.BidId}")
                 .AppendLine($"Score: {N(row.Score)} / 100. Financial: {N(row.Financial)} / {N(page.FinancialWeight)}. Technical: {N(row.Requirements)} / {N(page.TechnicalWeight)}.")
                 .AppendLine($"Total including taxes and fees: {row.Total.ToString("N2", CultureInfo.InvariantCulture)} {row.Currency}. Delivery: {bid.DeliveryDays} days. Payment: {bid.PaymentTerms ?? "Not specified"}.");
@@ -112,10 +115,15 @@ public partial class BidRecommendationService
                 report.AppendLine($"Compared with the winner: total cost is {cost}; delivery is {(delivery == 0 ? "the same" : Math.Abs(delivery) + (delivery > 0 ? " days slower" : " days faster"))}. Score trails the highest recorded score by {N(shortlist[0].Score - row.Score)} points.");
             }
             if (draft != null)
-            { var assessment = draft.Offers[index]; report.AppendLine().AppendLine(assessment.Assessment.Trim()).AppendLine().AppendLine("Verification: " + assessment.Caveats.Trim()); }
+            { var assessment = draft.Offers[index]; report.AppendLine()
+                .AppendLine(assessment.Assessment.Trim())
+                .AppendLine()
+                .AppendLine("Verification: " + assessment.Caveats.Trim()); }
             else report.AppendLine("Assessment is based on the recorded committee marks. Verify supplier-stated specifications against the requested items before purchase; no additional AI claims have been accepted.");
         }
-        report.AppendLine().AppendLine("## Report limitations").AppendLine("Supplier descriptions remain claims requiring verification. The committee's marks establish the ranking; they do not by themselves prove product quality or future delivery performance. The sourcing manager's later summary must focus on the first-ranked offer only; this shortlist does not authorize multiple awards.");
+        report.AppendLine()
+            .AppendLine("## Report limitations")
+            .AppendLine("Supplier descriptions remain claims requiring verification. The committee's marks establish the ranking; they do not by themselves prove product quality or future delivery performance. The sourcing manager's later summary must focus on the first-ranked offer only; this shortlist does not authorize multiple awards.");
         if (draft == null) report.AppendLine("AI narrative could not be verified. This report uses the saved scores and quotation facts; no unverified AI assessment was included.");
         return new BidRecommendation([new(financialWeight, shortlist[0].BidId, $"Highest recorded committee result: {N(shortlist[0].Score)} / 100. Every eligible offer has four completed reviews.")],
             draft == null ? ["AI narrative unavailable; the report uses verified quotation and scoring facts."] : [], [], report.ToString());

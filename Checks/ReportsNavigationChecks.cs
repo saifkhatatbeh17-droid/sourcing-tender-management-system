@@ -22,11 +22,14 @@ public static class ReportsNavigationChecks
         var sidebar = match.Value;
         var links = System.Text.RegularExpressions.Regex.Matches(sidebar, "<a\\b[^>]*href=\"/Reports\"[^>]*>");
         if (links.Count != (reportsVisible ? 1 : 0)) throw new Exception("Incorrect number of Reports hub links for " + role);
-        if (reportsVisible && links[0].Value.Contains("is-active") != reportsActive) throw new Exception("Incorrect Reports active state for " + role);
+        if (reportsVisible
+            && links[0].Value.Contains("is-active") != reportsActive) throw new Exception("Incorrect Reports active state for " + role);
         if (sidebar.Contains("href=\"/Reports/Access\"") != (role == RoleNames.Admin)) throw new Exception("Report access link is not Admin-only.");
-        if (role == RoleNames.SourcingOfficer && (!sidebar.Contains("Report review") || !sidebar.Contains("href=\"/SourcingOfficer/Reports\"")))
+        if (role == RoleNames.SourcingOfficer
+            && (!sidebar.Contains("Report review") || !sidebar.Contains("href=\"/SourcingOfficer/Reports\"")))
             throw new Exception("Officer workflow link was lost.");
-        if (role == RoleNames.EvaluationCommittee && (!sidebar.Contains("Committee report") || !sidebar.Contains("href=\"/EvaluationCommittee/Reports\"")))
+        if (role == RoleNames.EvaluationCommittee
+            && (!sidebar.Contains("Committee report") || !sidebar.Contains("href=\"/EvaluationCommittee/Reports\"")))
             throw new Exception("Committee workflow link was lost.");
     }
 
@@ -40,7 +43,8 @@ public static class ReportsNavigationChecks
 
     public static async Task RunAsync(ApplicationDbContext db)
     {
-        if (db.Database.ProviderName != "Microsoft.EntityFrameworkCore.Sqlite" || db.Database.GetDbConnection().ConnectionString != "Data Source=:memory:")
+        if (db.Database.ProviderName != "Microsoft.EntityFrameworkCore.Sqlite"
+            || db.Database.GetDbConnection().ConnectionString != "Data Source=:memory:")
             throw new InvalidOperationException("Reports navigation checks require SQLite in-memory only.");
         var checks = 0;
         void Require(bool condition, string label)
@@ -56,7 +60,8 @@ public static class ReportsNavigationChecks
         Require(await Navigation().HasReportsAsync(RoleNames.SourcingOfficer), "default role sees Reports");
         Require(!await Navigation().HasReportsAsync(RoleNames.Department), "role without reports sees no hub link");
         var cached = Navigation();
-        Require(ReferenceEquals(cached.HasReportsAsync(RoleNames.SourcingOfficer), cached.HasReportsAsync(RoleNames.SourcingOfficer)), "one permission lookup per role per request");
+        Require(ReferenceEquals(cached.HasReportsAsync(RoleNames.SourcingOfficer), cached
+            .HasReportsAsync(RoleNames.SourcingOfficer)), "one permission lookup per role per request");
         db.ReportAccessRules.AddRange(new ReportAccessRule { ReportKey = report.Key, Role = RoleNames.SourcingOfficer, Allowed = false, UpdatedByUserId = "hub-Admin" },
             new ReportAccessRule { ReportKey = report.Key, Role = RoleNames.Department, Allowed = true, UpdatedByUserId = "hub-Admin" },
             new ReportAccessRule { ReportKey = report.Key, Role = RoleNames.Supplier, Allowed = true, UpdatedByUserId = "hub-Admin" });
@@ -77,7 +82,9 @@ public static class ReportsNavigationChecks
         Require(PageNavigation.Menus[RoleNames.EvaluationCommittee].Any(item => item.Controller == null && item.Action == "Reports" && item.Title == "Committee report"),
             "Committee workflow route retained with new label");
         Require(typeof(SourcingOfficerController).GetMethod("Reports") != null && typeof(EvaluationCommitteeController).GetMethod("Reports") != null &&
-            typeof(SourcingManagerController).GetMethod("Reports") != null && typeof(TopCommitteeController).GetMethod("Reports") != null,
+            typeof(SourcingManagerController).GetMethod("Reports") != null
+                && typeof(TopCommitteeController)
+                .GetMethod("Reports") != null,
             "all legacy report actions remain");
         foreach (var (controller, role) in new[] { (typeof(SourcingOfficerController), RoleNames.SourcingOfficer),
             (typeof(EvaluationCommitteeController), RoleNames.EvaluationCommittee) })
@@ -100,7 +107,9 @@ public static class ReportsNavigationChecks
         await using var failingDb = new ApplicationDbContext(options);
         var failing = new ReportNavigation(new ReportRegistry([report], failingDb), NullLogger<ReportNavigation>.Instance);
         Require(!await failing.HasReportsAsync(RoleNames.SourcingOfficer), "missing SQL access table hides Reports, no default fallback");
-        Require(await failing.HasReportsAsync(RoleNames.Admin) && !await failing.HasReportsAsync(RoleNames.Supplier), "missing table does not change Admin or Supplier rules");
+        Require(await failing.HasReportsAsync(RoleNames.Admin)
+            && !await failing
+            .HasReportsAsync(RoleNames.Supplier), "missing table does not change Admin or Supplier rules");
         Console.WriteLine($"Reports navigation checks passed: {checks}. SQLite memory and simulated SQL errors only.");
     }
 
@@ -119,6 +128,8 @@ public static class ReportsNavigationChecks
         public IReadOnlyList<string> DefaultRoles => [RoleNames.SourcingOfficer];
         public IReadOnlyList<string> Filters => [];
         public IReadOnlyList<string> StatusOptions => [];
-        public Task<ReportResult> RunAsync(ReportQuery query, ReportScope scope, CancellationToken ct) => Task.FromResult(new ReportResult([], null, new ReportTable([], [], 0), []));
+        public Task<ReportResult> RunAsync(ReportQuery query,
+            ReportScope scope,
+            CancellationToken ct) => Task.FromResult(new ReportResult([], null, new ReportTable([], [], 0), []));
     }
 }

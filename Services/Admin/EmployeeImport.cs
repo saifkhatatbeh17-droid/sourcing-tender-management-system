@@ -50,7 +50,9 @@ public sealed class EmployeeImportPreviewStore
 
     public string Save(string adminId, IReadOnlyList<EmployeeImportRow> rows)
     {
-        foreach (var expired in previews.Where(p => DateTime.UtcNow - p.Value.CreatedUtc > Lifetime).Select(p => p.Key).ToList())
+        foreach (var expired in previews.Where(p => DateTime.UtcNow - p.Value.CreatedUtc > Lifetime)
+            .Select(p => p.Key)
+            .ToList())
             previews.TryRemove(expired, out _);
         var token = Guid.NewGuid().ToString("N");
         previews[token] = (adminId, rows, DateTime.UtcNow);
@@ -100,7 +102,9 @@ public sealed partial class EmployeeImport(
         EmployeeAccounts.ImportRoles.Select(r => (r, RoleNames.DisplayName(r))).ToArray();
 
     public static IReadOnlyList<(string Code, string Display)> PositionChoices { get; } =
-        RoleNames.EvaluationPositions.Concat(RoleNames.TopPositions).Select(p => (p, RoleNames.DisplayName(p))).ToArray();
+        RoleNames.EvaluationPositions.Concat(RoleNames.TopPositions)
+            .Select(p => (p, RoleNames.DisplayName(p)))
+            .ToArray();
 
     public async Task<EmployeeImportPreview> PreviewAsync(Stream file, string adminId, CancellationToken ct = default)
     {
@@ -126,7 +130,8 @@ public sealed partial class EmployeeImport(
             else if (name.Length > 150) issues.Add("Full name is longer than 150 characters.");
 
             if (email.Length == 0) issues.Add("Email is missing.");
-            else if (email.Length > 256 || !new EmailAddressAttribute().IsValid(email)) issues.Add("Email is not a valid address.");
+            else if (email.Length > 256
+                || !new EmailAddressAttribute().IsValid(email)) issues.Add("Email is not a valid address.");
             else if (!emailsInFile.Add(email)) issues.Add("This email appears more than once in the file.");
             else if (existingEmails.Contains(email.ToUpperInvariant())) issues.Add("An account with this email already exists.");
 
@@ -139,7 +144,8 @@ public sealed partial class EmployeeImport(
             int? departmentId = null;
             if (!string.IsNullOrWhiteSpace(row.Department))
             {
-                var match = departments.FirstOrDefault(d => string.Equals(d.Name.Trim(), row.Department.Trim(), StringComparison.OrdinalIgnoreCase));
+                var match = departments.FirstOrDefault(d => string.Equals(d.Name.Trim(), row.Department
+                    .Trim(), StringComparison.OrdinalIgnoreCase));
                 if (match == null) issues.Add($"Department “{row.Department.Trim()}” does not exist.");
                 else departmentId = match.DepartmentId;
             }
@@ -157,7 +163,9 @@ public sealed partial class EmployeeImport(
                 foreach (var error in await accounts.ValidateAsync(input, EmployeeAccounts.ImportRoles, ct))
                 {
                     // An unknown department name was already reported above.
-                    if (error.Field == "DepartmentId" && !string.IsNullOrWhiteSpace(row.Department) && departmentId == null) continue;
+                    if (error.Field == "DepartmentId"
+                        && !string.IsNullOrWhiteSpace(row.Department)
+                        && departmentId == null) continue;
                     issues.Add(error.Field == "DepartmentId" ? "Department accounts need an active department." : error.Message);
                 }
             }
@@ -201,7 +209,8 @@ public sealed partial class EmployeeImport(
             var errors = await accounts.ValidateAsync(input, EmployeeAccounts.ImportRoles, ct);
             if (errors.Count > 0)
             {
-                failed.Add(new EmployeeImportProblem(row.RowNumber, row.FullName, row.Email, errors.Select(e => e.Message).ToArray()));
+                failed.Add(new EmployeeImportProblem(row.RowNumber, row.FullName, row.Email, errors.Select(e => e.Message)
+                    .ToArray()));
                 continue;
             }
 
@@ -229,7 +238,11 @@ public sealed partial class EmployeeImport(
 
     public async Task<byte[]> TemplateAsync(CancellationToken ct = default)
     {
-        var departments = await db.Departments.AsNoTracking().Where(d => d.IsActive).OrderBy(d => d.Name).Select(d => d.Name).ToListAsync(ct);
+        var departments = await db.Departments.AsNoTracking()
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.Name)
+            .Select(d => d.Name)
+            .ToListAsync(ct);
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("Accounts");
         string[] headers = ["Full name", "Email", "Role", "Department", "Committee position", "Phone"];
@@ -287,7 +300,9 @@ public sealed partial class EmployeeImport(
             var headerRow = used.FirstRow().RowNumber();
             foreach (var cell in sheet.Row(headerRow).CellsUsed())
             {
-                if (HeaderNames.TryGetValue(NormalizeHeader(cell.GetString()), out var column) && !columns.ContainsKey(column))
+                if (HeaderNames.TryGetValue(NormalizeHeader(cell.GetString()), out var column)
+                    && !columns
+                    .ContainsKey(column))
                     columns[column] = cell.Address.ColumnNumber;
             }
 
@@ -298,7 +313,10 @@ public sealed partial class EmployeeImport(
             if (columns.ContainsKey(Column.Password))
                 notices.Add("The Password column was ignored. Tiryaq creates a temporary password for each account; delete passwords from the file.");
 
-            string Read(IXLRow row, Column column) => columns.TryGetValue(column, out var index) ? row.Cell(index).GetFormattedString().Trim() : "";
+            string Read(IXLRow row, Column column) => columns.TryGetValue(column, out var index) ? row
+                .Cell(index)
+                .GetFormattedString()
+                .Trim() : "";
 
             var rows = new List<SheetRow>();
             for (var number = headerRow + 1; number <= used.LastRow().RowNumber(); number++)

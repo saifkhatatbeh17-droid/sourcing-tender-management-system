@@ -9,8 +9,11 @@ public static class CommitteeConsensus
     public static string? ConfirmWeight(CommitteeEvaluationPage page, decimal? financialWeight, DateTime now)
     {
         var member = page.Members.SingleOrDefault(m => m.UserId == page.UserId);
-        if (page.Locked || member == null || page.Members.Count != 4) return "Four assigned committee members are required.";
-        if (page.ConsensusLocked || page.WeightProposals.Any(p => p.CommitteeAssignmentId == member.CommitteeAssignmentId))
+        if (page.Locked
+            || member == null
+            || page.Members.Count != 4) return "Four assigned committee members are required.";
+        if (page.ConsensusLocked
+            || page.WeightProposals.Any(p => p.CommitteeAssignmentId == member.CommitteeAssignmentId))
             return "Your confirmed percentage is locked and cannot be changed.";
         if (financialWeight is not > 0 or not < 100 || decimal.Truncate(financialWeight.Value) != financialWeight)
             return "Enter a whole-number financial percentage between 1 and 99.";
@@ -24,7 +27,8 @@ public static class CommitteeConsensus
         foreach (var category in new[] { "Financial", "Requirements" })
         {
             var criteria = page.Criteria.Where(c => c.Category == category).ToList();
-            if (criteria.Count == 0 || criteria.Any(c => c.Weight <= 0)) return "Both financial and technical criteria are required before locking percentages.";
+            if (criteria.Count == 0
+                || criteria.Any(c => c.Weight <= 0)) return "Both financial and technical criteria are required before locking percentages.";
             var previousTotal = criteria.Sum(c => c.Weight);
             var target = category == "Financial" ? average : 100 - average;
             decimal assigned = 0;

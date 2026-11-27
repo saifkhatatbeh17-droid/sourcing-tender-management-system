@@ -30,8 +30,16 @@ public sealed class BidsEvaluationReport(ApplicationDbContext db) : IReport
             Excluded = b.ComplianceStatus == "NonCompliant" || b.Status == "Rejected" || b.Status == "Withdrawn",
             b.ComplianceNotes, b.ComplianceReviewedAt,
             Reviewer = b.ComplianceReviewedByUser == null ? null : b.ComplianceReviewedByUser.FullName,
-            Financial = b.Evaluations.Where(e => e.Status == "Approved" && e.ApprovedAt != null && e.FinancialMark != null && e.TechnicalMark != null).Average(e => (decimal?)e.FinancialMark),
-            Technical = b.Evaluations.Where(e => e.Status == "Approved" && e.ApprovedAt != null && e.FinancialMark != null && e.TechnicalMark != null).Average(e => (decimal?)e.TechnicalMark),
+            Financial = b.Evaluations.Where(e => e.Status == "Approved"
+                && e.ApprovedAt != null
+                && e.FinancialMark != null
+                && e.TechnicalMark != null)
+                .Average(e => (decimal?)e.FinancialMark),
+            Technical = b.Evaluations.Where(e => e.Status == "Approved"
+                && e.ApprovedAt != null
+                && e.FinancialMark != null
+                && e.TechnicalMark != null)
+                .Average(e => (decimal?)e.TechnicalMark),
             Weight = b.Invitation.Tender.CommitteeFinancialWeight,
             Recommended = b.Invitation.Tender.EvaluationReport != null &&
                 b.Invitation.Tender.EvaluationReport.RecommendedBidId == b.BidId,
@@ -40,15 +48,19 @@ public sealed class BidsEvaluationReport(ApplicationDbContext db) : IReport
         var comparable = data.Where(b => !b.Excluded).GroupBy(b => (b.TenderId, b.Currency))
             .ToDictionary(g => g.Key, g => (Low: g.Min(b => b.Subtotal + b.TaxAmount + b.AdditionalCosts),
                 High: g.Max(b => b.Subtotal + b.TaxAmount + b.AdditionalCosts)));
-        var spreads = comparable.GroupBy(x => x.Key.Currency).Select(g => ReportRows.Money(g.Average(x => x.Value.High - x.Value.Low), g.Key));
+        var spreads = comparable.GroupBy(x => x.Key.Currency)
+            .Select(g => ReportRows.Money(g.Average(x => x.Value.High - x.Value.Low), g.Key));
         var tenderCount = data.Select(b => b.TenderId).Distinct().Count();
         var kpis = new ReportKpi[] {
-            new("Offers received", data.Count.ToString()), new("Compliant", data.Count(b => !b.Excluded && b.ComplianceStatus == "Compliant").ToString(), "status:Compliant"),
+            new("Offers received", data.Count.ToString()), new("Compliant", data
+                .Count(b => !b.Excluded && b.ComplianceStatus == "Compliant")
+                .ToString(), "status:Compliant"),
             new("Excluded", data.Count(b => b.Excluded).ToString(), "status:Excluded"),
             new("Average offers per tender", tenderCount == 0 ? "—" : ((decimal)data.Count / tenderCount).ToString("N1")),
             new("Average spread", comparable.Count == 0 ? "—" : string.Join(" · ", spreads))
         };
-        var chart = ReportRows.Counts("Offers by compliance", data.Select(b => b.Excluded ? "Excluded" : b.ComplianceStatus ?? "Pending")).Item2;
+        var chart = ReportRows.Counts("Offers by compliance", data.Select(b => b.Excluded ? "Excluded" : b.ComplianceStatus
+            ?? "Pending")).Item2;
         var status = ReportRows.ScopeFilter(query, "status:");
         if (status.Length == 0) status = query.Status ?? "";
         var selected = data.Where(b => status switch
@@ -68,14 +80,27 @@ public sealed class BidsEvaluationReport(ApplicationDbContext db) : IReport
                     ReportRows.Money(b.AdditionalCosts, b.Currency), ReportRows.Money(total, b.Currency),
                     !b.Excluded && comparable.TryGetValue((b.TenderId, b.Currency), out var bounds)
                         ? ReportRows.Money(total - bounds.Low, b.Currency) : "—",
-                    b.DeliveryDays.ToString(), b.Excluded && b.Status is "Rejected" or "Withdrawn" ? b.Status : b.ComplianceStatus ?? b.Status,
-                    b.Financial?.ToString("N2") ?? "—", b.Technical?.ToString("N2") ?? "—", overall?.ToString("N2") ?? "—",
+                    b.DeliveryDays.ToString(), b.Excluded
+                        && b.Status is "Rejected" or "Withdrawn" ? b.Status : b.ComplianceStatus
+                        ?? b.Status,
+                    b.Financial?.ToString("N2")
+                        ?? "—", b.Technical?.ToString("N2")
+                        ?? "—", overall?.ToString("N2")
+                        ?? "—",
                     b.Weight is decimal weight ? $"{weight:0.##}% / {100 - weight:0.##}%" : "—", b.Recommended ? "Yes" : "—",
                     b.ComplianceNotes ?? "—", b.Reviewer ?? "—", ReportRows.Date(b.ComplianceReviewedAt)],
-                    b.ReportId != null && scope.Role == RoleNames.TopCommittee && !scope.IsAdmin ? $"/TopCommittee/UnifiedReportPdf/{b.TenderId}" :
-                    b.ReportId != null && scope.Role == RoleNames.EvaluationCommittee && !scope.IsAdmin ? $"/EvaluationCommittee/ReportPdf/{b.TenderId}" :
-                    b.ReportId != null && scope.Role == RoleNames.SourcingOfficer && !scope.IsAdmin ? $"/SourcingOfficer/EvaluationReportPdf?tenderId={b.TenderId}" :
-                    b.ReportId != null && scope.Role == RoleNames.SourcingManager && !scope.IsAdmin ? $"/SourcingManager/SubmissionPdf/{b.ReportId}" :
+                    b.ReportId != null
+                        && scope.Role == RoleNames.TopCommittee
+                        && !scope.IsAdmin ? $"/TopCommittee/UnifiedReportPdf/{b.TenderId}" :
+                    b.ReportId != null
+                        && scope.Role == RoleNames.EvaluationCommittee
+                        && !scope.IsAdmin ? $"/EvaluationCommittee/ReportPdf/{b.TenderId}" :
+                    b.ReportId != null
+                        && scope.Role == RoleNames.SourcingOfficer
+                        && !scope.IsAdmin ? $"/SourcingOfficer/EvaluationReportPdf?tenderId={b.TenderId}" :
+                    b.ReportId != null
+                        && scope.Role == RoleNames.SourcingManager
+                        && !scope.IsAdmin ? $"/SourcingManager/SubmissionPdf/{b.ReportId}" :
                     b.ReportId != null && scope.IsAdmin ? $"/Admin/TenderEvaluationPdf/{b.TenderId}" : null);
             }), kpis, chart);
     }

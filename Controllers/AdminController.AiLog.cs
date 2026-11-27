@@ -25,19 +25,24 @@ public partial class AdminController
             select new { a, UserName = u != null ? u.FullName : null, UserEmail = u != null ? u.Email : null };
 
         if (search != null)
-            query = query.Where(x => (x.UserName != null && x.UserName.Contains(search)) || (x.UserEmail != null && x.UserEmail.Contains(search)));
+            query = query.Where(x => (x.UserName != null && x.UserName.Contains(search))
+                || (x.UserEmail != null && x.UserEmail.Contains(search)));
         if (feature != null) query = query.Where(x => x.a.Feature == feature);
         if (workspace != null) query = query.Where(x => x.a.Workspace == workspace);
         if (outcome != null) query = query.Where(x => x.a.Outcome == outcome);
-        if (from is { } start) { var since = start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc); query = query.Where(x => x.a.CreatedAtUtc >= since); }
-        if (to is { } end) { var until = end.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc); query = query.Where(x => x.a.CreatedAtUtc < until); }
+        if (from is { } start) { var since = start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc); query = query
+            .Where(x => x.a.CreatedAtUtc >= since); }
+        if (to is { } end) { var until = end.AddDays(1)
+            .ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc); query = query
+            .Where(x => x.a.CreatedAtUtc < until); }
 
         var total = await query.CountAsync(ct);
         var succeeded = await query.CountAsync(x => x.a.Outcome == AiInteraction.Succeeded, ct);
         var failed = await query.CountAsync(x => x.a.Outcome == AiInteraction.Failed, ct);
         var cancelled = await query.CountAsync(x => x.a.Outcome == AiInteraction.Cancelled, ct);
         var limited = await query.CountAsync(x => x.a.Outcome == AiInteraction.LimitReached, ct);
-        var averageMs = succeeded > 0 ? await query.Where(x => x.a.Outcome == AiInteraction.Succeeded).AverageAsync(x => (double)x.a.DurationMs, ct) : (double?)null;
+        var averageMs = succeeded > 0 ? await query.Where(x => x.a.Outcome == AiInteraction.Succeeded)
+            .AverageAsync(x => (double)x.a.DurationMs, ct) : (double?)null;
         var checkedCount = await query.CountAsync(x => x.a.SchemaConforms != null, ct);
         var conforming = await query.CountAsync(x => x.a.SchemaConforms == true, ct);
 
@@ -72,8 +77,16 @@ public partial class AdminController
             Features = features.Select(f => new AiLogFeatureRow(f.Feature, f.Calls, f.Calls > 0 ? f.Succeeded / (double)f.Calls : 0,
                 f.AverageMs, f.Checked > 0 ? f.Conforming / (double)f.Checked : null, f.PromptVersions, f.LastUsed)).ToList(),
             Rows = rows,
-            FeatureOptions = await db.AiInteractions.AsNoTracking().Select(a => a.Feature).Distinct().OrderBy(f => f).ToListAsync(ct),
-            WorkspaceOptions = await db.AiInteractions.AsNoTracking().Select(a => a.Workspace).Distinct().OrderBy(w => w).ToListAsync(ct)
+            FeatureOptions = await db.AiInteractions.AsNoTracking()
+                .Select(a => a.Feature)
+                .Distinct()
+                .OrderBy(f => f)
+                .ToListAsync(ct),
+            WorkspaceOptions = await db.AiInteractions.AsNoTracking()
+                .Select(a => a.Workspace)
+                .Distinct()
+                .OrderBy(w => w)
+                .ToListAsync(ct)
         });
     }
 }

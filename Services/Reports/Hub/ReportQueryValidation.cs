@@ -66,7 +66,8 @@ public static class ReportQueryValidation
         if (drill != null && report is PurchaseRequestsReport)
         {
             var parts = drill.Split(':', 2);
-            if (parts[0] != "department" && (parts[0] != "status" || !report.StatusOptions.Contains(parts[1], StringComparer.Ordinal)))
+            if (parts[0] != "department"
+                && (parts[0] != "status" || !report.StatusOptions.Contains(parts[1], StringComparer.Ordinal)))
             {
                 messages.Add("The purchase request drill-down was unsupported and has been cleared.");
                 drill = null;
@@ -75,7 +76,10 @@ public static class ReportQueryValidation
 
         if (drill != null && report is TendersReport)
         {
-            var supported = drill.StartsWith("status:", StringComparison.Ordinal) && report.StatusOptions.Contains(drill[7..], StringComparer.Ordinal) ||
+            var supported = drill.StartsWith("status:", StringComparison.Ordinal)
+                && report.StatusOptions
+                .Contains(drill[7..], StringComparer.Ordinal)
+                ||
                 drill is "chart:status" or "chart:activity" or "activity:received" or "activity:invited-no-offers" or "activity:no-invitations" or "activity:zero-offers" or "activity:evaluation-age";
             if (!supported)
             {

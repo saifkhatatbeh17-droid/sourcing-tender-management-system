@@ -43,7 +43,8 @@ public static class VllmAiChecks
         // 1. Default local vLLM resolution + thinking disabled
         var defaultCfg = LocalFixtureConfiguration();
         var (localUri, isLoopback, _) = VllmSettings.ResolveEndpoint(defaultCfg);
-        Require(isLoopback && localUri.ToString() == "http://localhost:8000/v1/chat/completions", "Default vLLM endpoint mismatch.");
+        Require(isLoopback
+            && localUri.ToString() == "http://localhost:8000/v1/chat/completions", "Default vLLM endpoint mismatch.");
         Require(VllmSettings.Model(defaultCfg) == "fixture/model", "The configured model must be used.");
         Require(!VllmSettings.EnableThinking(defaultCfg), "Thinking must be disabled by default.");
 
@@ -54,7 +55,9 @@ public static class VllmAiChecks
         ExpectError(() => VllmSettings.ResolveEndpoint(insecureCfg), "Remote plain HTTP must be rejected.");
 
         var missingKeyCfg = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Vllm:BaseUrl"] = "https://api.groq.com/openai/v1", ["Vllm:ApiKey"] = "PASTE_YOUR_API_KEY_HERE" })
+            .AddInMemoryCollection(new Dictionary<string,
+                string?> { ["Vllm:BaseUrl"] = "https://api.groq.com/openai/v1",
+                ["Vllm:ApiKey"] = "PASTE_YOUR_API_KEY_HERE" })
             .Build();
         ExpectError(() => VllmSettings.ResolveEndpoint(missingKeyCfg), "Placeholder API key on remote host must be rejected.");
 
@@ -69,13 +72,17 @@ public static class VllmAiChecks
                 $"{role} must not contain any demo data seeding tools.");
         }
 
-        var supplierTools = AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.Supplier).Select(t => t.Name).ToHashSet();
+        var supplierTools = AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.Supplier)
+            .Select(t => t.Name)
+            .ToHashSet();
         Require(supplierTools.Contains("supplier_upsert_offer") && supplierTools.Contains("supplier_respond_invitation"),
             "Supplier tools missing expected entries.");
         Require(!supplierTools.Any(n => n.StartsWith("evaluator_") || n.StartsWith("manager_") || n.StartsWith("admin_") || n.StartsWith("officer_")),
             "Supplier must never receive internal committee, officer, manager, or admin tools.");
 
-        var evalTools = AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.EvaluationCommittee).Select(t => t.Name).ToHashSet();
+        var evalTools = AiChatWorkspaceActions.GetAuthorizedTools(RoleNames.EvaluationCommittee)
+            .Select(t => t.Name)
+            .ToHashSet();
         Require(evalTools.Contains("evaluator_score_offers") && evalTools.Contains("evaluator_confirm_weight"),
             "EvaluationCommittee tools missing expected entries.");
         Require(!evalTools.Any(n => n.StartsWith("supplier_") || n.StartsWith("admin_") || n.StartsWith("manager_")),
@@ -118,7 +125,8 @@ public static class VllmAiChecks
         Require(!capResult.Mutated && capResult.NavigateUrl == null &&
                 capResult.Answer.Contains("Evaluation Committee", StringComparison.OrdinalIgnoreCase),
             "Capability question should return a smart natural reply.");
-        Require(cloudHandler.SawBearerAuth && cloudHandler.FallbackTriggered, "Bearer API key or 400 json_object fallback did not run.");
+        Require(cloudHandler.SawBearerAuth
+            && cloudHandler.FallbackTriggered, "Bearer API key or 400 json_object fallback did not run.");
 
         // 4b. Agentic page transfer (navigate_to_page) -> propagates NavigateUrl
         var navToolExecuted = false;
@@ -247,8 +255,12 @@ public static class VllmAiChecks
             ]);
         var pdfBytes = AiChatExportService.RenderPdfDocument(sampleExport, "Sourcing Officer");
         var xlsxBytes = AiChatExportService.RenderExcelDocument(sampleExport, "Sourcing Officer");
-        Require(pdfBytes.Length > 500 && pdfBytes[0] == (byte)'%' && pdfBytes[1] == (byte)'P', "Generated PDF binary invalid.");
-        Require(xlsxBytes.Length > 500 && xlsxBytes[0] == (byte)'P' && xlsxBytes[1] == (byte)'K', "Generated Excel XLSX binary invalid.");
+        Require(pdfBytes.Length > 500
+            && pdfBytes[0] == (byte)'%'
+            && pdfBytes[1] == (byte)'P', "Generated PDF binary invalid.");
+        Require(xlsxBytes.Length > 500
+            && xlsxBytes[0] == (byte)'P'
+            && xlsxBytes[1] == (byte)'K', "Generated Excel XLSX binary invalid.");
 
         var store = new AiChatDownloadStore();
         var savedPdf = store.Save("user-1", RoleNames.SourcingOfficer, "Tender-191-Summary.pdf", "application/pdf", "Download PDF", "pdf", pdfBytes);
@@ -286,7 +298,11 @@ public static class VllmAiChecks
         }
 
         // 8. Top Committee Reject vs Ask-for-Edit cycle (Top Committee -> Manager -> Officer -> Manager -> Top Committee)
-        var editVote = new CommitteeVoteInput { TenderId = 1, ExpectedNominatedBidId = 10, Decision = "RequestEdit", Notes = "Need cold-chain validation or alternate offer.", Confirmed = true };
+        var editVote = new CommitteeVoteInput { TenderId = 1,
+            ExpectedNominatedBidId = 10,
+            Decision = "RequestEdit",
+            Notes = "Need cold-chain validation or alternate offer.",
+            Confirmed = true };
         Validator.ValidateObject(editVote, new ValidationContext(editVote), validateAllProperties: true);
         var blankEditVote = new CommitteeVoteInput { TenderId = 1, ExpectedNominatedBidId = 10, Decision = "RequestEdit", Notes = "  ", Confirmed = true };
         Require(!Validator.TryValidateObject(blankEditVote, new ValidationContext(blankEditVote), [], validateAllProperties: true),
@@ -294,9 +310,15 @@ public static class VllmAiChecks
 
         var sampleReports = new[]
         {
-            new EvaluationReport { EvaluationReportId = 1, Status = "OfficerSubmitted", Tender = new Tender { TenderId = 1, Status = "AwaitingManagerReview", TopEditState = null } },
-            new EvaluationReport { EvaluationReportId = 2, Status = "ManagerApproved", Tender = new Tender { TenderId = 2, Status = "AwaitingManagerReview", TopEditState = "WithManager" } },
-            new EvaluationReport { EvaluationReportId = 3, Status = "OfficerSubmitted", Tender = new Tender { TenderId = 3, Status = "AwaitingManagerReview", TopEditState = "OfficerAnswered" } }
+            new EvaluationReport { EvaluationReportId = 1,
+                Status = "OfficerSubmitted",
+                Tender = new Tender { TenderId = 1, Status = "AwaitingManagerReview", TopEditState = null } },
+            new EvaluationReport { EvaluationReportId = 2,
+                Status = "ManagerApproved",
+                Tender = new Tender { TenderId = 2, Status = "AwaitingManagerReview", TopEditState = "WithManager" } },
+            new EvaluationReport { EvaluationReportId = 3,
+                Status = "OfficerSubmitted",
+                Tender = new Tender { TenderId = 3, Status = "AwaitingManagerReview", TopEditState = "OfficerAnswered" } }
         }.AsQueryable();
         Require(sampleReports.InManagerReview().Select(r => r.EvaluationReportId).SequenceEqual([1]),
             "InManagerReview must exclude active TopEditState tenders so they route to the dedicated CEO & Chiefs edit-request workflow.");
@@ -351,7 +373,10 @@ public static class VllmAiChecks
 
         for (var pos = 1; pos <= 4; pos++)
         {
-            var r = await votingSvc.SubmitAsync(TopActor(pos), new CommitteeVoteInput { TenderId = 1, ExpectedNominatedBidId = 11, Decision = "Approved", Confirmed = true });
+            var r = await votingSvc.SubmitAsync(TopActor(pos), new CommitteeVoteInput { TenderId = 1,
+                ExpectedNominatedBidId = 11,
+                Decision = "Approved",
+                Confirmed = true });
             if (pos == 4)
                 Require(r.IsAwarded && editStore.Tender.Status == "Awarded" && editStore.Tender.AwardedBidId == 11,
                     "After edit cycle returns to Top Committee, 4 fresh approvals must award the (updated) nominated offer.");
@@ -548,10 +573,21 @@ public static class VllmAiChecks
             Title = "Oncology Cold-Chain Biologics",
             Description = "Edit cycle test",
             Status = "AwaitingCommitteeDecision",
-            EvaluationReport = new EvaluationReport { EvaluationReportId = 1, TenderId = 1, Status = "ManagerApproved", RecommendedBidId = 10, ManagerSummary = "Initial referral" }
+            EvaluationReport = new EvaluationReport { EvaluationReportId = 1,
+                TenderId = 1,
+                Status = "ManagerApproved",
+                RecommendedBidId = 10,
+                ManagerSummary = "Initial referral" }
         };
-        public Bid Nomination { get; } = new() { BidId = 10, TenderId = 1, Status = "Compliant", ComplianceStatus = "Compliant", SubmittedAt = DateTime.UtcNow, Currency = "JOD" };
-        public List<CommitteeMember> Members { get; } = Enumerable.Range(1, 4).Select(i => new CommitteeMember(i, $"top-{i}", $"Chief {i}", i, true, true)).ToList();
+        public Bid Nomination { get; } = new() { BidId = 10,
+            TenderId = 1,
+            Status = "Compliant",
+            ComplianceStatus = "Compliant",
+            SubmittedAt = DateTime.UtcNow,
+            Currency = "JOD" };
+        public List<CommitteeMember> Members { get; } = Enumerable.Range(1, 4)
+            .Select(i => new CommitteeMember(i, $"top-{i}", $"Chief {i}", i, true, true))
+            .ToList();
         public List<CommitteeManager> Managers { get; } = [new("mgr-1", "Sourcing Manager", true, true, DateTime.UtcNow)];
 
         public TopEditCycleMemoryStore()
@@ -576,7 +612,8 @@ public static class VllmAiChecks
             public void Add(TenderApproval vote) => store.Tender.TenderApprovals.Add(vote);
             public void ClearTopVotes()
             {
-                foreach (var v in store.Tender.TenderApprovals.Where(a => a.Stage == "Top" && a.Decision != "Rejected").ToList())
+                foreach (var v in store.Tender.TenderApprovals.Where(a => a.Stage == "Top" && a.Decision != "Rejected")
+                    .ToList())
                     store.Tender.TenderApprovals.Remove(v);
             }
             public Task SaveAsync(CancellationToken ct) => Task.CompletedTask;

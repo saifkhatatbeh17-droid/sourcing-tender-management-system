@@ -39,7 +39,8 @@ public static class TopCommitteePhase4Checks
         var first = data.Votes.Single();
         Check(first.Stage == "Top" && first.Decision == "Approved" && first.UserId == "member-1" && first.CommitteeAssignmentId == 1 &&
             first.TenderId == 1 && first.Notes == "Reviewed offer." && first.DecidedAt != default, "Approval must use authenticated member and trusted assignment with timestamp/notes.");
-        Check(data.Tender.Status == "AwaitingCommitteeDecision" && data.PauseChecks == 1, "One approval must not award and must pass the locked pause gate.");
+        Check(data.Tender.Status == "AwaitingCommitteeDecision"
+            && data.PauseChecks == 1, "One approval must not award and must pass the locked pause gate.");
         await Denied<CommitteeStateConflictException>(() => service.SubmitAsync(Actor(1), Input()), "Duplicate approval must fail.");
         await Denied<CommitteeStateConflictException>(() => service.SubmitAsync(Actor(1), Input("Rejected", "Changed mind")), "An approval must not be changed into rejection.");
         Check(data.Votes.Single() == first && first.Decision == "Approved", "Original vote must remain unchanged.");
@@ -104,7 +105,8 @@ public static class TopCommitteePhase4Checks
         }
 
         var awardData = new MemoryStore(); await Approve(awardData, 1, 2, 3);
-        Check(awardData.Tender.Status == "AwaitingCommitteeDecision" && awardData.Tender.AwardedAt == null, "Three approvals cannot award.");
+        Check(awardData.Tender.Status == "AwaitingCommitteeDecision"
+            && awardData.Tender.AwardedAt == null, "Three approvals cannot award.");
         var award = await Voting(awardData).SubmitAsync(Actor(4), Input());
         Check(award.IsAwarded && awardData.Votes.Count() == 4 && awardData.Tender.Status == "Awarded" && awardData.Tender.AwardedBidId == 10 &&
             awardData.Tender.AwardedAt == awardData.Votes.Last().DecidedAt && !string.IsNullOrWhiteSpace(awardData.Tender.AwardNotes), "Fourth approval and nominated-bid award must be atomic.");
@@ -118,7 +120,9 @@ public static class TopCommitteePhase4Checks
         await Denied<ValidationException>(() => Voting(requestEdit).SubmitAsync(Actor(3), Input("RequestEdit", "  ")), "RequestEdit must require notes.");
         var editRes = await Voting(requestEdit).SubmitAsync(Actor(3), Input("RequestEdit", "Please verify cold-chain SLA or check second offer."));
         Check(editRes.Decision == "RequestEdit" && !editRes.IsAwarded && requestEdit.Tender.Status == "AwaitingManagerReview" &&
-            requestEdit.Tender.TopEditState == "WithManager" && requestEdit.Tender.TopEditRequestedByUserId == "member-3" &&
+            requestEdit.Tender.TopEditState == "WithManager"
+                && requestEdit.Tender.TopEditRequestedByUserId == "member-3"
+                &&
             requestEdit.Tender.TopEditRequestNotes == "Please verify cold-chain SLA or check second offer." &&
             !requestEdit.Votes.Any(), "RequestEdit returns tender to Manager with TopEditState=WithManager and clears prior round approvals so voting can reopen.");
 
@@ -126,10 +130,14 @@ public static class TopCommitteePhase4Checks
         { try { return await Voting(d).SubmitAsync(Actor(member), Input(decision, "Reason")); } catch (Exception ex) when (ex is CommitteeStateConflictException or ValidationException) { return null; } }
         var duplicate = new MemoryStore();
         var duplicateResults = await Task.WhenAll(TryVote(duplicate, 1), TryVote(duplicate, 1));
-        Check(duplicateResults.Count(r => r != null) == 1 && duplicate.Votes.Count() == 1, "Concurrent duplicate votes must have one winner.");
+        Check(duplicateResults.Count(r => r != null) == 1
+            && duplicate.Votes
+            .Count() == 1, "Concurrent duplicate votes must have one winner.");
         var finalRace = new MemoryStore(); await Approve(finalRace, 1, 2, 3);
         var finalResults = await Task.WhenAll(TryVote(finalRace, 4), TryVote(finalRace, 4));
-        Check(finalResults.Count(r => r?.IsAwarded == true) == 1 && finalRace.Votes.Count() == 4, "Concurrent fourth approvals cannot create duplicate awards.");
+        Check(finalResults.Count(r => r?.IsAwarded == true) == 1
+            && finalRace.Votes
+            .Count() == 4, "Concurrent fourth approvals cannot create duplicate awards.");
         var lastTwo = new MemoryStore(); await Approve(lastTwo, 1, 2);
         var lastTwoResults = await Task.WhenAll(TryVote(lastTwo, 3), TryVote(lastTwo, 4));
         Check(lastTwoResults.All(r => r != null) && lastTwoResults.Count(r => r!.IsAwarded) == 1 && lastTwo.Votes.Count() == 4,
@@ -137,7 +145,11 @@ public static class TopCommitteePhase4Checks
         foreach (var rejectionFirst in new[] { false, true })
         {
             var competing = new MemoryStore(); await Approve(competing, 1, 2, 3);
-            var results = await Task.WhenAll(TryVote(competing, 4, rejectionFirst ? "Rejected" : "Approved"), TryVote(competing, 4, rejectionFirst ? "Approved" : "Rejected"));
+            var results = await Task.WhenAll(TryVote(competing,
+                4,
+                rejectionFirst ? "Rejected" : "Approved"), TryVote(competing,
+                4,
+                rejectionFirst ? "Approved" : "Rejected"));
             Check(results.Count(r => r != null) == 1 && competing.Votes.Count() == 4 &&
                 competing.Tender.Status == (rejectionFirst ? "AwaitingManagerReview" : "Awarded"), "Concurrent opposite final decisions must not overwrite one another.");
         }
@@ -146,7 +158,9 @@ public static class TopCommitteePhase4Checks
             var racing = new MemoryStore(); await Approve(racing, 1, 2, 3);
             async Task<bool> Question()
             {
-                try { await new TopCommitteeClarificationService(racing).CreateAsync(Actor(4), new() { TenderId = 1, Subject = "Check delivery", Description = "Please confirm." }); return true; }
+                try { await new TopCommitteeClarificationService(racing).CreateAsync(Actor(4), new() { TenderId = 1,
+                    Subject = "Check delivery",
+                    Description = "Please confirm." }); return true; }
                 catch (CommitteeStateConflictException) { return false; }
             }
             Task<bool> questionTask; Task<CommitteeVoteResult?> voteTask;
@@ -154,7 +168,8 @@ public static class TopCommitteePhase4Checks
             else { voteTask = TryVote(racing, 4); questionTask = Question(); }
             await Task.WhenAll(questionTask, voteTask);
             Check(questionTask.Result != (voteTask.Result != null) &&
-                (clarificationFirst ? racing.Tender.Status == "AwaitingCommitteeDecision" && racing.Votes.Count() == 3 : racing.Tender.Status == "Awarded"),
+                (clarificationFirst ? racing.Tender.Status == "AwaitingCommitteeDecision"
+                    && racing.Votes.Count() == 3 : racing.Tender.Status == "Awarded"),
                 "Actual clarification and voting commands sharing a lock cannot both win the final-state race.");
         }
         foreach (var failAfterSave in new[] { false, true })
@@ -171,36 +186,67 @@ public static class TopCommitteePhase4Checks
         var html = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", eligiblePage);
         Check(html.Contains("tc-member-approval-form") && html.Contains("name=\"Vote.Confirmed\"") && html.Contains("__RequestVerificationToken") &&
             html.Contains("value=\"Approved\"") && html.Contains("value=\"RequestEdit\"") && html.Contains("value=\"Rejected\""), "Voting form, edit/reject modals, choices and CSRF token must render.");
-        Check(html.Contains("name=\"Vote.ExpectedNominatedBidId\"") && !html.Contains("name=\"UserId\"") && !html.Contains("name=\"CommitteeAssignmentId\""), "Browser cannot select actor/assignment.");
+        Check(html.Contains("name=\"Vote.ExpectedNominatedBidId\"")
+            && !html
+            .Contains("name=\"UserId\"")
+            && !html
+            .Contains("name=\"CommitteeAssignmentId\""), "Browser cannot select actor/assignment.");
         var pausedUi = new MemoryStore(); pausedUi.Question("Pending");
         var pausedHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", Page(pausedUi));
-        Check(pausedHtml.Contains("Voting paused") && !pausedHtml.Contains("tc-member-approval-form"), "Paused UI cannot offer submission.");
+        Check(pausedHtml.Contains("Voting paused")
+            && !pausedHtml
+            .Contains("tc-member-approval-form"), "Paused UI cannot offer submission.");
         var votedHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", Page(data));
-        Check(votedHtml.Contains("decision is recorded and cannot be changed") && votedHtml.Contains("Reviewed offer.") && !votedHtml.Contains("tc-member-approval-form"), "Recorded votes/notes are visible and immutable.");
+        Check(votedHtml.Contains("decision is recorded and cannot be changed")
+            && votedHtml
+            .Contains("Reviewed offer.")
+            && !votedHtml
+            .Contains("tc-member-approval-form"), "Recorded votes/notes are visible and immutable.");
         var awardedHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", Page(awardData));
-        Check(awardedHtml.Contains("4 / 4 recorded") && awardedHtml.Contains("Winning bid") && !awardedHtml.Contains("tc-member-approval-form"), "Final award must be read-only.");
+        Check(awardedHtml.Contains("4 / 4 recorded")
+            && awardedHtml
+            .Contains("Winning bid")
+            && !awardedHtml
+            .Contains("tc-member-approval-form"), "Final award must be read-only.");
         var schemaHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", eligiblePage with { VotingDatabaseReady = false });
-        Check(schemaHtml.Contains("Voting is temporarily unavailable") && !schemaHtml.Contains("tc-member-approval-form"), "Pending database application must fail closed in UI.");
+        Check(schemaHtml.Contains("Voting is temporarily unavailable")
+            && !schemaHtml
+            .Contains("tc-member-approval-form"), "Pending database application must fail closed in UI.");
         var validation = new ModelStateDictionary(); validation.AddModelError("Vote.Notes", "A rejection justification is required.");
-        var errorHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", eligiblePage with { Vote = Input("Rejected") }, validation);
-        Check(errorHtml.Contains("A rejection justification is required.") && errorHtml.Contains("field-validation-error"), "Server-side vote validation must render.");
+        var errorHtml = await TopCommitteePhase2Checks.RenderAsync(services,
+            Actor(1),
+            "TenderDetails",
+            eligiblePage with { Vote = Input("Rejected") },
+            validation);
+        Check(errorHtml.Contains("A rejection justification is required.")
+            && errorHtml
+            .Contains("field-validation-error"), "Server-side vote validation must render.");
         var action = typeof(TopCommitteeController).GetMethod(nameof(TopCommitteeController.SubmitVote))!;
-        Check(action.GetCustomAttribute<HttpPostAttribute>() != null && action.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>() != null, "Vote action must require POST and anti-forgery.");
+        Check(action.GetCustomAttribute<HttpPostAttribute>() != null
+            && action
+            .GetCustomAttribute<ValidateAntiForgeryTokenAttribute>() != null, "Vote action must require POST and anti-forgery.");
 
         TopCommitteeController Controller(MemoryStore state, ClaimsPrincipal actor)
         {
             var read = new ReadModels(state);
-            return new TopCommitteeController(read, new TopCommitteeClarificationService(state), services.GetRequiredService<ITopCommitteeClarificationQueries>(), Voting(state), read)
+            return new TopCommitteeController(read,
+                new TopCommitteeClarificationService(state),
+                services.GetRequiredService<ITopCommitteeClarificationQueries>(),
+                Voting(state),
+                read)
             { ControllerContext = new ControllerContext(TopCommitteePhase2Checks.Context(services, actor, "SubmitVote")) };
         }
         var mvc = new MemoryStore();
         var redirect = await Controller(mvc, Actor(1)).SubmitVote(Input(), default) as RedirectToActionResult;
-        Check(redirect?.ActionName == "TenderDetails" && (int?)redirect.RouteValues?["id"] == 1, "Successful POST must redirect using trusted tender ID.");
+        Check(redirect?.ActionName == "TenderDetails"
+            && (int?)redirect.RouteValues?["id"] == 1, "Successful POST must redirect using trusted tender ID.");
         Check(await Controller(mvc, Actor(9)).SubmitVote(Input(), default) is NotFoundResult, "MVC must conceal inaccessible tenders.");
         Check(await Controller(mvc, Actor(1, RoleNames.Supplier)).SubmitVote(Input(), default) is ForbidResult, "MVC must map role failure to forbidden.");
         var invalidController = Controller(new MemoryStore(), Actor(1));
         var invalidResult = await invalidController.SubmitVote(Input("Rejected"), default);
-        Check(invalidResult is ViewResult && invalidController.Response.StatusCode == 400 && !invalidController.ModelState.IsValid, "Invalid rejection must return useful 400 validation.");
+        Check(invalidResult is ViewResult
+            && invalidController.Response.StatusCode == 400
+            && !invalidController.ModelState.IsValid, "Invalid rejection must return useful 400 validation.");
 
         var migration = new AllowTopCommitteeRejection();
         Check(migration.UpOperations.Count == 2 && migration.UpOperations[0] is DropCheckConstraintOperation { Name: "CK_TenderApprovals_3", Table: "TenderApprovals" } &&
@@ -208,17 +254,22 @@ public static class TopCommitteePhase4Checks
         Check(migration.DownOperations.Count == 2 && migration.DownOperations[0] is DropCheckConstraintOperation { Name: "CK_TenderApprovals_3", Table: "TenderApprovals" } &&
             migration.DownOperations[1] is AddCheckConstraintOperation { Name: "CK_TenderApprovals_3", Table: "TenderApprovals", Sql: TopCommitteeVotingDatabase.OldConstraint }, "Down must restore exactly the original constraint, without deleting history.");
         Check(TopCommitteeVotingDatabase.AcceptsDefinition(TopCommitteeVotingDatabase.NewConstraint) &&
-            TopCommitteeVotingDatabase.AcceptsDefinition("([Stage]='Manager' OR [Decision]='Approved' OR [Stage]='Top' AND [Decision]='Rejected')") &&
+            TopCommitteeVotingDatabase.AcceptsDefinition("([Stage]='Manager' OR [Decision]='Approved' OR [Stage]='Top' AND [Decision]='Rejected')")
+                &&
             TopCommitteeVotingDatabase.AcceptsDefinition(TopCommitteeVotingDatabase.OldConstraint) &&
             !TopCommitteeVotingDatabase.AcceptsDefinition("(([Stage]='Manager' OR [Decision]='Approved' OR [Stage]='Top') AND [Decision]='Rejected')"), "Schema gate must recognize SQL normalization without accepting changed boolean grouping.");
         var db = services.GetRequiredService<ApplicationDbContext>();
-        var cases = await db.Database.SqlQueryRaw<ConstraintCase>($"SELECT [Stage], [Decision], CAST(CASE WHEN {TopCommitteeVotingDatabase.OldConstraint} THEN 1 ELSE 0 END AS bit) AS OldAccepted, CAST(CASE WHEN {TopCommitteeVotingDatabase.NewConstraint} THEN 1 ELSE 0 END AS bit) AS NewAccepted FROM (VALUES ('Manager'), ('Evaluation'), ('Top')) AS stages([Stage]) CROSS JOIN (VALUES ('Approved'), ('Rejected'), ('ReturnedForReview')) AS decisions([Decision])").ToListAsync();
-        Check(cases.Count == 9 && cases.All(c => c.NewAccepted == (c.Stage == "Manager" || c.Decision == "Approved" || c.Stage == "Top" && c.Decision == "Rejected")), "SQL truth table must preserve other-stage rules.");
-        Check(cases.Where(c => c.NewAccepted != c.OldAccepted).Single() is { Stage: "Top", Decision: "Rejected", NewAccepted: true }, "Only Top rejection may change acceptance.");
+        var cases = await db.Database.SqlQueryRaw<ConstraintCase>($"SELECT [Stage], [Decision], CAST(CASE WHEN {TopCommitteeVotingDatabase.OldConstraint} THEN 1 ELSE 0 END AS bit) AS OldAccepted, CAST(CASE WHEN {TopCommitteeVotingDatabase.NewConstraint} THEN 1 ELSE 0 END AS bit) AS NewAccepted FROM (VALUES ('Manager'), ('Evaluation'), ('Top')) AS stages([Stage]) CROSS JOIN (VALUES ('Approved'), ('Rejected'), ('ReturnedForReview')) AS decisions([Decision])")
+            .ToListAsync();
+        Check(cases.Count == 9
+            && cases.All(c => c.NewAccepted == (c.Stage == "Manager" || c.Decision == "Approved" || c.Stage == "Top" && c.Decision == "Rejected")), "SQL truth table must preserve other-stage rules.");
+        Check(cases.Where(c => c.NewAccepted != c.OldAccepted)
+            .Single() is { Stage: "Top", Decision: "Rejected", NewAccepted: true }, "Only Top rejection may change acceptance.");
         var liveReady = await TopCommitteeVotingDatabase.IsReadyAsync(db, default);
         var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
         Console.WriteLine($"NOTE: Live SQL voting readiness = {liveReady}; pending Phase 4 migration = {pending.Contains("20261113064343_AllowTopCommitteeRejection")}. No migration applied by checks.");
-        await Denied<CommitteeAccessDeniedException>(() => services.GetRequiredService<ITopCommitteeVotingReadiness>().IsDatabaseReadyAsync(new ClaimsPrincipal(), 1), "Readiness must not disclose tender access to anonymous callers.");
+        await Denied<CommitteeAccessDeniedException>(() => services.GetRequiredService<ITopCommitteeVotingReadiness>()
+            .IsDatabaseReadyAsync(new ClaimsPrincipal(), 1), "Readiness must not disclose tender access to anonymous callers.");
         Check(!db.ChangeTracker.HasChanges(), "Phase 4 checks must leave the SQL context unchanged.");
         var output = Environment.GetEnvironmentVariable("TOP_COMMITTEE_PREVIEW_DIR");
         if (!string.IsNullOrWhiteSpace(output))
@@ -228,7 +279,8 @@ public static class TopCommitteePhase4Checks
                 ("voting-awarded.html", awardedHtml), ("voting-unavailable.html", schemaHtml), ("voting-error.html", errorHtml) })
                 await File.WriteAllTextAsync(Path.Combine(output, name), content);
             Directory.CreateDirectory(Path.Combine(output, "js"));
-            File.Copy(Path.Combine(services.GetRequiredService<IWebHostEnvironment>().WebRootPath, "js", "top-committee-voting.js"), Path.Combine(output, "js", "top-committee-voting.js"), true);
+            File.Copy(Path.Combine(services.GetRequiredService<IWebHostEnvironment>().WebRootPath, "js", "top-committee-voting.js"), Path
+                .Combine(output, "js", "top-committee-voting.js"), true);
         }
         Console.WriteLine($"PASS: {passed} Phase 4 voting, rejection, award, concurrency, rollback, MVC/Razor and constraint checks. Mutation tests are isolated in memory; SQL checks are SELECT-only, not SQL persistence tests.");
     }
@@ -240,15 +292,24 @@ public static class TopCommitteePhase4Checks
 
     private sealed class ReadModels(MemoryStore data) : ITopCommitteeQueries, ITopCommitteeVotingReadiness
     {
-        public Task<bool> IsDatabaseReadyAsync(ClaimsPrincipal member, int tenderId, CancellationToken cancellationToken = default) => Task.FromResult(data.DatabaseReady);
+        public Task<bool> IsDatabaseReadyAsync(ClaimsPrincipal member,
+            int tenderId,
+            CancellationToken cancellationToken = default) => Task.FromResult(data.DatabaseReady);
         public Task<CommitteeTenderDetails> GetTenderDetailsAsync(ClaimsPrincipal actor, int tenderId, CancellationToken cancellationToken = default)
         {
             if (tenderId != 1) throw new CommitteeTenderNotFoundException();
             var id = actor.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            return Task.FromResult(TopCommitteeQueryService.MapDetails(data.Tender, data.Members, data.Managers, [], TopCommitteeClarificationScope.OpenCount(data.Access(id)), id));
+            return Task.FromResult(TopCommitteeQueryService.MapDetails(data.Tender,
+                data.Members,
+                data.Managers,
+                [],
+                TopCommitteeClarificationScope.OpenCount(data.Access(id)),
+                id));
         }
         public Task<CommitteeDashboard> GetDashboardAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default) => throw new InvalidOperationException("Not used by Phase 4 checks.");
-        public Task<CommitteePage<CommitteeTenderRow>> GetTendersAsync(ClaimsPrincipal actor, CommitteeTenderFilter filter, CancellationToken cancellationToken = default) => throw new InvalidOperationException("Not used by Phase 4 checks.");
+        public Task<CommitteePage<CommitteeTenderRow>> GetTendersAsync(ClaimsPrincipal actor,
+            CommitteeTenderFilter filter,
+            CancellationToken cancellationToken = default) => throw new InvalidOperationException("Not used by Phase 4 checks.");
     }
 
     private sealed class MemoryStore : ITopCommitteeVotingStore, ITopCommitteeClarificationStore
@@ -256,10 +317,22 @@ public static class TopCommitteePhase4Checks
         private readonly SemaphoreSlim mutex = new(1, 1);
         public Tender Tender { get; } = new() { TenderId = 1, Title = "Test equipment tender", Description = "In-memory voting test", Status = "AwaitingCommitteeDecision",
             OpensAt = DateTime.UtcNow.AddDays(-3), ClosesAt = DateTime.UtcNow.AddDays(-1),
-            PurchaseRequest = new PurchaseRequest { PurchaseRequestId = 1, Title = "Test equipment", Reason = "Test request", Priority = "Normal", TargetDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(14)), Department = new Department { Name = "Test department" } },
+            PurchaseRequest = new PurchaseRequest { PurchaseRequestId = 1,
+                Title = "Test equipment",
+                Reason = "Test request",
+                Priority = "Normal",
+                TargetDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(14)),
+                Department = new Department { Name = "Test department" } },
             EvaluationReport = new EvaluationReport { EvaluationReportId = 1, TenderId = 1, Status = "ManagerApproved", RecommendedBidId = 10, ManagerSummary = "Test Manager recommendation" } };
-        public Bid Nomination { get; } = new() { BidId = 10, TenderId = 1, Status = "Compliant", ComplianceStatus = "Compliant", SubmittedAt = DateTime.UtcNow, Currency = "USD" };
-        public List<CommitteeMember> Members { get; } = Enumerable.Range(1, 4).Select(i => new CommitteeMember(i, $"member-{i}", $"Test member {i}", i, true, true)).ToList();
+        public Bid Nomination { get; } = new() { BidId = 10,
+            TenderId = 1,
+            Status = "Compliant",
+            ComplianceStatus = "Compliant",
+            SubmittedAt = DateTime.UtcNow,
+            Currency = "USD" };
+        public List<CommitteeMember> Members { get; } = Enumerable.Range(1, 4)
+            .Select(i => new CommitteeMember(i, $"member-{i}", $"Test member {i}", i, true, true))
+            .ToList();
         public List<CommitteeManager> Managers { get; } = [new("manager", "Test manager", true, true, DateTime.UtcNow)];
         public Dictionary<string, bool> Active { get; } = new();
         public Dictionary<string, IReadOnlyList<string>> Roles { get; } = new();
@@ -273,17 +346,32 @@ public static class TopCommitteePhase4Checks
             foreach (var member in Enumerable.Range(1, 9)) { Active[$"member-{member}"] = true; Roles[$"member-{member}"] = [RoleNames.TopCommittee]; }
             var invitation = new Invitation { SupplierProfile = new SupplierProfile { CompanyName = "Test nominated supplier" } };
             invitation.Bids.Add(Nomination); Tender.Invitations.Add(invitation);
-            Tender.TenderApprovals.Add(new TenderApproval { TenderId = 1, Stage = "Manager", Decision = "Approved", UserId = "manager", Notes = "Existing Manager approval" });
+            Tender.TenderApprovals.Add(new TenderApproval { TenderId = 1,
+                Stage = "Manager",
+                Decision = "Approved",
+                UserId = "manager",
+                Notes = "Existing Manager approval" });
         }
         public CommitteeClarificationContext Access(string actor, int tenderId = 1) => new(tenderId == 1 ? Tender : null,
             Active.GetValueOrDefault(actor), Roles.GetValueOrDefault(actor) ?? [], tenderId == 1 ? Members : [], tenderId == 1 ? Managers : []);
-        public void Question(string status) => Tender.Clarifications.Add(new Clarification { ClarificationId = 1, TenderId = 1, SenderUserId = "member-2", RecipientUserId = "manager", Status = status });
-        Task<T> ITopCommitteeVotingStore.ExecuteAsync<T>(string memberId, int tenderId, Func<ICommitteeVotingSession, CancellationToken, Task<T>> action, CancellationToken ct) =>
+        public void Question(string status) => Tender.Clarifications.Add(new Clarification { ClarificationId = 1,
+            TenderId = 1,
+            SenderUserId = "member-2",
+            RecipientUserId = "manager",
+            Status = status });
+        Task<T> ITopCommitteeVotingStore.ExecuteAsync<T>(string memberId,
+            int tenderId,
+            Func<ICommitteeVotingSession, CancellationToken, Task<T>> action,
+            CancellationToken ct) =>
             Locked(memberId, tenderId, (session, token) => action(session, token), ct);
-        Task<T> ITopCommitteeClarificationStore.ExecuteAsync<T>(string actorId, int tenderId, Func<ICommitteeClarificationSession, CancellationToken, Task<T>> action, CancellationToken ct) =>
+        Task<T> ITopCommitteeClarificationStore.ExecuteAsync<T>(string actorId,
+            int tenderId,
+            Func<ICommitteeClarificationSession, CancellationToken, Task<T>> action,
+            CancellationToken ct) =>
             Locked(actorId, tenderId, (session, token) => action(session, token), ct);
         public Task<int?> FindTenderAsync(string actorId, string role, int clarificationId, CancellationToken ct) =>
-            Task.FromResult(Tender.Clarifications.SingleOrDefault(c => c.ClarificationId == clarificationId && c.SenderUserId == actorId)?.TenderId);
+            Task.FromResult(Tender.Clarifications.SingleOrDefault(c => c.ClarificationId == clarificationId
+                && c.SenderUserId == actorId)?.TenderId);
         private async Task<T> Locked<T>(string actor, int tenderId, Func<Session, CancellationToken, Task<T>> action, CancellationToken ct)
         {
             await mutex.WaitAsync(ct);
@@ -307,10 +395,12 @@ public static class TopCommitteePhase4Checks
             { data.PauseChecks++; if (TopCommitteeClarificationScope.OpenCount(access) > 0) throw new CommitteeStateConflictException("Paused"); return Task.CompletedTask; }
             public Task<bool> IsDatabaseReadyAsync(CancellationToken ct) => Task.FromResult(data.DatabaseReady);
             public void Add(TenderApproval vote) { vote.TenderApprovalId = data.Tender.TenderApprovals.Count + 1; vote.User = new ApplicationUser { FullName = data.Members.Single(m => m.UserId == vote.UserId).FullName }; data.Tender.TenderApprovals.Add(vote); }
-            public void ClearTopVotes() { foreach (var v in data.Tender.TenderApprovals.Where(v => v.Stage == "Top" && v.Decision != "Rejected").ToList()) data.Tender.TenderApprovals.Remove(v); }
+            public void ClearTopVotes() { foreach (var v in data.Tender.TenderApprovals.Where(v => v.Stage == "Top" && v.Decision != "Rejected")
+                .ToList()) data.Tender.TenderApprovals.Remove(v); }
             public void Add(Clarification question) { question.ClarificationId = data.Tender.Clarifications.Count + 1; data.Tender.Clarifications.Add(question); }
             public void Add(ClarificationResponse response) => throw new InvalidOperationException("Not used by Phase 4 checks.");
-            public async Task SaveAsync(CancellationToken ct) { if (data.FailSave) throw new IOException("Simulated persistence failure."); ct.ThrowIfCancellationRequested(); await Task.Yield(); }
+            public async Task SaveAsync(CancellationToken ct) { if (data.FailSave) throw new IOException("Simulated persistence failure."); ct.ThrowIfCancellationRequested(); await Task
+                .Yield(); }
         }
     }
 }

@@ -40,7 +40,8 @@ public sealed class ApprovalsReport(ApplicationDbContext db) : IReport
             {
                 t.TenderId, t.Title, t.Status, t.CreatedAt, t.AwardedAt,
                 ReportStatus = t.EvaluationReport == null ? null : t.EvaluationReport.Status,
-                Recommended = t.EvaluationReport == null || t.EvaluationReport.Bid == null ? null : t.EvaluationReport.Bid.Invitation.SupplierProfile.CompanyName,
+                Recommended = t.EvaluationReport == null
+                    || t.EvaluationReport.Bid == null ? null : t.EvaluationReport.Bid.Invitation.SupplierProfile.CompanyName,
                 OfficerSummary = t.EvaluationReport == null ? null : t.EvaluationReport.OfficerSummary,
                 ManagerSummary = t.EvaluationReport == null ? null : t.EvaluationReport.ManagerSummary,
                 Decision = managerDecisions.Where(a => a.TenderId == t.TenderId).OrderByDescending(a => a.DecidedAt)
@@ -50,7 +51,9 @@ public sealed class ApprovalsReport(ApplicationDbContext db) : IReport
                 TopNo = t.TenderApprovals.Count(a => a.Stage == "Top" && a.Decision == "Rejected"),
                 HasContract = db.TenderContracts.Any(c => c.TenderId == t.TenderId)
             }).ToListAsync(ct);
-        var rows = data.Where(t => ReportRows.Within(manager ? t.Decision?.DecidedAt ?? t.CreatedAt : t.AwardedAt ?? t.CreatedAt, query))
+        var rows = data.Where(t => ReportRows.Within(manager ? t.Decision?.DecidedAt
+            ?? t.CreatedAt : t.AwardedAt
+            ?? t.CreatedAt, query))
             .Select(t => (Tender: t, Outcome: t.Status == "Awarded" ? "Awarded" : t.TopNo > 0 || t.ReportStatus == "ManagerRejected"
                 ? "Rejected" : t.Status == "Cancelled" ? "Cancelled" : "Pending")).ToArray();
         var (kpis, chart) = ReportRows.Counts("Tender outcomes", rows.Select(r => r.Outcome), "outcome:");
@@ -60,7 +63,8 @@ public sealed class ApprovalsReport(ApplicationDbContext db) : IReport
         return ReportRows.Result(query,
             ["Tender", "Recommended supplier", "Report status", "Committee approvals", "Officer summary", "Manager decision", "Manager comments", "Manager date", "Top approve / reject", "Outcome", "Award date", "Contract"],
             matches.Select(r => new ReportRow([r.Tender.Title, r.Tender.Recommended ?? "—", r.Tender.ReportStatus ?? "—",
-                r.Tender.Approvals.ToString(), string.IsNullOrWhiteSpace(r.Tender.OfficerSummary) ? "Pending" : "Submitted",
+                r.Tender.Approvals.ToString(), string
+                    .IsNullOrWhiteSpace(r.Tender.OfficerSummary) ? "Pending" : "Submitted",
                 r.Tender.Decision?.Decision ?? r.Tender.ReportStatus ?? "—",
                 r.Tender.Decision?.Comments ?? (manager ? null : r.Tender.ManagerSummary) ?? "—",
                 ReportRows.Date(r.Tender.Decision?.DecidedAt), $"{r.Tender.TopYes} / {r.Tender.TopNo}", r.Outcome,

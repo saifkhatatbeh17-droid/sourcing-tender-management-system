@@ -73,7 +73,9 @@ public partial class SourcingOfficerController
         var latest = await LatestSpecMatchAsync(tender.TenderId, ct);
         // The legal warranty is compared in code on every page load, so it needs no AI run and never goes stale.
         var offerIds = input.Offers.Select(b => b.BidId).ToArray();
-        var legal = (await db.BidGuarantees.AsNoTracking().Where(g => g.Kind == "Legal" && offerIds.Contains(g.BidId)).ToListAsync(ct))
+        var legal = (await db.BidGuarantees.AsNoTracking()
+            .Where(g => g.Kind == "Legal" && offerIds.Contains(g.BidId))
+            .ToListAsync(ct))
             .GroupBy(g => g.BidId).ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.UpdatedAt).First());
         if (latest is null) return new(input, null, false, null, legal);
         if (latest.Fingerprint != SpecMatchService.Fingerprint(input))

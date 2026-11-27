@@ -16,12 +16,16 @@ public sealed class PasswordChangeRequiredFilter : IAsyncActionFilter
         new(StringComparer.OrdinalIgnoreCase) { "Profile", "ChangePassword", "Logout", "AccessDenied", "Login" };
 
     public static bool IsAllowed(string? controller, string? action) =>
-        string.Equals(controller, "Account", StringComparison.OrdinalIgnoreCase) && action != null && AllowedAccountActions.Contains(action);
+        string.Equals(controller, "Account", StringComparison.OrdinalIgnoreCase)
+            && action != null
+            && AllowedAccountActions
+            .Contains(action);
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var user = context.HttpContext.User;
-        if (user.Identity?.IsAuthenticated != true || !user.HasClaim(EmployeeAccounts.PasswordChangeRequiredClaim, "true"))
+        if (user.Identity?.IsAuthenticated != true
+            || !user.HasClaim(EmployeeAccounts.PasswordChangeRequiredClaim, "true"))
         {
             await next();
             return;

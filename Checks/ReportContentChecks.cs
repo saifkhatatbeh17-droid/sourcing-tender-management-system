@@ -12,11 +12,18 @@ public static class ReportContentChecks
     {
         void Check(bool value, string label) { if (!value) throw new Exception(label); }
         var blocks = ReportContent.Parse("Chosen offer\r\nSupplier: 1,123.00 JOD\r\n\r\n## Financial review\n- Higher cost\n- Faster delivery\n\nConclusion\n<script>alert(1)</script>");
-        Check(blocks.Count(b => b.Kind == "heading") == 3 && blocks.Single(b => b.Kind == "list").Lines.Length == 2, "Report sections or list parsing failed.");
+        Check(blocks.Count(b => b.Kind == "heading") == 3
+            && blocks
+            .Single(b => b.Kind == "list").Lines.Length == 2, "Report sections or list parsing failed.");
         Check(blocks.Last().Lines[0] == "<script>alert(1)</script>", "Source text must remain text for Razor encoding.");
-        var spans = ReportContent.Inline("Offer #235 costs 1,123.00 JOD at 50% financial. **Supplier-stated** terms.").ToArray();
-        Check(spans.Count(s => s.Emphasis) == 1 && string.Concat(spans.Select(s => s.Text)).Contains("Supplier-stated"), "Financial facts or emphasis formatting failed.");
-        Check(ReportContent.Parse("Old saved report without headings.").Single().Kind == "paragraph", "Historical report compatibility failed.");
+        var spans = ReportContent.Inline("Offer #235 costs 1,123.00 JOD at 50% financial. **Supplier-stated** terms.")
+            .ToArray();
+        Check(spans.Count(s => s.Emphasis) == 1
+            && string
+            .Concat(spans.Select(s => s.Text))
+            .Contains("Supplier-stated"), "Financial facts or emphasis formatting failed.");
+        Check(ReportContent.Parse("Old saved report without headings.")
+            .Single().Kind == "paragraph", "Historical report compatibility failed.");
         var page = CommitteeScoringChecks.Fixture();
         page.Offers[0].BidItems.Single().UnitPrice = 112.3m;
         page.Offers[1].BidItems.Single().UnitPrice = 109.2m;
@@ -36,9 +43,14 @@ public static class ReportContentChecks
             try { BidNarrativeValidation.Check(page, 2, contradiction); throw new Exception("Contradictory comparison was accepted."); }
             catch (InvalidOperationException) { }
         }
-        BidNarrativeValidation.Check(page, 2, "Cedar Pharmacy Wholesale costs less. Rimal Pharmaceutical Distribution has faster delivery than Cedar Pharmacy Wholesale.");
+        BidNarrativeValidation.Check(page,
+            2,
+            "Cedar Pharmacy Wholesale costs less. Rimal Pharmaceutical Distribution has faster delivery than Cedar Pharmacy Wholesale.");
         using var facts = JsonDocument.Parse(BidRecommendationService.BidData(page, 50));
-        var prices = facts.RootElement.GetProperty("objectiveFacts").GetProperty("priceAssessment").EnumerateArray().ToArray();
+        var prices = facts.RootElement.GetProperty("objectiveFacts")
+            .GetProperty("priceAssessment")
+            .EnumerateArray()
+            .ToArray();
         Check(!prices[0].GetProperty("isLowestTotal").GetBoolean() && prices[0].GetProperty("costAboveLowestInSameCurrency").GetDecimal() == 31
             && prices[1].GetProperty("isLowestTotal").GetBoolean(), "1123 must be recorded as more expensive than 1092.");
         var handler = new PromptHandler();
@@ -46,7 +58,8 @@ public static class ReportContentChecks
         var ai = new BidRecommendationService(http, VllmAiChecks.LocalFixtureConfiguration());
         var result = await ai.Recommend(page, 50, default);
         Check(result.ModelName == "fixture/model", "Comparison must identify the model that returned it.");
-        Check(ReportContent.Parse(result.Scenarios[0].Reason).Count(b => b.Kind == "heading") == 4, "Structured recommendation lost one of its four sections.");
+        Check(ReportContent.Parse(result.Scenarios[0].Reason)
+            .Count(b => b.Kind == "heading") == 4, "Structured recommendation lost one of its four sections.");
         Check(handler.Calls == 2, "Contradictory delivery explanation must be rejected and retried once.");
 
         // 3-offer comparison checks: middle offer comparatives and post-claim target mentions must not false-fail.
@@ -62,13 +75,18 @@ public static class ReportContentChecks
         BidNarrativeValidation.Check(page, 2, "No material tradeoff is evident; the alternative bids are more expensive.");
         BidNarrativeValidation.Check(page, 1, "No material tradeoff is evident; the alternative bids are slower.");
         BidNarrativeValidation.Check(page, 2, "Apart from the higher cost of the other offers, there are no material trade-offs for Cedar Pharmacy Wholesale.");
-        BidNarrativeValidation.Check(page, 2, "Cedar Pharmacy Wholesale is cheapest; Levant Medicine Supply is cheaper than Rimal Pharmaceutical Distribution.");
+        BidNarrativeValidation.Check(page,
+            2,
+            "Cedar Pharmacy Wholesale is cheapest; Levant Medicine Supply is cheaper than Rimal Pharmaceutical Distribution.");
         BidNarrativeValidation.Check(page, 3, "Higher total cost (1,105.00 vs 1,092.00 JOD) than Bid #2. Slower delivery.", true);
         BidNarrativeValidation.Check(page, 3, "Slower than the 3-day offer, yet faster than the 7-day offer.", true);
         // "than the fastest bids" names the yardstick; it must not be read as "this offer is the fastest".
         BidNarrativeValidation.Check(page, 3, "Delivery of 5 days is slower than the fastest bids; cost is above the cheapest offer.", true);
         BidNarrativeValidation.Check(page, 3, "The 5-day delivery is 2 days slower than the fastest offer from Rimal Pharmaceutical Distribution.");
-        try { BidNarrativeValidation.Check(page, 1, "Delivery of 3 days is slower than the fastest bids.", true); throw new Exception("Wrong 'slower than the fastest' accepted."); }
+        try { BidNarrativeValidation.Check(page,
+            1,
+            "Delivery of 3 days is slower than the fastest bids.",
+            true); throw new Exception("Wrong 'slower than the fastest' accepted."); }
         catch (InvalidOperationException) { }
         // A sentence the validator rejects is removed on its own; accurate sentences around it survive.
         var (cleaned, removedCount) = BidNarrativeValidation.Sanitize(page, 2,
@@ -83,7 +101,8 @@ public static class ReportContentChecks
         catch (InvalidOperationException) { }
         var (joinedClean, joinedRemoved) = BidNarrativeValidation.Sanitize(page, 2, joined);
         BidNarrativeValidation.Check(page, 2, joinedClean);
-        Check(joinedRemoved >= 1 && joinedClean.Contains("best fit"), "Sanitized joined text must pass the same check Validate runs.");
+        Check(joinedRemoved >= 1
+            && joinedClean.Contains("best fit"), "Sanitized joined text must pass the same check Validate runs.");
         var (untouched, none) = BidNarrativeValidation.Sanitize(page, 3, "Delivery of 5 days is slower than the fastest bids.", true);
         Check(none == 0 && untouched.Contains("fastest bids"), "Sanitize must keep accurate text unchanged.");
         foreach (var threeOfferContradiction in new[] {
@@ -115,7 +134,13 @@ public static class ReportContentChecks
             Calls++;
             using var input = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
             var system = input.RootElement.GetProperty("messages")[0].GetProperty("content").GetString()!;
-            if (!system.Contains("140–220 words") || !system.Contains("Tradeoffs and limitations") || !system.Contains("Do not output HTML") || !system.Contains("HIGHER cost"))
+            if (!system.Contains("140–220 words")
+                || !system
+                .Contains("Tradeoffs and limitations")
+                || !system
+                .Contains("Do not output HTML")
+                || !system
+                .Contains("HIGHER cost"))
                 throw new Exception("AI prompt lost detail, format or price-accuracy instructions.");
             var result = new BidRecommendation([new(50, 1, "Decision basis\nFaster delivery carries a higher total cost; the committee must weigh this tradeoff.")], [],
                 [new(1, "Faster delivery", "Higher total cost"), new(2, "Lower total cost", "Slower delivery")], "Chosen offer\nOffer #1");

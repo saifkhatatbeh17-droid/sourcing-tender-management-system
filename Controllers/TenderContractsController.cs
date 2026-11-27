@@ -36,7 +36,9 @@ public sealed class TenderContractsController(ApplicationDbContext db, IWebHostE
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         // Lock this row until the transaction ends, so two people cannot change the same record at the same time.
         await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @id int; SELECT @id= TenderId FROM dbo.Tenders WITH (UPDLOCK,HOLDLOCK) WHERE TenderId={id};", ct);
-        var tender = await AwardQuery(id).Include(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems).SingleOrDefaultAsync(ct);
+        var tender = await AwardQuery(id).Include(t => t.PurchaseRequest)
+            .ThenInclude(r => r.PurchaseRequestItems)
+            .SingleOrDefaultAsync(ct);
         if (tender is null) return NotFound();
         var winner = await db.Bids.AsNoTracking().Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile)
             .Include(b => b.BidItems).ThenInclude(i => i.PurchaseRequestItem)
@@ -109,7 +111,8 @@ public sealed class TenderContractsController(ApplicationDbContext db, IWebHostE
         var contract = await db.TenderContracts.AsNoTracking().Where(c => c.TenderId == id && AwardQuery(id).Any())
             .Select(c => new { Generated = signed ? null : c.GeneratedPdf, c.SignedFileName, c.SignedStoredFileName }).SingleOrDefaultAsync(ct);
         if (contract is null) return NotFound();
-        if (!signed && contract.Generated is { } bytes) return File(bytes, "application/pdf", $"tender-{id}-award-contract.pdf");
+        if (!signed
+            && contract.Generated is { } bytes) return File(bytes, "application/pdf", $"tender-{id}-award-contract.pdf");
         if (contract.SignedStoredFileName is not { } stored || Path.GetFileName(stored) != stored) return NotFound();
         var path = Path.Combine(Storage, stored);
         return System.IO.File.Exists(path) ? PhysicalFile(path, "application/pdf", contract.SignedFileName) : NotFound();
@@ -118,13 +121,16 @@ public sealed class TenderContractsController(ApplicationDbContext db, IWebHostE
     private IQueryable<Tender> AwardQuery(int id)
     {
         var user = UserId;
-        var rows = db.Tenders.AsNoTracking().Where(t => t.TenderId == id && t.Status == "Awarded" && t.AwardedBidId != null);
+        var rows = db.Tenders.AsNoTracking()
+            .Where(t => t.TenderId == id && t.Status == "Awarded" && t.AwardedBidId != null);
         if (user is null) return rows.Where(_ => false);
         if (User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SourcingManager)) return rows;
         if (User.IsInRole(RoleNames.TopCommittee))
             return rows.Where(t => t.CommitteeAssignments.Any(a => a.CommitteeType == "Top" && a.UserId == user));
         if (User.IsInRole(RoleNames.Supplier))
-            return rows.Where(t => t.Bid != null && t.Bid.TenderId == t.TenderId && t.Bid.Invitation.SupplierProfile.UserId == user);
+            return rows.Where(t => t.Bid != null
+                && t.Bid.TenderId == t.TenderId
+                && t.Bid.Invitation.SupplierProfile.UserId == user);
         return rows.Where(_ => false);
     }
 

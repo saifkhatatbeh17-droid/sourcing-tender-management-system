@@ -73,15 +73,23 @@ public sealed partial class SupplierLinks(ApplicationDbContext db, IWebHostEnvir
             {
                 b.BidId, b.TenderId, SupplierId = b.Invitation.SupplierProfileId, b.Invitation.SupplierProfile.CompanyName,
                 b.SubmittedAt, b.Currency, b.AdditionalCosts, b.TechnicalDetails,
-                Winner = b.Invitation.Tender.AwardedBidId ?? (b.Invitation.Tender.EvaluationReport == null ? null : b.Invitation.Tender.EvaluationReport.RecommendedBidId),
-                Lines = b.BidItems.Select(i => new { i.PurchaseRequestItemId, i.PurchaseRequestItem.ItemName, i.Quantity, i.UnitPrice, i.OfferedSpecifications, i.PurchaseRequestItem.Specifications }).ToList(),
+                Winner = b.Invitation.Tender.AwardedBidId
+                    ?? (b.Invitation.Tender.EvaluationReport == null ? null : b.Invitation.Tender.EvaluationReport.RecommendedBidId),
+                Lines = b.BidItems.Select(i => new { i.PurchaseRequestItemId,
+                    i.PurchaseRequestItem.ItemName,
+                    i.Quantity,
+                    i.UnitPrice,
+                    i.OfferedSpecifications,
+                    i.PurchaseRequestItem.Specifications })
+                    .ToList(),
                 Files = b.BidDocuments.Select(d => new { d.OriginalFileName, d.StoredFileName }).ToList()
             })
             .ToListAsync(ct);
 
         return bids.Select(b => new OfferFacts(b.BidId, b.TenderId, b.SupplierId, b.CompanyName, b.SubmittedAt,
             b.Lines.Sum(l => l.Quantity * l.UnitPrice) + b.AdditionalCosts, b.Currency, b.Winner == b.BidId,
-            b.Lines.Select(l => new OfferLineFacts(l.PurchaseRequestItemId, l.ItemName, l.UnitPrice, l.OfferedSpecifications, l.Specifications)).ToList(),
+            b.Lines.Select(l => new OfferLineFacts(l.PurchaseRequestItemId, l.ItemName, l.UnitPrice, l.OfferedSpecifications, l.Specifications))
+                .ToList(),
             b.TechnicalDetails,
             filesForTender is { } t && b.TenderId != t ? [] : b.Files.Select(f => ReadFile(f.OriginalFileName, f.StoredFileName)).OfType<OfferFileFacts>().ToList()))
             .ToList();
@@ -152,7 +160,9 @@ public sealed partial class SupplierLinks(ApplicationDbContext db, IWebHostEnvir
         foreach (var tender in offers.GroupBy(o => o.TenderId))
         {
             // One offer per supplier per tender: the latest submission counts.
-            var list = tender.GroupBy(o => o.SupplierId).Select(g => g.OrderByDescending(o => o.SubmittedAt).First()).ToList();
+            var list = tender.GroupBy(o => o.SupplierId)
+                .Select(g => g.OrderByDescending(o => o.SubmittedAt).First())
+                .ToList();
             for (var i = 0; i < list.Count; i++)
                 for (var j = i + 1; j < list.Count; j++)
                 {
@@ -225,7 +235,8 @@ public sealed partial class SupplierLinks(ApplicationDbContext db, IWebHostEnvir
         // Unit prices on the items both quoted.
         var pairs = a.Lines.Join(b.Lines, x => x.ItemId, y => y.ItemId, (x, y) => (x, y))
             .Where(p => p.x.UnitPrice > 0 && p.y.UnitPrice > 0).ToList();
-        var close = pairs.Count(p => Math.Abs(p.x.UnitPrice - p.y.UnitPrice) / Math.Max(p.x.UnitPrice, p.y.UnitPrice) <= 0.01m);
+        var close = pairs.Count(p => Math.Abs(p.x.UnitPrice - p.y.UnitPrice) / Math
+            .Max(p.x.UnitPrice, p.y.UnitPrice) <= 0.01m);
         var pricesMatched = pairs.Count >= 2 && close >= 2 && close * 10 >= pairs.Count * 6;
         if (pricesMatched)
             yield return new("prices", $"Their prices are almost the same: {close} of {pairs.Count} items differ by less than 1%.", t, 3);
@@ -234,9 +245,12 @@ public sealed partial class SupplierLinks(ApplicationDbContext db, IWebHostEnvir
 
         // Text each supplier wrote themselves (not the requested specification the form starts with).
         var copied = a.Lines.Join(b.Lines, x => x.ItemId, y => y.ItemId, (x, y) => (x, y))
-            .Where(p => IsOwnText(p.x.OfferedSpec, p.x.RequestedSpec) && IsOwnText(p.y.OfferedSpec, p.y.RequestedSpec) && Similar(p.x.OfferedSpec!, p.y.OfferedSpec!))
+            .Where(p => IsOwnText(p.x.OfferedSpec, p.x.RequestedSpec)
+                && IsOwnText(p.y.OfferedSpec, p.y.RequestedSpec)
+                && Similar(p.x.OfferedSpec!, p.y.OfferedSpec!))
             .Select(p => p.x.ItemName).Distinct().ToList();
-        var notesCopied = Words(a.TechnicalDetails).Count >= 8 && Similar(a.TechnicalDetails!, b.TechnicalDetails ?? "");
+        var notesCopied = Words(a.TechnicalDetails).Count >= 8
+            && Similar(a.TechnicalDetails!, b.TechnicalDetails ?? "");
         if (copied.Count > 0 || notesCopied)
         {
             var where = copied.Count switch
@@ -256,7 +270,8 @@ public sealed partial class SupplierLinks(ApplicationDbContext db, IWebHostEnvir
         else
         {
             var author = a.Files.Select(f => f.Author).OfType<string>()
-                .Intersect(b.Files.Select(f => f.Author).OfType<string>(), StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+                .Intersect(b.Files.Select(f => f.Author)
+                    .OfType<string>(), StringComparer.OrdinalIgnoreCase).FirstOrDefault();
             if (author != null)
                 yield return new("author", $"Their documents were made by the same person: “{author}”.", t, 2);
         }
@@ -265,7 +280,10 @@ public sealed partial class SupplierLinks(ApplicationDbContext db, IWebHostEnvir
         if (a.SubmittedAt is { } sa && b.SubmittedAt is { } sb && Math.Abs((sa - sb).TotalMinutes) <= 10)
         {
             var minutes = (int)Math.Round(Math.Abs((sa - sb).TotalMinutes));
-            yield return new("timing", minutes == 0 ? "They sent their offers in the same minute." : $"They sent their offers {minutes} minute{(minutes == 1 ? "" : "s")} apart.", t, 1);
+            yield return new("timing",
+                minutes == 0 ? "They sent their offers in the same minute." : $"They sent their offers {minutes} minute{(minutes == 1 ? "" : "s")} apart.",
+                t,
+                1);
         }
     }
 
@@ -274,8 +292,12 @@ public sealed partial class SupplierLinks(ApplicationDbContext db, IWebHostEnvir
         var decided = new List<(int Tender, int Winner, decimal Gap)>();
         foreach (var tender in tenders)
         {
-            var a = offers.Where(o => o.TenderId == tender && o.SupplierId == supplierA).OrderByDescending(o => o.SubmittedAt).FirstOrDefault();
-            var b = offers.Where(o => o.TenderId == tender && o.SupplierId == supplierB).OrderByDescending(o => o.SubmittedAt).FirstOrDefault();
+            var a = offers.Where(o => o.TenderId == tender && o.SupplierId == supplierA)
+                .OrderByDescending(o => o.SubmittedAt)
+                .FirstOrDefault();
+            var b = offers.Where(o => o.TenderId == tender && o.SupplierId == supplierB)
+                .OrderByDescending(o => o.SubmittedAt)
+                .FirstOrDefault();
             if (a == null || b == null || a.IsWinner == b.IsWinner || a.Total <= 0 || b.Total <= 0) continue;
             var (win, lose) = a.IsWinner ? (a, b) : (b, a);
             decided.Add((tender, win.SupplierId, (lose.Total - win.Total) / win.Total));
@@ -291,7 +313,10 @@ public sealed partial class SupplierLinks(ApplicationDbContext db, IWebHostEnvir
 
         var narrow = decided.Where(d => d.Gap is >= 0 and <= 0.03m).ToList();
         if (narrow.Count >= 2)
-            yield return new("cover", $"When one of them wins, the other loses by a tiny amount (under 3%). This happened {narrow.Count} of {decided.Count} times.", null, 2);
+            yield return new("cover",
+                $"When one of them wins, the other loses by a tiny amount (under 3%). This happened {narrow.Count} of {decided.Count} times.",
+                null,
+                2);
     }
 
     internal static bool IsOwnText(string? offered, string? requested) =>
@@ -312,7 +337,10 @@ public sealed partial class SupplierLinks(ApplicationDbContext db, IWebHostEnvir
         Enumerable.Range(0, words.Count - 2).Select(i => $"{words[i]} {words[i + 1]} {words[i + 2]}").ToHashSet();
 
     private static List<string> Words(string? text) =>
-        string.IsNullOrWhiteSpace(text) ? [] : WordRegex().Matches(text.ToLowerInvariant()).Select(m => m.Value).ToList();
+        string.IsNullOrWhiteSpace(text) ? [] : WordRegex()
+            .Matches(text.ToLowerInvariant())
+            .Select(m => m.Value)
+            .ToList();
 
     private static string Normal(string? text) => string.Join(' ', Words(text));
     private static string Money(decimal value) => value.ToString("N2", CultureInfo.InvariantCulture);

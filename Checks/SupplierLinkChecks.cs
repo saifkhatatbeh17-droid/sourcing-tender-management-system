@@ -15,7 +15,8 @@ public static class SupplierLinkChecks
         OfferFacts Offer(int bid, int tender, int supplier, decimal[] prices, DateTime at, bool winner = false,
             string? spec = null, string? notes = null, OfferFileFacts[]? files = null) =>
             new(bid, tender, supplier, "S" + supplier, at, prices.Sum() * 10, "JOD", winner,
-                prices.Select((p, i) => new OfferLineFacts(i + 1, "Item " + (i + 1), p, spec ?? requested, requested)).ToList(),
+                prices.Select((p, i) => new OfferLineFacts(i + 1, "Item " + (i + 1), p, spec ?? requested, requested))
+                    .ToList(),
                 notes, files ?? []);
 
         // 1. Independent offers: nothing to report.
@@ -34,7 +35,8 @@ public static class SupplierLinkChecks
         ]);
         Require(priced.Count == 1 && priced[0].SupplierA == 1 && priced[0].SupplierB == 2, "price-matched pair found");
         Require(priced[0].Level == SupplierLinks.High, "prices plus timing is strong");
-        Require(priced[0].Evidence.Any(e => e.Kind == "prices" && e.Text.Contains("3 of 3 items")), "price evidence counts items");
+        Require(priced[0].Evidence.Any(e => e.Kind == "prices"
+            && e.Text.Contains("3 of 3 items")), "price evidence counts items");
         Require(priced[0].Evidence.Any(e => e.Kind == "timing" && e.Text.Contains("4 minutes")), "timing evidence");
 
         // 3. Timing alone is too weak to show.
@@ -71,7 +73,8 @@ public static class SupplierLinkChecks
         ]);
         Require(history.Count == 1, "history pair found");
         Require(history[0].Evidence.Any(e => e.Kind == "turns" && e.TenderId == null), "taking turns evidence");
-        Require(history[0].Evidence.Any(e => e.Kind == "cover" && e.Text.Contains("3 of 3 times")), "narrow losses evidence");
+        Require(history[0].Evidence.Any(e => e.Kind == "cover"
+            && e.Text.Contains("3 of 3 times")), "narrow losses evidence");
         Require(history[0].SharedTenders.Count == 3, "shared tenders listed");
 
         // 7. AI brief guard: a sentence with a number not in the evidence is dropped.

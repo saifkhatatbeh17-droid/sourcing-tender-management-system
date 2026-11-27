@@ -106,7 +106,8 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
         var states = await tenders.GroupBy(t => t.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected") ? "Rejected" :
             t.Status == "Awarded" ? "Awarded" : t.Status == "AwaitingCommitteeDecision" ? "Pending" : "Other")
             .Select(g => new { Status = g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Status, g => g.Count, cancellationToken);
-        var needsVote = await pending.CountAsync(t => !t.TenderApprovals.Any(a => a.Stage == "Top" && a.UserId == userId), cancellationToken);
+        var needsVote = await pending.CountAsync(t => !t.TenderApprovals.Any(a => a.Stage == "Top"
+            && a.UserId == userId), cancellationToken);
         return new CommitteeDashboard(total, awaiting, awarded, rejected, open, pendingRows, recent, progress)
         {
             Overview = new SourcingTenderManagement.Models.DashboardOverview("Assigned tender status", "Only tenders assigned to you", "tenders", "pending",
@@ -124,7 +125,8 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
             ?? throw new CommitteeTenderNotFoundException();
         var members = await access.GetMembersAsync(tenderId, cancellationToken);
         var managers = await access.GetManagersAsync(tenderId, cancellationToken);
-        var open = await RelevantClarifications().CountAsync(c => c.TenderId == tenderId && c.Status != "Resolved", cancellationToken);
+        var open = await RelevantClarifications().CountAsync(c => c.TenderId == tenderId
+            && c.Status != "Resolved", cancellationToken);
         var mine = await RelevantClarifications().Where(c => c.TenderId == tenderId && c.SenderUserId == userId)
             .Include(c => c.ClarificationResponses).ThenInclude(r => r.RespondedByUser)
             .OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.ClarificationId)
@@ -142,7 +144,9 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
             .Include(t => t.TenderDocuments)
             .Include(t => t.TenderApprovals).ThenInclude(a => a.User)
             .Include(t => t.Invitations).ThenInclude(i => i.SupplierProfile)
-            .Include(t => t.Invitations).ThenInclude(i => i.Bids).ThenInclude(b => b.BidItems).ThenInclude(i => i.PurchaseRequestItem)
+            .Include(t => t.Invitations).ThenInclude(i => i.Bids)
+                .ThenInclude(b => b.BidItems)
+                .ThenInclude(i => i.PurchaseRequestItem)
             .Include(t => t.Invitations).ThenInclude(i => i.Bids).ThenInclude(b => b.BidDocuments)
             .Include(t => t.Invitations).ThenInclude(i => i.Bids).ThenInclude(b => b.Evaluations)
                 .ThenInclude(e => e.CommitteeAssignment).ThenInclude(a => a.User)
@@ -209,9 +213,17 @@ public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitt
         if (evaluation.FinancialMark.HasValue && evaluation.TechnicalMark.HasValue && financialWeight.HasValue)
             return [
                 new("Financial mark", "Financial", financialWeight.Value, evaluation.FinancialMark.Value, null) { Maximum = financialWeight.Value },
-                new("Technical mark", "Requirements", 100 - financialWeight.Value, evaluation.TechnicalMark.Value, null) { Maximum = 100 - financialWeight.Value }
+                new("Technical mark",
+                    "Requirements",
+                    100 - financialWeight.Value,
+                    evaluation.TechnicalMark.Value,
+                    null) { Maximum = 100 - financialWeight.Value }
             ];
         return evaluation.EvaluationScores.OrderBy(s => s.EvaluationCriterionId)
-            .Select(s => new CommitteeScore(s.EvaluationCriterion.Name, s.EvaluationCriterion.Category, s.EvaluationCriterion.Weight, s.Score, s.Notes)).ToList();
+            .Select(s => new CommitteeScore(s.EvaluationCriterion.Name,
+                s.EvaluationCriterion.Category,
+                s.EvaluationCriterion.Weight,
+                s.Score,
+                s.Notes)).ToList();
     }
 }

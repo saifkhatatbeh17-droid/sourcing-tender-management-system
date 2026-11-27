@@ -44,7 +44,10 @@ public class NotificationBellViewComponent(ApplicationDbContext db) : ViewCompon
         return View(new NotificationBellViewModel
         {
             UnreadCount = await notifications.CountAsync(n => !n.IsRead),
-            Items = await notifications.OrderByDescending(n => n.CreatedAt).ThenByDescending(n => n.NotificationId).Take(10).ToListAsync()
+            Items = await notifications.OrderByDescending(n => n.CreatedAt)
+                .ThenByDescending(n => n.NotificationId)
+                .Take(10)
+                .ToListAsync()
         });
     }
 }

@@ -31,10 +31,14 @@ public static class TopCommitteeReportingChecks
         var second=TopCommitteeReports.ProjectRows(source,"member-b").Single();
         var absent=TopCommitteeReports.ProjectRows(source,"not-voted").Single();
         Check(first.DecisionAt==a && second.DecisionAt==b,"Each member retains their own vote timestamp");
-        Check(first.MyDecision=="Approved" && absent.MyDecision==null && absent.DecisionAt==null,"Unvoted member has no decision or timestamp");
-        Check(first.AwardedAt==award && first.CommitteeOutcomeAt==award,"Award and original committee timestamp preserved separately");
+        Check(first.MyDecision=="Approved"
+            && absent.MyDecision==null
+            && absent.DecisionAt==null,"Unvoted member has no decision or timestamp");
+        Check(first.AwardedAt==award
+            && first.CommitteeOutcomeAt==award,"Award and original committee timestamp preserved separately");
         tender.AwardedAt=null;
-        Check(TopCommitteeReports.ProjectRows(source,"member-a").Single().CommitteeOutcomeAt==b,"Latest Top vote excludes Manager vote");
+        Check(TopCommitteeReports.ProjectRows(source,"member-a")
+            .Single().CommitteeOutcomeAt==b,"Latest Top vote excludes Manager vote");
         tender.AwardedAt=award;
         var participation=new Tender { TenderId=2,Status="Open",AwardedBidId=11,
             Bid=new Bid { BidId=11,TenderId=2,Invitation=new Invitation { SupplierProfileId=7 } } };
@@ -45,9 +49,14 @@ public static class TopCommitteeReportingChecks
         Check(!TopCommitteeReports.AwardCounts(Array.Empty<Tender>().AsQueryable()).Any(),"Empty award query");
         using var db=new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlServer("Server=invalid.example;Database=NeverOpened;Integrated Security=True;TrustServerCertificate=True").Options);
-        var detailSql=TopCommitteeReports.ProjectRows(TopCommitteeReports.AssignedTenders(db,"member-a"),"member-a").ToQueryString();
-        Check(detailSql.Contains("CommitteeAssignments") && detailSql.Contains("member-a"),"Detail SQL retains member assignment scope");
-        Check(detailSql.Contains("DecidedAt") && detailSql.Contains("AwardedAt"),"Decision and award SQL projection translates");
+        var detailSql=TopCommitteeReports.ProjectRows(TopCommitteeReports.AssignedTenders(db,"member-a"),"member-a")
+            .ToQueryString();
+        Check(detailSql.Contains("CommitteeAssignments")
+            && detailSql
+            .Contains("member-a"),"Detail SQL retains member assignment scope");
+        Check(detailSql.Contains("DecidedAt")
+            && detailSql
+            .Contains("AwardedAt"),"Decision and award SQL projection translates");
         var supplierSql=TopCommitteeReports.SupplierRows(db).ToQueryString();
         Check(supplierSql.Contains("LEFT JOIN") && supplierSql.Contains("COUNT(DISTINCT") && supplierSql.Contains("GROUP BY"),
             "Supplier SQL translates to grouped distinct count with zero-award suppliers retained");
@@ -71,12 +80,15 @@ public static class TopCommitteeReportingChecks
             Check(!book.Worksheet("Supplier Statistics").Cell(2,2).HasFormula,"Supplier name is text, not formula");
             Check(book.Worksheet("Supplier Statistics").Cell(3,3).GetValue<int>()==0,"Zero award supplier included");
             Check(book.Worksheet("Tenders").Cell(2,1).DataType==XLDataType.Number,"Tender ID stays numeric");
-            Check(book.Worksheet("Tenders").Cell(2,9).DataType==XLDataType.DateTime,"Member timestamp stays typed date");
+            Check(book.Worksheet("Tenders")
+                .Cell(2,9).DataType==XLDataType.DateTime,"Member timestamp stays typed date");
             Check(book.Worksheet("Summary").Cell(15,2).GetValue<int>()==2,"System supplier count separated in summary");
         }
         var empty=page with { Rows=[],Summary=new(0,0,0,0,0,0,0),SystemStatistics=new(0,0,0),Suppliers=[] };
         using(var book=new XLWorkbook(new MemoryStream(exporter.Excel(empty))))
-            Check(book.Worksheet("Supplier Statistics").Cell(2,1).GetString()=="No suppliers recorded.","Empty supplier state");
+            Check(book.Worksheet("Supplier Statistics")
+                .Cell(2,1)
+                .GetString()=="No suppliers recorded.","Empty supplier state");
         var longName=string.Join(" ",Enumerable.Repeat("Supplier procurement and laboratory equipment",8));
         var large=page with {Rows=Enumerable.Range(1,160).Select(i=>first with {TenderId=i,Title="Tender "+i}).ToList(),
             Suppliers=Enumerable.Range(1,180).Select(i=>new CommitteeSupplierStatistics(i,longName+" "+i,i%5)).ToList()};

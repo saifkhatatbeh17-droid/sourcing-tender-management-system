@@ -118,8 +118,11 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
 
         var suppliers = applicationsOnly
             ? await query.OrderByDescending(supplier => supplier.Status == "Pending")
-                .ThenByDescending(supplier => supplier.CreatedAt).ThenBy(supplier => supplier.SupplierProfileId).ToListAsync()
-            : await query.OrderBy(supplier => supplier.CompanyName).ThenBy(supplier => supplier.SupplierProfileId).ToListAsync();
+                .ThenByDescending(supplier => supplier.CreatedAt).ThenBy(supplier => supplier.SupplierProfileId)
+                    .ToListAsync()
+            : await query.OrderBy(supplier => supplier.CompanyName)
+                .ThenBy(supplier => supplier.SupplierProfileId)
+                .ToListAsync();
 
         return View(applicationsOnly ? nameof(SupplierApplications) : nameof(Suppliers), new SupplierListViewModel
         {

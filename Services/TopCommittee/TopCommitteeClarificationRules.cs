@@ -67,7 +67,8 @@ internal static class TopCommitteeClarificationRules
     {
         var question = RequireResolve(context, memberId, clarificationId);
         var manager = ResponsibleManager(context);
-        var latestResponse = question.ClarificationResponses.Where(r => r.Message != ClarificationResolution.Confirmation).OrderByDescending(r => r.CreatedAt)
+        var latestResponse = question.ClarificationResponses.Where(r => r.Message != ClarificationResolution.Confirmation)
+            .OrderByDescending(r => r.CreatedAt)
             .ThenByDescending(r => r.ClarificationResponseId).FirstOrDefault();
         if (latestResponse?.RespondedByUserId != manager.UserId)
             throw new CommitteeStateConflictException("Wait for the Sourcing Manager to answer the last question.");

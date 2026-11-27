@@ -19,12 +19,18 @@ internal interface ICommitteeVotingSession
 
 internal interface ITopCommitteeVotingStore
 {
-    Task<T> ExecuteAsync<T>(string memberId, int tenderId, Func<ICommitteeVotingSession, CancellationToken, Task<T>> action, CancellationToken cancellationToken);
+    Task<T> ExecuteAsync<T>(string memberId,
+        int tenderId,
+        Func<ICommitteeVotingSession, CancellationToken, Task<T>> action,
+        CancellationToken cancellationToken);
 }
 
 internal sealed class TopCommitteeVotingStore(ITopCommitteeTenderTransaction transaction, ITopCommitteeVotingPause pause) : ITopCommitteeVotingStore
 {
-    public Task<T> ExecuteAsync<T>(string memberId, int tenderId, Func<ICommitteeVotingSession, CancellationToken, Task<T>> action, CancellationToken cancellationToken) =>
+    public Task<T> ExecuteAsync<T>(string memberId,
+        int tenderId,
+        Func<ICommitteeVotingSession, CancellationToken, Task<T>> action,
+        CancellationToken cancellationToken) =>
         transaction.ExecuteAsync(tenderId, async (db, ct) =>
         {
             // Every identity/state read and write uses the coordinator's locked context.
@@ -39,7 +45,10 @@ internal sealed class TopCommitteeVotingStore(ITopCommitteeTenderTransaction tra
             return await action(new Session(db, pause, tenderId, new(access, nomination)), ct);
         }, cancellationToken);
 
-    private sealed class Session(Data.ApplicationDbContext db, ITopCommitteeVotingPause pause, int tenderId, CommitteeVotingContext context) : ICommitteeVotingSession
+    private sealed class Session(Data.ApplicationDbContext db,
+        ITopCommitteeVotingPause pause,
+        int tenderId,
+        CommitteeVotingContext context) : ICommitteeVotingSession
     {
         public CommitteeVotingContext Context => context;
         public Task AssertNotPausedAsync(CancellationToken cancellationToken) => pause.AssertNotPausedAsync(db, tenderId, cancellationToken);

@@ -107,7 +107,8 @@ public sealed class SpecMatchService(HttpClient http, IConfiguration configurati
         Offers = candidates.GroupBy(x => x.BidId).Select(offer => new
         {
             BidId = offer.Key,
-            TechnicalDetails = AiUntrusted.Wrap("supplier technical details", offer.First().Offer.TechnicalDetails ?? ""),
+            TechnicalDetails = AiUntrusted.Wrap("supplier technical details", offer.First().Offer.TechnicalDetails
+                ?? ""),
             Items = offer.Select(x => new
             {
                 x.ItemId,
@@ -115,7 +116,8 @@ public sealed class SpecMatchService(HttpClient http, IConfiguration configurati
                 x.Request.Quantity,
                 x.Request.Unit,
                 x.Request.Specifications,
-                OfferedSpecifications = x.Lines.Select(y => AiUntrusted.Wrap("supplier offered specifications", y.OfferedSpecifications ?? ""))
+                OfferedSpecifications = x.Lines.Select(y => AiUntrusted.Wrap("supplier offered specifications", y.OfferedSpecifications
+                    ?? ""))
             })
         })
     }, Json);
@@ -132,7 +134,9 @@ public sealed class SpecMatchService(HttpClient http, IConfiguration configurati
         foreach (var cell in cells.EnumerateArray())
         {
             if (cell.ValueKind != JsonValueKind.Object || !ReadId(cell, "bidId", out var bidId) ||
-                !ReadId(cell, "itemId", out var itemId) || !validPairs.TryGetValue((bidId, itemId), out var candidate) ||
+                !ReadId(cell, "itemId", out var itemId)
+                    || !validPairs.TryGetValue((bidId, itemId), out var candidate)
+                    ||
                 !seen.Add((bidId, itemId)))
                 continue;
 
@@ -152,8 +156,10 @@ public sealed class SpecMatchService(HttpClient http, IConfiguration configurati
             }
 
             var quote = OfferPreCheck.Normalize(evidence ?? "");
-            var offerText = candidate.Lines.Select(x => x.OfferedSpecifications).Append(candidate.Offer.TechnicalDetails);
-            if (quote.Length == 0 || !offerText.Any(x => OfferPreCheck.Normalize(x ?? "").Contains(quote, StringComparison.Ordinal)))
+            var offerText = candidate.Lines.Select(x => x.OfferedSpecifications)
+                .Append(candidate.Offer.TechnicalDetails);
+            if (quote.Length == 0
+                || !offerText.Any(x => OfferPreCheck.Normalize(x ?? "").Contains(quote, StringComparison.Ordinal)))
             {
                 yield return new(bidId, itemId, "NeedsCheck", "AI quote not found in the offer", null, "code");
                 continue;
@@ -167,7 +173,10 @@ public sealed class SpecMatchService(HttpClient http, IConfiguration configurati
     private static bool ReadId(JsonElement cell, string name, out int id)
     {
         id = 0;
-        return cell.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out id);
+        return cell.TryGetProperty(name, out var value)
+            && value.ValueKind == JsonValueKind.Number
+            && value
+            .TryGetInt32(out id);
     }
 
     private static string? ReadText(JsonElement cell, string name) =>

@@ -40,7 +40,9 @@ public static class ProcurementBusinessContext
                 Items = t.PurchaseRequest.PurchaseRequestItems.Select(i => i.ItemName).ToList()
             }).SingleAsync(cancellationToken);
 
-        var profile = await db.CompanyProfiles.AsNoTracking().OrderBy(c => c.CompanyProfileId).FirstOrDefaultAsync(cancellationToken);
+        var profile = await db.CompanyProfiles.AsNoTracking()
+            .OrderBy(c => c.CompanyProfileId)
+            .FirstOrDefaultAsync(cancellationToken);
         var company = profile == null ? null : new CompanyFacts(profile.Name, profile.Industry, profile.Country, profile.Currency,
             profile.AnnualRevenue, profile.AnnualProcurementBudget, profile.Employees, profile.Sites, profile.Overview);
 
@@ -50,7 +52,8 @@ public static class ProcurementBusinessContext
         var elapsed = Percent(today.DayNumber - fiscalStart.DayNumber, fiscalStart.AddYears(1).DayNumber - fiscalStart.DayNumber);
 
         var budget = await db.DepartmentBudgets.AsNoTracking()
-            .FirstOrDefaultAsync(b => b.DepartmentId == request.DepartmentId && b.FiscalYear == fiscalYear, cancellationToken);
+            .FirstOrDefaultAsync(b => b.DepartmentId == request.DepartmentId
+                && b.FiscalYear == fiscalYear, cancellationToken);
         var budgetFacts = budget == null ? null : new DepartmentBudgetFacts(request.Department, budget.FiscalYear, budget.Currency,
             budget.AllocatedAmount, budget.SpentToDate, budget.CommittedAmount,
             budget.AllocatedAmount - budget.SpentToDate - budget.CommittedAmount,
@@ -60,12 +63,14 @@ public static class ProcurementBusinessContext
         if (offerTotal is decimal total && !string.IsNullOrWhiteSpace(offerCurrency))
         {
             var budgetCurrency = budgetFacts?.Currency ?? company?.Currency;
-            var sameCurrency = budgetCurrency != null && string.Equals(budgetCurrency, offerCurrency, StringComparison.OrdinalIgnoreCase);
+            var sameCurrency = budgetCurrency != null
+                && string.Equals(budgetCurrency, offerCurrency, StringComparison.OrdinalIgnoreCase);
             offer = new OfferBudgetFacts(total, offerCurrency,
                 sameCurrency && budgetFacts != null ? Percent(total, budgetFacts.Remaining) : null,
                 sameCurrency && budgetFacts != null ? Percent(total, budgetFacts.Allocated) : null,
                 sameCurrency && company != null ? Percent(total, company.AnnualProcurementBudget) : null,
-                sameCurrency && request.EstimatedBudget is > 0 ? Percent(total - request.EstimatedBudget.Value, request.EstimatedBudget.Value) : null,
+                sameCurrency
+                    && request.EstimatedBudget is > 0 ? Percent(total - request.EstimatedBudget.Value, request.EstimatedBudget.Value) : null,
                 sameCurrency && budgetFacts != null ? budgetFacts.Remaining - total : null,
                 budgetCurrency == null ? "No budget currency is recorded."
                     : sameCurrency ? null : $"Offer is in {offerCurrency} but the budget is in {budgetCurrency}; no conversion rate is recorded.");

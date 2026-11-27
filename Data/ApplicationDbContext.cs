@@ -552,10 +552,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.OfferShortfallReason).HasMaxLength(2000);
             entity.HasMany(e => e.OfferExtensions).WithOne().HasForeignKey(e => e.TenderId);
 
-            entity.HasOne(e => e.ReplacesTender).WithMany().HasForeignKey(e => e.ReplacesTenderId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.ReplacesTender)
+                .WithMany()
+                .HasForeignKey(e => e.ReplacesTenderId)
+                .OnDelete(DeleteBehavior.NoAction);
             entity.HasIndex(e => e.ReplacesTenderId).IsUnique().HasFilter("[ReplacesTenderId] IS NOT NULL");
             entity.Property(e => e.RejectionForwardedByUserId).HasMaxLength(450);
-            entity.HasOne<ApplicationUser>().WithMany().HasForeignKey(e => e.RejectionForwardedByUserId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(e => e.RejectionForwardedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
             entity.ToTable("Tenders", table => {
                 table.HasCheckConstraint("CK_Tenders_Replacement", "[ReplacesTenderId] IS NULL OR [ReplacesTenderId] <> [TenderId]");
                 table.HasCheckConstraint("CK_Tenders_RejectionForward", "([RejectionForwardedAt] IS NULL AND [RejectionForwardedByUserId] IS NULL) OR ([RejectionForwardedAt] IS NOT NULL AND [RejectionForwardedByUserId] IS NOT NULL)");
@@ -615,7 +621,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasPrincipalKey(p => new { p.TenderId, p.CommitteeAssignmentId })
                 .HasForeignKey(d => new { d.TenderId, d.CommitteeAssignmentId });
 
-            entity.HasOne(d => d.CommitteeAssignmentNavigation).WithMany(p => p.TenderApprovalCommitteeAssignmentNavigations)
+            entity.HasOne(d => d.CommitteeAssignmentNavigation)
+                .WithMany(p => p.TenderApprovalCommitteeAssignmentNavigations)
                 .HasPrincipalKey(p => new { p.TenderId, p.CommitteeAssignmentId, p.UserId, p.CommitteeType })
                 .HasForeignKey(d => new { d.TenderId, d.CommitteeAssignmentId, d.UserId, d.Stage });
         });

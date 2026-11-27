@@ -19,12 +19,16 @@ public static class SupplierWorkflowChecks
         var db = services.GetRequiredService<ApplicationDbContext>();
         var users = services.GetRequiredService<UserManager<ApplicationUser>>();
         var supplier = await db.SupplierProfiles.Include(p => p.User).FirstAsync(p => p.Status == "Approved");
-        var source = await db.PurchaseRequests.Include(r => r.PurchaseRequestItems).FirstAsync(r => r.PurchaseRequestItems.Any());
+        var source = await db.PurchaseRequests.Include(r => r.PurchaseRequestItems)
+            .FirstAsync(r => r.PurchaseRequestItems.Any());
         var officer = (await users.GetUsersInRoleAsync(RoleNames.SourcingOfficer)).First();
         var request = new PurchaseRequest { DepartmentId = source.DepartmentId, RequestedByUserId = source.RequestedByUserId,
             Title = "Temporary supplier regression check", Reason = "Automated regression check", Priority = source.Priority,
             TargetDate = source.TargetDate, Status = "Approved", CreatedAt = DateTime.UtcNow };
-        request.PurchaseRequestItems.Add(new PurchaseRequestItem { ItemName = "Test item", Quantity = 1, Unit = "unit", Specifications = "Test specification" });
+        request.PurchaseRequestItems.Add(new PurchaseRequestItem { ItemName = "Test item",
+            Quantity = 1,
+            Unit = "unit",
+            Specifications = "Test specification" });
         db.PurchaseRequests.Add(request);
         await db.SaveChangesAsync();
         var tender = new Tender { PurchaseRequestId = request.PurchaseRequestId, CreatedByUserId = officer.Id,
@@ -44,18 +48,24 @@ public static class SupplierWorkflowChecks
             {
                 foreach (var status in new[] { "Published", "Open", "Cancelled", "UnderEvaluation" })
                 {
-                    await db.Tenders.Where(t => t.TenderId == tender.TenderId).ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, status));
+                    await db.Tenders.Where(t => t.TenderId == tender.TenderId)
+                        .ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, status));
                     await TenderClosureService.CloseExpired(db, DateTime.UtcNow, ownerId: officer.Id);
                     var expected = status is "Published" or "Open" ? "Closed" : status;
-                    Require(await db.Tenders.AnyAsync(t => t.TenderId == tender.TenderId && t.Status == expected), "Incorrect closure transition: " + status);
+                    Require(await db.Tenders.AnyAsync(t => t.TenderId == tender.TenderId
+                        && t.Status == expected), "Incorrect closure transition: " + status);
                 }
-                await db.Tenders.Where(t => t.TenderId == tender.TenderId).ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, "Published").SetProperty(t => t.ClosesAt, DateTime.UtcNow.AddDays(1)));
+                await db.Tenders.Where(t => t.TenderId == tender.TenderId)
+                    .ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, "Published")
+                        .SetProperty(t => t.ClosesAt, DateTime.UtcNow.AddDays(1)));
                 await TenderClosureService.CloseExpired(db, DateTime.UtcNow, ownerId: officer.Id);
-                Require(await db.Tenders.AnyAsync(t => t.TenderId == tender.TenderId && t.Status == "Published"), "Future tender closed early");
+                Require(await db.Tenders.AnyAsync(t => t.TenderId == tender.TenderId
+                    && t.Status == "Published"), "Future tender closed early");
                 await tx.RollbackAsync();
             }
             db.ChangeTracker.Clear();
-            await db.Tenders.Where(t => t.TenderId == tender.TenderId).ExecuteUpdateAsync(u => u.SetProperty(t => t.ClosesAt, DateTime.UtcNow.AddDays(1)));
+            await db.Tenders.Where(t => t.TenderId == tender.TenderId)
+                .ExecuteUpdateAsync(u => u.SetProperty(t => t.ClosesAt, DateTime.UtcNow.AddDays(1)));
             SupplierController Controller() => new(db, users, environment)
             {
                 ControllerContext = new ControllerContext { ActionDescriptor = new Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor(), RouteData = new Microsoft.AspNetCore.Routing.RouteData(), HttpContext = new DefaultHttpContext { RequestServices = services,
@@ -65,29 +75,52 @@ public static class SupplierWorkflowChecks
             OfferFormViewModel Form(int? bidId = null, decimal price = 10) => new()
             {
                 InvitationId = invitation.InvitationId, BidId = bidId, Currency = "JOD", DeliveryDays = 7,
-                Items = [new OfferLineViewModel { PurchaseRequestItemId = request.PurchaseRequestItems.Single().PurchaseRequestItemId, Quantity = 1, UnitPrice = price, Specifications = "Test specification" }]
+                Items = [new OfferLineViewModel { PurchaseRequestItemId = request.PurchaseRequestItems.Single().PurchaseRequestItemId,
+                    Quantity = 1,
+                    UnitPrice = price,
+                    Specifications = "Test specification" }]
             };
-            List<IFormFile> FailingFiles() => [new FormFile(new MemoryStream([1,2,3]), 0, 3, "documents", "first.pdf") { Headers = new HeaderDictionary(), ContentType = "application/pdf" }, new FailingFile()];
+            List<IFormFile> FailingFiles() => [new FormFile(new MemoryStream([1,2,3]),
+                0,
+                3,
+                "documents",
+                "first.pdf") { Headers = new HeaderDictionary(),
+                ContentType = "application/pdf" }, new FailingFile()];
             Require(await Controller().SaveOffer(Form(), "Submit", FailingFiles()) is ViewResult, "Upload failure did not return form");
             db.ChangeTracker.Clear();
             Require(!await db.Bids.AnyAsync(b => b.TenderId == tender.TenderId), "Failed new submission left a bid");
-            Require(!Directory.Exists(testRoot) || !Directory.EnumerateFiles(testRoot, "*", SearchOption.AllDirectories).Any(), "Failed upload left files");
+            Require(!Directory.Exists(testRoot)
+                || !Directory
+                .EnumerateFiles(testRoot, "*", SearchOption.AllDirectories)
+                .Any(), "Failed upload left files");
             await Controller().SaveOffer(Form(), "Draft", null);
             db.ChangeTracker.Clear();
             var draft = await db.Bids.Include(b => b.BidItems).SingleAsync(b => b.TenderId == tender.TenderId);
             await Controller().SaveOffer(Form(draft.BidId, 99), "Submit", FailingFiles());
             db.ChangeTracker.Clear();
             var unchanged = await db.Bids.Include(b => b.BidItems).SingleAsync(b => b.BidId == draft.BidId);
-            Require(unchanged.Status == "Draft" && unchanged.SubmittedAt == null && unchanged.BidItems.Single().UnitPrice == 10, "Failed draft submission changed saved data");
-            Require(!Directory.EnumerateFiles(testRoot, "*", SearchOption.AllDirectories).Any(), "Failed draft left files");
-            var file = new FormFile(new MemoryStream([1,2,3]), 0, 3, "documents", "success.pdf") { Headers = new HeaderDictionary(), ContentType = "application/pdf" };
+            Require(unchanged.Status == "Draft"
+                && unchanged.SubmittedAt == null
+                && unchanged.BidItems.Single().UnitPrice == 10, "Failed draft submission changed saved data");
+            Require(!Directory.EnumerateFiles(testRoot, "*", SearchOption.AllDirectories)
+                .Any(), "Failed draft left files");
+            var file = new FormFile(new MemoryStream([1,2,3]),
+                0,
+                3,
+                "documents",
+                "success.pdf") { Headers = new HeaderDictionary(),
+                ContentType = "application/pdf" };
             Require(await Controller().SaveOffer(Form(draft.BidId), "Submit", [file]) is RedirectToActionResult, "Successful upload failed");
             db.ChangeTracker.Clear();
-            Require(await db.Bids.AnyAsync(b => b.BidId == draft.BidId && b.Status == "Submitted" && b.SubmittedAt != null), "Submission did not commit");
+            Require(await db.Bids.AnyAsync(b => b.BidId == draft.BidId
+                && b.Status == "Submitted"
+                && b.SubmittedAt != null), "Submission did not commit");
             Require(await db.BidDocuments.CountAsync(d => d.BidId == draft.BidId) == 1, "Attachment metadata missing");
             var history = (ViewResult)await Controller().History();
             var bids = (List<Bid>)history.Model!;
-            Require(bids.Any(b => b.BidId == draft.BidId) && bids.All(b => b.Invitation.SupplierProfileId == supplier.SupplierProfileId && b.SubmittedAt != null), "History ownership or status filter failed");
+            Require(bids.Any(b => b.BidId == draft.BidId)
+                && bids
+                .All(b => b.Invitation.SupplierProfileId == supplier.SupplierProfileId && b.SubmittedAt != null), "History ownership or status filter failed");
             Require(await Controller().Offer(-1) is NotFoundResult, "Unknown offer was exposed");
             SourcingOfficerController Officer(string id) => new(db)
             {
@@ -159,34 +192,54 @@ public static class SupplierWorkflowChecks
             await testTender.ExecuteUpdateAsync(u => u.SetProperty(t => t.ClosesAt, future));
             await Controller().CancelOffer(draft.BidId);
             db.ChangeTracker.Clear();
-            Require(await testBid.AnyAsync(b => b.Status == "Withdrawn" && b.SubmittedAt != null), "Offer was not withdrawn before the deadline");
+            Require(await testBid.AnyAsync(b => b.Status == "Withdrawn"
+                && b.SubmittedAt != null), "Offer was not withdrawn before the deadline");
             await Officer(officer.Id).CancelTender(tender.TenderId);
             db.ChangeTracker.Clear();
             Require(await testTender.AnyAsync(t => t.Status == "Cancelled"), "Tender was not canceled before the deadline");
             var canceledOffers = (ViewResult)await Controller().Offers(null, "Cancelled");
-            Require(((List<Bid>)canceledOffers.Model!).Any(b => b.BidId == draft.BidId && b.Invitation.Tender.Status == "Cancelled"), "Canceled tender missing from supplier offers");
+            Require(((List<Bid>)canceledOffers.Model!).Any(b => b.BidId == draft.BidId
+                && b.Invitation.Tender.Status == "Cancelled"), "Canceled tender missing from supplier offers");
             Require(await Controller().SaveOffer(Form(), "Submit", null) is ForbidResult, "Canceled tender still accepts offers");
-            await testTender.ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, "Published").SetProperty(t => t.ClosesAt, future));
-            await testBid.ExecuteUpdateAsync(u => u.SetProperty(b => b.Status, "Compliant").SetProperty(b => b.ComplianceStatus, "Compliant"));
-            var additionalSuppliers = await db.SupplierProfiles.Where(s => s.Status == "Approved" && s.User.IsActive && s.SupplierProfileId != supplier.SupplierProfileId)
+            await testTender.ExecuteUpdateAsync(u => u.SetProperty(t => t.Status, "Published")
+                .SetProperty(t => t.ClosesAt, future));
+            await testBid.ExecuteUpdateAsync(u => u.SetProperty(b => b.Status, "Compliant")
+                .SetProperty(b => b.ComplianceStatus, "Compliant"));
+            var additionalSuppliers = await db.SupplierProfiles.Where(s => s.Status == "Approved"
+                && s.User.IsActive
+                && s.SupplierProfileId != supplier.SupplierProfileId)
                 .Select(s => s.SupplierProfileId).Take(2).ToListAsync();
             Require(additionalSuppliers.Count == 2, "Two additional demo suppliers are required");
             foreach (var supplierId in additionalSuppliers)
             {
-                var extraInvitation = new Invitation { TenderId = tender.TenderId, SupplierProfileId = supplierId, InvitedByUserId = officer.Id, Status = "Accepted", SentAt = DateTime.UtcNow };
+                var extraInvitation = new Invitation { TenderId = tender.TenderId,
+                    SupplierProfileId = supplierId,
+                    InvitedByUserId = officer.Id,
+                    Status = "Accepted",
+                    SentAt = DateTime.UtcNow };
                 db.Invitations.Add(extraInvitation);
-                db.Bids.Add(new Bid { Invitation = extraInvitation, TenderId = tender.TenderId, Currency = "JOD", Status = "Submitted", SubmittedAt = DateTime.UtcNow });
+                db.Bids.Add(new Bid { Invitation = extraInvitation,
+                    TenderId = tender.TenderId,
+                    Currency = "JOD",
+                    Status = "Submitted",
+                    SubmittedAt = DateTime.UtcNow });
             }
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
             await Officer(officer.Id).CloseSubmissionsEarly(tender.TenderId, sendToCommittee: true);
             db.ChangeTracker.Clear();
-            Require(await testTender.AnyAsync(t => t.Status == "Published" && t.ClosesAt == future), "Unreviewed offers closed submissions");
-            await db.Bids.Where(b => b.TenderId == tender.TenderId).ExecuteUpdateAsync(u => u.SetProperty(b => b.Status, "Compliant").SetProperty(b => b.ComplianceStatus, "Compliant"));
+            Require(await testTender.AnyAsync(t => t.Status == "Published"
+                && t.ClosesAt == future), "Unreviewed offers closed submissions");
+            await db.Bids.Where(b => b.TenderId == tender.TenderId)
+                .ExecuteUpdateAsync(u => u.SetProperty(b => b.Status, "Compliant")
+                    .SetProperty(b => b.ComplianceStatus, "Compliant"));
             await Officer(officer.Id).CloseSubmissionsEarly(tender.TenderId, sendToCommittee: true);
             db.ChangeTracker.Clear();
-            Require(await testTender.AnyAsync(t => t.Status == "UnderEvaluation" && t.ClosesAt <= DateTime.UtcNow), "Combined closure and committee handoff failed");
-            Require(await db.CommitteeAssignments.CountAsync(a => a.TenderId == tender.TenderId) == 4 && await db.EvaluationReports.AnyAsync(r => r.TenderId == tender.TenderId), "Committee setup missing after handoff");
+            Require(await testTender.AnyAsync(t => t.Status == "UnderEvaluation"
+                && t.ClosesAt <= DateTime.UtcNow), "Combined closure and committee handoff failed");
+            Require(await db.CommitteeAssignments.CountAsync(a => a.TenderId == tender.TenderId) == 4
+                && await db.EvaluationReports
+                .AnyAsync(r => r.TenderId == tender.TenderId), "Committee setup missing after handoff");
             Console.WriteLine("PASS: combined close-and-send rejects pending review, then closes submissions and prepares committee evaluation.");
             Console.WriteLine("PASS: early handoff and expired cancellation guards, owner-only tender cancellation, supplier withdrawal, and shared cancellation status.");
             Console.WriteLine("PASS: deadline transitions and future dates; new/draft attachment failures rolled back with file cleanup; successful submission; supplier-scoped history.");
@@ -206,7 +259,8 @@ public static class SupplierWorkflowChecks
             await db.Bids.Where(b => b.TenderId == tender.TenderId).ExecuteDeleteAsync();
             await db.Invitations.Where(i => i.TenderId == tender.TenderId).ExecuteDeleteAsync();
             await db.Tenders.Where(t => t.TenderId == tender.TenderId).ExecuteDeleteAsync();
-            await db.PurchaseRequestItems.Where(i => i.PurchaseRequestId == request.PurchaseRequestId).ExecuteDeleteAsync();
+            await db.PurchaseRequestItems.Where(i => i.PurchaseRequestId == request.PurchaseRequestId)
+                .ExecuteDeleteAsync();
             await db.PurchaseRequests.Where(r => r.PurchaseRequestId == request.PurchaseRequestId).ExecuteDeleteAsync();
             await cleanup.CommitAsync();
             if (Directory.Exists(testRoot)) Directory.Delete(testRoot, true);

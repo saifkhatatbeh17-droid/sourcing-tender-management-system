@@ -63,13 +63,27 @@ public static class TopCommitteeNotificationNavigationChecks
             if (role == RoleNames.TopCommittee)
             {
                 Check(html.Contains("href=\"/TopCommittee/Notifications\""), "Bell links to the full notifications page.");
-                Check(html.Contains("12 unread") && html.Contains("View details"), "Existing badge and details retained.");
-                Check(!html.Contains("<script>private</script>") && html.Contains("&lt;script&gt;"), "Notification encoding retained.");
+                Check(html.Contains("12 unread")
+                    && html
+                    .Contains("View details"), "Existing badge and details retained.");
+                Check(!html.Contains("<script>private</script>")
+                    && html
+                    .Contains("&lt;script&gt;"), "Notification encoding retained.");
                 Check(!html.Contains("href=\"https://external.example/unsafe\""), "External destinations are not linked.");
-                Check(html.Contains("/TopCommittee/MarkNotificationRead") && html.Contains("/TopCommittee/MarkAllNotificationsRead"), "Existing read actions available in bell.");
-                Check(html.Contains("__RequestVerificationToken") && html.Contains("name=\"returnUrl\""), "Read forms retain CSRF protection and local return navigation.");
-                Check(html.Contains("notificationPage=1") && html.Contains("notificationPage=3") && html.Contains("Page 2 of 3"), "Older and newer notices available within bell.");
-                Check(html.Contains("name=\"id\" value=\"1\"") && !html.Contains("name=\"id\" value=\"2\""), "Only unread notices have individual read forms.");
+                Check(html.Contains("/TopCommittee/MarkNotificationRead")
+                    && html
+                    .Contains("/TopCommittee/MarkAllNotificationsRead"), "Existing read actions available in bell.");
+                Check(html.Contains("__RequestVerificationToken")
+                    && html
+                    .Contains("name=\"returnUrl\""), "Read forms retain CSRF protection and local return navigation.");
+                Check(html.Contains("notificationPage=1")
+                    && html
+                    .Contains("notificationPage=3")
+                    && html
+                    .Contains("Page 2 of 3"), "Older and newer notices available within bell.");
+                Check(html.Contains("name=\"id\" value=\"1\"")
+                    && !html
+                    .Contains("name=\"id\" value=\"2\""), "Only unread notices have individual read forms.");
             }
             else
             {

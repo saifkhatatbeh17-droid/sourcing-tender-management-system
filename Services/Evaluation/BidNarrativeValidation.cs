@@ -110,10 +110,14 @@ public static class BidNarrativeValidation
                     ?? (offers.Count == 2 ? offers.Single(b => b.BidId != bid.BidId) : null);
                 var word = claim.Value.ToLowerInvariant();
                 var delivery = word is "faster" or "quicker" or "slower" or "fastest" or "slowest";
-                if (!delivery && other != null && !string.Equals(bid.Currency, other.Currency, StringComparison.OrdinalIgnoreCase))
+                if (!delivery
+                    && other != null
+                    && !string.Equals(bid.Currency, other.Currency, StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("Prices in different currencies cannot be described as higher or lower without a supplied exchange rate.");
                 decimal value = delivery ? bid.DeliveryDays : CommitteeEvaluationPage.Total(bid);
-                var peers = offers.Where(b => delivery || string.Equals(b.Currency, bid.Currency, StringComparison.OrdinalIgnoreCase)).ToList();
+                var peers = offers.Where(b => delivery
+                    || string.Equals(b.Currency, bid.Currency, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
                 decimal Minimum() => peers.Min(b => delivery ? b.DeliveryDays : CommitteeEvaluationPage.Total(b));
                 decimal Maximum() => peers.Max(b => delivery ? b.DeliveryDays : CommitteeEvaluationPage.Total(b));
                 decimal comparison = other == null ? value : delivery ? other.DeliveryDays : CommitteeEvaluationPage.Total(other);

@@ -24,8 +24,10 @@ internal static class ReportRows
         {
             RoleNames.SourcingOfficer => rows.Where(t => t.CreatedByUserId == scope.UserId),
             RoleNames.EvaluationCommittee => rows.InEvaluationWorkspace(scope.UserId)
-                .Where(t => t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == scope.UserId)),
-            RoleNames.TopCommittee => rows.Where(t => t.CommitteeAssignments.Any(a => a.CommitteeType == "Top" && a.UserId == scope.UserId)),
+                .Where(t => t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation"
+                    && a.UserId == scope.UserId)),
+            RoleNames.TopCommittee => rows.Where(t => t.CommitteeAssignments.Any(a => a.CommitteeType == "Top"
+                && a.UserId == scope.UserId)),
             RoleNames.SourcingManager => rows.Where(t => t.EvaluationReport != null &&
                 (t.Status == "AwaitingManagerReview" || t.TenderApprovals.Any(a => a.Stage == "Manager" && a.UserId == scope.UserId))),
             _ => rows.Where(_ => false)

@@ -62,11 +62,13 @@ public partial class SourcingManagerController
             .Where(assignment => assignment.TenderId == selectedTenderId)
             .ToList();
 
-        var committeeQuestion = selected != null && SourcingTenderManagement.Services.TopCommittee.TopCommitteeClarificationScope.Query(_context)
+        var committeeQuestion = selected != null
+            && SourcingTenderManagement.Services.TopCommittee.TopCommitteeClarificationScope.Query(_context)
             .Any(c => c.ClarificationId == selected.ClarificationId);
         var canReply = selected != null && selected.Status != "Resolved" &&
             (!committeeQuestion || (selected.RecipientUserId == ManagerId && selected.Status == "Pending"));
-        var confirmations = SourcingTenderManagement.Services.ClarificationResolution.ConfirmedUsers(selected?.ClarificationResponses ?? []);
+        var confirmations = SourcingTenderManagement.Services.ClarificationResolution.ConfirmedUsers(selected?.ClarificationResponses
+            ?? []);
         ViewBag.HasConfirmed = confirmations.Contains(ManagerId);
         ViewBag.CanResolve = selected != null && selected.Status != "Resolved" && !confirmations.Contains(ManagerId) &&
             (!committeeQuestion || (selected.RecipientUserId == ManagerId && selected.Status == "Answered"));
@@ -121,7 +123,8 @@ public partial class SourcingManagerController
     [HttpPost]
     public IActionResult ReplyToClarification(ManagerClarificationReply input)
     {
-        if (!ModelState.IsValid || input.Message.Trim() == SourcingTenderManagement.Services.ClarificationResolution.Confirmation)
+        if (!ModelState.IsValid
+            || input.Message.Trim() == SourcingTenderManagement.Services.ClarificationResolution.Confirmation)
         {
             return ClarificationMessage("Enter a response of up to 4,000 characters.", id: input.Id);
         }

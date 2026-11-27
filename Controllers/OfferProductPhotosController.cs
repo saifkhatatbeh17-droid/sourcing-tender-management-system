@@ -15,8 +15,11 @@ public sealed class OfferProductPhotosController(ApplicationDbContext db, OfferP
     public async Task<IActionResult> Image(int id)
     {
         if ((await users.GetUserAsync(User))?.IsActive != true) return Forbid();
-        var document = await db.BidDocuments.AsNoTracking().SingleOrDefaultAsync(d => d.BidDocumentId == id && d.DocumentType.StartsWith(OfferProductPhotos.Prefix));
-        if (document == null || !await photos.VisibleBids(User).AnyAsync(b => b.BidId == document.BidId)) return NotFound();
+        var document = await db.BidDocuments.AsNoTracking()
+            .SingleOrDefaultAsync(d => d.BidDocumentId == id && d.DocumentType.StartsWith(OfferProductPhotos.Prefix));
+        if (document == null
+            || !await photos.VisibleBids(User)
+            .AnyAsync(b => b.BidId == document.BidId)) return NotFound();
         var path = photos.PathFor(document.StoredFileName);
         if (!System.IO.File.Exists(path)) return NotFound();
         Response.Headers["X-Content-Type-Options"] = "nosniff";

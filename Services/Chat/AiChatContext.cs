@@ -128,7 +128,8 @@ public sealed class AiChatContext(
                         r.Priority,
                         TargetDate = r.TargetDate.ToString("yyyy-MM-dd"),
                         ReturnOrReviewNotes = Cap(r.ReviewNotes, 160),
-                        CanEditOrResubmit = r.RequestedByUserId == user.Id && (r.Status == "Returned" || r.Status == "Submitted"),
+                        CanEditOrResubmit = r.RequestedByUserId == user.Id
+                            && (r.Status == "Returned" || r.Status == "Submitted"),
                         LinkedTenderStatuses = r.Tenders.Select(t => new { t.TenderId, t.Status }).ToArray(),
                         Items = r.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId).Select(i => new
                         {
@@ -160,7 +161,9 @@ public sealed class AiChatContext(
                     .Include(t => t.Invitations).ThenInclude(i => i.SupplierProfile)
                     .Include(t => t.Invitations).ThenInclude(i => i.Bids).ThenInclude(b => b.BidItems)
                     .Include(t => t.EvaluationReport)
-                    .OrderByDescending(t => t.Status == "Published" || t.Status == "Closed" || t.Status == "UnderEvaluation")
+                    .OrderByDescending(t => t.Status == "Published"
+                        || t.Status == "Closed"
+                        || t.Status == "UnderEvaluation")
                     .ThenByDescending(t => t.CreatedAt)
                     .Take(8)
                     .ToListAsync(ct);
@@ -187,7 +190,8 @@ public sealed class AiChatContext(
                         r.Priority,
                         TargetDate = r.TargetDate.ToString("yyyy-MM-dd"),
                         HasTender = r.Tenders.Count > 0,
-                        Items = r.PurchaseRequestItems.Select(i => $"{i.ItemName} ({i.Quantity:0.##} {i.Unit})").ToArray()
+                        Items = r.PurchaseRequestItems.Select(i => $"{i.ItemName} ({i.Quantity:0.##} {i.Unit})")
+                            .ToArray()
                     }).ToArray(),
                     Tenders = ownTenders.Select(t =>
                     {
@@ -195,8 +199,11 @@ public sealed class AiChatContext(
                             .Where(b => b.SubmittedAt != null && b.Status != "Withdrawn")
                             .OrderBy(b => b.BidId)
                             .ToList();
-                        var isCurrent = currentRecordType == AiChatRecord.OfficerTender && currentRecordId == t.TenderId;
-                        var includeOffers = !isCurrent && t.Status is "Published" or "Closed" && activeOfferListCount < 4;
+                        var isCurrent = currentRecordType == AiChatRecord.OfficerTender
+                            && currentRecordId == t.TenderId;
+                        var includeOffers = !isCurrent
+                            && t.Status is "Published" or "Closed"
+                            && activeOfferListCount < 4;
                         if (includeOffers) activeOfferListCount++;
                         return new
                         {
@@ -244,7 +251,8 @@ public sealed class AiChatContext(
                     .AsSplitQuery()
                     .Include(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
                     .Include(t => t.Invitations).ThenInclude(i => i.SupplierProfile)
-                    .Include(t => t.Invitations).ThenInclude(i => i.Bids.Where(b => b.ComplianceStatus == "Compliant")).ThenInclude(b => b.BidItems)
+                    .Include(t => t.Invitations).ThenInclude(i => i.Bids.Where(b => b.ComplianceStatus == "Compliant"))
+                        .ThenInclude(b => b.BidItems)
                     .Include(t => t.CommitteeWeightProposals)
                     .Include(t => t.CommitteeTieVotes)
                     .Include(t => t.EvaluationCriteria)
@@ -277,7 +285,8 @@ public sealed class AiChatContext(
                         var me = page.Members.SingleOrDefault(m => m.UserId == user.Id);
                         var myWeight = me == null ? null : page.WeightProposals.SingleOrDefault(p => p.CommitteeAssignmentId == me.CommitteeAssignmentId)?.FinancialWeight;
                         var ranking = AllOfferScoring.Ranking(page);
-                        var isCurrent = currentRecordType == AiChatRecord.EvaluationTender && currentRecordId == t.TenderId;
+                        var isCurrent = currentRecordType == AiChatRecord.EvaluationTender
+                            && currentRecordId == t.TenderId;
                         var includeOffers = !isCurrent && t.Status == "UnderEvaluation" && expandedOffersCount < 4;
                         if (includeOffers) expandedOffersCount++;
                         var tiedLeaders = AllOfferScoring.Leaders(page);
@@ -298,7 +307,8 @@ public sealed class AiChatContext(
                             MyConfirmedFinancialWeight = myWeight,
                             AllScoringComplete = AllOfferScoring.Complete(page),
                             WinningBidId = AllOfferScoring.Winner(page),
-                            TiedLeaderBidIds = tiedLeaders.Count > 1 ? tiedLeaders.Select(l => l.BidId).ToArray() : null,
+                            TiedLeaderBidIds = tiedLeaders.Count > 1 ? tiedLeaders.Select(l => l.BidId)
+                                .ToArray() : null,
                             ReportStatus = t.EvaluationReport?.Status,
                             RecommendedBidId = t.EvaluationReport?.RecommendedBidId,
                             CompliantOffersCount = page.Offers.Count,
@@ -374,7 +384,8 @@ public sealed class AiChatContext(
                         WinningTotal = r.Bid == null ? (decimal?)null : CommitteeEvaluationPage.Total(r.Bid),
                         Currency = r.Bid?.Currency,
                         CanDecide = r.Status is "OfficerSubmitted" or "CommitteeApproved",
-                        CanForwardToCeoAndChiefs = r.Status == "ManagerApproved" && r.Tender.Status == "AwaitingManagerReview",
+                        CanForwardToCeoAndChiefs = r.Status == "ManagerApproved"
+                            && r.Tender.Status == "AwaitingManagerReview",
                         r.SubmittedAt
                     }).ToArray(),
                     WithCeoAndChiefs = withTopCommittee,
@@ -454,7 +465,8 @@ public sealed class AiChatContext(
                     Invitations = invitations.Select(i =>
                     {
                         var myBid = i.Bids.OrderByDescending(b => b.BidId).FirstOrDefault();
-                        var isCurrent = currentRecordType == AiChatRecord.SupplierInvitation && currentRecordId == i.InvitationId;
+                        var isCurrent = currentRecordType == AiChatRecord.SupplierInvitation
+                            && currentRecordId == i.InvitationId;
                         return new
                         {
                             i.InvitationId,
@@ -501,7 +513,8 @@ public sealed class AiChatContext(
                     .ToListAsync(ct);
 
                 var totalSuppliersCount = await db.SupplierProfiles.AsNoTracking().CountAsync(ct);
-                var pendingSuppliersCount = await db.SupplierProfiles.AsNoTracking().CountAsync(s => s.Status == "Pending", ct);
+                var pendingSuppliersCount = await db.SupplierProfiles.AsNoTracking()
+                    .CountAsync(s => s.Status == "Pending", ct);
                 var suppliers = await db.SupplierProfiles.AsNoTracking()
                     .OrderByDescending(s => s.Status == "Pending" || s.Status == "ChangesRequested")
                     .ThenByDescending(s => s.SupplierProfileId)
@@ -553,7 +566,8 @@ public sealed class AiChatContext(
                         PendingSuppliers = pendingSuppliersCount,
                         PurchaseRequests = requestsCount,
                         Tenders = await db.Tenders.AsNoTracking().CountAsync(ct),
-                        UnreadMessages = await db.ContactMessages.AsNoTracking().CountAsync(m => m.Status == ContactMessage.Unread, ct)
+                        UnreadMessages = await db.ContactMessages.AsNoTracking()
+                            .CountAsync(m => m.Status == ContactMessage.Unread, ct)
                     },
                     Departments = departments,
                     Suppliers = suppliers,
@@ -591,7 +605,8 @@ public sealed class AiChatContext(
                         r.Priority,
                         TargetDate = r.TargetDate.ToString("yyyy-MM-dd"),
                         r.ReviewNotes,
-                        CanRequesterEdit = r.RequestedByUserId == userId && (r.Status == "Returned" || r.Status == "Submitted"),
+                        CanRequesterEdit = r.RequestedByUserId == userId
+                            && (r.Status == "Returned" || r.Status == "Submitted"),
                         Items = r.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId).Select(i => new
                         {
                             i.PurchaseRequestItemId,
@@ -683,7 +698,8 @@ public sealed class AiChatContext(
                     .AsSplitQuery()
                     .Include(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
                     .Include(t => t.Invitations).ThenInclude(i => i.SupplierProfile)
-                    .Include(t => t.Invitations).ThenInclude(i => i.Bids.Where(b => b.ComplianceStatus == "Compliant")).ThenInclude(b => b.BidItems)
+                    .Include(t => t.Invitations).ThenInclude(i => i.Bids.Where(b => b.ComplianceStatus == "Compliant"))
+                        .ThenInclude(b => b.BidItems)
                     .Include(t => t.CommitteeWeightProposals)
                     .Include(t => t.CommitteeTieVotes)
                     .Include(t => t.EvaluationCriteria)
@@ -815,7 +831,9 @@ public sealed class AiChatContext(
 
             case AiChatRecord.SupplierInvitation:
                 return await db.Invitations.AsNoTracking()
-                    .Where(i => i.InvitationId == id && i.SupplierProfile.UserId == userId && i.SupplierProfile.Status == "Approved")
+                    .Where(i => i.InvitationId == id
+                        && i.SupplierProfile.UserId == userId
+                        && i.SupplierProfile.Status == "Approved")
                     .Select(i => new
                     {
                         i.InvitationId,
@@ -880,7 +898,14 @@ public sealed class AiChatContext(
             case AiChatRecord.SupplierApplication:
                 return await db.SupplierProfiles.AsNoTracking()
                     .Where(s => s.SupplierProfileId == id)
-                    .Select(s => new { s.SupplierProfileId, s.CompanyName, s.RegistrationNumber, s.TaxNumber, s.Status, s.Category, s.ReviewNotes, s.ReviewedAt })
+                    .Select(s => new { s.SupplierProfileId,
+                        s.CompanyName,
+                        s.RegistrationNumber,
+                        s.TaxNumber,
+                        s.Status,
+                        s.Category,
+                        s.ReviewNotes,
+                        s.ReviewedAt })
                     .SingleOrDefaultAsync(ct);
 
             case AiChatRecord.ContactMessage:

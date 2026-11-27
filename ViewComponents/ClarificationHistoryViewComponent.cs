@@ -14,7 +14,8 @@ public sealed class ClarificationHistoryViewComponent(ApplicationDbContext db) :
     {
         var id = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (id == null) return Content("");
-        var threads = db.Clarifications.AsNoTracking().VisibleTo(id, HttpContext.User.IsInRole(RoleNames.SourcingOfficer));
+        var threads = db.Clarifications.AsNoTracking()
+            .VisibleTo(id, HttpContext.User.IsInRole(RoleNames.SourcingOfficer));
         threads = threads.ForRecord(kind, recordId);
         if (HttpContext.User.IsInRole(RoleNames.TopCommittee) && !HttpContext.User.IsInRole(RoleNames.SourcingManager))
         {

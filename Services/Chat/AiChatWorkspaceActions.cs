@@ -279,13 +279,17 @@ public sealed class AiChatWorkspaceActions(
                     return Nav("/Clarification", "Clarifications");
                 if (key is "details" or "request" or "requestdetails" && recordId is > 0)
                 {
-                    if (!await db.PurchaseRequests.AsNoTracking().InDepartment(user.DepartmentId).AnyAsync(r => r.PurchaseRequestId == recordId.Value, ct))
+                    if (!await db.PurchaseRequests.AsNoTracking()
+                        .InDepartment(user.DepartmentId)
+                        .AnyAsync(r => r.PurchaseRequestId == recordId.Value, ct))
                         return new(false, false, $"Purchase Request #{recordId.Value} was not found in your department.");
                     return Nav($"/Department/Details/{recordId.Value}", $"Request #{recordId.Value}");
                 }
                 if (key is "edit" or "editrequest" && recordId is > 0)
                 {
-                    if (!await db.PurchaseRequests.AsNoTracking().InDepartment(user.DepartmentId).AnyAsync(r => r.PurchaseRequestId == recordId.Value && r.RequestedByUserId == user.Id, ct))
+                    if (!await db.PurchaseRequests.AsNoTracking()
+                        .InDepartment(user.DepartmentId)
+                        .AnyAsync(r => r.PurchaseRequestId == recordId.Value && r.RequestedByUserId == user.Id, ct))
                         return new(false, false, $"Purchase Request #{recordId.Value} is not editable by your account.");
                     return Nav($"/Department/Edit/{recordId.Value}", $"Edit Request #{recordId.Value}");
                 }
@@ -505,7 +509,9 @@ public sealed class AiChatWorkspaceActions(
 
         if (!string.IsNullOrWhiteSpace(title)) request.Title = title;
         if (!string.IsNullOrWhiteSpace(reason)) request.Reason = reason;
-        if (!string.IsNullOrWhiteSpace(priority) && PurchaseRequestForm.Priorities.Contains(priority, StringComparer.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(priority)
+            && PurchaseRequestForm.Priorities
+            .Contains(priority, StringComparer.OrdinalIgnoreCase))
             request.Priority = PurchaseRequestForm.Priorities.First(p => string.Equals(p, priority, StringComparison.OrdinalIgnoreCase));
         if (targetDate.HasValue && targetDate.Value >= PurchaseRequestForm.EarliestTargetDate)
             request.TargetDate = targetDate.Value;
@@ -515,9 +521,12 @@ public sealed class AiChatWorkspaceActions(
         {
             // Replacing the items must not wipe the legal warranty the department asked for. Keep it for items with the same name.
             var keptWarranty = request.PurchaseRequestItems.Where(i => i.LegalWarrantyMonths != null)
-                .GroupBy(i => i.ItemName.Trim().ToLowerInvariant()).ToDictionary(g => g.Key, g => g.First().LegalWarrantyMonths);
+                .GroupBy(i => i.ItemName.Trim()
+                    .ToLowerInvariant()).ToDictionary(g => g.Key, g => g
+                    .First().LegalWarrantyMonths);
             foreach (var item in newItems.Where(i => i.LegalWarrantyMonths == null))
-                if (keptWarranty.TryGetValue(item.ItemName.Trim().ToLowerInvariant(), out var months)) item.LegalWarrantyMonths = months;
+                if (keptWarranty.TryGetValue(item.ItemName.Trim()
+                    .ToLowerInvariant(), out var months)) item.LegalWarrantyMonths = months;
             db.PurchaseRequestItems.RemoveRange(request.PurchaseRequestItems);
             request.PurchaseRequestItems.Clear();
             foreach (var item in newItems)
@@ -576,7 +585,11 @@ public sealed class AiChatWorkspaceActions(
             req.Status = "UnderReview";
             req.ReviewedByUserId = user.Id;
             await db.SaveChangesAsync(ct);
-            return new(true, true, $"Started review on Purchase Request #{requestId} ('{req.Title}').", $"/SourcingOfficer/Requests?id={requestId}", $"Open Request #{requestId}");
+            return new(true,
+                true,
+                $"Started review on Purchase Request #{requestId} ('{req.Title}').",
+                $"/SourcingOfficer/Requests?id={requestId}",
+                $"Open Request #{requestId}");
         }
 
         if (req.Status is not ("Submitted" or "UnderReview"))
@@ -630,12 +643,14 @@ public sealed class AiChatWorkspaceActions(
             return new(false, false, "No approved active suppliers exist to invite.");
 
         var matchedSuppliers = !string.IsNullOrWhiteSpace(requestedCategory)
-            ? approvedSuppliers.Where(s => string.Equals(s.Category, requestedCategory, StringComparison.OrdinalIgnoreCase)).ToList()
+            ? approvedSuppliers.Where(s => string.Equals(s.Category, requestedCategory, StringComparison.OrdinalIgnoreCase))
+                .ToList()
             : [];
         if (matchedSuppliers.Count == 0)
         {
             requestedCategory = approvedSuppliers[0].Category ?? "Pharmaceuticals";
-            matchedSuppliers = approvedSuppliers.Where(s => string.Equals(s.Category, requestedCategory, StringComparison.OrdinalIgnoreCase)).ToList();
+            matchedSuppliers = approvedSuppliers.Where(s => string.Equals(s.Category, requestedCategory, StringComparison.OrdinalIgnoreCase))
+                .ToList();
         }
 
         var closesInDays = Math.Clamp(GetInt(args, "closesInDays") ?? 7, 1, 60);
@@ -648,7 +663,8 @@ public sealed class AiChatWorkspaceActions(
             desc = req.Reason + "\n" + string.Join("\n", req.PurchaseRequestItems.Select(i => $"{i.ItemName}: {i.Quantity:0.###} {i.Unit}. {i.Specifications}"));
             desc = TrimTo(desc, 4000)!;
         }
-        var terms = TrimTo(GetString(args, "terms"), 4000) ?? "GMP/ISO compliance certificates and batch CoA required upon delivery.";
+        var terms = TrimTo(GetString(args, "terms"), 4000)
+            ?? "GMP/ISO compliance certificates and batch CoA required upon delivery.";
 
         if (req.Status is "Submitted" or "UnderReview")
         {
@@ -749,7 +765,8 @@ public sealed class AiChatWorkspaceActions(
 
         if (markAllCompliant)
         {
-            foreach (var b in bids.Where(b => b.ComplianceStatus is not ("Compliant" or "NonCompliant") && b.Clarifications.All(c => c.Status == "Resolved")))
+            foreach (var b in bids.Where(b => b.ComplianceStatus is not ("Compliant" or "NonCompliant")
+                && b.Clarifications.All(c => c.Status == "Resolved")))
             {
                 b.ComplianceStatus = "Compliant";
                 b.Status = "Compliant";
@@ -773,7 +790,9 @@ public sealed class AiChatWorkspaceActions(
         }
 
         if (bids.Any(b => b.ComplianceStatus is not ("Compliant" or "NonCompliant")))
-            return new(false, false, $"Every submitted offer on Tender #{tenderId} must be marked Compliant or NonCompliant before sending to the Evaluation Committee.");
+            return new(false,
+                false,
+                $"Every submitted offer on Tender #{tenderId} must be marked Compliant or NonCompliant before sending to the Evaluation Committee.");
 
         if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
             ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn")), ct))
@@ -789,7 +808,9 @@ public sealed class AiChatWorkspaceActions(
         if (tender.ClosesAt > now)
         {
             if (compliantSuppliers < TenderOfferExtension.RequiredCompliantOffers || round > 1)
-                return new(false, false, $"Tender #{tenderId} deadline has not passed yet ({tender.ClosesAt:yyyy-MM-dd HH:mm} UTC). At least 3 compliant suppliers on Round 1 are required to close early.");
+                return new(false,
+                    false,
+                    $"Tender #{tenderId} deadline has not passed yet ({tender.ClosesAt:yyyy-MM-dd HH:mm} UTC). At least 3 compliant suppliers on Round 1 are required to close early.");
             if (tender.OpensAt >= now) tender.OpensAt = now.AddMinutes(-5);
             tender.ClosesAt = now;
         }
@@ -799,7 +820,9 @@ public sealed class AiChatWorkspaceActions(
         if (compliantSuppliers < TenderOfferExtension.RequiredCompliantOffers &&
             (round < TenderOfferExtension.MaximumRound || string.IsNullOrWhiteSpace(shortfallReason)))
         {
-            return new(false, false, $"Tender #{tenderId} currently has {compliantSuppliers} compliant supplier(s) on round {round} (standard handoff requires 3, or round 4 with a shortfallReason).");
+            return new(false,
+                false,
+                $"Tender #{tenderId} currently has {compliantSuppliers} compliant supplier(s) on round {round} (standard handoff requires 3, or round 4 with a shortfallReason).");
         }
 
         tender.OfferShortfallReason = compliantSuppliers < TenderOfferExtension.RequiredCompliantOffers ? shortfallReason : null;
@@ -849,7 +872,9 @@ public sealed class AiChatWorkspaceActions(
             return new(false, false, $"Tender #{tenderId} was not found in your Sourcing Officer workspace.");
         var report = tender.EvaluationReport;
         if (tender.Status != "AwaitingOfficerSummary" || report?.Status != "CommitteeApproved")
-            return new(false, false, $"Tender #{tenderId} does not have a CommitteeApproved report awaiting officer review (current tender status: '{tender.Status}').");
+            return new(false,
+                false,
+                $"Tender #{tenderId} does not have a CommitteeApproved report awaiting officer review (current tender status: '{tender.Status}').");
 
         if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" &&
             ((c.BidId == null && c.TenderId == tenderId) || (c.Bid != null && c.Bid.TenderId == tenderId && c.Bid.Status != "Withdrawn")), ct))
@@ -871,7 +896,8 @@ public sealed class AiChatWorkspaceActions(
             report.Status = "ReturnedForReview";
             report.RecommendedBidId = null;
             report.CommitteeSummary = null;
-            db.CommitteeTieVotes.RemoveRange(await db.CommitteeTieVotes.Where(v => v.TenderId == tenderId).ToListAsync(ct));
+            db.CommitteeTieVotes.RemoveRange(await db.CommitteeTieVotes.Where(v => v.TenderId == tenderId)
+                .ToListAsync(ct));
             db.TenderApprovals.RemoveRange(tender.TenderApprovals.Where(a => a.Stage == "Evaluation"));
             foreach (var ev in await db.Evaluations.Where(e => e.TenderId == tenderId).ToListAsync(ct))
             {
@@ -901,7 +927,8 @@ public sealed class AiChatWorkspaceActions(
         .AsSplitQuery()
         .Include(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
         .Include(t => t.Invitations).ThenInclude(i => i.SupplierProfile)
-        .Include(t => t.Invitations).ThenInclude(i => i.Bids.Where(b => b.ComplianceStatus == "Compliant")).ThenInclude(b => b.BidItems)
+        .Include(t => t.Invitations).ThenInclude(i => i.Bids.Where(b => b.ComplianceStatus == "Compliant"))
+            .ThenInclude(b => b.BidItems)
         .Include(t => t.CommitteeWeightProposals)
         .Include(t => t.CommitteeTieVotes)
         .Include(t => t.EvaluationCriteria)
@@ -960,7 +987,11 @@ public sealed class AiChatWorkspaceActions(
     private async Task<AiChatToolExecutionResult> EvaluatorScoreOffersAsync(ApplicationUser user, JsonElement args, CancellationToken ct)
     {
         var tenderId = GetInt(args, "tenderId") ?? 0;
-        if (tenderId <= 0 || !args.TryGetProperty("scores", out var scoresEl) || scoresEl.ValueKind != JsonValueKind.Array || scoresEl.GetArrayLength() == 0)
+        if (tenderId <= 0
+            || !args.TryGetProperty("scores", out var scoresEl)
+            || scoresEl.ValueKind != JsonValueKind.Array
+            || scoresEl
+            .GetArrayLength() == 0)
             return new(false, false, "Provide tenderId and a non-empty scores array of { bidId, financialMark, technicalMark, comment }.");
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -971,10 +1002,13 @@ public sealed class AiChatWorkspaceActions(
         if (tender == null || tender.Status != "UnderEvaluation")
             return new(false, false, $"Tender #{tenderId} is not currently UnderEvaluation.");
 
-        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" && (c.TenderId == tenderId || (c.Bid != null && c.Bid.TenderId == tenderId)), ct))
+        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved"
+            && (c.TenderId == tenderId || (c.Bid != null && c.Bid.TenderId == tenderId)), ct))
             return new(false, false, $"Resolve open clarifications on Tender #{tenderId} before submitting marks.");
 
-        var evals = await db.Evaluations.Include(e => e.EvaluationScores).Where(e => e.TenderId == tenderId).ToListAsync(ct);
+        var evals = await db.Evaluations.Include(e => e.EvaluationScores)
+            .Where(e => e.TenderId == tenderId)
+            .ToListAsync(ct);
         var page = new CommitteeEvaluationPage { Tender = tender, UserId = user.Id, Evaluations = evals };
 
         if (!page.Members.Any(m => m.UserId == user.Id))
@@ -1081,7 +1115,8 @@ public sealed class AiChatWorkspaceActions(
         AllOfferScoring.SelectWinner(page, DateTime.UtcNow);
         if (!page.SelectionReady || tender.EvaluationReport?.RecommendedBidId is not int winBidId)
             return new(false, false, "Resolve any score tie between leading offers before submitting the report.");
-        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" && (c.TenderId == tenderId || (c.Bid != null && c.Bid.TenderId == tenderId)), ct))
+        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved"
+            && (c.TenderId == tenderId || (c.Bid != null && c.Bid.TenderId == tenderId)), ct))
             return new(false, false, "Resolve open clarifications before submitting the final report.");
 
         var winner = page.Offers.Single(b => b.BidId == winBidId);
@@ -1139,10 +1174,14 @@ public sealed class AiChatWorkspaceActions(
 
         if (report == null)
             return new(false, false, "Evaluation submission was not found.");
-        if (report.Tender.Status != "AwaitingManagerReview" || report.Status is not ("OfficerSubmitted" or "CommitteeApproved"))
-            return new(false, false, $"Submission #{report.EvaluationReportId} is currently '{report.Status}' (tender '{report.Tender.Status}') and not awaiting a manager decision.");
+        if (report.Tender.Status != "AwaitingManagerReview"
+            || report.Status is not ("OfficerSubmitted" or "CommitteeApproved"))
+            return new(false,
+                false,
+                $"Submission #{report.EvaluationReportId} is currently '{report.Status}' (tender '{report.Tender.Status}') and not awaiting a manager decision.");
 
-        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" && (c.TenderId == report.TenderId || (c.Bid != null && c.Bid.TenderId == report.TenderId)), ct))
+        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved"
+            && (c.TenderId == report.TenderId || (c.Bid != null && c.Bid.TenderId == report.TenderId)), ct))
             return new(false, false, "Resolve open clarifications before recording a manager decision.");
 
         if (decision == "Approved")
@@ -1160,8 +1199,10 @@ public sealed class AiChatWorkspaceActions(
             report.Tender.Status = "UnderEvaluation";
             report.RecommendedBidId = null;
             report.CommitteeSummary = null;
-            db.TenderApprovals.RemoveRange(await db.TenderApprovals.Where(a => a.TenderId == report.TenderId && a.Stage == "Evaluation").ToListAsync(ct));
-            db.CommitteeTieVotes.RemoveRange(await db.CommitteeTieVotes.Where(v => v.TenderId == report.TenderId).ToListAsync(ct));
+            db.TenderApprovals.RemoveRange(await db.TenderApprovals.Where(a => a.TenderId == report.TenderId && a.Stage == "Evaluation")
+                .ToListAsync(ct));
+            db.CommitteeTieVotes.RemoveRange(await db.CommitteeTieVotes.Where(v => v.TenderId == report.TenderId)
+                .ToListAsync(ct));
             foreach (var rev in await db.Evaluations.Where(e => e.TenderId == report.TenderId).ToListAsync(ct))
             {
                 rev.Status = "Submitted";
@@ -1170,7 +1211,9 @@ public sealed class AiChatWorkspaceActions(
         }
 
         report.ManagerSummary = notes;
-        var approval = await db.TenderApprovals.SingleOrDefaultAsync(a => a.TenderId == report.TenderId && a.Stage == "Manager" && a.UserId == user.Id, ct);
+        var approval = await db.TenderApprovals.SingleOrDefaultAsync(a => a.TenderId == report.TenderId
+            && a.Stage == "Manager"
+            && a.UserId == user.Id, ct);
         if (approval == null)
         {
             approval = new TenderApproval { TenderId = report.TenderId, Stage = "Manager", UserId = user.Id };
@@ -1195,7 +1238,8 @@ public sealed class AiChatWorkspaceActions(
     {
         var reportId = GetInt(args, "reportId");
         var tenderId = GetInt(args, "tenderId");
-        var reason = TrimTo(GetString(args, "reason"), 2000) ?? "Referred to CEO & Chiefs for final award decision in accordance with Tiryaq governance policy.";
+        var reason = TrimTo(GetString(args, "reason"), 2000)
+            ?? "Referred to CEO & Chiefs for final award decision in accordance with Tiryaq governance policy.";
 
         // Serializable is the strictest transaction setting: nobody else can change the rows read here until it finishes.
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
@@ -1214,7 +1258,8 @@ public sealed class AiChatWorkspaceActions(
             await db.TenderApprovals.AnyAsync(a => a.TenderId == tender.TenderId && a.Stage == "Top" && a.Decision == "Rejected", ct))
             return new(false, false, $"Tender #{tender.TenderId} is currently '{tender.Status}' and cannot be forwarded.");
 
-        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved" && (c.TenderId == tender.TenderId || (c.Bid != null && c.Bid.TenderId == tender.TenderId)), ct))
+        if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved"
+            && (c.TenderId == tender.TenderId || (c.Bid != null && c.Bid.TenderId == tender.TenderId)), ct))
             return new(false, false, "Resolve open clarifications before forwarding to CEO & Chiefs.");
 
         var winningOffer = await db.Bids
@@ -1227,7 +1272,9 @@ public sealed class AiChatWorkspaceActions(
         if (report.Status is "OfficerSubmitted" or "CommitteeApproved")
         {
             report.Status = "ManagerApproved";
-            var mgrApproval = await db.TenderApprovals.SingleOrDefaultAsync(a => a.TenderId == tender.TenderId && a.Stage == "Manager" && a.UserId == user.Id, ct);
+            var mgrApproval = await db.TenderApprovals.SingleOrDefaultAsync(a => a.TenderId == tender.TenderId
+                && a.Stage == "Manager"
+                && a.UserId == user.Id, ct);
             if (mgrApproval == null)
             {
                 mgrApproval = new TenderApproval { TenderId = tender.TenderId, Stage = "Manager", UserId = user.Id };
@@ -1252,7 +1299,9 @@ public sealed class AiChatWorkspaceActions(
             {
                 var candidate = await db.Users
                     .Where(u => u.IsActive &&
-                        db.UserRoles.Any(ur => ur.UserId == u.Id && db.Roles.Any(r => r.Id == ur.RoleId && r.Name == posRole)) &&
+                        db.UserRoles.Any(ur => ur.UserId == u.Id
+                            && db.Roles.Any(r => r.Id == ur.RoleId && r.Name == posRole))
+                            &&
                         db.UserRoles.Any(ur => ur.UserId == u.Id && db.Roles.Any(r => r.Id == ur.RoleId && r.Name == RoleNames.TopCommittee)))
                     .Select(u => u.Id)
                     .SingleOrDefaultAsync(ct);
@@ -1290,7 +1339,10 @@ public sealed class AiChatWorkspaceActions(
 
     // ---------------- TOP COMMITTEE (CEO & CHIEFS) ----------------
 
-    private async Task<AiChatToolExecutionResult> TopCommitteeCastVoteAsync(ClaimsPrincipal principal, ApplicationUser user, JsonElement args, CancellationToken ct)
+    private async Task<AiChatToolExecutionResult> TopCommitteeCastVoteAsync(ClaimsPrincipal principal,
+        ApplicationUser user,
+        JsonElement args,
+        CancellationToken ct)
     {
         var tenderId = GetInt(args, "tenderId") ?? 0;
         var rawDecision = (GetString(args, "decision") ?? "").Trim();
@@ -1347,7 +1399,8 @@ public sealed class AiChatWorkspaceActions(
 
     private async Task<AiChatToolExecutionResult> SupplierRespondInvitationAsync(ApplicationUser user, JsonElement args, CancellationToken ct)
     {
-        var profile = await db.SupplierProfiles.SingleOrDefaultAsync(s => s.UserId == user.Id && s.Status == "Approved", ct);
+        var profile = await db.SupplierProfiles.SingleOrDefaultAsync(s => s.UserId == user.Id
+            && s.Status == "Approved", ct);
         if (profile == null) return new(false, false, "Your supplier profile is not approved.");
 
         var invId = GetInt(args, "invitationId");
@@ -1384,7 +1437,8 @@ public sealed class AiChatWorkspaceActions(
 
     private async Task<AiChatToolExecutionResult> SupplierUpsertOfferAsync(ApplicationUser user, JsonElement args, CancellationToken ct)
     {
-        var profile = await db.SupplierProfiles.SingleOrDefaultAsync(s => s.UserId == user.Id && s.Status == "Approved", ct);
+        var profile = await db.SupplierProfiles.SingleOrDefaultAsync(s => s.UserId == user.Id
+            && s.Status == "Approved", ct);
         if (profile == null) return new(false, false, "Your supplier profile is not approved.");
 
         var invId = GetInt(args, "invitationId");
@@ -1415,8 +1469,12 @@ public sealed class AiChatWorkspaceActions(
             .SingleOrDefaultAsync(b => b.InvitationId == inv.InvitationId, ct);
         var extended = await db.Set<TenderOfferExtension>().AnyAsync(e => e.TenderId == inv.TenderId, ct);
 
-        if (existingBid != null && existingBid.Status != "Draft" && !(extended && existingBid.Status is "NonCompliant" or "Withdrawn"))
-            return new(false, false, $"Offer #{existingBid.BidId} is already '{existingBid.Status}'. Withdraw it first if you wish to replace it before the deadline.");
+        if (existingBid != null
+            && existingBid.Status != "Draft"
+            && !(extended && existingBid.Status is "NonCompliant" or "Withdrawn"))
+            return new(false,
+                false,
+                $"Offer #{existingBid.BidId} is already '{existingBid.Status}'. Withdraw it first if you wish to replace it before the deadline.");
 
         var wantSubmit = GetBool(args, "submit") ?? true;
         var mandatoryDocs = inv.Tender.TenderDocuments.Count(d => d.IsMandatory);
@@ -1425,8 +1483,12 @@ public sealed class AiChatWorkspaceActions(
         if (forcedDraftForDocs) wantSubmit = false;
 
         var deliveryDays = Math.Max(0, GetInt(args, "deliveryDays") ?? existingBid?.DeliveryDays ?? 14);
-        var paymentTerms = TrimTo(GetString(args, "paymentTerms"), 1000) ?? existingBid?.PaymentTerms ?? "30 days net after QC release";
-        var technicalDetails = TrimTo(GetString(args, "technicalDetails"), 4000) ?? existingBid?.TechnicalDetails ?? "Conforms to tender pharmacopoeial and packaging specifications; batch CoA supplied.";
+        var paymentTerms = TrimTo(GetString(args, "paymentTerms"), 1000)
+            ?? existingBid?.PaymentTerms
+            ?? "30 days net after QC release";
+        var technicalDetails = TrimTo(GetString(args, "technicalDetails"), 4000)
+            ?? existingBid?.TechnicalDetails
+            ?? "Conforms to tender pharmacopoeial and packaging specifications; batch CoA supplied.";
         var taxPct = Math.Clamp(GetDecimal(args, "taxPercentage") ?? 4m, 0m, 100m);
         var extraCosts = Math.Max(0m, GetDecimal(args, "additionalCosts") ?? existingBid?.AdditionalCosts ?? 0m);
         var fallbackPrice = Math.Max(1m, GetDecimal(args, "defaultUnitPrice") ?? 15.00m);
@@ -1469,7 +1531,9 @@ public sealed class AiChatWorkspaceActions(
             var unitPrice = itemOverrides.TryGetValue(reqItem.PurchaseRequestItemId, out var ov)
                 ? ov.UnitPrice
                 : fallbackPrice;
-            var specs = itemOverrides.TryGetValue(reqItem.PurchaseRequestItemId, out var ovSpec) && !string.IsNullOrWhiteSpace(ovSpec.Specs)
+            var specs = itemOverrides.TryGetValue(reqItem.PurchaseRequestItemId, out var ovSpec)
+                && !string
+                .IsNullOrWhiteSpace(ovSpec.Specs)
                 ? ovSpec.Specs!
                 : reqItem.Specifications;
 
@@ -1531,7 +1595,9 @@ public sealed class AiChatWorkspaceActions(
             return new(false, false, $"Offer #{bidId} was not found for your company.");
         if (!bid.Invitation.Tender.IsAcceptingOffers(DateTime.UtcNow) || bid.SubmittedAt == null ||
             bid.Status is not ("Submitted" or "UnderReview" or "Compliant" or "NonCompliant"))
-            return new(false, false, $"Offer #{bidId} cannot be withdrawn (status '{bid.Status}', tender closes {bid.Invitation.Tender.ClosesAt:yyyy-MM-dd HH:mm} UTC).");
+            return new(false,
+                false,
+                $"Offer #{bidId} cannot be withdrawn (status '{bid.Status}', tender closes {bid.Invitation.Tender.ClosesAt:yyyy-MM-dd HH:mm} UTC).");
 
         bid.Status = "Withdrawn";
         bid.ComplianceStatus = null;
@@ -1561,7 +1627,11 @@ public sealed class AiChatWorkspaceActions(
             }
             if (isActive.HasValue) dept.IsActive = isActive.Value;
             await db.SaveChangesAsync(ct);
-            return new(true, true, $"Updated Department #{dept.DepartmentId} ('{dept.Name}', Active: {dept.IsActive}).", "/Admin/Departments", "Open Departments");
+            return new(true,
+                true,
+                $"Updated Department #{dept.DepartmentId} ('{dept.Name}', Active: {dept.IsActive}).",
+                "/Admin/Departments",
+                "Open Departments");
         }
 
         if (string.IsNullOrWhiteSpace(name))
@@ -1574,7 +1644,11 @@ public sealed class AiChatWorkspaceActions(
             {
                 existing.IsActive = isActive.Value;
                 await db.SaveChangesAsync(ct);
-                return new(true, true, $"Updated Department #{existing.DepartmentId} ('{existing.Name}', Active: {existing.IsActive}).", "/Admin/Departments", "Open Departments");
+                return new(true,
+                    true,
+                    $"Updated Department #{existing.DepartmentId} ('{existing.Name}', Active: {existing.IsActive}).",
+                    "/Admin/Departments",
+                    "Open Departments");
             }
             return new(false, false, $"Department '{name}' already exists (#{existing.DepartmentId}).");
         }
@@ -1582,7 +1656,11 @@ public sealed class AiChatWorkspaceActions(
         var created = new Department { Name = name, IsActive = isActive ?? true };
         db.Departments.Add(created);
         await db.SaveChangesAsync(ct);
-        return new(true, true, $"Created Department #{created.DepartmentId} ('{created.Name}', Active: {created.IsActive}).", "/Admin/Departments", "Open Departments");
+        return new(true,
+            true,
+            $"Created Department #{created.DepartmentId} ('{created.Name}', Active: {created.IsActive}).",
+            "/Admin/Departments",
+            "Open Departments");
     }
 
     private async Task<AiChatToolExecutionResult> AdminReviewSupplierAsync(ApplicationUser admin, JsonElement args, CancellationToken ct)
@@ -1692,7 +1770,11 @@ public sealed class AiChatWorkspaceActions(
         msg.Status = targetStatus;
         await db.SaveChangesAsync(ct);
 
-        return new(true, true, $"Marked Contact Message #{msg.ContactMessageId} ('{msg.Subject}') as {msg.Status}.", $"/Admin/ContactMessageDetails/{msg.ContactMessageId}", $"Open Message #{msg.ContactMessageId}");
+        return new(true,
+            true,
+            $"Marked Contact Message #{msg.ContactMessageId} ('{msg.Subject}') as {msg.Status}.",
+            $"/Admin/ContactMessageDetails/{msg.ContactMessageId}",
+            $"Open Message #{msg.ContactMessageId}");
     }
 
     // ---------------- PARSING HELPERS ----------------
@@ -1706,7 +1788,8 @@ public sealed class AiChatWorkspaceActions(
             var name = TrimTo(GetString(el, "itemName") ?? GetString(el, "name"), 200);
             var qty = GetDecimal(el, "quantity") ?? 1m;
             var unit = TrimTo(GetString(el, "unit"), 30) ?? "units";
-            var specs = TrimTo(GetString(el, "specifications") ?? GetString(el, "specs"), 4000) ?? "Standard pharmacopoeial grade";
+            var specs = TrimTo(GetString(el, "specifications") ?? GetString(el, "specs"), 4000)
+                ?? "Standard pharmacopoeial grade";
             if (string.IsNullOrWhiteSpace(name) || qty <= 0) continue;
             result.Add(new PurchaseRequestItem
             {
@@ -1743,7 +1826,8 @@ public sealed class AiChatWorkspaceActions(
     {
         if (el.ValueKind != JsonValueKind.Object || !el.TryGetProperty(prop, out var v)) return null;
         if (v.ValueKind == JsonValueKind.Number && v.TryGetDecimal(out var d)) return d;
-        if (v.ValueKind == JsonValueKind.String && decimal.TryParse(v.GetString(), System.Globalization.CultureInfo.InvariantCulture, out var s)) return s;
+        if (v.ValueKind == JsonValueKind.String
+            && decimal.TryParse(v.GetString(), System.Globalization.CultureInfo.InvariantCulture, out var s)) return s;
         return null;
     }
 
@@ -1760,7 +1844,9 @@ public sealed class AiChatWorkspaceActions(
     }
 
     private static DateOnly? ParseDateOnly(string? raw) =>
-        !string.IsNullOrWhiteSpace(raw) && DateOnly.TryParse(raw.Trim(), System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : null;
+        !string.IsNullOrWhiteSpace(raw)
+            && DateOnly
+            .TryParse(raw.Trim(), System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : null;
 
     private static string NormalizeChoice(string? raw, string[] allowed, string fallback) =>
         allowed.FirstOrDefault(a => string.Equals(a, raw?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? fallback;

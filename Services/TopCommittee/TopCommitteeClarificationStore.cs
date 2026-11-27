@@ -21,7 +21,10 @@ internal interface ICommitteeClarificationSession
 internal interface ITopCommitteeClarificationStore
 {
     Task<int?> FindTenderAsync(string actorId, string role, int clarificationId, CancellationToken cancellationToken);
-    Task<T> ExecuteAsync<T>(string actorId, int tenderId, Func<ICommitteeClarificationSession, CancellationToken, Task<T>> action, CancellationToken cancellationToken);
+    Task<T> ExecuteAsync<T>(string actorId,
+        int tenderId,
+        Func<ICommitteeClarificationSession, CancellationToken, Task<T>> action,
+        CancellationToken cancellationToken);
 }
 
 internal sealed class TopCommitteeClarificationStore(ApplicationDbContext readContext, ITopCommitteeTenderTransaction transaction)
@@ -40,7 +43,11 @@ internal sealed class TopCommitteeClarificationStore(ApplicationDbContext readCo
             return await action(new Session(db, context), ct);
         }, cancellationToken);
 
-    internal static async Task<CommitteeClarificationContext> LoadAsync(ApplicationDbContext db, string actorId, int tenderId, CancellationToken cancellationToken, bool tracking = true)
+    internal static async Task<CommitteeClarificationContext> LoadAsync(ApplicationDbContext db,
+        string actorId,
+        int tenderId,
+        CancellationToken cancellationToken,
+        bool tracking = true)
     {
         var active = await db.Users.AsNoTracking().AnyAsync(u => u.Id == actorId && u.IsActive, cancellationToken);
         var roles = await (from userRole in db.UserRoles.AsNoTracking()
@@ -71,7 +78,8 @@ internal sealed class TopCommitteeClarificationStore(ApplicationDbContext readCo
                     entry.Property(c => c.Status).OriginalValue == "Answered")
                 .Select(entry => entry.Entity).ToList();
             var confirmations = db.ChangeTracker.Entries<ClarificationResponse>()
-                .Where(entry => entry.State == EntityState.Added && entry.Entity.Message == ClarificationResolution.Confirmation)
+                .Where(entry => entry.State == EntityState.Added
+                    && entry.Entity.Message == ClarificationResolution.Confirmation)
                 .Select(entry => entry.Entity).ToList();
             foreach (var confirmation in confirmations)
             {

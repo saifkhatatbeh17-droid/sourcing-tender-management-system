@@ -50,7 +50,9 @@ public static class TopCommitteePhase3Checks
         data.Active["member-1"] = true; data.Roles["member-1"] = [];
         await Denied<CommitteeAccessDeniedException>(() => service.CreateAsync(member, Input("Revoked")), "A stale cookie cannot replace the database role.");
         data.Roles["member-1"] = [RoleNames.TopCommittee];
-        await Denied<ValidationException>(() => service.CreateAsync(member, new() { TenderId = 1, Subject = " ", Description = " " }), "Blank question must fail.");
+        await Denied<ValidationException>(() => service.CreateAsync(member, new() { TenderId = 1,
+            Subject = " ",
+            Description = " " }), "Blank question must fail.");
         foreach (var status in new[] { "Draft", "Open", "Closed", "AwaitingManagerReview", "Awarded", "Cancelled" })
         {
             data.Tender.Status = status;
@@ -71,26 +73,39 @@ public static class TopCommitteePhase3Checks
         data.Managers[0] = originalManager with { UserId = "member-1" };
         await Denied<CommitteeStateConflictException>(() => service.CreateAsync(member, Input("Self recipient")), "Dual-role users cannot violate the sender/recipient check constraint.");
         data.Managers[0] = originalManager;
-        await Denied<CommitteeAccessDeniedException>(() => service.AnswerAsync(member, created.ClarificationId, "Answer"), "Member cannot impersonate Manager.");
-        await Denied<CommitteeTenderNotFoundException>(() => service.AnswerAsync(Actor("other-manager", RoleNames.SourcingManager), created.ClarificationId, "Answer"), "Another manager cannot answer.");
+        await Denied<CommitteeAccessDeniedException>(() => service.AnswerAsync(member,
+            created.ClarificationId,
+            "Answer"), "Member cannot impersonate Manager.");
+        await Denied<CommitteeTenderNotFoundException>(() => service.AnswerAsync(Actor("other-manager", RoleNames.SourcingManager),
+            created.ClarificationId,
+            "Answer"), "Another manager cannot answer.");
         await Denied<ValidationException>(() => service.AnswerAsync(manager, created.ClarificationId, " "), "Blank response must fail.");
         data.Active["manager"] = false;
-        await Denied<CommitteeAccessDeniedException>(() => service.AnswerAsync(manager, created.ClarificationId, "Inactive"), "Disabled Manager cannot answer.");
+        await Denied<CommitteeAccessDeniedException>(() => service.AnswerAsync(manager,
+            created.ClarificationId,
+            "Inactive"), "Disabled Manager cannot answer.");
         data.Active["manager"] = true; data.Roles["manager"] = [];
-        await Denied<CommitteeAccessDeniedException>(() => service.AnswerAsync(manager, created.ClarificationId, "Revoked"), "Revoked Manager role must be checked in the database context.");
+        await Denied<CommitteeAccessDeniedException>(() => service.AnswerAsync(manager,
+            created.ClarificationId,
+            "Revoked"), "Revoked Manager role must be checked in the database context.");
         data.Roles["manager"] = [RoleNames.SourcingManager];
         question.TenderId = 999;
-        await Denied<CommitteeTenderNotFoundException>(() => service.AnswerAsync(manager, created.ClarificationId, "Cross tender"), "A clarification from another tender must not be answered in this context.");
+        await Denied<CommitteeTenderNotFoundException>(() => service.AnswerAsync(manager,
+            created.ClarificationId,
+            "Cross tender"), "A clarification from another tender must not be answered in this context.");
         question.TenderId = 1;
         await Denied<CommitteeStateConflictException>(() => service.ResolveAsync(member, created.ClarificationId), "Pending question cannot be resolved.");
         question.Status = "Answered";
         await Denied<CommitteeStateConflictException>(() => service.ResolveAsync(member, created.ClarificationId), "Answered status alone is not evidence of a manager response.");
-        question.ClarificationResponses.Add(new ClarificationResponse { ClarificationId = created.ClarificationId, RespondedByUserId = "other-manager", Message = "Untrusted response" });
+        question.ClarificationResponses.Add(new ClarificationResponse { ClarificationId = created.ClarificationId,
+            RespondedByUserId = "other-manager",
+            Message = "Untrusted response" });
         await Denied<CommitteeStateConflictException>(() => service.ResolveAsync(member, created.ClarificationId), "A response from another Manager cannot authorize resolution.");
         question.ClarificationResponses.Clear();
         question.Status = "Pending";
         await service.AnswerAsync(manager, created.ClarificationId, "Seven working days.");
-        Check(question.Status == "Answered" && question.ClarificationResponses.Single().RespondedByUserId == "manager", "Manager answer must be persisted as a response and set Answered.");
+        Check(question.Status == "Answered"
+            && question.ClarificationResponses.Single().RespondedByUserId == "manager", "Manager answer must be persisted as a response and set Answered.");
         Check(TopCommitteeClarificationScope.OpenCount(data.Context("member-3")) == 1, "Answered still pauses every member.");
         await Denied<CommitteeStateConflictException>(() => service.AnswerAsync(manager, created.ClarificationId, "Duplicate"), "Duplicate answer must fail.");
         await Denied<CommitteeTenderNotFoundException>(() => service.ResolveAsync(Actor("member-3", RoleNames.TopCommittee), created.ClarificationId), "Only the question creator may resolve.");
@@ -101,11 +116,14 @@ public static class TopCommitteePhase3Checks
             "A follow-up must preserve the first answer and keep voting paused.");
         await Denied<CommitteeStateConflictException>(() => service.ResolveAsync(member, created.ClarificationId), "Wait for the latest answer before resolving.");
         await service.AnswerAsync(manager, created.ClarificationId, "Yes, it includes transit.");
-        Check(question.Status == "Answered" && question.ClarificationResponses.Count == 4, "The manager can answer again in the same conversation.");
+        Check(question.Status == "Answered"
+            && question.ClarificationResponses.Count == 4, "The manager can answer again in the same conversation.");
         await service.ResolveAsync(member, created.ClarificationId);
-        Check(question.Status == "Answered" && TopCommitteeClarificationScope.OpenCount(data.Context("member-1")) == 1, "One confirmation keeps voting paused.");
+        Check(question.Status == "Answered"
+            && TopCommitteeClarificationScope.OpenCount(data.Context("member-1")) == 1, "One confirmation keeps voting paused.");
         await service.ConfirmResolutionAsync(manager, created.ClarificationId);
-        Check(question.Status == "Resolved" && question.ResolvedAt.HasValue, "Resolve must preserve answer and record its timestamp.");
+        Check(question.Status == "Resolved"
+            && question.ResolvedAt.HasValue, "Resolve must preserve answer and record its timestamp.");
         await Denied<CommitteeStateConflictException>(() => service.ResolveAsync(member, created.ClarificationId), "Duplicate resolution must fail.");
         Check(TopCommitteeClarificationScope.OpenCount(data.Context("member-1")) == 0 && data.Tender.TenderApprovals.Count == 1,
             "Resume must preserve pre-existing approvals.");
@@ -131,12 +149,18 @@ public static class TopCommitteePhase3Checks
             try { await operation(); return true; } catch (CommitteeStateConflictException) { return false; }
         }
         var race = new MemoryStore(); var raceService = Service(race);
-        var creates = await Task.WhenAll(Try(() => raceService.CreateAsync(member, Input())), Try(() => raceService.CreateAsync(member, Input())));
-        Check(creates.Count(v => v) == 1 && race.Tender.Clarifications.Count == 1, "Concurrent duplicate creations must serialize.");
+        var creates = await Task.WhenAll(Try(() => raceService.CreateAsync(member, Input())), Try(() => raceService
+            .CreateAsync(member, Input())));
+        Check(creates.Count(v => v) == 1
+            && race.Tender.Clarifications.Count == 1, "Concurrent duplicate creations must serialize.");
         var raceId = race.Tender.Clarifications.Single().ClarificationId;
-        var answers = await Task.WhenAll(Try(() => raceService.AnswerAsync(manager, raceId, "Answer one")), Try(() => raceService.AnswerAsync(manager, raceId, "Answer two")));
-        Check(answers.Count(v => v) == 1 && race.Question(raceId).ClarificationResponses.Count == 1, "Concurrent manager replies must produce one answer.");
-        var resolves = await Task.WhenAll(Try(() => raceService.ResolveAsync(member, raceId)), Try(() => raceService.ResolveAsync(member, raceId)));
+        var answers = await Task.WhenAll(Try(() => raceService.AnswerAsync(manager, raceId, "Answer one")), Try(() => raceService
+            .AnswerAsync(manager, raceId, "Answer two")));
+        Check(answers.Count(v => v) == 1
+            && race
+            .Question(raceId).ClarificationResponses.Count == 1, "Concurrent manager replies must produce one answer.");
+        var resolves = await Task.WhenAll(Try(() => raceService.ResolveAsync(member, raceId)), Try(() => raceService
+            .ResolveAsync(member, raceId)));
         Check(resolves.Count(v => v) == 1, "Concurrent resolve requests must have one winner.");
 
         // Simulate a future eligibility check inside the SAME tender lock. This is a test callback,
@@ -158,7 +182,9 @@ public static class TopCommitteePhase3Checks
             Check(action.GetCustomAttribute<HttpPostAttribute>() != null && action.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>() != null,
                 $"{method} must be POST and anti-forgery protected.");
         }
-        var postNames = typeof(TopCommitteeController).GetMethods().Where(m => m.GetCustomAttribute<HttpPostAttribute>() != null).Select(m => m.Name);
+        var postNames = typeof(TopCommitteeController).GetMethods()
+            .Where(m => m.GetCustomAttribute<HttpPostAttribute>() != null)
+            .Select(m => m.Name);
         Check(postNames.All(n => n is "CreateClarification" or "FollowUpClarification" or "ResolveClarification" or "SubmitVote" or "AssessImportance" or "MarkNotificationRead" or "MarkAllNotificationsRead"), "Only approved Top Committee POSTs may be introduced.");
 
         var queries = services.GetRequiredService<ITopCommitteeClarificationQueries>();
@@ -169,19 +195,43 @@ public static class TopCommitteePhase3Checks
         var livePage = await queries.GetPageAsync(Actor(liveId, RoleNames.TopCommittee), null);
         await Denied<CommitteeTenderNotFoundException>(() => queries.GetPageAsync(Actor(liveId, RoleNames.TopCommittee), -1), "Cross-tender conversation reads must fail.");
         var emptyHtml = await TopCommitteePhase2Checks.RenderAsync(services, member, "Clarifications", livePage);
-        Check(livePage.Tenders.Count > 0 || emptyHtml.Contains("No tenders assigned yet"), "Live empty state must be useful.");
+        Check(livePage.Tenders.Count > 0
+            || emptyHtml.Contains("No tenders assigned yet"), "Live empty state must be useful.");
         var uiPage = PreviewPage();
         var html = await TopCommitteePhase2Checks.RenderAsync(services, member, "Clarifications", uiPage);
-        Check(html.Contains("Pending") && html.Contains("Answered") && html.Contains("Resolved") && html.Contains("Follow-up question"), "Render all three states and the manager response.");
-        Check(html.Contains("CreateClarification") && html.Contains("ResolveClarification") && html.Contains("__RequestVerificationToken"), "Forms must render anti-forgery tokens and the correct actions.");
-        Check(html.Contains("name=\"Create.Subject\"") && html.Contains("name=\"Create.TenderId\"") && !html.Contains("name=\"ManagerId\""), "Form binding must never choose the responsible manager.");
-        Check(!html.Contains("<script>alert(1)</script>") && html.Contains("&lt;script&gt;"), "Questions and answers must be encoded.");
-        var blockedHtml = await TopCommitteePhase2Checks.RenderAsync(services, member, "Clarifications", uiPage with { CreateBlockedReason = "You have already voted." });
-        Check(!blockedHtml.Contains("Send clarification</button>") && blockedHtml.Contains("already voted"), "Ineligible creation must have a meaningful read-only state.");
+        Check(html.Contains("Pending")
+            && html
+            .Contains("Answered")
+            && html
+            .Contains("Resolved")
+            && html
+            .Contains("Follow-up question"), "Render all three states and the manager response.");
+        Check(html.Contains("CreateClarification")
+            && html
+            .Contains("ResolveClarification")
+            && html
+            .Contains("__RequestVerificationToken"), "Forms must render anti-forgery tokens and the correct actions.");
+        Check(html.Contains("name=\"Create.Subject\"")
+            && html
+            .Contains("name=\"Create.TenderId\"")
+            && !html
+            .Contains("name=\"ManagerId\""), "Form binding must never choose the responsible manager.");
+        Check(!html.Contains("<script>alert(1)</script>")
+            && html
+            .Contains("&lt;script&gt;"), "Questions and answers must be encoded.");
+        var blockedHtml = await TopCommitteePhase2Checks.RenderAsync(services,
+            member,
+            "Clarifications",
+            uiPage with { CreateBlockedReason = "You have already voted." });
+        Check(!blockedHtml.Contains("Send clarification</button>")
+            && blockedHtml
+            .Contains("already voted"), "Ineligible creation must have a meaningful read-only state.");
         var validation = new ModelStateDictionary();
         validation.AddModelError("Create.Subject", "Please enter a subject.");
         var errorHtml = await TopCommitteePhase2Checks.RenderAsync(services, member, "Clarifications", uiPage, validation);
-        Check(errorHtml.Contains("Please enter a subject.") && errorHtml.Contains("field-validation-error"), "Validation errors must be visible beside the field and in the summary.");
+        Check(errorHtml.Contains("Please enter a subject.")
+            && errorHtml
+            .Contains("field-validation-error"), "Validation errors must be visible beside the field and in the summary.");
         var longHtml = await TopCommitteePhase2Checks.RenderAsync(services, member, "Clarifications", uiPage with {
             Threads = new[] { uiPage.Threads[0] with { Subject = new string('S', 200), Description = new string('Q', 4000) } } });
         Check(longHtml.Contains(new string('Q', 4000)), "Maximum-length text must render without truncating the stored conversation.");
@@ -220,7 +270,9 @@ public static class TopCommitteePhase3Checks
         var afterRollback = await sqlTransaction.ExecuteAsync(lockId, async (db, ct) =>
         {
             await pause.AssertNotPausedAsync(db, lockId, ct);
-            await Denied<InvalidOperationException>(() => pause.AssertNotPausedAsync(db, lockId - 1, ct), "A lock for one tender must not authorize a pause check for another.");
+            await Denied<InvalidOperationException>(() => pause.AssertNotPausedAsync(db,
+                lockId - 1,
+                ct), "A lock for one tender must not authorize a pause check for another.");
             return !db.ChangeTracker.HasChanges();
         });
         Check(afterRollback, "SQL locks must be released after rollback with no tracked data changes.");
@@ -248,7 +300,17 @@ public static class TopCommitteePhase3Checks
         var now = DateTime.UtcNow;
         return new CommitteeClarificationsPage(new[] { new CommitteeClarificationTender(1, "Test equipment tender", "AwaitingCommitteeDecision") },
             new[] {
-                new CommitteeClarificationThread(1, 1, "Test equipment tender", "Test delivery dates", "Please confirm the lead time. <script>alert(1)</script>", "Test manager", "Pending", now, null, false, []),
+                new CommitteeClarificationThread(1,
+                    1,
+                    "Test equipment tender",
+                    "Test delivery dates",
+                    "Please confirm the lead time. <script>alert(1)</script>",
+                    "Test manager",
+                    "Pending",
+                    now,
+                    null,
+                    false,
+                    []),
                 new CommitteeClarificationThread(2, 1, "Test equipment tender", "Test installation scope", "Does the quote include installation?", "Test manager", "Answered", now, null, true,
                     new[] { new CommitteeClarificationResponse("manager", "Test manager", "Installation is included in the submitted quote.", now) }),
                 new CommitteeClarificationThread(3, 1, "Test equipment tender", "Test warranty", "Please confirm the warranty.", "Test manager", "Resolved", now, now, false,
@@ -261,7 +323,9 @@ public static class TopCommitteePhase3Checks
         private readonly SemaphoreSlim mutex = new(1, 1);
         private int nextId;
         public Tender Tender { get; } = new() { TenderId = 1, Status = "AwaitingCommitteeDecision" };
-        public List<CommitteeMember> Members { get; } = Enumerable.Range(1, 4).Select(i => new CommitteeMember(i, $"member-{i}", $"Member {i}", i, true, true)).ToList();
+        public List<CommitteeMember> Members { get; } = Enumerable.Range(1, 4)
+            .Select(i => new CommitteeMember(i, $"member-{i}", $"Member {i}", i, true, true))
+            .ToList();
         public List<CommitteeManager> Managers { get; } = [new("manager", "Manager", true, true, DateTime.UtcNow)];
         public Dictionary<string, bool> Active { get; } = new();
         public Dictionary<string, IReadOnlyList<string>> Roles { get; } = new();
@@ -276,7 +340,10 @@ public static class TopCommitteePhase3Checks
         public Task<int?> FindTenderAsync(string actorId, string role, int clarificationId, CancellationToken cancellationToken) => Task.FromResult(
             Tender.Clarifications.SingleOrDefault(c => c.ClarificationId == clarificationId &&
                 (role == RoleNames.TopCommittee ? c.SenderUserId == actorId : c.RecipientUserId == actorId))?.TenderId);
-        public async Task<T> ExecuteAsync<T>(string actorId, int tenderId, Func<ICommitteeClarificationSession, CancellationToken, Task<T>> action, CancellationToken cancellationToken)
+        public async Task<T> ExecuteAsync<T>(string actorId,
+            int tenderId,
+            Func<ICommitteeClarificationSession, CancellationToken, Task<T>> action,
+            CancellationToken cancellationToken)
         {
             await mutex.WaitAsync(cancellationToken);
             try { return await action(new Session(this, Context(actorId, tenderId)), cancellationToken); }
@@ -286,8 +353,10 @@ public static class TopCommitteePhase3Checks
         {
             public CommitteeClarificationContext Context => context;
             public void Add(Clarification question) { question.ClarificationId = ++owner.nextId; owner.Tender.Clarifications.Add(question); }
-            public void Add(ClarificationResponse response) => owner.Question(response.ClarificationId).ClarificationResponses.Add(response);
-            public async Task SaveAsync(CancellationToken cancellationToken) { cancellationToken.ThrowIfCancellationRequested(); await Task.Yield(); }
+            public void Add(ClarificationResponse response) => owner.Question(response.ClarificationId).ClarificationResponses
+                .Add(response);
+            public async Task SaveAsync(CancellationToken cancellationToken) { cancellationToken.ThrowIfCancellationRequested(); await Task
+                .Yield(); }
         }
     }
 }

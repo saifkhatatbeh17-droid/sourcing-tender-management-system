@@ -16,17 +16,25 @@ public class CommitteeEvaluationPage
     public string UserId { get; set; } = "";
     public int? ReviewOfferId { get; set; }
     public Bid? ReviewOffer => Offers.FirstOrDefault(b => b.BidId == ReviewOfferId)
-        ?? Offers.FirstOrDefault(b => Members.Any(m => m.UserId == UserId && !AllOfferScoring.Accepted(this, Evaluation(m, b))))
+        ?? Offers.FirstOrDefault(b => Members.Any(m => m.UserId == UserId
+            && !AllOfferScoring.Accepted(this, Evaluation(m, b))))
         ?? Offers.FirstOrDefault();
     public bool MyReviewApproved(Bid offer) => Members.FirstOrDefault(m => m.UserId == UserId) is { } member
         && AllOfferScoring.Accepted(this, Evaluation(member, offer));
     public List<Bid> Offers => Tender?.Invitations.SelectMany(i => i.Bids).OrderBy(b => b.BidId).ToList() ?? [];
-    public List<CommitteeAssignment> Members => Tender?.CommitteeAssignments.Where(a => a.CommitteeType == "Evaluation").OrderBy(a => a.Position).ToList() ?? [];
-    public List<EvaluationCriterion> Criteria => Tender?.EvaluationCriteria.OrderBy(c => c.EvaluationCriterionId).ToList() ?? [];
+    public List<CommitteeAssignment> Members => Tender?.CommitteeAssignments.Where(a => a.CommitteeType == "Evaluation")
+        .OrderBy(a => a.Position)
+        .ToList()
+        ?? [];
+    public List<EvaluationCriterion> Criteria => Tender?.EvaluationCriteria.OrderBy(c => c.EvaluationCriterionId)
+        .ToList()
+        ?? [];
     public List<TenderApproval> Approvals => Tender?.TenderApprovals.Where(a => a.Stage == "Evaluation").ToList() ?? [];
     public List<CommitteeWeightProposal> WeightProposals => Tender?.CommitteeWeightProposals
         .Where(p => Members.Any(m => m.CommitteeAssignmentId == p.CommitteeAssignmentId)).ToList() ?? [];
-    public decimal FinancialWeight => decimal.Round(Tender?.CommitteeFinancialWeight ?? Criteria.Where(c => c.Category == "Financial").Sum(c => c.Weight), 0, MidpointRounding.AwayFromZero);
+    public decimal FinancialWeight => decimal.Round(Tender?.CommitteeFinancialWeight
+        ?? Criteria.Where(c => c.Category == "Financial")
+        .Sum(c => c.Weight), 0, MidpointRounding.AwayFromZero);
     public decimal TechnicalWeight => 100 - FinancialWeight;
     public bool ConsensusLocked => Members.Count == 4 && WeightProposals.Count == 4
         && Tender?.CommitteeWeightsLockedAt != null && Tender.CommitteeFinancialWeight is > 0 and < 100;
@@ -34,7 +42,8 @@ public class CommitteeEvaluationPage
     public bool PercentageReady => Locked || ConsensusLocked;
     public bool Locked => Tender?.Status != "UnderEvaluation";
     public bool SelectionReady => Tender?.EvaluationReport is { RecommendedBidId: int bidId } report
-        && (Locked || (AllOfferScoring.Complete(this) && AllOfferScoring.Winner(this) == bidId)) && Offers.Any(b => b.BidId == bidId);
+        && (Locked
+            || (AllOfferScoring.Complete(this) && AllOfferScoring.Winner(this) == bidId)) && Offers.Any(b => b.BidId == bidId);
     public static string StatusLabel(string status) => status switch
     {
         "UnderEvaluation" => "Under evaluation", "AwaitingOfficerSummary" => "With sourcing officer",
@@ -55,9 +64,13 @@ public class CommitteeEvaluationPage
     public string SharedVersion => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
         System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new {
             Consensus = new { Tender?.CommitteeFinancialWeight, Tender?.CommitteeWeightsLockedAt },
-            Proposals = WeightProposals.OrderBy(p => p.CommitteeAssignmentId).Select(p => new { p.CommitteeAssignmentId, p.FinancialWeight, p.ConfirmedAt }),
-            Reviews = Evaluations.OrderBy(e => e.CommitteeAssignmentId).ThenBy(e => e.BidId).Select(e => new { e.CommitteeAssignmentId, e.BidId, e.Status, e.ApprovedAt, e.FinancialMark, e.TechnicalMark, e.Notes }),
-            TieVotes = Tender?.CommitteeTieVotes.OrderBy(v => v.CommitteeAssignmentId).Select(v => new { v.CommitteeAssignmentId, v.BidId, v.ConfirmedAt }),
+            Proposals = WeightProposals.OrderBy(p => p.CommitteeAssignmentId)
+                .Select(p => new { p.CommitteeAssignmentId, p.FinancialWeight, p.ConfirmedAt }),
+            Reviews = Evaluations.OrderBy(e => e.CommitteeAssignmentId)
+                .ThenBy(e => e.BidId)
+                .Select(e => new { e.CommitteeAssignmentId, e.BidId, e.Status, e.ApprovedAt, e.FinancialMark, e.TechnicalMark, e.Notes }),
+            TieVotes = Tender?.CommitteeTieVotes.OrderBy(v => v.CommitteeAssignmentId)
+                .Select(v => new { v.CommitteeAssignmentId, v.BidId, v.ConfirmedAt }),
             Weights = Criteria.Select(c => new { c.EvaluationCriterionId, c.Weight }),
             Report = new { Tender?.EvaluationReport?.RecommendedBidId, Tender?.EvaluationReport?.CommitteeSummary },
             Approvals = Approvals.OrderBy(a => a.UserId).Select(a => new { a.UserId, a.DecidedAt }) }))));

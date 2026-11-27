@@ -13,7 +13,8 @@ public partial class EvaluationCommitteeController
     {
         var result=await Reports(id);
         if(result is not ViewResult { Model:CommitteeEvaluationPage page })return result;
-        if(page.Tender?.TenderId!=id||string.IsNullOrWhiteSpace(page.Tender.EvaluationReport?.CommitteeSummary))return NotFound();
+        if(page.Tender?.TenderId!=id
+            ||string.IsNullOrWhiteSpace(page.Tender.EvaluationReport?.CommitteeSummary))return NotFound();
         return ReportPdfDownload.Create(this,()=>ReportPdfExport.CommitteeReport(page),$"committee-report-{id}.pdf");
     }
     [HttpGet]

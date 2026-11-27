@@ -42,7 +42,9 @@ public sealed class UserFaceCredentialConfiguration : IEntityTypeConfiguration<U
         entity.Property(x => x.ModelIdentifier).HasMaxLength(150);
         entity.Property(x => x.ConsentVersion).HasMaxLength(50);
         entity.Property(x => x.SampleCount).HasDefaultValue((short)0);
-        entity.Property(x => x.EnrollmentPromptedAt).HasColumnType("datetime2(7)").HasDefaultValueSql("SYSUTCDATETIME()");
+        entity.Property(x => x.EnrollmentPromptedAt)
+            .HasColumnType("datetime2(7)")
+            .HasDefaultValueSql("SYSUTCDATETIME()");
         entity.Property(x => x.ConsentGrantedAt).HasColumnType("datetime2(7)");
         entity.Property(x => x.EnrolledAt).HasColumnType("datetime2(7)");
         entity.Property(x => x.UpdatedAt).HasColumnType("datetime2(7)").HasDefaultValueSql("SYSUTCDATETIME()");

@@ -144,7 +144,8 @@ public sealed class OfferGuarantees(ApplicationDbContext db, IWebHostEnvironment
     {
         if (guarantee is null)
             return new(null, "Record not found", "The verification link is invalid or has been replaced.");
-        if (number is not null && !string.Equals(number.Trim(), guarantee.ReferenceNumber, StringComparison.OrdinalIgnoreCase))
+        if (number is not null
+            && !string.Equals(number.Trim(), guarantee.ReferenceNumber, StringComparison.OrdinalIgnoreCase))
             return new(null, "Number does not match", "The entered reference does not match this verification link.", false);
         if (guarantee.Bid.Status is "Withdrawn" or "Cancelled" || guarantee.Bid.Invitation.Tender.Status == "Cancelled")
             return new(guarantee, "Withdrawn", "The associated offer or tender has been withdrawn or cancelled.");

@@ -35,7 +35,9 @@ public static class CommitteeRankingChecks
         Check(page.Rank(0)[0].BidId == 2 && page.Rank(0)[0].Score == 100, "Requirements ranking incorrect.");
         Check(page.PriceScore(page.Offers[0]) == 66.67m, "Price normalization incorrect.");
         page.Offers[0].BidItems.First().UnitPrice = 0;
-        Check(page.PriceScore(page.Offers[0]) == 100 && page.PriceScore(page.Offers[1]) == 0, "Zero price handling incorrect.");
+        Check(page.PriceScore(page.Offers[0]) == 100
+            && page
+            .PriceScore(page.Offers[1]) == 0, "Zero price handling incorrect.");
         page.Offers[1].Currency = "USD";
         Check(!page.Ready && page.Rank().Count == 0, "Different currencies were compared.");
         page.Offers[1].Currency = "JOD";

@@ -14,7 +14,10 @@ public sealed class TopCommitteeReferralContract(ApplicationDbContext db, TopCom
     {
         var managerId = await access.RequireRoleAsync(manager, RoleNames.SourcingManager, cancellationToken);
         var managers = await access.GetManagersAsync(tenderId, cancellationToken);
-        if (managers.Count != 1 || managers[0].UserId != managerId || !managers[0].IsActive || !managers[0].HasManagerRole)
+        if (managers.Count != 1
+            || managers[0].UserId != managerId
+            || !managers[0].IsActive
+            || !managers[0].HasManagerRole)
             throw new CommitteeIntegrationException("Referral requires one recorded Manager approval owned by the authenticated manager.");
 
         var tender = await db.Tenders.AsNoTracking().Include(t => t.EvaluationReport)

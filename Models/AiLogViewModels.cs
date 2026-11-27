@@ -21,7 +21,12 @@ public sealed class AiLogPageViewModel
     public IReadOnlyList<string> FeatureOptions { get; init; } = [];
     public IReadOnlyList<string> WorkspaceOptions { get; init; } = [];
 
-    public bool HasFilters => !string.IsNullOrWhiteSpace(Search) || Feature != null || Workspace != null || Outcome != null || From.HasValue || To.HasValue;
+    public bool HasFilters => !string.IsNullOrWhiteSpace(Search)
+        || Feature != null
+        || Workspace != null
+        || Outcome != null
+        || From.HasValue
+        || To.HasValue;
 
     /// <summary>Plain names for the gateway's feature keys.</summary>
     public static string FeatureName(string feature) => feature switch
@@ -50,7 +55,13 @@ public sealed class AiLogPageViewModel
 
 public sealed record AiLogSummary(int Total, int Succeeded, int Failed, int Cancelled, int LimitReached, double? AverageMs, double? ConformRate);
 
-public sealed record AiLogFeatureRow(string Feature, int Calls, double SuccessRate, double? AverageMs, double? ConformRate, int PromptVersions, DateTime LastUsedUtc);
+public sealed record AiLogFeatureRow(string Feature,
+    int Calls,
+    double SuccessRate,
+    double? AverageMs,
+    double? ConformRate,
+    int PromptVersions,
+    DateTime LastUsedUtc);
 
 public sealed record AiLogRow(
     long Id,

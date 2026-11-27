@@ -22,7 +22,10 @@ public static class DepartmentRequestProgress
     // Keep filtering in SQL, using the same current stage shown by Code.
     public static IQueryable<PurchaseRequest> Filter(IQueryable<PurchaseRequest> requests, string status) =>
         requests.Where(request => (request.Status == "ConvertedToTender"
-            ? request.Tenders.OrderByDescending(t => t.TenderId).Select(t => t.Status).FirstOrDefault() ?? request.Status
+            ? request.Tenders.OrderByDescending(t => t.TenderId)
+                .Select(t => t.Status)
+                .FirstOrDefault()
+                ?? request.Status
             : request.Status) == status);
 
     public static string Label(string status) => status switch

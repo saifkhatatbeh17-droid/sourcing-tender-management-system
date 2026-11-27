@@ -76,7 +76,9 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
         else if (validUntil < today)
             flags.Add(new(PreCheckSeverity.Issue, "validity", $"The offer expired on {validUntil:dd MMM yyyy}."));
         else if (validUntil < DateOnly.FromDateTime(tender.ClosesAt))
-            flags.Add(new(PreCheckSeverity.Warning, "validity", $"The offer is valid only until {validUntil:dd MMM yyyy}, before the tender closes on {tender.ClosesAt:dd MMM yyyy}."));
+            flags.Add(new(PreCheckSeverity.Warning,
+                "validity",
+                $"The offer is valid only until {validUntil:dd MMM yyyy}, before the tender closes on {tender.ClosesAt:dd MMM yyyy}."));
 
         var subtotal = bid.BidItems.Sum(i => i.Quantity * i.UnitPrice);
         if (subtotal > 0 && bid.TaxAmount != 0 && bid.TaxAmount != OfferTax.Amount(subtotal))
@@ -94,7 +96,9 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
         else if (supportingCount == 0)
             flags.Add(new(PreCheckSeverity.Warning, "document", "No supporting documents were uploaded."));
         foreach (var document in bid.BidDocuments.Where(d => !fileExists(d)))
-            flags.Add(new(PreCheckSeverity.Issue, "document", $"“{document.OriginalFileName}” is listed but the file is missing. Ask the supplier to upload it again."));
+            flags.Add(new(PreCheckSeverity.Issue,
+                "document",
+                $"“{document.OriginalFileName}” is listed but the file is missing. Ask the supplier to upload it again."));
 
         return flags;
     }
@@ -111,7 +115,8 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
         foreach (var document in documents)
         {
             var path = DocumentPath(document);
-            if (!File.Exists(path)) { results.Add(new(document.OriginalFileName, "", "File missing; not reviewed.")); continue; }
+            if (!File.Exists(path)) { results
+                .Add(new(document.OriginalFileName, "", "File missing; not reviewed.")); continue; }
             if (budget <= 0) { results.Add(new(document.OriginalFileName, "", "Skipped: the review already reached its text limit.")); continue; }
 
             string text;
@@ -127,7 +132,8 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
             }
 
             text = Regex.Replace(text, @"\s+", " ").Trim();
-            if (text.Length == 0) { results.Add(new(document.OriginalFileName, "", note ?? "No readable text (it may be a scan); check it manually.")); continue; }
+            if (text.Length == 0) { results.Add(new(document.OriginalFileName, "", note
+                ?? "No readable text (it may be a scan); check it manually.")); continue; }
             var limit = Math.Min(PerDocumentChars, budget);
             if (text.Length > limit) { text = text[..limit]; note = "Only the first part was reviewed."; }
             budget -= text.Length;
@@ -253,7 +259,8 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
                     offeredSpecifications = AiUntrusted.Wrap("offered specifications", i.OfferedSpecifications)
                 })
             },
-            documents = documents.Where(d => d.Text.Length > 0).Select(d => new { fileName = d.FileName, text = AiUntrusted.Wrap(d.FileName, d.Text) })
+            documents = documents.Where(d => d.Text.Length > 0)
+                .Select(d => new { fileName = d.FileName, text = AiUntrusted.Wrap(d.FileName, d.Text) })
         };
 
         var ai = gateway ?? AiGateway.Detached;
@@ -291,7 +298,9 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
     {
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
-        var summary = root.TryGetProperty("summary", out var s) && s.ValueKind == JsonValueKind.String ? s.GetString()!.Trim() : "";
+        var summary = root.TryGetProperty("summary", out var s)
+            && s.ValueKind == JsonValueKind.String ? s
+            .GetString()!.Trim() : "";
         var haystack = Normalize(string.Join(" \n ", corpus.Where(t => !string.IsNullOrWhiteSpace(t))));
         var today = DateOnly.FromDateTime(utcNow);
         var findings = new List<PreCheckFlag>();
@@ -301,15 +310,24 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
         {
             foreach (var item in list.EnumerateArray().Take(25))
             {
-                string Text(string name) => item.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString()!.Trim() : "";
+                string Text(string name) => item.TryGetProperty(name, out var v)
+                    && v.ValueKind == JsonValueKind.String ? v
+                    .GetString()!.Trim() : "";
                 var evidence = Text("evidence");
                 var finding = Text("finding");
                 var severity = Text("severity").ToLowerInvariant();
                 var category = Text("category").ToLowerInvariant();
-                int? itemId = item.TryGetProperty("itemId", out var id) && id.ValueKind == JsonValueKind.Number && id.TryGetInt32(out var parsed) ? parsed : null;
+                int? itemId = item.TryGetProperty("itemId", out var id)
+                    && id.ValueKind == JsonValueKind.Number
+                    && id
+                    .TryGetInt32(out var parsed) ? parsed : null;
 
-                var quoteFound = evidence.Length >= 5 && haystack.Contains(Normalize(evidence), StringComparison.Ordinal);
-                if (!quoteFound || finding.Length == 0 || !PreCheckSeverity.All.Contains(severity) || (itemId.HasValue && !itemIds.Contains(itemId.Value)))
+                var quoteFound = evidence.Length >= 5
+                    && haystack.Contains(Normalize(evidence), StringComparison.Ordinal);
+                if (!quoteFound
+                    || finding.Length == 0
+                    || !PreCheckSeverity.All.Contains(severity)
+                    || (itemId.HasValue && !itemIds.Contains(itemId.Value)))
                 {
                     hidden++;
                     continue;
@@ -322,7 +340,9 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
                     if (date < today)
                         (severity, finding) = (PreCheckSeverity.Issue, $"{finding} (expired on {date:dd MMM yyyy})");
                     else if (offerValidUntil is { } valid && date < valid)
-                        (severity, finding) = (PreCheckSeverity.Warning, $"{finding} (expires {date:dd MMM yyyy}, before the offer's validity date {valid:dd MMM yyyy})");
+                        (severity,
+                            finding) = (PreCheckSeverity.Warning,
+                            $"{finding} (expires {date:dd MMM yyyy}, before the offer's validity date {valid:dd MMM yyyy})");
                     else if (date <= today.AddDays(30))
                         (severity, finding) = (PreCheckSeverity.Warning, $"{finding} (expires soon, on {date:dd MMM yyyy})");
                 }

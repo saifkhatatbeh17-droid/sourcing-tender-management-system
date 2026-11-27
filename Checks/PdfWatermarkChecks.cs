@@ -50,7 +50,9 @@ public static class PdfWatermarkChecks
                     before.Pages[i].Rotate == after.Pages[i].Rotate, "Boxes and rotation retained");
                 var content = Text(after.Pages[i]);
                 Check(content.Contains("CONFIDENTIAL"), "Every page has watermark");
-                Check(content.Contains("qa@example.invalid") && content.Contains("2026-11-14 12:34:56 UTC"), "Account and UTC time");
+                Check(content.Contains("qa@example.invalid")
+                    && content
+                    .Contains("2026-11-14 12:34:56 UTC"), "Account and UTC time");
                 Check(content.Contains("ORIGINAL CONTENT"), "Original content retained");
             }
         }
@@ -66,7 +68,9 @@ public static class PdfWatermarkChecks
         using (var pdf = PdfReader.Open(new MemoryStream(escaped), PdfDocumentOpenMode.Import))
             Check(pdf.PageCount == 3, "PDF string metacharacters safely encoded");
         await Fails(() => service.ApplyAsync(new MemoryStream([1, 2, 3]), Actor(), clock.GetUtcNow()), "Invalid input rejected");
-        await Fails(() => service.ApplyAsync(new MemoryStream(new byte[PdfWatermarkService.MaxInputBytes + 1]), Actor(), clock.GetUtcNow()), "Oversized input rejected");
+        await Fails(() => service.ApplyAsync(new MemoryStream(new byte[PdfWatermarkService.MaxInputBytes + 1]),
+            Actor(),
+            clock.GetUtcNow()), "Oversized input rejected");
         await Fails(() => service.ApplyAsync(new MemoryStream(source), new ClaimsPrincipal(), clock.GetUtcNow()), "Service requires authenticated identity");
         await Fails(() => service.ApplyAsync(new MemoryStream(source), Actor(), clock.GetUtcNow(), new CancellationToken(true)), "Cancellation honored");
         await Fails(() => service.ApplyAsync(new MemoryStream(Fixture(encrypted: true)), Actor(), clock.GetUtcNow()), "Protected input rejected");
@@ -110,11 +114,13 @@ public static class PdfWatermarkChecks
         {
             var nonPdf = new FileContentResult([1, 2, 3], mime);
             var context = await Run(nonPdf);
-            Check(ReferenceEquals(nonPdf, context.Result) && context.HttpContext.Response.Headers.Count == 0, "Non-PDF response untouched");
+            Check(ReferenceEquals(nonPdf, context.Result)
+                && context.HttpContext.Response.Headers.Count == 0, "Non-PDF response untouched");
         }
         var named = await Run(new FileContentResult(source, "application/pdf") { FileDownloadName = "existing-name.pdf", EnableRangeProcessing = true });
         Check(named.Result is FileContentResult { FileDownloadName: "existing-name.pdf", EnableRangeProcessing: false }, "Filename retained; stale original ranges disabled");
-        Check(named.HttpContext.Response.Headers.CacheControl.ToString().Contains("no-store"), "Personalized response not cached");
+        Check(named.HttpContext.Response.Headers.CacheControl.ToString()
+            .Contains("no-store"), "Personalized response not cached");
         var inline = await Run(new FileContentResult(source, "application/pdf"));
         Check(inline.Result is FileContentResult { FileDownloadName: "" }, "Inline result remains inline");
         var path = Path.Combine(outputDirectory, "source-upload.pdf");
@@ -128,7 +134,8 @@ public static class PdfWatermarkChecks
         Check(streamed.Result is FileContentResult && !stream.CanRead, "File stream transformed and disposed");
         var badStream = new MemoryStream([1, 2, 3]);
         var failed = await Run(new FileStreamResult(badStream, "application/pdf"));
-        Check(failed.Result is ObjectResult { StatusCode: 422 } && !badStream.CanRead, "Failure closes stream and never falls back");
+        Check(failed.Result is ObjectResult { StatusCode: 422 }
+            && !badStream.CanRead, "Failure closes stream and never falls back");
         var rejected = new FileContentResult(source, "application/pdf");
         Check(ReferenceEquals((await Run(rejected, status: 403)).Result, rejected), "Unsuccessful response untouched");
         Check(ReferenceEquals((await Run(rejected, new ClaimsPrincipal())).Result, rejected), "Anonymous result does not change authorization behavior");
@@ -149,7 +156,9 @@ public static class PdfWatermarkChecks
         using var pdf = new PdfDocument();
         if (encrypted) { pdf.SecuritySettings.UserPassword = "synthetic-user"; pdf.SecuritySettings.OwnerPassword = "synthetic-owner"; }
         var font = new PdfDictionary(pdf);
-        font.Elements.SetName("/Type", "/Font"); font.Elements.SetName("/Subtype", "/Type1"); font.Elements.SetName("/BaseFont", "/Helvetica");
+        font.Elements.SetName("/Type", "/Font"); font.Elements
+            .SetName("/Subtype", "/Type1"); font.Elements
+            .SetName("/BaseFont", "/Helvetica");
         pdf.Internals.AddObject(font);
         if (signed)
         {
@@ -159,11 +168,13 @@ public static class PdfWatermarkChecks
         for (var i = 0; i < pages; i++)
         {
             var page = pdf.AddPage();
-            if (i == 1) { page.Width = PdfSharp.Drawing.XUnit.FromPoint(842); page.Height = PdfSharp.Drawing.XUnit.FromPoint(595); }
+            if (i == 1) { page.Width = PdfSharp.Drawing.XUnit.FromPoint(842); page.Height = PdfSharp.Drawing.XUnit
+                .FromPoint(595); }
             if (i == 2) { page.Rotate = 90; page.CropBox = new PdfRectangle(new PdfSharp.Drawing.XRect(10, 20, 490, 680)); }
             var fonts = new PdfDictionary(pdf); fonts.Elements["/OriginalFont"] = font.Reference!;
             page.Resources.Elements["/Font"] = fonts;
-            page.Contents.AppendContent().CreateStream(Encoding.ASCII.GetBytes("q 0.95 g 40 40 350 180 re f Q\nBT /OriginalFont 14 Tf 0 g 1 0 0 1 45 180 Tm (ORIGINAL CONTENT) Tj ET\n"));
+            page.Contents.AppendContent()
+                .CreateStream(Encoding.ASCII.GetBytes("q 0.95 g 40 40 350 180 re f Q\nBT /OriginalFont 14 Tf 0 g 1 0 0 1 45 180 Tm (ORIGINAL CONTENT) Tj ET\n"));
         }
         using var bytes = new MemoryStream(); pdf.Save(bytes, false); return bytes.ToArray();
     }

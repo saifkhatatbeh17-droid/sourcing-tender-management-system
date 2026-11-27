@@ -16,7 +16,9 @@ public partial class SourcingManagerController
 
     private IQueryable<Tender> ManagedTopEditRequests() => _context.Tenders.AsNoTracking()
         .AsSplitQuery()
-        .Include(t => t.EvaluationReport).ThenInclude(r => r!.Bid).ThenInclude(b => b!.Invitation).ThenInclude(i => i.SupplierProfile)
+        .Include(t => t.EvaluationReport).ThenInclude(r => r!.Bid)
+            .ThenInclude(b => b!.Invitation)
+            .ThenInclude(i => i.SupplierProfile)
         .Include(t => t.EvaluationReport).ThenInclude(r => r!.Bid).ThenInclude(b => b!.BidItems)
         .Include(t => t.TenderApprovals)
         .Where(t => t.TopEditState != null &&
@@ -76,7 +78,8 @@ public partial class SourcingManagerController
                 tender == null || !access.Managers.Any(m => m.UserId == ManagerId && m.IsActive && m.HasManagerRole))
                 return (403, null);
 
-            if (tender.Status != "AwaitingManagerReview" || tender.TopEditState is not ("WithManager" or "OfficerAnswered"))
+            if (tender.Status != "AwaitingManagerReview"
+                || tender.TopEditState is not ("WithManager" or "OfficerAnswered"))
                 return (409, "This tender is not currently awaiting your edit response.");
 
             var hasOpenClarifications = await db.Clarifications.AnyAsync(c =>
@@ -107,7 +110,8 @@ public partial class SourcingManagerController
                 .LoadAsync(token);
             await db.Entry(tender).Collection(t => t.OfferExtensions).LoadAsync(token);
 
-            var existingTopVotes = tender.TenderApprovals.Where(a => a.Stage == "Top" && a.Decision != "Rejected").ToList();
+            var existingTopVotes = tender.TenderApprovals.Where(a => a.Stage == "Top" && a.Decision != "Rejected")
+                .ToList();
             if (existingTopVotes.Count > 0)
                 db.TenderApprovals.RemoveRange(existingTopVotes);
 
@@ -121,7 +125,8 @@ public partial class SourcingManagerController
                 + "\n\n## Manager assessment & edit response\n" + cycleLog;
             report.Status = ManagerApproved;
 
-            var managerApproval = tender.TenderApprovals.SingleOrDefault(a => a.Stage == "Manager" && a.UserId == ManagerId);
+            var managerApproval = tender.TenderApprovals.SingleOrDefault(a => a.Stage == "Manager"
+                && a.UserId == ManagerId);
             if (managerApproval != null)
             {
                 managerApproval.Decision = "Approved";
@@ -182,7 +187,8 @@ public partial class SourcingManagerController
                 tender == null || !access.Managers.Any(m => m.UserId == ManagerId && m.IsActive && m.HasManagerRole))
                 return (403, null);
 
-            if (tender.Status != "AwaitingManagerReview" || tender.TopEditState is not ("WithManager" or "OfficerAnswered"))
+            if (tender.Status != "AwaitingManagerReview"
+                || tender.TopEditState is not ("WithManager" or "OfficerAnswered"))
                 return (409, "This edit request is not currently awaiting your action.");
 
             var officerActive = await db.Users.AnyAsync(u => u.Id == tender.CreatedByUserId && u.IsActive &&

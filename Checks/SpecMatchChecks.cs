@@ -13,7 +13,8 @@ public static class SpecMatchChecks
     /// <summary>Legal warranty comparison is plain code. Dates are inclusive, so 1 Jan to 31 Dec is a full 12 months.</summary>
     public static void RunLegalWarrantyChecks()
     {
-        static BidGuarantee Legal(string from, string to) => new() { Kind = "Legal", StartsOn = DateOnly.Parse(from), ExpiresOn = DateOnly.Parse(to) };
+        static BidGuarantee Legal(string from, string to) => new() { Kind = "Legal", StartsOn = DateOnly.Parse(from), ExpiresOn = DateOnly
+            .Parse(to) };
         static void Expect(string verdict, int months, BidGuarantee? legal, string why)
         {
             var actual = LegalWarrantyMatch.Evaluate(months, legal).Verdict;
@@ -64,7 +65,9 @@ public static class SpecMatchChecks
         var service = new SpecMatchService(http, config, new AiGateway(store));
         var result = await service.RunAsync(input, default);
         var cells = result.Cells.ToDictionary(c => c.ItemId);
-        Require(result.AiAvailable && result.ModelName == "fixture/model" && cells.Count == 6, "Unexpected AI outcome or unknown pair leaked.");
+        Require(result.AiAvailable
+            && result.ModelName == "fixture/model"
+            && cells.Count == 6, "Unexpected AI outcome or unknown pair leaked.");
         Require(cells[1] is { Verdict: "Missing", Source: "code" }, "AI overrode the missing item.");
         Require(cells[2] is { Verdict: "Partial", Source: "code" }, "AI overrode the short quantity.");
         Require(cells[3] is { Verdict: "Match", Source: "ai", Evidence: "316L steel" }, "Normalized quote did not verify.");
@@ -84,7 +87,8 @@ public static class SpecMatchChecks
             "Supplier item text is missing its untrusted wrapper.");
 
         var fingerprint = SpecMatchService.Fingerprint(input);
-        Require(fingerprint == SpecMatchService.Fingerprint(input with { Items = items.Reverse().ToArray() }), "Item order changed the fingerprint.");
+        Require(fingerprint == SpecMatchService.Fingerprint(input with { Items = items.Reverse()
+            .ToArray() }), "Item order changed the fingerprint.");
         bid.BidItems.First().OfferedSpecifications = "304 steel";
         Require(fingerprint != SpecMatchService.Fingerprint(input), "Offer text did not affect the fingerprint.");
 

@@ -32,8 +32,10 @@ public sealed class TopCommitteeHubReport(TopCommitteeReports reports) : IReport
         {
             new("Assigned", summary.Assigned.ToString()), new("Matching", summary.Matching.ToString()),
             new("Pending", summary.Pending.ToString(), "status:AwaitingCommitteeDecision"),
-            new("Awarded", summary.Awarded.ToString(), "status:Awarded"), new("Rejected", summary.Rejected.ToString(), "outcome:Rejected"),
-            new("Returned", summary.Returned.ToString(), "status:AwaitingManagerReview"), new("My decisions", summary.MyDecisions.ToString()),
+            new("Awarded", summary.Awarded.ToString(), "status:Awarded"), new("Rejected", summary.Rejected
+                .ToString(), "outcome:Rejected"),
+            new("Returned", summary.Returned.ToString(), "status:AwaitingManagerReview"), new("My decisions", summary.MyDecisions
+                .ToString()),
             new("Supplier statistics", page.Suppliers.Count.ToString(), "table:suppliers")
         };
         var (_, chart) = ReportRows.Counts("Tender status", page.Rows.Select(r => r.Status));
@@ -43,7 +45,8 @@ public sealed class TopCommitteeHubReport(TopCommitteeReports reports) : IReport
                     s.AwardedTenders.ToString(), s.WinRate.ToString("P1"), s.Frequency.ToString("N1")])), kpis, chart);
         var status = ReportRows.ScopeFilter(query, "status:");
         return ReportRows.Result(query, ["Tender", "Status", "Created (UTC)", "Nominated bid", "Awarded bid", "Approvals", "Rejected", "My decision", "Decision date"],
-            page.Rows.Where(r => (status.Length == 0 || r.Status == status) && (query.Drill != "outcome:Rejected" || r.Rejected))
+            page.Rows.Where(r => (status.Length == 0 || r.Status == status)
+                && (query.Drill != "outcome:Rejected" || r.Rejected))
                 .Select(r => new ReportRow([r.Title, r.Status, ReportRows.Date(r.CreatedAt), r.NominatedBidId?.ToString() ?? "—",
                     r.AwardedBidId?.ToString() ?? "—", r.Approvals.ToString(), r.Rejected ? "Yes" : "No",
                     r.MyDecision ?? "—", ReportRows.Date(r.DecisionAt)],

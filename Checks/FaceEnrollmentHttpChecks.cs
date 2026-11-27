@@ -16,7 +16,8 @@ public static class FaceEnrollmentHttpChecks
     public static async Task<int> RunAsync(string connection, string contentRoot)
     {
         var target = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connection);
-        if (target.DataSource != "localhost" || !target.InitialCatalog.StartsWith("SourcingTender_FaceMigration_", StringComparison.Ordinal))
+        if (target.DataSource != "localhost"
+            || !target.InitialCatalog.StartsWith("SourcingTender_FaceMigration_", StringComparison.Ordinal))
             throw new InvalidOperationException("An isolated face test database is required.");
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -44,7 +45,8 @@ public static class FaceEnrollmentHttpChecks
         void Check(bool condition, string label)
         { if (!condition) throw new InvalidOperationException("FAIL HTTP: " + label); Console.WriteLine("PASS HTTP: " + label); count++; }
         var secret = "Aa!" + Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
-        var user = new ApplicationUser { UserName = "face-http-" + Guid.NewGuid().ToString("N") + "@example.invalid", FullName = "Synthetic HTTP test", IsActive = true };
+        var user = new ApplicationUser { UserName = "face-http-" + Guid.NewGuid()
+            .ToString("N") + "@example.invalid", FullName = "Synthetic HTTP test", IsActive = true };
         user.Email = user.UserName;
         try
         {
@@ -53,24 +55,32 @@ public static class FaceEnrollmentHttpChecks
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 await db.Database.OpenConnectionAsync();
                 if (db.Database.GetDbConnection().Database != target.InitialCatalog) throw new InvalidOperationException("Target mismatch");
-                var result = await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().CreateAsync(user, secret);
+                var result = await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>()
+                    .CreateAsync(user, secret);
                 if (!result.Succeeded) throw new InvalidOperationException("Synthetic account creation failed");
             }
             await app.StartAsync();
             using var handler = new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new CookieContainer() };
             using var client = new HttpClient(handler) { BaseAddress = new Uri(app.Urls.Single()) };
             var unauthorized = await client.GetAsync("/FaceEnrollment/Index");
-            Check(unauthorized.StatusCode == HttpStatusCode.Redirect && unauthorized.Headers.Location!.OriginalString.Contains("/Account/Login"), "Anonymous enrollment redirects to Identity login");
+            Check(unauthorized.StatusCode == HttpStatusCode.Redirect
+                && unauthorized.Headers.Location!.OriginalString.Contains("/Account/Login"), "Anonymous enrollment redirects to Identity login");
             var login = await client.GetStringAsync("/Account/Login");
             static string Token(string html) => WebUtility.HtmlDecode(Regex.Match(html, "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
             var loggedIn = await client.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string>
             { ["Email"] = user.Email!, ["Password"] = secret, ["__RequestVerificationToken"] = Token(login) }));
-            Check(loggedIn.StatusCode == HttpStatusCode.Redirect && loggedIn.Headers.Location!.OriginalString.Contains("GoToDashboard"), "Existing password login issues real Identity session");
+            Check(loggedIn.StatusCode == HttpStatusCode.Redirect
+                && loggedIn.Headers.Location!.OriginalString.Contains("GoToDashboard"), "Existing password login issues real Identity session");
             var pageResponse = await client.GetAsync("/FaceEnrollment/Index");
             var page = await pageResponse.Content.ReadAsStringAsync();
-            Check(pageResponse.IsSuccessStatusCode && page.Contains("face-video") && page.Contains("face-consent"), "Authenticated Razor page renders");
+            Check(pageResponse.IsSuccessStatusCode
+                && page.Contains("face-video")
+                && page
+                .Contains("face-consent"), "Authenticated Razor page renders");
             Check(pageResponse.Headers.CacheControl?.NoStore == true, "Enrollment page is no-store");
-            var samples = Enumerable.Range(0, 5).Select(i => Enumerable.Repeat(0.01f + i * 0.001f, 128).ToArray()).ToArray();
+            var samples = Enumerable.Range(0, 5)
+                .Select(i => Enumerable.Repeat(0.01f + i * 0.001f, 128).ToArray())
+                .ToArray();
             var request = new { password = secret, consent = true, descriptors = samples };
             var csrf = await client.PostAsJsonAsync("/FaceEnrollment/Save", request);
             Check(csrf.StatusCode == HttpStatusCode.BadRequest, "POST without anti-forgery token rejected");
@@ -92,7 +102,8 @@ public static class FaceEnrollmentHttpChecks
             foreach (var model in new[] { "tiny_face_detector", "face_landmark_68", "face_recognition" })
             {
                 var weights = await client.GetAsync($"/lib/face-api/model/{model}_model.bin");
-                Check(weights.IsSuccessStatusCode && (await weights.Content.ReadAsByteArrayAsync()).Length > 1000, model + " binary weights served");
+                Check(weights.IsSuccessStatusCode
+                    && (await weights.Content.ReadAsByteArrayAsync()).Length > 1000, model + " binary weights served");
             }
             HttpResponseMessage? limited = null;
             for (var i = 0; i < 4; i++)
@@ -109,7 +120,8 @@ public static class FaceEnrollmentHttpChecks
             if (row != null) { db.UserFaceCredentials.Remove(row); await db.SaveChangesAsync(); }
             var manager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             var existing = await manager.FindByIdAsync(user.Id);
-            if (existing != null && !(await manager.DeleteAsync(existing)).Succeeded) throw new InvalidOperationException("Synthetic test cleanup failed");
+            if (existing != null
+                && !(await manager.DeleteAsync(existing)).Succeeded) throw new InvalidOperationException("Synthetic test cleanup failed");
         }
         Console.WriteLine($"Face HTTP checks: {count} passed; own synthetic fixtures removed.");
         return count;

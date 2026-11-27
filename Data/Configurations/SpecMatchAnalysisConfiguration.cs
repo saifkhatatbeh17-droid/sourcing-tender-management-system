@@ -16,6 +16,9 @@ public sealed class SpecMatchAnalysisConfiguration : IEntityTypeConfiguration<Sp
         entity.Property(x => x.ModelName).HasMaxLength(200);
         entity.Property(x => x.CreatedByUserId).HasMaxLength(450);
         entity.HasOne<Tender>().WithMany().HasForeignKey(x => x.TenderId);
-        entity.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.NoAction);
+        entity.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(x => x.CreatedByUserId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

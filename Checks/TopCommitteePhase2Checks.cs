@@ -56,7 +56,9 @@ public static class TopCommitteePhase2Checks
         var dashboardResult = (ViewResult)await Controller("Dashboard").Dashboard(default);
         Check(dashboardResult.Model is CommitteeDashboard, "Dashboard must use the Phase 1 read model.");
         var listController = Controller("Decisions");
-        var listResult = (ViewResult)await listController.Decisions(new CommitteeTenderFilter { Status = "Awarded", Search = "Test & supplier", Page = 2 }, default);
+        var listResult = (ViewResult)await listController.Decisions(new CommitteeTenderFilter { Status = "Awarded",
+            Search = "Test & supplier",
+            Page = 2 }, default);
         Check(fake.LastFilter?.Status == "AwaitingCommitteeDecision" && fake.LastFilter.Search == "Test & supplier" && fake.LastFilter.Page == 2,
             "Browser Status cannot widen the pending list; search and paging must be preserved.");
         Check(listResult.Model is CommitteePendingPage && (string?)listController.ViewData["ActivePage"] == "Decisions",
@@ -86,7 +88,9 @@ public static class TopCommitteePhase2Checks
         var htmlDashboard = await RenderAsync(services, actor, "Dashboard", dashboardResult.Model!);
         var htmlList = await RenderAsync(services, actor, "Decisions", listResult.Model!);
         var htmlDetails = await RenderAsync(services, actor, "TenderDetails", detailResult.Model!);
-        Check(htmlDashboard.Contains("Committee progress") && htmlDashboard.Contains("Test member 4"), "Dashboard must show all four members' progress.");
+        Check(htmlDashboard.Contains("Committee progress")
+            && htmlDashboard
+            .Contains("Test member 4"), "Dashboard must show all four members' progress.");
         Check(htmlDashboard.Contains("/TopCommittee/TenderDetails/41"), "Dashboard must link to the protected details route.");
         Check(htmlList.Contains("name=\"Search\"") && htmlList.Contains("Test &amp; supplier") && htmlList.Contains("Page=1"),
             "GET filters and paging must preserve and encode search text.");
@@ -96,7 +100,9 @@ public static class TopCommitteePhase2Checks
             "Bid comparison must show actual per-currency prices and technical/financial scores.");
         Check(htmlDetails.Contains("bidId=12#selected-bid") && htmlDetails.Contains("Withdrawn"),
             "Submitted bid history and secure tender-scoped offer links must remain visible.");
-        Check(!htmlDetails.Contains("<script>alert(1)</script>") && htmlDetails.Contains("&lt;script&gt;"), "Untrusted database text must be HTML encoded.");
+        Check(!htmlDetails.Contains("<script>alert(1)</script>")
+            && htmlDetails
+            .Contains("&lt;script&gt;"), "Untrusted database text must be HTML encoded.");
         Check(!htmlDetails.Contains("Approve</button>") && !htmlDetails.Contains("Reject</button>") && !htmlDetails.Contains("AI Analysis"),
             "Phase 2 must not expose voting controls or new AI UI.");
         Check(htmlDetails.Contains("table-responsive") && htmlDetails.Contains("scope=\"col\"") && htmlList.Contains("for=\"tender-search\""),
@@ -116,14 +122,17 @@ public static class TopCommitteePhase2Checks
         var liveListHtml = await RenderAsync(services, actor, "Decisions", new CommitteePendingPage(liveList, new CommitteeTenderFilter()));
         Check(liveDashboard.AssignedTenders > 0 || liveDashboardHtml.Contains("No tenders assigned yet"),
             "A real empty SQL dataset must produce the assignment empty state.");
-        Check(liveList.TotalCount > 0 || liveListHtml.Contains("No pending tenders found"), "The real pending empty state must render.");
+        Check(liveList.TotalCount > 0
+            || liveListHtml.Contains("No pending tenders found"), "The real pending empty state must render.");
         var noData = details with { Report = null, ResponsibleManager = null, Bids = [], Documents = [], Votes = [] };
         var noDataHtml = await RenderAsync(services, actor, "TenderDetails", new CommitteeTenderPage(noData, null));
         Check(noDataHtml.Contains("No submitted bids") && noDataHtml.Contains("No unified evaluation report"),
             "Missing report and offers must produce useful states without invented data.");
         var completedHtml = await RenderAsync(services, actor, "TenderDetails", new CommitteeTenderPage(details with {
             Status = "Awarded", AwardedBidId = 11, AwardedAt = DateTime.UtcNow, AwardNotes = "Test award" }, details.Bids[0]));
-        Check(completedHtml.Contains("Recorded decision") && completedHtml.Contains("Winning bid"), "Completed details must stay readable.");
+        Check(completedHtml.Contains("Recorded decision")
+            && completedHtml
+            .Contains("Winning bid"), "Completed details must stay readable.");
         var errorHtml = await RenderAsync(services, actor, "Decisions", ((ViewResult)await invalid.Decisions(new(), default)).Model!,
             invalid.ModelState);
         Check(errorHtml.Contains("Check your search and try again."), "Filter errors must render an actionable recovery.");
@@ -133,7 +142,10 @@ public static class TopCommitteePhase2Checks
         {
             var root = Path.GetFullPath(services.GetRequiredService<IWebHostEnvironment>().ContentRootPath);
             var preview = Path.GetFullPath(output);
-            if (!Path.IsPathRooted(output) || !Path.GetRelativePath(root, preview).StartsWith("..", StringComparison.Ordinal))
+            if (!Path.IsPathRooted(output)
+                || !Path
+                .GetRelativePath(root, preview)
+                .StartsWith("..", StringComparison.Ordinal))
                 throw new InvalidOperationException("Preview output must be an absolute directory outside the repository.");
             Directory.CreateDirectory(preview);
             foreach (var (name, html) in new[] { ("dashboard.html", htmlDashboard), ("pending.html", htmlList),
@@ -172,7 +184,8 @@ public static class TopCommitteePhase2Checks
         var result = engine.GetView(null, $"/Views/TopCommittee/{name}.cshtml", isMainPage: true);
         if (!result.Success) throw new InvalidOperationException(string.Join(", ", result.SearchedLocations));
         using var writer = new StringWriter();
-        var viewData = new ViewDataDictionary(services.GetRequiredService<IModelMetadataProvider>(), modelState ?? new()) { Model = model };
+        var viewData = new ViewDataDictionary(services.GetRequiredService<IModelMetadataProvider>(), modelState
+            ?? new()) { Model = model };
         var tempData = new TempDataDictionary(context.HttpContext, services.GetRequiredService<ITempDataProvider>());
         await result.View.RenderAsync(new ViewContext(context, result.View, viewData, tempData, writer, new HtmlHelperOptions()));
         return writer.ToString();
@@ -205,7 +218,9 @@ public static class TopCommitteePhase2Checks
             return Task.FromResult(new CommitteeDashboard(1, 1, 0, 0, 1, new[] { row }, [], details.Members.Select(m =>
                 new CommitteeMemberProgress(details.TenderId, m.UserId, m.FullName, m.Position, true, true, m.Position == 1 ? "Approved" : null)).ToList()));
         }
-        public Task<CommitteePage<CommitteeTenderRow>> GetTendersAsync(ClaimsPrincipal actor, CommitteeTenderFilter filter, CancellationToken cancellationToken = default)
+        public Task<CommitteePage<CommitteeTenderRow>> GetTendersAsync(ClaimsPrincipal actor,
+            CommitteeTenderFilter filter,
+            CancellationToken cancellationToken = default)
         {
             if (Error != null) throw Error;
             LastFilter = filter;
@@ -234,9 +249,16 @@ public static class TopCommitteePhase2Checks
                 new[] { new CommitteeRequestItem(1, "Test computer", 2, "Each", "Test specifications") }),
             new CommitteeReport(1, "ManagerApproved", 11, "Test committee report", "Test officer summary", "Test manager recommendation", submitted),
             new CommitteeManager("test-manager", "Test manager", true, true, submitted),
-            Enumerable.Range(1, 4).Select(p => new CommitteeMember(p, $"test-{p}", $"Test member {p}", p, true, true)).ToList(),
+            Enumerable.Range(1, 4)
+                .Select(p => new CommitteeMember(p, $"test-{p}", $"Test member {p}", p, true, true))
+                .ToList(),
             new[] { new CommitteeVote(1, "test-1", 1, "Test member 1", "Approved", "Test approval", submitted) },
-            new[] { bid, bid with { BidId = 12, SupplierId = 6, SupplierName = "Test alternative supplier", IsNominated = false, Status = "Withdrawn", Currency = "JOD" } },
+            new[] { bid, bid with { BidId = 12,
+                SupplierId = 6,
+                SupplierName = "Test alternative supplier",
+                IsNominated = false,
+                Status = "Withdrawn",
+                Currency = "JOD" } },
             [], 1, [], new CommitteeReadiness(true, true, true, false, false, false, false, "Voting is paused until all relevant clarifications are resolved."));
     }
 }

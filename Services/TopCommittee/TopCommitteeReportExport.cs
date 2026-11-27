@@ -17,7 +17,15 @@ public sealed class TopCommitteeReportExport
     public const string Scope = "System-wide totals cover all records. Tender details, supplier activity and decision summaries cover assigned tenders matching the active filters. Dates are UTC.";
     public static string Filters(CommitteeReportFilter f) => $"Title: {f.Search ?? "All"}; Status: {f.Status ?? "All"}; My decision: {f.Decision ?? "All"}; Created UTC: {f.FromDate?.ToString("yyyy-MM-dd") ?? "Any"} to {f.ToDate?.ToString("yyyy-MM-dd") ?? "Any"}";
     public static string Outcome(CommitteeReportRow r) => r.Rejected ? "Rejected" : r.Status == "Awarded" ? "Awarded" : r.Status == "AwaitingManagerReview" ? "Manager review" : "Not final";
-    private static readonly string[] Headers = ["Tender ID","Tender title","Status","Nominated bid ID","Awarded bid ID","Approvals / 4","Final outcome","My decision","My decision date (UTC)"];
+    private static readonly string[] Headers = ["Tender ID",
+        "Tender title",
+        "Status",
+        "Nominated bid ID",
+        "Awarded bid ID",
+        "Approvals / 4",
+        "Final outcome",
+        "My decision",
+        "My decision date (UTC)"];
 
     private static IEnumerable<(string Label, int Count)> MemberMetrics(CommitteeReportPage p) =>
         new (string,int)[] { ("Total assigned (unfiltered)",p.Summary.Assigned),("Matching records",p.Summary.Matching),
@@ -51,7 +59,10 @@ public sealed class TopCommitteeReportExport
             summary.Cell(17,1).Value="Awarded tenders (status)"; summary.Cell(17,2).Value=system.AwardedTenders;
         }
         else summary.Cell(15,1).Value="System-wide statistics unavailable.";
-        summary.Cell(19,1).Value=Scope; summary.Range(19,1,19,6).Merge().Style.Alignment.WrapText=true; summary.Row(19).Height=48;
+        summary.Cell(19,1).Value=Scope; summary
+            .Range(19,1,19,6)
+            .Merge().Style.Alignment.WrapText=true; summary
+            .Row(19).Height=48;
         if (p.SystemStatistics is { } registered)
         {
             var statusRow = 21;
@@ -113,10 +124,14 @@ public sealed class TopCommitteeReportExport
         var decisions=book.AddWorksheet("Decision Summary");
         WriteHeader(decisions,["Metric — matching assigned tenders","Count"]);
         row=2;
-        foreach(var m in DecisionMetrics(p)) { decisions.Cell(row,1).Value=m.Label; decisions.Cell(row++,2).Value=m.Count; }
+        foreach(var m in DecisionMetrics(p)) { decisions.Cell(row,1).Value=m.Label; decisions
+            .Cell(row++,2).Value=m.Count; }
         FormatTable(decisions,row-1,2); decisions.Column(1).Width=60;
         decisions.Cell(row+1,1).Value="This is a summary of persisted records, not a complete audit trail. Latest committee activity is the award time, or latest recorded Top-stage vote if not awarded.";
-        decisions.Range(row+1,1,row+1,3).Merge().Style.Alignment.WrapText=true; decisions.Column(3).Width=24; decisions.Row(row+1).Height=64;
+        decisions.Range(row+1,1,row+1,3)
+            .Merge().Style.Alignment.WrapText=true; decisions
+            .Column(3).Width=24; decisions
+            .Row(row+1).Height=64;
         using var stream=new MemoryStream(); book.SaveAs(stream); return stream.ToArray();
     }
 
@@ -142,7 +157,11 @@ public sealed class TopCommitteeReportExport
         var title=section.AddParagraph("CEO & Chiefs Report"); title.Format.Font.Size=20; title.Format.Font.Bold=true;
         section.AddParagraph("Generated "+CommitteeDisplay.Utc(p.GeneratedAt));
         section.AddParagraph(Scope).Format.SpaceAfter=8; AddPdfText(section,Filters(p.Filter)).Format.SpaceAfter=12;
-        var footer=section.Footers.Primary.AddParagraph(); footer.AddText("CEO & Chiefs | Page "); footer.AddPageField(); footer.AddText(" of "); footer.AddNumPagesField();
+        var footer=section.Footers.Primary.AddParagraph(); footer
+            .AddText("CEO & Chiefs | Page "); footer
+            .AddPageField(); footer
+            .AddText(" of "); footer
+            .AddNumPagesField();
 
         Heading(section,"A · General statistics");
         if(p.SystemStatistics is {} system)
@@ -162,15 +181,23 @@ public sealed class TopCommitteeReportExport
         }
 
         if (p.SystemStatistics is { } registered && registered.SuppliersByStatus.Count > 0)
-            section.AddParagraph("Registered suppliers by status: " + string.Join(" · ", registered.SuppliersByStatus.OrderBy(x => x.Key).Select(x => $"{x.Key}: {x.Value:N0}")));
+            section.AddParagraph("Registered suppliers by status: " + string.Join(" · ", registered.SuppliersByStatus.OrderBy(x => x.Key)
+                .Select(x => $"{x.Key}: {x.Value:N0}")));
         if(p.Rows.Count>12)section.AddPageBreak(); Heading(section,"C · Supplier statistics");
         section.AddParagraph("System-wide · all suppliers, including those with zero awards · independent of tender filters.").Format.SpaceAfter=6;
         section.AddParagraph(AwardDefinition).Format.SpaceAfter=12;
         if(p.Suppliers.Count==0)section.AddParagraph("No suppliers recorded.");
         else
         {
-            var table=Table(section,["Supplier ID","Supplier name","Awarded Tenders","Status","Invited","Dealings","Win rate","Per month"],[2.2,7,3,3.3,2.2,2.3,2.7,3]);
-            foreach(var s in p.Suppliers)AddRow(table,[s.SupplierId.ToString(),s.SupplierName,s.AwardedTenders.ToString("N0"),s.Status,s.Invited.ToString("N0"),s.Dealings.ToString("N0"),s.WinRate.ToString("P1"),s.Frequency.ToString("N1")]);
+            var table=Table(section,
+                ["Supplier ID","Supplier name","Awarded Tenders","Status","Invited","Dealings","Win rate","Per month"],
+                [2.2,7,3,3.3,2.2,2.3,2.7,3]);
+            foreach(var s in p.Suppliers)AddRow(table,[s.SupplierId.ToString(),s.SupplierName,s.AwardedTenders
+                .ToString("N0"),s.Status,s.Invited
+                .ToString("N0"),s.Dealings
+                .ToString("N0"),s.WinRate
+                .ToString("P1"),s.Frequency
+                .ToString("N1")]);
         }
 
         if(p.Suppliers.Count>12)section.AddPageBreak(); Heading(section,"D · Decision and audit summary");
@@ -180,7 +207,9 @@ public sealed class TopCommitteeReportExport
         if(p.Rows.Count>0)
         {
             var table=Table(section,["Tender ID","Final outcome","Latest committee activity (UTC)","Awarded at (UTC)"],[2,6,9.7,8]);
-            foreach(var r in p.Rows)AddRow(table,[r.TenderId.ToString(),Outcome(r),CommitteeDisplay.Utc(r.CommitteeOutcomeAt),CommitteeDisplay.Utc(r.AwardedAt)]);
+            foreach(var r in p.Rows)AddRow(table,[r.TenderId.ToString(),Outcome(r),CommitteeDisplay
+                .Utc(r.CommitteeOutcomeAt),CommitteeDisplay
+                .Utc(r.AwardedAt)]);
         }
         return RenderPdf(doc);
     }
@@ -214,7 +243,10 @@ public sealed class TopCommitteeReportExport
 
     internal static void Heading(Section section,string text)
     {
-        var p=section.AddParagraph(string.Join("\n",WrapPdfText(text,Unit.FromCentimeter(26.7).Point,13,XFontStyleEx.Bold))); p.Format.Font.Size=13; p.Format.Font.Bold=true;
+        var p=section.AddParagraph(string.Join("\n",WrapPdfText(text,
+            Unit.FromCentimeter(26.7).Point,
+            13,
+            XFontStyleEx.Bold))); p.Format.Font.Size=13; p.Format.Font.Bold=true;
         p.Format.Font.Color=Color.FromRgb(0,100,103); p.Format.SpaceBefore=10; p.Format.SpaceAfter=10; p.Format.KeepWithNext=true;
     }
     internal static Table Table(Section section,string[] headers,double[] widths)
@@ -272,6 +304,8 @@ public sealed class TopCommitteeReportExport
     private sealed class ReportFontResolver : IFontResolver
     {
         public FontResolverInfo ResolveTypeface(string familyName,bool bold,bool italic)=>new("CommitteeReport",bold,italic);
-        public byte[] GetFont(string faceName)=>File.ReadAllBytes(Environment.GetEnvironmentVariable("TOP_COMMITTEE_REPORT_FONT")??Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts),"arial.ttf"));
+        public byte[] GetFont(string faceName)=>File.ReadAllBytes(Environment.GetEnvironmentVariable("TOP_COMMITTEE_REPORT_FONT")
+            ??Path
+            .Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts),"arial.ttf"));
     }
 }

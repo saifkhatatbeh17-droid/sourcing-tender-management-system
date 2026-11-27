@@ -45,7 +45,8 @@ public sealed class AiIntelligenceController(
         async Task<IReadOnlyList<int>> ScopedIds() => scoped ??= await intelligence.ScopedTenderIdsAsync(resolvedWorkspace, User, user, null, ct);
 
         if (resolvedWorkspace == RoleNames.Admin)
-            ViewData["SupplierLinks"] = await HttpContext.RequestServices.GetRequiredService<SupplierLinks>().MapAsync(ct);
+            ViewData["SupplierLinks"] = await HttpContext.RequestServices.GetRequiredService<SupplierLinks>()
+                .MapAsync(ct);
         else if (resolvedWorkspace == RoleNames.TopCommittee)
         {
             // Top Committee sees only pairs that bid on tenders in its own scope.
@@ -53,7 +54,8 @@ public sealed class AiIntelligenceController(
             var all = await HttpContext.RequestServices.GetRequiredService<SupplierLinks>().MapAsync(ct);
             var mine = all.Links.Where(l => l.SharedTenders.Any(inScope.Contains)).ToList();
             var linked = mine.SelectMany(l => new[] { l.SupplierA, l.SupplierB }).ToHashSet();
-            ViewData["SupplierLinks"] = new SupplierLinkMap(all.Nodes.Where(n => linked.Contains(n.Id)).ToList(), mine, inScope.Count, 0);
+            ViewData["SupplierLinks"] = new SupplierLinkMap(all.Nodes.Where(n => linked.Contains(n.Id))
+                .ToList(), mine, inScope.Count, 0);
             ViewData["LinkableTenders"] = (IReadOnlySet<int>)inScope;
         }
 

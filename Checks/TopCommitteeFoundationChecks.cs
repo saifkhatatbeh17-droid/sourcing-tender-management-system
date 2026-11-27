@@ -30,7 +30,9 @@ public static class TopCommitteeFoundationChecks
             throw new InvalidOperationException(message);
         }
 
-        var members = Enumerable.Range(1, 4).Select(p => new CommitteeMember(p, $"member-{p}", $"Member {p}", p, true, true)).ToList();
+        var members = Enumerable.Range(1, 4)
+            .Select(p => new CommitteeMember(p, $"member-{p}", $"Member {p}", p, true, true))
+            .ToList();
         var managers = new List<CommitteeManager> { new("manager", "Manager", true, true, DateTime.UtcNow) };
         var nomination = new Bid { BidId = 10, TenderId = 1, Status = "Compliant", ComplianceStatus = "Compliant", SubmittedAt = DateTime.UtcNow };
         var tender = new Tender { TenderId = 1, Status = "AwaitingCommitteeDecision", Title = "Synthetic in-memory tender",
@@ -50,16 +52,19 @@ public static class TopCommitteeFoundationChecks
         members[3] = members[3] with { UserId = "member-4", Position = 1 };
         Check(!State().HasFourEligibleMembers, "Duplicate positions must not form a valid roster.");
         members[3] = members[3] with { Position = 4 };
-        Check(!State(1).CanCurrentMemberVote && State(1).IsVotingOpen == false, "Any open clarification pauses everyone.");
+        Check(!State(1).CanCurrentMemberVote
+            && State(1).IsVotingOpen == false, "Any open clarification pauses everyone.");
         var ownApproval = new TenderApproval { TenderApprovalId = 1, TenderId = 1, Stage = "Top", Decision = "Approved",
             UserId = "member-1", CommitteeAssignmentId = 1, User = new ApplicationUser { FullName = "Member 1" } };
         tender.TenderApprovals.Add(ownApproval);
-        Check(State().HasCurrentMemberVoted && !State().CanCurrentMemberVote, "Final vote cannot become eligible again.");
+        Check(State().HasCurrentMemberVoted
+            && !State().CanCurrentMemberVote, "Final vote cannot become eligible again.");
         Check(State(1).HasCurrentMemberVoted, "Pausing must preserve recorded votes.");
         tender.TenderApprovals.Remove(ownApproval);
         var rejection = new TenderApproval { Stage = "Top", Decision = "Rejected", UserId = "member-2" };
         tender.TenderApprovals.Add(rejection);
-        Check(State().HasRejection && !State().IsVotingOpen, "Historical rejection blocks re-entry even if tender status is changed.");
+        Check(State().HasRejection
+            && !State().IsVotingOpen, "Historical rejection blocks re-entry even if tender status is changed.");
         tender.TenderApprovals.Clear();
         tender.Status = "AwaitingManagerReview";
         Check(!State().IsVotingOpen, "Manager review is not a committee voting state.");
@@ -95,8 +100,16 @@ public static class TopCommitteeFoundationChecks
         var invitation = new Invitation { InvitationId = 7, TenderId = 1, SupplierProfileId = 8,
             SupplierProfile = new SupplierProfile { CompanyName = "Synthetic supplier" } };
         nomination.Currency = "USD"; nomination.TaxAmount = 10; nomination.AdditionalCosts = 5;
-        nomination.BidItems.Add(new BidItem { PurchaseRequestItemId = 5, PurchaseRequestItem = item, Quantity = 2, UnitPrice = 100, OfferedSpecifications = "Offered" });
-        nomination.BidDocuments.Add(new BidDocument { BidDocumentId = 1, OriginalFileName = "offer.pdf", StoredFileName = "private-storage-secret", DocumentType = "Technical", FileSizeBytes = 100 });
+        nomination.BidItems.Add(new BidItem { PurchaseRequestItemId = 5,
+            PurchaseRequestItem = item,
+            Quantity = 2,
+            UnitPrice = 100,
+            OfferedSpecifications = "Offered" });
+        nomination.BidDocuments.Add(new BidDocument { BidDocumentId = 1,
+            OriginalFileName = "offer.pdf",
+            StoredFileName = "private-storage-secret",
+            DocumentType = "Technical",
+            FileSizeBytes = 100 });
         nomination.Evaluations.Add(new Evaluation { Status = "Approved", CommitteeAssignment = new CommitteeAssignment { User = new ApplicationUser { FullName = "Evaluator" } },
             EvaluationScores = new List<EvaluationScore> { new() { Score = 80, EvaluationCriterion = new EvaluationCriterion { Name = "Technical", Category = "Requirements", Weight = 40 } } } });
         nomination.Evaluations.Add(new Evaluation { Status = "Draft" });
@@ -107,12 +120,17 @@ public static class TopCommitteeFoundationChecks
         tender.TenderApprovals.Add(ownApproval);
         var privateQuestion = new Clarification { ClarificationId = 1, TenderId = 1, SenderUserId = "member-2", Subject = "Other member private question" };
         var model = TopCommitteeQueryService.MapDetails(tender, members, managers, new[] { privateQuestion }, 1, "member-1");
-        Check(model.Bids.Count == 2 && model.Bids.Any(b => b.Status == "Withdrawn"), "Submitted history must survive lifecycle status changes; drafts stay private.");
+        Check(model.Bids.Count == 2
+            && model.Bids.Any(b => b.Status == "Withdrawn"), "Submitted history must survive lifecycle status changes; drafts stay private.");
         Check(model.Bids.Single(b => b.IsNominated).Total == 215m, "Item subtotal, taxes and additional costs must agree.");
-        Check(model.Bids[0].Evaluations.Count == 1 && model.Bids[0].Evaluations[0].Scores[0].Score == 80m, "Read outcomes without inventing weighted evaluation totals or publishing drafts.");
-        Check(model.OpenClarifications == 1 && model.MyClarifications.Count == 0, "Pause count must not disclose another member's conversation.");
-        Check(!JsonSerializer.Serialize(model).Contains("private-storage-secret", StringComparison.Ordinal), "Read models must not expose stored file paths.");
-        Check(model.Votes.Count == 1 && model.Votes[0].UserId == "member-1", "Recorded committee votes must remain visible.");
+        Check(model.Bids[0].Evaluations.Count == 1
+            && model.Bids[0].Evaluations[0].Scores[0].Score == 80m, "Read outcomes without inventing weighted evaluation totals or publishing drafts.");
+        Check(model.OpenClarifications == 1
+            && model.MyClarifications.Count == 0, "Pause count must not disclose another member's conversation.");
+        Check(!JsonSerializer.Serialize(model)
+            .Contains("private-storage-secret", StringComparison.Ordinal), "Read models must not expose stored file paths.");
+        Check(model.Votes.Count == 1
+            && model.Votes[0].UserId == "member-1", "Recorded committee votes must remain visible.");
 
         _ = services.GetRequiredService<ITopCommitteeQueries>();
         _ = services.GetRequiredService<ITopCommitteeReferralContract>();
@@ -136,14 +154,22 @@ public static class TopCommitteeFoundationChecks
         await Rejects<CommitteeAccessDeniedException>(() => queries.GetDashboardAsync(Principal(memberId, RoleNames.Supplier)), "A missing committee claim must fail.");
         await Rejects<ValidationException>(() => queries.GetTendersAsync(principal, new CommitteeTenderFilter { PageSize = 101 }), "Invalid paging must fail.");
         await Rejects<ValidationException>(() => queries.GetTendersAsync(principal, new CommitteeTenderFilter { Status = "Invented" }), "Unknown status must fail.");
-        await Rejects<ValidationException>(() => queries.GetTendersAsync(principal, new CommitteeTenderFilter { FromDate = new(2030, 2, 1), ToDate = new(2030, 1, 1) }), "Reversed dates must fail.");
+        await Rejects<ValidationException>(() => queries.GetTendersAsync(principal, new CommitteeTenderFilter { FromDate = new(2030,
+            2,
+            1), ToDate = new(2030,
+            1,
+            1) }), "Reversed dates must fail.");
         var dashboard = await queries.GetDashboardAsync(principal);
-        var page = await queries.GetTendersAsync(principal, new CommitteeTenderFilter { Search = "read-only-check", FromDate = new(2000, 1, 1), ToDate = new(2099, 1, 1) });
-        Check(dashboard.AssignedTenders >= 0 && page.Items.Count <= page.PageSize, "Live SQL dashboard and paged/filter projections must execute.");
+        var page = await queries.GetTendersAsync(principal, new CommitteeTenderFilter { Search = "read-only-check",
+            FromDate = new(2000, 1, 1),
+            ToDate = new(2099, 1, 1) });
+        Check(dashboard.AssignedTenders >= 0
+            && page.Items.Count <= page.PageSize, "Live SQL dashboard and paged/filter projections must execute.");
         var emptyDetails = await queries.DetailsQuery(memberId, -1).SingleOrDefaultAsync();
         Check(emptyDetails == null, "The full assigned-details SELECT must translate and execute without seeded fixtures.");
         await Rejects<CommitteeTenderNotFoundException>(() => queries.GetTenderDetailsAsync(principal, -1), "Invalid tender must not disclose records.");
-        var unassignedId = await db.Tenders.Where(t => !t.CommitteeAssignments.Any(a => a.UserId == memberId && a.CommitteeType == "Top"))
+        var unassignedId = await db.Tenders.Where(t => !t.CommitteeAssignments.Any(a => a.UserId == memberId
+            && a.CommitteeType == "Top"))
             .Select(t => (int?)t.TenderId).FirstOrDefaultAsync() ?? int.MaxValue;
         await Rejects<CommitteeTenderNotFoundException>(() => queries.GetTenderDetailsAsync(principal, unassignedId), "Unassigned and missing tenders must be indistinguishable.");
         var nonMemberId = await db.Users.Where(u => u.IsActive && !db.UserRoles.Any(ur => ur.UserId == u.Id &&
@@ -164,7 +190,8 @@ public static class TopCommitteeFoundationChecks
             Check(liveDetails.TenderId == assignedId.Value, "Live assigned tender details must load.");
         }
         else Console.WriteLine("NOTE: No assigned tender exists; successful details projection tested in memory, not with persisted fixtures.");
-        Check(!db.ChangeTracker.HasChanges() && readOnly.ReadCommands > 0, "Integration checks must execute SELECTs only.");
+        Check(!db.ChangeTracker.HasChanges()
+            && readOnly.ReadCommands > 0, "Integration checks must execute SELECTs only.");
         Console.WriteLine($"PASS: {passed} Top Committee foundation checks; {readOnly.ReadCommands} guarded SQL SELECTs; no data, role, schema or migration writes.");
         await TopCommitteePhase2Checks.RunAsync(services);
         await TopCommitteePhase3Checks.RunAsync(services);

@@ -101,11 +101,15 @@ public static class ReportsHubChecks
         Require(page.Scope is { Role: RoleNames.SourcingOfficer, IsAdmin: false } && page.Scope.UserId == officerId &&
             page.Scope.DepartmentId == department.DepartmentId, "scope comes from actual Identity account");
         Require(page.Query is { Page: 3, ForExport: false, TenderId: null }, "page clamped and unavailable tender cleared");
-        Require(page.Choices.Tenders.Count == 1 && page.Choices.Tenders[0].Id == ownTender.TenderId, "tender choices are scoped");
-        Require(page.Choices.Suppliers.Count == 1 && page.Choices.Suppliers[0].Id == supplier.SupplierProfileId, "supplier choices are scoped");
-        Require(page.Choices.Departments.Count == 1 && page.Choices.Departments[0].Id == department.DepartmentId, "department choices are scoped");
+        Require(page.Choices.Tenders.Count == 1
+            && page.Choices.Tenders[0].Id == ownTender.TenderId, "tender choices are scoped");
+        Require(page.Choices.Suppliers.Count == 1
+            && page.Choices.Suppliers[0].Id == supplier.SupplierProfileId, "supplier choices are scoped");
+        Require(page.Choices.Departments.Count == 1
+            && page.Choices.Departments[0].Id == department.DepartmentId, "department choices are scoped");
         Require(page.Messages.Count > 0, "unavailable record filter explained");
-        Require(page.Result.Table.Rows.Count == 1 && report.LastScope!.UserId == officerId, "page size and execution scope preserved");
+        Require(page.Result.Table.Rows.Count == 1
+            && report.LastScope!.UserId == officerId, "page size and execution scope preserved");
 
         var filtered = page with { Query = new ReportQuery(new DateOnly(2026, 1, 1), new DateOnly(2026, 2, 1),
             department.DepartmentId, supplier.SupplierProfileId, ownTender.TenderId, "Approved", "a & b", "status:Approved", 2) };
@@ -121,7 +125,10 @@ public static class ReportsHubChecks
         db.ReportAccessRules.Add(new ReportAccessRule { ReportKey = report.Key, Role = RoleNames.Department, Allowed = true, UpdatedByUserId = "hub-Admin" });
         await db.SaveChangesAsync();
         Require(await Controller(RoleNames.Department).Show(report.Key, new ReportQuery(), default) is ViewResult, "stored Allow opens report");
-        db.ReportAccessRules.Add(new ReportAccessRule { ReportKey = report.Key, Role = RoleNames.SourcingOfficer, Allowed = false, UpdatedByUserId = "hub-Admin" });
+        db.ReportAccessRules.Add(new ReportAccessRule { ReportKey = report.Key,
+            Role = RoleNames.SourcingOfficer,
+            Allowed = false,
+            UpdatedByUserId = "hub-Admin" });
         await db.SaveChangesAsync();
         Require(await officer.Show(report.Key, new ReportQuery(), default) is StatusCodeResult { StatusCode: 403 }, "stored Deny blocks report");
         var hub = (ReportsHubPage)((ViewResult)await officer.Index(default)).Model!;

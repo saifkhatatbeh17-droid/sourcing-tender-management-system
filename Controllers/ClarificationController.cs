@@ -44,7 +44,9 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         if (selected != null)
         {
             (kind, recordId) = RecordOf(selected);
-            ViewBag.RecordTitle = selected.PurchaseRequest?.Title ?? selected.Tender?.Title ?? selected.Bid?.Invitation.Tender.Title;
+            ViewBag.RecordTitle = selected.PurchaseRequest?.Title
+                ?? selected.Tender?.Title
+                ?? selected.Bid?.Invitation.Tender.Title;
             ViewBag.RecordUrl = await RecordUrl(actor.Id, kind, recordId, ct);
         }
         else if (recordId.HasValue)
@@ -65,7 +67,9 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         if (status is "Pending" or "Answered" or "Resolved") threads = threads.Where(c => c.Status == status);
         var committeeQuestion = id.HasValue && await TopCommitteeClarificationScope.Query(db)
             .AnyAsync(c => c.ClarificationId == id, ct);
-        var assignedReviewer = selected?.PurchaseRequestId is int requestId && User.IsInRole(RoleNames.SourcingOfficer) &&
+        var assignedReviewer = selected?.PurchaseRequestId is int requestId
+            && User.IsInRole(RoleNames.SourcingOfficer)
+            &&
              await db.PurchaseRequests.AnyAsync(r => r.PurchaseRequestId == requestId &&
                  r.Status != "Draft" && r.ReviewedByUserId == actor.Id, ct);
         var reassigned = selected?.PurchaseRequest is { ReviewedByUserId: not null } request &&
@@ -103,20 +107,37 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
             (r.Status == "Submitted" || r.Status == "UnderReview" || r.Status == "Returned") &&
             ((department && r.RequestedByUserId == actorId) || (officer && r.Status == "UnderReview" && r.ReviewedByUserId == actorId)))
             .OrderByDescending(r => r.CreatedAt).Select(r => new { r.PurchaseRequestId, r.Title }).ToListAsync(ct);
-        records.AddRange(requests.Select(r => new SourcingTenderManagement.Models.ClarificationRecordOption("request", r.PurchaseRequestId, r.Title, $"Purchase request #{r.PurchaseRequestId}")));
+        records.AddRange(requests.Select(r => new SourcingTenderManagement.Models.ClarificationRecordOption("request",
+            r.PurchaseRequestId,
+            r.Title,
+            $"Purchase request #{r.PurchaseRequestId}")));
         var tenders = db.Tenders.AsNoTracking().Where(t =>
             (officer && t.CreatedByUserId == actorId) ||
-            (supplier && t.Invitations.Any(i => i.SupplierProfile.UserId == actorId && (i.Status == "Pending" || i.Status == "Accepted"))) ||
+            (supplier
+                && t.Invitations.Any(i => i.SupplierProfile.UserId == actorId && (i.Status == "Pending" || i.Status == "Accepted")))
+                ||
             (evaluator && (t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == actorId) ||
                 (t.Status == "UnderEvaluation" && !t.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation")))) ||
             (manager && t.Status == "AwaitingManagerReview"));
-        var tenderChoices = await tenders.Where(t => t.Status == "Published" || t.Status == "Open" || t.Status == "Closed" || t.Status == "UnderEvaluation" || t.Status == "AwaitingOfficerSummary" || t.Status == "AwaitingManagerReview")
+        var tenderChoices = await tenders.Where(t => t.Status == "Published"
+            || t.Status == "Open"
+            || t.Status == "Closed"
+            || t.Status == "UnderEvaluation"
+            || t.Status == "AwaitingOfficerSummary"
+            || t.Status == "AwaitingManagerReview")
             .OrderByDescending(t => t.CreatedAt).Select(t => new { t.TenderId, t.Title }).ToListAsync(ct);
-        records.AddRange(tenderChoices.Select(t => new SourcingTenderManagement.Models.ClarificationRecordOption("tender", t.TenderId, t.Title, $"Tender #{t.TenderId}")));
+        records.AddRange(tenderChoices.Select(t => new SourcingTenderManagement.Models.ClarificationRecordOption("tender",
+            t.TenderId,
+            t.Title,
+            $"Tender #{t.TenderId}")));
         var bids = await db.Bids.AsNoTracking().Where(b => b.SubmittedAt != null && b.Status != "Withdrawn" &&
             ((officer && b.Invitation.Tender.CreatedByUserId == actorId) || (supplier && b.Invitation.SupplierProfile.UserId == actorId)))
-            .OrderByDescending(b => b.SubmittedAt).Select(b => new { b.BidId, b.Invitation.Tender.Title, b.Invitation.SupplierProfile.CompanyName }).ToListAsync(ct);
-        records.AddRange(bids.Select(b => new SourcingTenderManagement.Models.ClarificationRecordOption("bid", b.BidId, b.Title, $"Offer #{b.BidId} · {b.CompanyName}")));
+            .OrderByDescending(b => b.SubmittedAt).Select(b => new { b.BidId, b.Invitation.Tender.Title, b.Invitation.SupplierProfile.CompanyName })
+                .ToListAsync(ct);
+        records.AddRange(bids.Select(b => new SourcingTenderManagement.Models.ClarificationRecordOption("bid",
+            b.BidId,
+            b.Title,
+            $"Offer #{b.BidId} · {b.CompanyName}")));
         return records;
     }
 
@@ -160,7 +181,8 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
             .SingleOrDefaultAsync(c => c.ClarificationId == id, ct);
         if (committeeThread != null)
         {
-            if (!User.IsInRole(RoleNames.SourcingManager) || committeeThread.RecipientUserId != actor.Id) return Forbid();
+            if (!User.IsInRole(RoleNames.SourcingManager)
+                || committeeThread.RecipientUserId != actor.Id) return Forbid();
             try
             {
                 if (resolve) await committeeAnswers.ConfirmResolutionAsync(User, id, ct);
@@ -264,7 +286,8 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
             await db.PurchaseRequests.AnyAsync(r => r.PurchaseRequestId == requestId &&
                 r.Status == "UnderReview" && r.ReviewedByUserId == actor.Id, ct))
         {
-            var open = await db.Clarifications.AnyAsync(c => c.PurchaseRequestId == requestId && c.Status != "Resolved", ct);
+            var open = await db.Clarifications.AnyAsync(c => c.PurchaseRequestId == requestId
+                && c.Status != "Resolved", ct);
             TempData["RequestSuccess"] = open
                 ? "Clarification resolved. Other clarifications are still open."
                 : "All clarifications resolved. You can now continue the review.";
@@ -283,7 +306,8 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         if (id is not int recordId) return null;
         if (kind == "request")
         {
-            var request = await db.PurchaseRequests.AsNoTracking().SingleOrDefaultAsync(r => r.PurchaseRequestId == recordId, ct);
+            var request = await db.PurchaseRequests.AsNoTracking()
+                .SingleOrDefaultAsync(r => r.PurchaseRequestId == recordId, ct);
             if (request == null) return null;
             if (User.IsInRole(RoleNames.Department) && request.RequestedByUserId == actorId)
                 return Url.Action("Details", "Department", new { id });
@@ -308,7 +332,8 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
                 return Url.Action("Offer", "Supplier", new { id });
             if (bid == null)
             {
-                var invitationId = await db.Invitations.Where(i => i.TenderId == tenderId && i.SupplierProfile.UserId == actorId)
+                var invitationId = await db.Invitations.Where(i => i.TenderId == tenderId
+                    && i.SupplierProfile.UserId == actorId)
                     .OrderByDescending(i => i.InvitationId).Select(i => (int?)i.InvitationId).FirstOrDefaultAsync(ct);
                 if (invitationId.HasValue) return Url.Action("Invitation", "Supplier", new { id = invitationId });
             }
@@ -349,20 +374,25 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         var officerIds = officers.Where(u => u.IsActive).Select(u => u.Id).ToHashSet();
         if (kind == "request")
         {
-            var request = await db.PurchaseRequests.AsNoTracking().SingleOrDefaultAsync(r => r.PurchaseRequestId == id, ct);
+            var request = await db.PurchaseRequests.AsNoTracking()
+                .SingleOrDefaultAsync(r => r.PurchaseRequestId == id, ct);
             if (request?.Status is not ("Submitted" or "UnderReview" or "Returned")) return [];
             if (User.IsInRole(RoleNames.Department) && request.RequestedByUserId == actor.Id)
             {
                 if (request.ReviewedByUserId != null) allowed.Add(request.ReviewedByUserId);
                 else if (request.Status == "Submitted") allowed.UnionWith(officerIds);
             }
-            if (officerIds.Contains(actor.Id) && request.Status == "UnderReview" && request.ReviewedByUserId == actor.Id)
+            if (officerIds.Contains(actor.Id)
+                && request.Status == "UnderReview"
+                && request.ReviewedByUserId == actor.Id)
                 allowed.Add(request.RequestedByUserId);
         }
         else if (kind is "bid" or "tender")
         {
             var bid = kind == "bid" ? await db.Bids.AsNoTracking().Include(b => b.Invitation)
-                .SingleOrDefaultAsync(b => b.BidId == id && b.SubmittedAt != null && b.Status != "Withdrawn", ct) : null;
+                .SingleOrDefaultAsync(b => b.BidId == id
+                    && b.SubmittedAt != null
+                    && b.Status != "Withdrawn", ct) : null;
             if (kind == "bid" && bid == null) return [];
             var tenderId = bid?.TenderId ?? id;
             var tender = await db.Tenders.AsNoTracking().Include(t => t.CommitteeAssignments)
@@ -371,7 +401,8 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
             var owner = tender.CreatedByUserId;
             var isOfficer = owner == actor.Id && officerIds.Contains(actor.Id);
 
-            if (tender.Status is "Published" or "Open" or "Closed" or "UnderEvaluation" || (bid != null && tender.Status == "AwaitingOfficerSummary"))
+            if (tender.Status is "Published" or "Open" or "Closed" or "UnderEvaluation"
+                || (bid != null && tender.Status == "AwaitingOfficerSummary"))
             {
                 var invited = await db.Invitations.Where(i => i.TenderId == tenderId &&
                     (i.Status == "Pending" || i.Status == "Accepted") && i.SupplierProfile.Status == "Approved" &&
@@ -380,13 +411,19 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
                 var supplierIds = (await users.GetUsersInRoleAsync(RoleNames.Supplier)).Select(u => u.Id).ToHashSet();
                 invited.RemoveAll(id => !supplierIds.Contains(id));
                 if (isOfficer) allowed.UnionWith(invited);
-                if (User.IsInRole(RoleNames.Supplier) && invited.Contains(actor.Id) && officerIds.Contains(owner)) allowed.Add(owner);
+                if (User.IsInRole(RoleNames.Supplier)
+                    && invited
+                    .Contains(actor.Id)
+                    && officerIds
+                    .Contains(owner)) allowed.Add(owner);
             }
 
-            if (bid == null && tender.Status is ("UnderEvaluation" or "AwaitingOfficerSummary" or "AwaitingManagerReview"))
+            if (bid == null
+                && tender.Status is ("UnderEvaluation" or "AwaitingOfficerSummary" or "AwaitingManagerReview"))
             {
                 var evaluators = (await users.GetUsersInRoleAsync(RoleNames.EvaluationCommittee))
-                    .Where(u => tender.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation" && a.UserId == u.Id))
+                    .Where(u => tender.CommitteeAssignments.Any(a => a.CommitteeType == "Evaluation"
+                        && a.UserId == u.Id))
                     .Select(u => u.Id).ToArray();
                 if (isOfficer) allowed.UnionWith(evaluators);
                 if ((evaluators.Contains(actor.Id) || (tender.Status == "UnderEvaluation" &&
@@ -395,7 +432,8 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
 
                 if (tender.Status == "AwaitingManagerReview")
                 {
-                    var managers = (await users.GetUsersInRoleAsync(RoleNames.SourcingManager)).Select(u => u.Id).ToArray();
+                    var managers = (await users.GetUsersInRoleAsync(RoleNames.SourcingManager)).Select(u => u.Id)
+                        .ToArray();
                     if (isOfficer || evaluators.Contains(actor.Id)) allowed.UnionWith(managers);
                     if (managers.Contains(actor.Id))
                     {

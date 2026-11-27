@@ -40,7 +40,8 @@ public sealed class AiChatController(
         if (!await users.IsInRoleAsync(user, file.Workspace))
             return Forbid();
 
-        if (file.Workspace == RoleNames.Supplier && !(await authorization.AuthorizeAsync(User, HttpContext, "ApprovedSupplier")).Succeeded)
+        if (file.Workspace == RoleNames.Supplier
+            && !(await authorization.AuthorizeAsync(User, HttpContext, "ApprovedSupplier")).Succeeded)
             return Forbid();
 
         return File(file.Bytes, file.ContentType, file.FileName);
@@ -165,7 +166,8 @@ public sealed class AiChatController(
         if (user?.IsActive != true || !await users.IsInRoleAsync(user, workspace))
             return Forbid();
 
-        if (workspace == RoleNames.Supplier && !(await authorization.AuthorizeAsync(User, HttpContext, "ApprovedSupplier")).Succeeded)
+        if (workspace == RoleNames.Supplier
+            && !(await authorization.AuthorizeAsync(User, HttpContext, "ApprovedSupplier")).Succeeded)
             return Forbid();
 
         var question = input.Question.Trim();
@@ -230,7 +232,8 @@ public sealed class AiChatController(
 
         if (input.EarlierQuestions is { Length: > 0 })
         {
-            if (input.EarlierQuestions.Length > 6 || input.EarlierQuestions.Any(q => string.IsNullOrWhiteSpace(q) || q.Length > 1500))
+            if (input.EarlierQuestions.Length > 6
+                || input.EarlierQuestions.Any(q => string.IsNullOrWhiteSpace(q) || q.Length > 1500))
                 return null;
             foreach (var q in input.EarlierQuestions)
                 list.Add(new AiChatHistoryTurn("user", q.Trim()));

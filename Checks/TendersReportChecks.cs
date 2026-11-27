@@ -15,7 +15,8 @@ public static class TendersReportChecks
 {
     public static async Task RunAsync(ApplicationDbContext db, string outputDirectory)
     {
-        if (db.Database.ProviderName != "Microsoft.EntityFrameworkCore.Sqlite" || db.Database.GetDbConnection().ConnectionString != "Data Source=:memory:")
+        if (db.Database.ProviderName != "Microsoft.EntityFrameworkCore.Sqlite"
+            || db.Database.GetDbConnection().ConnectionString != "Data Source=:memory:")
             throw new InvalidOperationException("Tender report checks require SQLite in-memory only.");
         var checks = 0;
         void Require(bool condition, string label)
@@ -23,7 +24,9 @@ public static class TendersReportChecks
             if (!condition) throw new Exception("Tender report check failed: " + label);
             checks++;
         }
-        var ownDepartmentId = await db.Users.Where(user => user.Id == "hub-Department").Select(user => user.DepartmentId!.Value).SingleAsync();
+        var ownDepartmentId = await db.Users.Where(user => user.Id == "hub-Department")
+            .Select(user => user.DepartmentId!.Value)
+            .SingleAsync();
         var privateDepartment = new Department { Name = "TNCHECK PRIVATE-DEPARTMENT", IsActive = true };
         var emptyDepartment = new Department { Name = "TNCHECK empty department", IsActive = true };
         db.Departments.AddRange(privateDepartment, emptyDepartment);
@@ -43,12 +46,24 @@ public static class TendersReportChecks
         db.PurchaseRequests.AddRange(request, privateRequest);
         await db.SaveChangesAsync();
         var now = DateTime.UtcNow;
-        var statuses = new[] { "Published", "Open", "Closed", "UnderEvaluation", "AwaitingOfficerSummary", "AwaitingManagerReview", "AwaitingCommitteeDecision", "Awarded", "Cancelled" };
+        var statuses = new[] { "Published",
+            "Open",
+            "Closed",
+            "UnderEvaluation",
+            "AwaitingOfficerSummary",
+            "AwaitingManagerReview",
+            "AwaitingCommitteeDecision",
+            "Awarded",
+            "Cancelled" };
         var tenders = Enumerable.Range(0, 32).Select(index => new Tender
         {
             PurchaseRequestId = request.PurchaseRequestId, CreatedByUserId = "hub-SourcingOfficer", Title = "TNCHECK own " + index.ToString("D2", CultureInfo.InvariantCulture),
             Description = "Synthetic check", Category = "Pharmaceuticals", Status = index < statuses.Length ? statuses[index] : "Published",
-            CreatedAt = now.AddDays(-40), OpensAt = now.AddDays(-35), ClosesAt = index >= 2 && index <= 8 ? now.AddDays(-20) : now.AddDays(10)
+            CreatedAt = now.AddDays(-40), OpensAt = now
+                .AddDays(-35), ClosesAt = index >= 2
+                && index <= 8 ? now
+                .AddDays(-20) : now
+                .AddDays(10)
         }).ToList();
         var privateTender = new Tender { PurchaseRequestId = privateRequest.PurchaseRequestId, CreatedByUserId = "tncheck-other-officer",
             Title = "TNCHECK PRIVATE-ONLY", Description = "Synthetic", Status = "UnderEvaluation", CreatedAt = now.AddDays(-40), OpensAt = now.AddDays(-35), ClosesAt = now.AddDays(-30) };
@@ -67,10 +82,12 @@ public static class TendersReportChecks
         Bid Offer(Invitation invitation, string status, bool submitted) => new()
         {
             InvitationId = invitation.InvitationId, TenderId = invitation.TenderId, Currency = "JOD", Status = status,
-            SubmittedAt = submitted ? now.AddDays(-31) : null, CreatedAt = now.AddDays(-32), ComplianceStatus = submitted ? "Compliant" : null
+            SubmittedAt = submitted ? now.AddDays(-31) : null, CreatedAt = now
+                .AddDays(-32), ComplianceStatus = submitted ? "Compliant" : null
         };
         var offers = invitations.Select(invitation => Offer(invitation,
-            invitation == invitations[1] ? "Draft" : invitation == invitations[2] || invitation.TenderId == tenders[2].TenderId ? "Withdrawn" : "Submitted",
+            invitation == invitations[1] ? "Draft" : invitation == invitations[2]
+                || invitation.TenderId == tenders[2].TenderId ? "Withdrawn" : "Submitted",
             invitation != invitations[1])).ToList();
         db.Bids.AddRange(offers); db.Bids.Add(Offer(privateInvitation, "Submitted", true));
         await db.SaveChangesAsync();
@@ -99,7 +116,8 @@ public static class TendersReportChecks
             officer.Notes.Any(note => note.Contains("not an SLA")), "no fabricated delay, explicit closure-age proxy");
         Require(officer.Chart is { Title: "Tenders by status", Kind: "bar" } && officer.Chart.Points.Sum(point => point.Value) == 32,
             "status chart uses visible records");
-        Require(officer.Table.Rows.Count == 25 && officer.Table.Rows.All(row => row.Link!.StartsWith("/SourcingOfficer/Offers?tenderId=")), "pagination and officer links");
+        Require(officer.Table.Rows.Count == 25
+            && officer.Table.Rows.All(row => row.Link!.StartsWith("/SourcingOfficer/Offers?tenderId=")), "pagination and officer links");
         Require((await report.RunAsync(query with { Page = 2 }, officerScope, default)).Table.Rows.Count == 7, "second page contains remaining rows");
         var exported = await report.RunAsync(query with { ForExport = true, Page = 55 }, officerScope, default);
         var secondPage = await report.RunAsync(query with { Page = 2 }, officerScope, default);
@@ -110,17 +128,27 @@ public static class TendersReportChecks
         Require(exported.Table.Rows.Count == 32 && exported.Table.Rows.Select(row => row.Cells[0]).ToHashSet().SetEquals(tenders.Select(tender => "#" + tender.TenderId)),
             "export ignores normal page and retains exact officer ownership");
         var awardRow = exported.Table.Rows.Single(row => row.Cells[0] == "#" + tenders[7].TenderId);
-        Require(awardRow.Cells[11] == suppliers[0].CompanyName && awardRow.Cells[12] == "TopApproved" && awardRow.Cells[13] == "—", "actual award and report status, completed evaluation not timed");
+        Require(awardRow.Cells[11] == suppliers[0].CompanyName
+            && awardRow.Cells[12] == "TopApproved"
+            && awardRow.Cells[13] == "—", "actual award and report status, completed evaluation not timed");
         var evaluation = exported.Table.Rows.Single(row => row.Cells[4] == "UnderEvaluation");
-        Require(double.Parse(evaluation.Cells[13], CultureInfo.InvariantCulture) >= 20 && evaluation.Cells[14].StartsWith("Unavailable"), "elapsed closure age is not called actual delay");
+        Require(double.Parse(evaluation.Cells[13], CultureInfo.InvariantCulture) >= 20
+            && evaluation.Cells[14]
+            .StartsWith("Unavailable"), "elapsed closure age is not called actual delay");
         var statusDrill = await report.RunAsync(query with { Drill = "status:Closed" }, officerScope, default);
-        Require(statusDrill.Table.Total == 1 && statusDrill.Table.Rows[0].Cells[4] == "Closed" && Kpi(statusDrill, "Total tenders") == "32", "status drill narrows table only");
+        Require(statusDrill.Table.Total == 1
+            && statusDrill.Table.Rows[0].Cells[4] == "Closed"
+            && Kpi(statusDrill, "Total tenders") == "32", "status drill narrows table only");
         var activity = await report.RunAsync(query with { Drill = "chart:activity" }, officerScope, default);
-        Require(activity.Chart!.Title == "Tender activity" && activity.Chart.Points.Sum(point => point.Value) == 32 && activity.Table.Total == 32, "second chart partitions activity without narrowing table");
+        Require(activity.Chart!.Title == "Tender activity"
+            && activity.Chart.Points.Sum(point => point.Value) == 32
+            && activity.Table.Total == 32, "second chart partitions activity without narrowing table");
         Require((await report.RunAsync(query with { Drill = "activity:received" }, officerScope, default)).Table.Total == 6, "received activity drill");
         Require((await report.RunAsync(query with { Drill = "activity:zero-offers" }, officerScope, default)).Table.Total == 2, "zero offer drill");
         Require((await report.RunAsync(query with { Drill = "activity:evaluation-age" }, officerScope, default)).Table.Total == 1, "evaluation age drill");
-        Require((await report.RunAsync(query with { Status = "Closed", Drill = "activity:received" }, officerScope, default)).Table.Total == 0, "filters intersect drills");
+        Require((await report.RunAsync(query with { Status = "Closed", Drill = "activity:received" },
+            officerScope,
+            default)).Table.Total == 0, "filters intersect drills");
         Require((await report.RunAsync(query with { SupplierId = suppliers[0].SupplierProfileId, DepartmentId = ownDepartmentId,
             Status = "Published", From = DateOnly.FromDateTime(now.AddDays(-41)), To = DateOnly.FromDateTime(now) }, officerScope, default)).Table.Total == 1,
             "date, supplier, department, status and search combine");
@@ -128,7 +156,8 @@ public static class TendersReportChecks
         Require(eventRange.Table.Total == 32 && Kpi(eventRange, "Invitations") == "0" && Kpi(eventRange, "Received offers") == "0" &&
             Kpi(eventRange, "Supplier participation rate") == "—" && Kpi(eventRange, "Tenders with zero offers") == "2", "event range counts and lifetime zero-offer meaning");
         var department = await report.RunAsync(query with { ForExport = true }, departmentScope, default);
-        Require(department.Table.Total == 32 && department.Table.Rows.All(row => row.Link == null), "Department scope only own requests, no unauthorized tender links");
+        Require(department.Table.Total == 32
+            && department.Table.Rows.All(row => row.Link == null), "Department scope only own requests, no unauthorized tender links");
         Require((await report.RunAsync(query with { DepartmentId = privateDepartment.DepartmentId }, departmentScope, default)).Table.Total == 0,
             "forged department cannot escape scope");
         Require((await report.RunAsync(query with { SupplierId = suppliers[3].SupplierProfileId }, officerScope, default)).Table.Total == 0,
@@ -139,31 +168,51 @@ public static class TendersReportChecks
             "Evaluation Committee assigned tenders only, unassigned UnderEvaluation excluded");
         var topScope = new ReportScope("hub-TopCommittee", RoleNames.TopCommittee, null, false);
         var top = await report.RunAsync(query, topScope, default);
-        Require(top.Table.Total == 1 && top.Table.Rows[0].Link == "/TopCommittee/TenderDetails/" + tenders[6].TenderId, "Top Committee assignment and link");
+        Require(top.Table.Total == 1
+            && top.Table.Rows[0].Link == "/TopCommittee/TenderDetails/" + tenders[6].TenderId, "Top Committee assignment and link");
         var managerScope = new ReportScope("hub-SourcingManager", RoleNames.SourcingManager, null, false);
         var manager = await report.RunAsync(query, managerScope, default);
-        Require(manager.Table.Total == 1 && manager.Table.Rows[0].Link!.StartsWith("/SourcingManager/Submissions?id="), "Manager queue matches existing report scope and safe review link");
-        db.TenderApprovals.Add(new TenderApproval { TenderId = tenders[7].TenderId, UserId = managerScope.UserId, Stage = "Manager", Decision = "Approved", DecidedAt = now.AddDays(-8) });
+        Require(manager.Table.Total == 1
+            && manager.Table.Rows[0].Link!.StartsWith("/SourcingManager/Submissions?id="), "Manager queue matches existing report scope and safe review link");
+        db.TenderApprovals.Add(new TenderApproval { TenderId = tenders[7].TenderId,
+            UserId = managerScope.UserId,
+            Stage = "Manager",
+            Decision = "Approved",
+            DecidedAt = now.AddDays(-8) });
         await db.SaveChangesAsync();
         manager = await report.RunAsync(query, managerScope, default);
-        Require(manager.Table.Total == 2 && manager.Table.Rows.Single(row => row.Cells[4] == "Awarded").Link == null, "Manager history visible without invalid queue link");
+        Require(manager.Table.Total == 2
+            && manager.Table.Rows.Single(row => row.Cells[4] == "Awarded").Link == null, "Manager history visible without invalid queue link");
         var admin = await report.RunAsync(query, adminScope, default);
-        Require(admin.Table.Total == 33 && admin.Table.Rows.All(row => row.Link == null), "Admin scope and no invented details route");
+        Require(admin.Table.Total == 33
+            && admin.Table.Rows.All(row => row.Link == null), "Admin scope and no invented details route");
         Require((await report.RunAsync(query, officerScope with { Role = RoleNames.Supplier }, default)).Table.Total == 0, "Supplier scope fails closed");
         Require((await report.RunAsync(query, officerScope with { IsAdmin = true }, default)).Table.Total == 0, "forged admin scope fails closed");
         var empty = await report.RunAsync(query, departmentScope with { DepartmentId = emptyDepartment.DepartmentId }, default);
-        Require(empty.Table.Total == 0 && Kpi(empty, "Total tenders") == "0" && Kpi(empty, "Supplier participation rate") == "—", "empty data has no misleading participation rate");
+        Require(empty.Table.Total == 0
+            && Kpi(empty, "Total tenders") == "0"
+            && Kpi(empty, "Supplier participation rate") == "—", "empty data has no misleading participation rate");
         var invalid = await report.RunAsync(query with { Status = "Draft", Drill = "activity:invalid", Page = -20 }, officerScope, default);
-        Require(invalid.Table.Total == 32 && invalid.Table.Rows.Count == 25 && invalid.Notes.Any(note => note.Contains("unsupported")), "invalid filters safe, no invented statuses");
-        var configured = new TendersReport(db, new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Reports:EvaluationDelayDays"] = "30" }).Build());
+        Require(invalid.Table.Total == 32
+            && invalid.Table.Rows.Count == 25
+            && invalid.Notes.Any(note => note.Contains("unsupported")), "invalid filters safe, no invented statuses");
+        var configured = new TendersReport(db, new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Reports:EvaluationDelayDays"] = "30" })
+            .Build());
         Require(Kpi(await configured.RunAsync(query, officerScope, default), "Evaluation age warnings (>30 days)") == "0", "configured age threshold honored");
-        var malformedConfig = new TendersReport(db, new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Reports:EvaluationDelayDays"] = "bad" }).Build());
-        Require((await malformedConfig.RunAsync(query, officerScope, default)).Notes.Any(note => note.Contains("setting was invalid")), "invalid age setting handled safely");
+        var malformedConfig = new TendersReport(db, new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Reports:EvaluationDelayDays"] = "bad" })
+            .Build());
+        Require((await malformedConfig.RunAsync(query, officerScope, default)).Notes.Any(note => note
+            .Contains("setting was invalid")), "invalid age setting handled safely");
         var choices = await new ReportFilterOptions(db).LoadAsync(report, officerScope, default);
         Require(choices.Departments.All(option => option.Id != privateDepartment.DepartmentId) && choices.Suppliers.All(option => option.Id != suppliers[3].SupplierProfileId),
             "filter options cannot expose private departments or suppliers");
         Directory.CreateDirectory(outputDirectory);
-        foreach (var (scope, label) in new[] { (officerScope,"officer"), (departmentScope,"department"), (committeeScope,"committee"), (topScope,"top"), (managerScope,"manager") })
+        foreach (var (scope,
+            label) in new[] { (officerScope,"officer"),
+            (departmentScope,"department"),
+            (committeeScope,"committee"),
+            (topScope,"top"),
+            (managerScope,"manager") })
         {
             var result = await report.RunAsync(query with { ForExport = true }, scope, default);
             var exporter = new ReportExport();
@@ -175,7 +224,11 @@ public static class TendersReportChecks
             using (var document = PdfDocument.Open(pdf))
             {
                 var text = string.Join(" ", document.GetPages().Select(page => page.Text));
-                Require(System.Text.Encoding.ASCII.GetString(pdf,0,4) == "%PDF" && text.Contains("TNCHECK") && !text.Contains("PRIVATE-ONLY"), label + " PDF scope");
+                Require(System.Text.Encoding.ASCII.GetString(pdf,0,4) == "%PDF"
+                    && text
+                    .Contains("TNCHECK")
+                    && !text
+                    .Contains("PRIVATE-ONLY"), label + " PDF scope");
             }
             await File.WriteAllBytesAsync(Path.Combine(outputDirectory, "tenders-" + label + ".xlsx"), xlsx);
             await File.WriteAllBytesAsync(Path.Combine(outputDirectory, "tenders-" + label + ".pdf"), pdf);

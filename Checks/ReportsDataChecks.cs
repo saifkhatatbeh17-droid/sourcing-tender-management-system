@@ -28,7 +28,8 @@ public static class ReportsDataChecks
         Require(TopCommitteeReports.Frequency(6, new DateOnly(2026, 1, 1), new DateOnly(2026, 3, 31)) == 2m,
             "dealing frequency over three months");
 
-        var sql = new SqlConnectionStringBuilder(connection) { InitialCatalog = "TiryaqReportsDataQA_" + Guid.NewGuid().ToString("N") };
+        var sql = new SqlConnectionStringBuilder(connection) { InitialCatalog = "TiryaqReportsDataQA_" + Guid.NewGuid()
+            .ToString("N") };
         var accessor = new HttpContextAccessor { HttpContext = new DefaultHttpContext
         {
             User = Actor("qa-admin", RoleNames.Admin)
@@ -82,7 +83,8 @@ public static class ReportsDataChecks
             db.SupplierProfiles.Add(supplier);
             await db.SaveChangesAsync();
             var tender = new Tender { PurchaseRequestId = request.PurchaseRequestId, CreatedByUserId = officer.Id, Title = "QA tender",
-                Description = "QA", Status = "Published", OpensAt = DateTime.UtcNow.AddDays(-3), ClosesAt = DateTime.UtcNow.AddDays(-1),
+                Description = "QA", Status = "Published", OpensAt = DateTime.UtcNow.AddDays(-3), ClosesAt = DateTime.UtcNow
+                    .AddDays(-1),
                 CreatedAt = DateTime.UtcNow.AddDays(-3) };
             db.Tenders.Add(tender);
             await db.SaveChangesAsync();
@@ -157,7 +159,8 @@ public static class ReportsDataChecks
             var officerScope = new ReportScope("qa-officer", RoleNames.SourcingOfficer, null, false);
             var bids = new BidsEvaluationReport(db);
             var excluded = await bids.RunAsync(new(Drill: "status:Excluded"), officerScope, default);
-            Require(excluded.Table.Total == 1 && excluded.Table.Rows[0].Cells.Contains("Missing required certificate"), "scoped excluded offers");
+            Require(excluded.Table.Total == 1
+                && excluded.Table.Rows[0].Cells.Contains("Missing required certificate"), "scoped excluded offers");
             Require((await bids.RunAsync(new(), officerScope with { UserId = "other" }, default)).Table.Total == 0 &&
                 (await bids.RunAsync(new(), officerScope with { Role = RoleNames.Department }, default)).Table.Total == 0,
                 "bid scope and confidential prices");

@@ -50,7 +50,8 @@ public sealed class ReportRegistry
         if (!EditableRoles.Contains(role, StringComparer.Ordinal)) return [];
 
         var rules = await db.ReportAccessRules.AsNoTracking().Where(rule => rule.Role == role).ToListAsync(ct);
-        return reports.Values.Where(report => ResolveAccess(report, role, FindRule(rules, report.Key, role)?.Allowed)).ToList();
+        return reports.Values.Where(report => ResolveAccess(report, role, FindRule(rules, report.Key, role)?.Allowed))
+            .ToList();
     }
 
     public async Task<bool> CanAccessAsync(string key, string role, CancellationToken ct = default)
@@ -83,7 +84,8 @@ public sealed class ReportRegistry
     }
 
     private static ReportAccessRule? FindRule(IEnumerable<ReportAccessRule> rules, string key, string role) =>
-        rules.SingleOrDefault(rule => rule.Role == role && rule.ReportKey.Equals(key, StringComparison.OrdinalIgnoreCase));
+        rules.SingleOrDefault(rule => rule.Role == role
+            && rule.ReportKey.Equals(key, StringComparison.OrdinalIgnoreCase));
 
     private static bool ResolveAccess(IReport report, string role, bool? allowed)
     {

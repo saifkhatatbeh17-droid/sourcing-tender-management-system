@@ -82,7 +82,8 @@ public sealed class AiIntelligenceService(
         // Load winning supplier notifications to measure exact Creation -> Winning Notification turnaround
         var winnerUserIds = tenders
             .Where(t => t.Status == "Awarded" && t.AwardedBidId.HasValue)
-            .Select(t => t.Invitations.SelectMany(i => i.Bids).FirstOrDefault(b => b.BidId == t.AwardedBidId)?.Invitation.SupplierProfile.UserId)
+            .Select(t => t.Invitations.SelectMany(i => i.Bids)
+                .FirstOrDefault(b => b.BidId == t.AwardedBidId)?.Invitation.SupplierProfile.UserId)
             .Where(uid => !string.IsNullOrWhiteSpace(uid))
             .Distinct()
             .ToArray();
@@ -285,7 +286,10 @@ public sealed class AiIntelligenceService(
             .Take(8)
             .Select((r, idx) =>
             {
-                var hrs = r.LifecycleHours ?? Math.Round(Math.Max(0.2, (DateTime.UtcNow - DateTime.Parse(r.CreatedUtc, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal)).TotalHours), 1);
+                var hrs = r.LifecycleHours
+                    ?? Math.Round(Math.Max(0.2, (DateTime.UtcNow - DateTime.Parse(r.CreatedUtc,
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal)).TotalHours), 1);
                 return new AiChartPoint(
                     $"#{r.TenderId} {r.Title}",
                     (decimal)hrs,
@@ -348,7 +352,8 @@ public sealed class AiIntelligenceService(
         if (tender == null) return null;
 
         var winnerUid = tender.AwardedBidId.HasValue
-            ? tender.Invitations.SelectMany(i => i.Bids).FirstOrDefault(b => b.BidId == tender.AwardedBidId.Value)?.Invitation.SupplierProfile.UserId
+            ? tender.Invitations.SelectMany(i => i.Bids)
+                .FirstOrDefault(b => b.BidId == tender.AwardedBidId.Value)?.Invitation.SupplierProfile.UserId
             : null;
 
         var notifs = string.IsNullOrWhiteSpace(winnerUid)
@@ -377,7 +382,8 @@ public sealed class AiIntelligenceService(
         {
             roleWorkspace = dash.WorkspaceDisplayName,
             dataScope = dash.DataScopeDescription,
-            userQuestion = string.IsNullOrWhiteSpace(customQuestion) ? "Provide an executive analytical assessment and actionable procurement recommendations." : customQuestion.Trim(),
+            userQuestion = string.IsNullOrWhiteSpace(customQuestion) ? "Provide an executive analytical assessment and actionable procurement recommendations." : customQuestion
+                .Trim(),
             kpis = dash.Kpis.Select(k => new { k.Label, k.Value, k.Subtext }),
             statusBreakdown = dash.StatusDistribution.Select(s => new { s.Label, count = s.Value, pct = s.SecondaryFormatted }),
             tendersSample = dash.Tenders.Take(12).Select(t => new
@@ -462,7 +468,9 @@ public sealed class AiIntelligenceService(
 
         using var doc = JsonDocument.Parse(raw);
         var root = doc.RootElement;
-        var headline = root.TryGetProperty("headline", out var h) ? h.GetString() ?? "Live Procurement Intelligence" : "Live Procurement Intelligence";
+        var headline = root.TryGetProperty("headline", out var h) ? h
+            .GetString()
+            ?? "Live Procurement Intelligence" : "Live Procurement Intelligence";
         var brief = root.TryGetProperty("executiveBrief", out var b) ? b.GetString() ?? "" : "";
         var items = new List<AiGeneratedInsightItem>();
         if (root.TryGetProperty("insights", out var arr) && arr.ValueKind == JsonValueKind.Array)
@@ -559,7 +567,9 @@ public sealed class AiIntelligenceService(
         }
 
         return new AiGeneratedInsightsResponse(
-            root.TryGetProperty("headline", out var h) ? h.GetString() ?? $"Tender #{report.TenderId} AI Analysis" : $"Tender #{report.TenderId} AI Analysis",
+            root.TryGetProperty("headline", out var h) ? h
+                .GetString()
+                ?? $"Tender #{report.TenderId} AI Analysis" : $"Tender #{report.TenderId} AI Analysis",
             root.TryGetProperty("executiveBrief", out var b) ? b.GetString() ?? "" : "",
             items.ToArray(),
             AdvisoryBannerText);
@@ -622,7 +632,8 @@ public sealed class AiIntelligenceService(
             liveSystemReference = new
             {
                 scopedTendersCount = dash.Tenders.Count,
-                recentTenders = dash.Tenders.Take(6).Select(t => new { t.TenderId, t.Title, t.Category, t.Status, t.LowestOfferTotal, t.WinningSupplier }),
+                recentTenders = dash.Tenders.Take(6)
+                    .Select(t => new { t.TenderId, t.Title, t.Category, t.Status, t.LowestOfferTotal, t.WinningSupplier }),
                 approvedSuppliers = dash.CanViewSupplierPricing
                     ? dash.Suppliers.Take(8).Select(s => new { s.CompanyName, s.Category, s.Status, s.AwardedCount })
                     : null
@@ -698,7 +709,9 @@ public sealed class AiIntelligenceService(
             foreach (var item in insEl.EnumerateArray())
             {
                 insights.Add(new AiGeneratedInsightItem(
-                    item.TryGetProperty("category", out var c) ? c.GetString() ?? "Document Insight" : "Document Insight",
+                    item.TryGetProperty("category", out var c) ? c
+                        .GetString()
+                        ?? "Document Insight" : "Document Insight",
                     item.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "",
                     item.TryGetProperty("finding", out var f) ? f.GetString() ?? "" : "",
                     item.TryGetProperty("recommendation", out var r) ? r.GetString() ?? "" : "",
@@ -712,15 +725,23 @@ public sealed class AiIntelligenceService(
         if (finalHeaders.Length == 0 &&
             root.TryGetProperty("extractedTableHeaders", out var hEl) && hEl.ValueKind == JsonValueKind.Array)
         {
-            var aiHeaders = hEl.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrWhiteSpace(x)).Take(8).ToArray();
-            if (aiHeaders.Length > 0 && root.TryGetProperty("extractedTableRows", out var rEl) && rEl.ValueKind == JsonValueKind.Array)
+            var aiHeaders = hEl.EnumerateArray()
+                .Select(x => x.GetString() ?? "")
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Take(8)
+                .ToArray();
+            if (aiHeaders.Length > 0
+                && root.TryGetProperty("extractedTableRows", out var rEl)
+                && rEl.ValueKind == JsonValueKind.Array)
             {
                 finalHeaders = aiHeaders;
                 finalRows = rEl.EnumerateArray()
                     .Where(row => row.ValueKind == JsonValueKind.Array)
                     .Select(row =>
                     {
-                        var cells = row.EnumerateArray().Select(c => c.ValueKind == JsonValueKind.String ? (c.GetString() ?? "") : c.GetRawText()).ToArray();
+                        var cells = row.EnumerateArray()
+                            .Select(c => c.ValueKind == JsonValueKind.String ? (c.GetString() ?? "") : c.GetRawText())
+                            .ToArray();
                         var norm = new string[aiHeaders.Length];
                         for (var i = 0; i < aiHeaders.Length; i++) norm[i] = i < cells.Length ? cells[i] : "";
                         return norm;
@@ -749,7 +770,13 @@ public sealed class AiIntelligenceService(
         var links = new[]
         {
             downloadStore.Save(user.Id, workspace, $"{exportDoc.FileSlug}.pdf", "application/pdf", "Download Analysis PDF", "pdf", pdfBytes),
-            downloadStore.Save(user.Id, workspace, $"{exportDoc.FileSlug}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Download Analysis Excel (.xlsx)", "excel", xlsxBytes)
+            downloadStore.Save(user.Id,
+                workspace,
+                $"{exportDoc.FileSlug}.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "Download Analysis Excel (.xlsx)",
+                "excel",
+                xlsxBytes)
         };
 
         return new AiUploadedFileAnalysisResponse(
@@ -779,7 +806,17 @@ public sealed class AiIntelligenceService(
             new(
                 "Tenders Analytics",
                 dash.CanViewSupplierPricing
-                    ? ["Tender ID", "Title", "Category", "Department", "Status", "Invited", "Offers", "Compliant", "Lowest Offer", "Winning Supplier", "Lifecycle"]
+                    ? ["Tender ID",
+                        "Title",
+                        "Category",
+                        "Department",
+                        "Status",
+                        "Invited",
+                        "Offers",
+                        "Compliant",
+                        "Lowest Offer",
+                        "Winning Supplier",
+                        "Lifecycle"]
                     : ["Tender ID", "Title", "Category", "Department", "Status", "Round", "Offers Count", "Lifecycle"],
                 dash.Tenders.Select(t => dash.CanViewSupplierPricing
                     ? new[]
@@ -986,7 +1023,10 @@ public sealed class AiIntelligenceService(
 
         if (numericValues.Count > 0)
         {
-            metrics.Add(new AiKpiCard("Min / Max Numeric", $"{numericValues.Min():N2} → {numericValues.Max():N2}", $"{numericValues.Count} numeric cells parsed", "info"));
+            metrics.Add(new AiKpiCard("Min / Max Numeric",
+                $"{numericValues.Min():N2} → {numericValues.Max():N2}",
+                $"{numericValues.Count} numeric cells parsed",
+                "info"));
         }
 
         return (sb.ToString(), primaryHeaders, primaryRows.ToArray(), metrics.ToArray());
@@ -1021,7 +1061,10 @@ public sealed class AiIntelligenceService(
         var metrics = new[]
         {
             new AiKpiCard("PDF Pages", pdf.PageCount.ToString(CultureInfo.InvariantCulture), fileName, "primary"),
-            new AiKpiCard("Extracted Words", wordCount.ToString("N0", CultureInfo.InvariantCulture), wordCount > 0 ? "Text layer parsed cleanly" : "Metadata / scanned layout", wordCount > 0 ? "positive" : "warning")
+            new AiKpiCard("Extracted Words",
+                wordCount.ToString("N0", CultureInfo.InvariantCulture),
+                wordCount > 0 ? "Text layer parsed cleanly" : "Metadata / scanned layout",
+                wordCount > 0 ? "positive" : "warning")
         };
 
         if (string.IsNullOrWhiteSpace(text))
@@ -1164,7 +1207,9 @@ public sealed class AiIntelligenceService(
             if (workspace != RoleNames.Admin && invs.Count == 0 && s.Status != "Approved")
                 continue;
 
-            var submitted = invs.SelectMany(i => i.Bids).Where(b => b.SubmittedAt != null && b.Status != "Withdrawn").ToList();
+            var submitted = invs.SelectMany(i => i.Bids)
+                .Where(b => b.SubmittedAt != null && b.Status != "Withdrawn")
+                .ToList();
             var compliant = submitted.Where(b => b.ComplianceStatus == "Compliant").ToList();
             var wonBids = invs.Where(i => i.Tender.Status == "Awarded")
                 .SelectMany(i => i.Bids.Where(b => b.BidId == i.Tender.AwardedBidId)).ToList();
@@ -1212,9 +1257,12 @@ public sealed class AiIntelligenceService(
         var evalPage = new CommitteeEvaluationPage { Tender = tender, UserId = user.Id, Evaluations = evals };
         var ranking = canViewOffers ? AllOfferScoring.Ranking(evalPage) : [];
 
-        var lowest = canViewOffers && submittedBids.Count > 0 ? submittedBids.Min(CommitteeEvaluationPage.Total) : (decimal?)null;
-        var highest = canViewOffers && submittedBids.Count > 0 ? submittedBids.Max(CommitteeEvaluationPage.Total) : (decimal?)null;
-        var fastestDays = canViewOffers && submittedBids.Count > 0 ? submittedBids.Min(b => b.DeliveryDays) : (int?)null;
+        var lowest = canViewOffers
+            && submittedBids.Count > 0 ? submittedBids.Min(CommitteeEvaluationPage.Total) : (decimal?)null;
+        var highest = canViewOffers
+            && submittedBids.Count > 0 ? submittedBids.Max(CommitteeEvaluationPage.Total) : (decimal?)null;
+        var fastestDays = canViewOffers
+            && submittedBids.Count > 0 ? submittedBids.Min(b => b.DeliveryDays) : (int?)null;
         var currency = submittedBids.FirstOrDefault()?.Currency ?? "JOD";
 
         var winningBid = tender.AwardedBidId.HasValue
@@ -1295,7 +1343,8 @@ public sealed class AiIntelligenceService(
             : [];
 
         var recSupplier = canViewOffers && tender.EvaluationReport?.RecommendedBidId is int recId
-            ? submittedBids.FirstOrDefault(b => b.BidId == recId)?.Invitation.SupplierProfile.CompanyName ?? $"Offer #{recId}"
+            ? submittedBids.FirstOrDefault(b => b.BidId == recId)?.Invitation.SupplierProfile.CompanyName
+                ?? $"Offer #{recId}"
             : null;
 
         var summaryExcerpt = canViewOffers && !string.IsNullOrWhiteSpace(tender.EvaluationReport?.CommitteeSummary)
@@ -1367,7 +1416,8 @@ public sealed class AiIntelligenceService(
         // Average lifecycle and zero-offer tenders already have their own KPI cards, so they are not repeated here.
         var cards = new List<AiAnalysisCard>();
 
-        var stalledEval = tenders.Where(t => t.Status is "UnderEvaluation" or "AwaitingManagerReview" or "AwaitingCommitteeDecision").ToList();
+        var stalledEval = tenders.Where(t => t.Status is "UnderEvaluation" or "AwaitingManagerReview" or "AwaitingCommitteeDecision")
+            .ToList();
         cards.Add(new AiAnalysisCard(
             "Workflow Bottlenecks",
             "Active Committee & Executive Queue",

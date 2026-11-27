@@ -24,8 +24,15 @@ public static class FinalReportChecks
             {
                 var result = await ai.FinalReport(page, 40, default);
                 if (mode is not ("valid" or "retry")) throw new Exception("Invalid report accepted: " + mode);
-                if (!new[] { "Chosen offer", "Why it was chosen", "Comparison", "Observations", "Conclusion", "850.00 JOD", "600.00 JOD" }.All(s => result.Report!.Contains(s))) throw new Exception("Section or trusted amount missing");
-                if (result.Scenarios[0].RecommendedBidId != 47 || handler.Calls != (mode == "retry" ? 2 : 1)) throw new Exception("Selection or retry failed");
+                if (!new[] { "Chosen offer",
+                    "Why it was chosen",
+                    "Comparison",
+                    "Observations",
+                    "Conclusion",
+                    "850.00 JOD",
+                    "600.00 JOD" }.All(s => result.Report!.Contains(s))) throw new Exception("Section or trusted amount missing");
+                if (result.Scenarios[0].RecommendedBidId != 47
+                    || handler.Calls != (mode == "retry" ? 2 : 1)) throw new Exception("Selection or retry failed");
             }
             catch (InvalidOperationException) when (mode is "incomplete" or "wrong-selection" or "missing-alternative" or "invented-number")
             { if (handler.Calls != 2) throw new Exception("Must retry exactly once"); }
@@ -40,8 +47,12 @@ public static class FinalReportChecks
             Calls++;
             var content = new {
                 selectedBidId = mode == "wrong-selection" ? 45 : 47,
-                whyChosen = mode == "invented-number" ? "The total cost is within budget and falls into the acceptable range for this committee." : mode == "incomplete" || mode == "retry" && Calls == 1 ? "Short" : "The selected printer offers the requested network connection and warranty, with delivery within the requested timeframe.",
-                comparison = mode == "missing-alternative" ? Array.Empty<object>() : new object[] { new { bidId = 45, strengths = "This alternative has a lower total cost than the selected offer and passed screening.", tradeoffs = "This alternative delivers more slowly than the selected offer and has a shorter warranty." } },
+                whyChosen = mode == "invented-number" ? "The total cost is within budget and falls into the acceptable range for this committee." : mode == "incomplete"
+                    || mode == "retry"
+                    && Calls == 1 ? "Short" : "The selected printer offers the requested network connection and warranty, with delivery within the requested timeframe.",
+                comparison = mode == "missing-alternative" ? Array.Empty<object>() : new object[] { new { bidId = 45,
+                    strengths = "This alternative has a lower total cost than the selected offer and passed screening.",
+                    tradeoffs = "This alternative delivers more slowly than the selected offer and has a shorter warranty." } },
                 observations = "No non-compliance is recorded for either eligible offer. Supplier warranty and support statements remain claims to verify.",
                 conclusion = "Recommend the committee-selected offer for its documented delivery and warranty benefits, acknowledging its higher total cost."
             };

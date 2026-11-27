@@ -21,7 +21,8 @@ internal sealed class TopCommitteeClarificationService(ITopCommitteeClarificatio
     private static string Text(string? value, int maxLength, string label)
     {
         var text = (value ?? "").Replace("\r\n", "\n").Trim();
-        if (text.Length == 0 || text.Length > maxLength) throw new ValidationException($"{label} must contain 1–{maxLength} characters.");
+        if (text.Length == 0
+            || text.Length > maxLength) throw new ValidationException($"{label} must contain 1–{maxLength} characters.");
         return text;
     }
 

@@ -28,13 +28,17 @@ public sealed class AuditLogReport(ApplicationDbContext db) : IReport
         if (query.From is { } from) rows = rows.Where(a => a.OccurredAt >= from.ToDateTime(TimeOnly.MinValue));
         if (query.To is { } to) rows = rows.Where(a => a.OccurredAt <= to.ToDateTime(TimeOnly.MaxValue));
         var count = await rows.CountAsync(ct);
-        var counts = await rows.GroupBy(a => a.Action).Select(g => new { Action = g.Key, Count = g.Count() }).ToListAsync(ct);
+        var counts = await rows.GroupBy(a => a.Action)
+            .Select(g => new { Action = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
         var limit = query.ForExport ? 5000 : 25;
         var page = Math.Clamp(query.Page, 1, int.MaxValue / 25);
         var data = await rows.OrderByDescending(a => a.OccurredAt).ThenByDescending(a => a.AuditEntryId)
             .Skip(query.ForExport ? 0 : (page - 1) * 25).Take(limit).ToListAsync(ct);
         return new([new("Entries", count.ToString())],
-            new("Action counts", "bar", counts.OrderByDescending(x => x.Count).Select(x => new ReportChartPoint(x.Action, x.Count)).ToArray()),
+            new("Action counts", "bar", counts.OrderByDescending(x => x.Count)
+                .Select(x => new ReportChartPoint(x.Action, x.Count))
+                .ToArray()),
             new(columns, data.Select(a => new ReportRow([a.OccurredAt.ToString("dd MMM yyyy HH:mm:ss"), a.UserName ?? "—",
                 a.Role ?? "—", a.Action, a.EntityType, a.EntityId, a.Summary], $"/Admin/AuditEntry/{a.AuditEntryId}")).ToArray(), count),
             query.ForExport && count > limit ? ["Export limited to the first 5,000 rows."] : []);

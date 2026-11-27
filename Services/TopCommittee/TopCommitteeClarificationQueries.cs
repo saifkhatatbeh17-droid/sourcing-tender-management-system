@@ -26,7 +26,9 @@ public sealed class TopCommitteeClarificationQueries(ApplicationDbContext db, To
         if (tenderId.HasValue) questions = questions.Where(c => c.TenderId == tenderId);
         var data = await questions.Include(c => c.Tender).Include(c => c.RecipientUser)
             .Include(c => c.ClarificationResponses).ThenInclude(r => r.RespondedByUser)
-            .OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.ClarificationId).AsSplitQuery().ToListAsync(cancellationToken);
+            .OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.ClarificationId)
+                .AsSplitQuery()
+                .ToListAsync(cancellationToken);
 
         string? managerName = null;
         string? blocked = "Choose an assigned tender to create a clarification.";

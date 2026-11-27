@@ -19,7 +19,9 @@ public sealed record DashboardOverview(string Title, string Scope, string Unit, 
         };
         var active = stages.Sum(s => s.Count);
         var other = states.Values.Sum() - active - Count("Awarded", "Cancelled");
-        var segments = new List<DashboardSlice> { new("Active", active), new("Awarded", Count("Awarded"), "positive"), new("Cancelled", Count("Cancelled"), "muted") };
+        var segments = new List<DashboardSlice> { new("Active", active),
+            new("Awarded", Count("Awarded"), "positive"),
+            new("Cancelled", Count("Cancelled"), "muted") };
         if (other > 0) segments.Add(new("Other", other, "other"));
         return new("Tender status", scope, "tenders", "active", segments,
             "Where active tenders are", $"{active:N0} active tenders · current stage", stages);

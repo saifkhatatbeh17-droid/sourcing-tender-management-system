@@ -21,7 +21,12 @@ public sealed class TenderIntegrityViewComponent(SupplierLinks links) : ViewComp
 
         var top = found[0];
         var names = found.SelectMany(l => new[] { l.NameA, l.NameB }).Distinct().ToList();
-        var reasons = found.SelectMany(l => l.Evidence).Select(e => e.Kind).Distinct().Take(3).Select(SupplierLinks.KindLabel).ToList();
+        var reasons = found.SelectMany(l => l.Evidence)
+            .Select(e => e.Kind)
+            .Distinct()
+            .Take(3)
+            .Select(SupplierLinks.KindLabel)
+            .ToList();
         var suppliers = new SupplierCheck(
             found.Any(l => l.Level == SupplierLinks.High) ? SupplierLinks.High : SupplierLinks.Medium,
             found.Count, names, reasons,

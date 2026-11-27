@@ -22,7 +22,8 @@ public sealed class TopCommitteeVotingDatabase(ApplicationDbContext db, TopCommi
     internal static bool AcceptsDefinition(string? definition)
     {
         if (definition == null) return false;
-        var normalized = string.Concat(definition.Where(c => !char.IsWhiteSpace(c) && c is not ('[' or ']'))).ToLowerInvariant();
+        var normalized = string.Concat(definition.Where(c => !char.IsWhiteSpace(c) && c is not ('[' or ']')))
+            .ToLowerInvariant();
         // SQL Server can omit the redundant AND-group parentheses. Keep all other grouping strict.
         return normalized is "(stage='manager'ordecision='approved')"
             or "(stage='manager'ordecision='approved'or(stage='top'anddecision='rejected'))"
@@ -40,7 +41,8 @@ public sealed class TopCommitteeVotingDatabase(ApplicationDbContext db, TopCommi
             command.Transaction = context.Database.CurrentTransaction?.GetDbTransaction();
             command.CommandText = "SELECT [definition] FROM sys.check_constraints WHERE [parent_object_id]=OBJECT_ID(N'dbo.TenderApprovals') AND [name]=N'CK_TenderApprovals_3' AND [is_disabled]=0 AND [is_not_trusted]=0;";
             var definition = await command.ExecuteScalarAsync(cancellationToken) as string;
-            return AcceptsDefinition(definition) && definition!.Contains("Rejected", StringComparison.OrdinalIgnoreCase);
+            return AcceptsDefinition(definition)
+                && definition!.Contains("Rejected", StringComparison.OrdinalIgnoreCase);
         }
         finally { if (opened) await context.Database.CloseConnectionAsync(); }
     }

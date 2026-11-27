@@ -30,7 +30,8 @@ public sealed class TopCommitteeHistory(ApplicationDbContext db, TopCommitteeAcc
             .Skip((filter.Page - 1) * filter.PageSize).Take(filter.PageSize)
             .Select(v => new CommitteeHistoryRow(v.TenderApprovalId, v.TenderId, v.Tender.Title, v.Tender.Status,
                 v.Decision, v.DecidedAt, v.Tender.EvaluationReport == null ? null : v.Tender.EvaluationReport.RecommendedBidId,
-                v.Tender.AwardedBidId, v.Tender.TenderApprovals.Count(a => a.Stage == "Top" && a.Decision == "Approved"),
+                v.Tender.AwardedBidId, v.Tender.TenderApprovals.Count(a => a.Stage == "Top"
+                    && a.Decision == "Approved"),
                 v.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected"), v.Tender.AwardedAt)).ToListAsync(ct);
         return new(filter, rows, total);
     }

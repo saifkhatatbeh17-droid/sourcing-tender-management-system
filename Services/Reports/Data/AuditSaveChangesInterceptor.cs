@@ -107,7 +107,9 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor accessor) :
     {
         var e = change.Entry;
         var key = e.Metadata.FindPrimaryKey()?.Properties.FirstOrDefault()?.Name;
-        var id = (change.Action == "Deleted" || key is null ? change.OriginalKey : e.Property(key).CurrentValue)?.ToString() ?? "";
+        var id = (change.Action == "Deleted"
+            || key is null ? change.OriginalKey : e.Property(key).CurrentValue)?.ToString()
+            ?? "";
         var tender = change.Action == "Deleted" ? change.OriginalTenderId : TenderId(e);
         var roleChange = e.Entity is IdentityUserRole<string>;
         var type = roleChange ? nameof(ApplicationUser) : e.Metadata.ClrType.Name;

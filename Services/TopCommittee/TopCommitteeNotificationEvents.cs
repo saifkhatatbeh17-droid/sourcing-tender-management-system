@@ -11,7 +11,9 @@ public static class TopCommitteeNotificationEvents
  {
   await TopCommitteeTenderTransaction.RequireLockAsync(db,tenderId,ct);var url=$"/TopCommittee/TenderDetails/{tenderId}";
   foreach(var recipient in recipients.Distinct())
-   if(!db.Notifications.Local.Any(n=>n.UserId==recipient&&n.Title==title&&n.RelativeUrl==url)&&!await db.Notifications.AnyAsync(n=>n.UserId==recipient&&n.Title==title&&n.RelativeUrl==url,ct))db.Notifications.Add(new(){UserId=recipient,Title=title,Message="Open the tender to review its current committee status.",RelativeUrl=url,IsRead=false,CreatedAt=DateTime.UtcNow});
+   if(!db.Notifications.Local.Any(n=>n.UserId==recipient&&n.Title==title&&n.RelativeUrl==url)
+       &&!await db.Notifications
+       .AnyAsync(n=>n.UserId==recipient&&n.Title==title&&n.RelativeUrl==url,ct))db.Notifications.Add(new(){UserId=recipient,Title=title,Message="Open the tender to review its current committee status.",RelativeUrl=url,IsRead=false,CreatedAt=DateTime.UtcNow});
  }
  internal static async Task DecisionAsync(ApplicationDbContext db,CommitteeVotingContext context,CancellationToken ct)
  {
@@ -26,10 +28,14 @@ public static class TopCommitteeNotificationEvents
       : $"Tender #{context.Access.Tender.TenderId} was completely rejected. Review the reason and forward to its officer.",
      RelativeUrl = $"/SourcingManager/Submissions?rejectedTenderId={context.Access.Tender.TenderId}&showRejections=true", CreatedAt = DateTime.UtcNow });
   }
-  var tender=context.Access.Tender!;if(tender.Status is "Awarded" or "AwaitingManagerReview")await AddAsync(db,tender.TenderId,context.Access.Members.Where(m=>m.IsEligible).Select(m=>m.UserId),$"Tender #{tender.TenderId}: {(tender.Status=="Awarded"?"awarded":tender.TopEditState=="WithManager"?"returned to Manager for edits":"rejected and returned to Manager")}",ct);
+  var tender=context.Access.Tender!;if(tender.Status is "Awarded" or "AwaitingManagerReview")await AddAsync(db,tender.TenderId,context.Access.Members.Where(m=>m.IsEligible)
+      .Select(m=>m.UserId),$"Tender #{tender.TenderId}: {(tender.Status=="Awarded"?"awarded":tender.TopEditState=="WithManager"?"returned to Manager for edits":"rejected and returned to Manager")}",ct);
   if (tender.Status == "Awarded" && tender.AwardedBidId.HasValue)
   {
-   var offers = await db.Bids.Where(b => b.TenderId == tender.TenderId && b.SubmittedAt.HasValue && b.Status != "Draft" && b.Status != "Withdrawn")
+   var offers = await db.Bids.Where(b => b.TenderId == tender.TenderId
+       && b.SubmittedAt.HasValue
+       && b.Status != "Draft"
+       && b.Status != "Withdrawn")
     .Include(b => b.Invitation).ThenInclude(i => i.SupplierProfile).ToListAsync(ct);
    foreach (var offer in offers)
    {
@@ -79,7 +85,9 @@ public static class TopCommitteeNotificationEvents
   if (!string.IsNullOrWhiteSpace(tender.CreatedByUserId))
       recipients.Add(new(tender.CreatedByUserId, Data.RoleNames.SourcingOfficer, $"/SourcingOfficer/Tenders?id={tender.TenderId}",
           $"Tender #{tender.TenderId} has been awarded. Review the selected offer in your tender workspace."));
-  if (request != null && request.PurchaseRequestId == tender.PurchaseRequestId && !string.IsNullOrWhiteSpace(request.RequestedByUserId))
+  if (request != null
+      && request.PurchaseRequestId == tender.PurchaseRequestId
+      && !string.IsNullOrWhiteSpace(request.RequestedByUserId))
       recipients.Add(new(request.RequestedByUserId, Data.RoleNames.Department, $"/Department/Details/{request.PurchaseRequestId}",
           $"Tender #{tender.TenderId} for your purchase request #{request.PurchaseRequestId} has been awarded. View your request for reference.", request.DepartmentId));
   return recipients;
@@ -111,14 +119,30 @@ public static class TopCommitteeNotificationEvents
   db.ChangeTracker.DetectChanges();
   foreach(var entry in db.ChangeTracker.Entries<Clarification>().Where(e=>e.State==EntityState.Modified&&e.Property(c=>c.Status).IsModified).ToList()){
    var q=entry.Entity;if(!TopCommitteeClarificationScope.Contains(q,context))continue;
-   if(q.Status=="Answered"&&entry.Property(c=>c.Status).OriginalValue=="Pending")await AddAsync(db,q.TenderId!.Value,[q.SenderUserId],$"Tender #{q.TenderId}: clarification #{q.ClarificationId} answered",ct);
-   if(q.Status=="Resolved"&&entry.Property(c=>c.Status).OriginalValue=="Answered"&&TopCommitteeClarificationScope.OpenCount(context)==0)await AddAsync(db,q.TenderId!.Value,context.Members.Where(m=>m.IsEligible).Select(m=>m.UserId),$"Tender #{q.TenderId}: clarification #{q.ClarificationId} resolved",ct);
+   if(q.Status=="Answered"
+       &&entry.Property(c=>c.Status).OriginalValue=="Pending")await AddAsync(db,q.TenderId!.Value,[q.SenderUserId],$"Tender #{q.TenderId}: clarification #{q.ClarificationId} answered",ct);
+   if(q.Status=="Resolved"
+       &&entry.Property(c=>c.Status).OriginalValue=="Answered"
+       &&TopCommitteeClarificationScope
+       .OpenCount(context)==0)await AddAsync(db,q.TenderId!.Value,context.Members
+       .Where(m=>m.IsEligible)
+       .Select(m=>m.UserId),$"Tender #{q.TenderId}: clarification #{q.ClarificationId} resolved",ct);
   }
  }
  // Manager team calls after persisting a valid referral, using its authenticated principal.
  public static Task PublishAssignmentsAsync(ITopCommitteeTenderTransaction transaction,ClaimsPrincipal manager,int tenderId,CancellationToken ct=default)=>transaction.ExecuteAsync(tenderId,async(db,token)=>{
-  var access=new TopCommitteeAccessService(db);var id=await access.RequireRoleAsync(manager,RoleNames.SourcingManager,token);var managers=await access.GetManagersAsync(tenderId,token);if(managers.Count!=1||managers[0].UserId!=id||!managers[0].IsActive||!managers[0].HasManagerRole)throw new CommitteeAccessDeniedException();
-  if(!await db.Tenders.AnyAsync(t=>t.TenderId==tenderId&&t.Status=="AwaitingCommitteeDecision"&&!t.TenderApprovals.Any(v=>v.Stage=="Top"),token))throw new CommitteeStateConflictException("Assignment notifications require a valid referral before committee voting.");
-  foreach(var member in await access.GetMembersAsync(tenderId,token))if(member.IsEligible)await AddAsync(db,tenderId,[member.UserId],$"Tender #{tenderId}: committee assignment #{member.AssignmentId}",token);await db.SaveChangesAsync(token);return true;
+  var access=new TopCommitteeAccessService(db);var id=await access.RequireRoleAsync(manager,RoleNames.SourcingManager,token);var managers=await access
+      .GetManagersAsync(tenderId,token);if(managers.Count!=1
+          ||managers[0].UserId!=id
+          ||!managers[0].IsActive
+          ||!managers[0].HasManagerRole)throw new CommitteeAccessDeniedException();
+  if(!await db.Tenders.AnyAsync(t=>t.TenderId==tenderId
+      &&t.Status=="AwaitingCommitteeDecision"
+      &&!t.TenderApprovals.Any(v=>v.Stage=="Top"),token))throw new CommitteeStateConflictException("Assignment notifications require a valid referral before committee voting.");
+  foreach(var member in await access.GetMembersAsync(tenderId,token))if(member.IsEligible)await AddAsync(db,
+      tenderId,
+      [member.UserId],
+      $"Tender #{tenderId}: committee assignment #{member.AssignmentId}",
+      token);await db.SaveChangesAsync(token);return true;
  },ct);
 }

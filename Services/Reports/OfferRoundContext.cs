@@ -17,7 +17,8 @@ public static class OfferRoundContext
                 .AppendLine($"Round {round.Round} opened {Utc(round.OpenedAt)}; deadline {Utc(round.Deadline)}.");
         }
         if (!string.IsNullOrWhiteSpace(tender.OfferShortfallReason))
-            text.AppendLine("Reason for proceeding with fewer than three compliant offers:").AppendLine(tender.OfferShortfallReason.Trim());
+            text.AppendLine("Reason for proceeding with fewer than three compliant offers:")
+                .AppendLine(tender.OfferShortfallReason.Trim());
         return text.ToString().Trim();
     }
 

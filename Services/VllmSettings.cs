@@ -102,7 +102,8 @@ internal static partial class VllmSettings
 
         const int maxRounds = 3;
         var formatMode = isGroq ? ResponseFormatMode.JsonObject : ResponseFormatMode.JsonSchema;
-        var primaryModel = imageDataUrl is not null && configuration["Vllm:VisionModel"]?.Trim() is { Length: > 0 } vision
+        var primaryModel = imageDataUrl is not null
+            && configuration["Vllm:VisionModel"]?.Trim() is { Length: > 0 } vision
             ? vision : Model(configuration);
         var fallbackModel = imageDataUrl is null ? configuration["Vllm:FallbackModel"]?.Trim() : null;
         var activeModel = primaryModel;
@@ -263,17 +264,20 @@ internal static partial class VllmSettings
 
         var total = 0.0;
         var matchedAny = false;
-        if (match.Groups["m"].Success && double.TryParse(match.Groups["m"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var mins))
+        if (match.Groups["m"].Success
+            && double.TryParse(match.Groups["m"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var mins))
         {
             total += mins * 60.0;
             matchedAny = true;
         }
-        if (match.Groups["s"].Success && double.TryParse(match.Groups["s"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var secs))
+        if (match.Groups["s"].Success
+            && double.TryParse(match.Groups["s"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var secs))
         {
             total += secs;
             matchedAny = true;
         }
-        if (match.Groups["ms"].Success && double.TryParse(match.Groups["ms"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var ms))
+        if (match.Groups["ms"].Success
+            && double.TryParse(match.Groups["ms"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var ms))
         {
             total += ms / 1000.0;
             matchedAny = true;

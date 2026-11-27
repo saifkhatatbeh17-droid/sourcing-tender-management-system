@@ -33,5 +33,6 @@ public static class CommitteeDisplay
     public static string Quantity(decimal value) => value.ToString("0.###", CultureInfo.InvariantCulture);
     public static string Utc(DateTime? value) => value.HasValue
         ? value.Value.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + " UTC" : "Not recorded";
-    public static string Date(DateOnly? value) => value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "Not provided";
+    public static string Date(DateOnly? value) => value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+        ?? "Not provided";
 }

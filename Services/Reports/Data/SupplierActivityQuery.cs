@@ -15,9 +15,11 @@ public sealed class SupplierActivityQuery(ApplicationDbContext db)
             .Select(b => new
             {
                 b.Invitation.SupplierProfileId, b.TenderId, b.BidId, b.SubmittedAt, b.Status, b.ComplianceStatus, b.Currency,
-                Total = (b.BidItems.Sum(i => (decimal?)(i.Quantity * i.UnitPrice)) ?? 0) + b.TaxAmount + b.AdditionalCosts,
+                Total = (b.BidItems.Sum(i => (decimal?)(i.Quantity * i.UnitPrice))
+                    ?? 0) + b.TaxAmount + b.AdditionalCosts,
                 b.Invitation.Tender.Title, TenderStatus = b.Invitation.Tender.Status, b.Invitation.Tender.AwardedBidId,
-                RejectedByCommittee = b.Invitation.Tender.TenderApprovals.Any(a => a.Stage == "Top" && a.Decision == "Rejected")
+                RejectedByCommittee = b.Invitation.Tender.TenderApprovals.Any(a => a.Stage == "Top"
+                    && a.Decision == "Rejected")
             }).ToListAsync(ct);
         return bids.GroupBy(b => new { b.SupplierProfileId, b.TenderId })
             .Select(group => group.OrderByDescending(b => b.BidId == b.AwardedBidId)

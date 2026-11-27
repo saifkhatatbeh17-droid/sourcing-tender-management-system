@@ -42,8 +42,16 @@ public static class RankedReportChecks
             var result = await service.FinalReport(page, 50, default);
             var report = result.Report!;
             Check(result.Scenarios.Single().RecommendedBidId == 1, "AI changed the winner.");
-            Check(report.Contains("Supplier 1") && report.Contains("Supplier 2") && report.Contains("Supplier 3") && !report.Contains("Supplier 4"), "Report must cover only the top three.");
-            Check(report.Contains("10 JOD lower") && report.Contains("1 days slower"), "Trusted comparisons lost direction.");
+            Check(report.Contains("Supplier 1")
+                && report
+                .Contains("Supplier 2")
+                && report
+                .Contains("Supplier 3")
+                && !report
+                .Contains("Supplier 4"), "Report must cover only the top three.");
+            Check(report.Contains("10 JOD lower")
+                && report
+                .Contains("1 days slower"), "Trusted comparisons lost direction.");
             Check(!report.Contains("cheaper despite"), "Invalid AI narrative reached the report.");
             Check(result.MissingInformation.Length == (mode == "valid" ? 0 : 1), "Unverified narrative must be disclosed.");
             Check(handler.Calls == (mode is "valid" or "offline" ? 1 : 2), "Wrong retry count.");
@@ -53,7 +61,9 @@ public static class RankedReportChecks
         page.Offers[1].Currency = "JOD";
         using (var http = new HttpClient(new Handler("referral")))
         {
-            await new BidRecommendationService(http, VllmAiChecks.LocalFixtureConfiguration()).DraftReferral(new { offer = new { supplier = "Supplier 1" } }, default);
+            await new BidRecommendationService(http,
+                VllmAiChecks.LocalFixtureConfiguration()).DraftReferral(new { offer = new { supplier = "Supplier 1" } },
+                default);
         }
         Console.WriteLine("PASS: top-three report, fixed winner, accurate comparisons, invalid/offline AI fallback and winner-only manager instructions.");
     }
@@ -71,13 +81,23 @@ public static class RankedReportChecks
             var userPrompt = messages[1].GetProperty("content").GetString()!;
             if (mode == "referral")
             {
-                Check(system.Contains("ONLY the first-ranked winning offer") && system.Contains("without listing or comparing alternatives"), "Manager scope is ambiguous.");
+                Check(system.Contains("ONLY the first-ranked winning offer")
+                    && system
+                    .Contains("without listing or comparing alternatives"), "Manager scope is ambiguous.");
                 return Reply(new { summary = "Supplier 1 is the recorded winner; final committee review is requested." });
             }
-            Check(system.Contains("TOP THREE") && system.Contains("ONLY the first-place winner"), "Committee prompt lost its scope.");
+            Check(system.Contains("TOP THREE")
+                && system
+                .Contains("ONLY the first-place winner"), "Committee prompt lost its scope.");
             using var evidence = JsonDocument.Parse(userPrompt.Split("\nCorrect the previous response:")[0]);
-            var ids = evidence.RootElement.GetProperty("topOffers").EnumerateArray().Select(x => x.GetProperty("bidId").GetInt32()).ToArray();
-            Check(ids.SequenceEqual(new[] { 1, 2, 3 }) && !evidence.RootElement.GetRawText().Contains("Supplier 4"), "AI received offers outside shortlist.");
+            var ids = evidence.RootElement.GetProperty("topOffers")
+                .EnumerateArray()
+                .Select(x => x.GetProperty("bidId").GetInt32())
+                .ToArray();
+            Check(ids.SequenceEqual(new[] { 1, 2, 3 })
+                && !evidence.RootElement
+                .GetRawText()
+                .Contains("Supplier 4"), "AI received offers outside shortlist.");
             return Reply(new { winnerBidId = mode == "wrong-winner" ? 2 : 1, offers = ids.Select(id => new {
                 bidId = id, assessment = mode == "contradiction" ? "This supplier is cheaper despite the actual quotation facts, which must be ignored."
                     : "The requested specification provides limited evidence of product suitability. Supplier documentation requires verification before purchase.",

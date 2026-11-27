@@ -21,8 +21,12 @@ public partial class SourcingOfficerController
         var bid = await db.Bids.AsNoTracking()
             .Include(b => b.BidItems)
             .Include(b => b.BidDocuments)
-            .Include(b => b.Invitation).ThenInclude(i => i.Tender).ThenInclude(t => t.PurchaseRequest).ThenInclude(r => r.PurchaseRequestItems)
-            .SingleOrDefaultAsync(b => b.BidId == id && b.SubmittedAt != null && b.Invitation.Tender.CreatedByUserId == userId, ct);
+            .Include(b => b.Invitation).ThenInclude(i => i.Tender)
+                .ThenInclude(t => t.PurchaseRequest)
+                .ThenInclude(r => r.PurchaseRequestItems)
+            .SingleOrDefaultAsync(b => b.BidId == id
+                && b.SubmittedAt != null
+                && b.Invitation.Tender.CreatedByUserId == userId, ct);
         if (bid == null) return NotFound(new { error = "This offer is not available in your workspace." });
 
         var tender = bid.Invitation.Tender;

@@ -47,7 +47,8 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         {
             message = "Unable to sign in. Check your email and password, or try again later.",
             errors = ModelState.Where(entry => entry.Value?.Errors.Count > 0)
-                .ToDictionary(entry => entry.Key, entry => entry.Value!.Errors.Select(error => error.ErrorMessage).ToArray())
+                .ToDictionary(entry => entry.Key, entry => entry.Value!.Errors.Select(error => error.ErrorMessage)
+                    .ToArray())
         })
         : View("Login", model);
 
@@ -74,7 +75,8 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             }
         }
         if (audit is not null)
-            await audit.WriteAsync("Account.SignInFailure", "ApplicationUser", user?.Id ?? "", "Password sign-in failed.");
+            await audit.WriteAsync("Account.SignInFailure", "ApplicationUser", user?.Id
+                ?? "", "Password sign-in failed.");
         ModelState.AddModelError("", "Unable to sign in. Check your email and password, or try again later.");
         return PasswordLoginFailure(model, StatusCodes.Status401Unauthorized);
     }
@@ -91,13 +93,15 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         const string failure = "Unable to sign in. Your password and enrolled face must both match. Check your details and try again.";
         async Task<IActionResult> RecordFailure(string? userId = null, string? code = null)
         {
-            if (audit is not null) await audit.WriteAsync("Account.SignInFailure", "ApplicationUser", userId ?? "", "Face sign-in failed.", ct: ct);
+            if (audit is not null) await audit.WriteAsync("Account.SignInFailure", "ApplicationUser", userId
+                ?? "", "Face sign-in failed.", ct: ct);
             return BadRequest(new { message = failure, code });
         }
         if (User.Identity?.IsAuthenticated == true)
             return Conflict(new { message = "You are already signed in. Sign out before using Face ID." });
         if (!ModelState.IsValid || model.Password.Length > 1024 ||
-            !SourcingTenderManagement.Services.FaceVerification.FaceVerificationService.ValidDescriptor(model.Descriptor) ||
+            !SourcingTenderManagement.Services.FaceVerification.FaceVerificationService.ValidDescriptor(model.Descriptor)
+                ||
             model.ModelIdentifier != SourcingTenderManagement.Services.FaceEnrollment.FaceEnrollmentService.ModelIdentifier)
             return await RecordFailure();
 
@@ -162,7 +166,8 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
 
         var requestedUser = await users.FindByEmailAsync(model.Email.Trim());
         var enrolledIds = requestedUser == null ? new List<string>() : await db.UserFaceCredentials.AsNoTracking()
-            .Where(x => x.UserId == requestedUser.Id && x.ProtectedTemplates != null).Select(x => x.UserId).ToListAsync(ct);
+            .Where(x => x.UserId == requestedUser.Id && x.ProtectedTemplates != null).Select(x => x.UserId)
+                .ToListAsync(ct);
         ApplicationUser? matched = null;
         foreach (var id in enrolledIds)
         {
@@ -200,7 +205,8 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         if (User.IsInRole(RoleNames.Supplier))
         {
             var userId = users.GetUserId(User);
-            if (!await db.SupplierProfiles.AnyAsync(s => s.UserId == userId && (s.Status == "Approved" || s.Status == "Suspended")))
+            if (!await db.SupplierProfiles.AnyAsync(s => s.UserId == userId
+                && (s.Status == "Approved" || s.Status == "Suspended")))
                 return RedirectToAction(nameof(RegistrationStatus));
         }
         if (SafeReturnUrl(returnUrl) is { } destination)
@@ -359,7 +365,9 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             ModelState.AddModelError(nameof(model.RegistrationNumber), "This registration number is already registered.");
         if (officialDocuments == null || officialDocuments.Count == 0)
             ModelState.AddModelError(nameof(officialDocuments), "Upload at least one official company document.");
-        if (officialDocuments?.Any(f => f.Length == 0 || f.Length > 10_000_000 || !new[] { ".pdf", ".docx", ".jpg", ".jpeg", ".png" }.Contains(Path.GetExtension(f.FileName).ToLowerInvariant())) == true)
+        if (officialDocuments?.Any(f => f.Length == 0
+            || f.Length > 10_000_000
+            || !new[] { ".pdf", ".docx", ".jpg", ".jpeg", ".png" }.Contains(Path.GetExtension(f.FileName).ToLowerInvariant())) == true)
             ModelState.AddModelError(nameof(officialDocuments), "Documents must be PDF, DOCX, JPG, or PNG and no larger than 10 MB each.");
         if (!ModelState.IsValid) return View(model);
         await using var transaction = await db.Database.BeginTransactionAsync();
@@ -376,17 +384,23 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
             ContactName = model.ContactName, Address = model.Address, Status = "Pending", CreatedAt = DateTime.UtcNow };
         db.SupplierProfiles.Add(profile);
         await db.SaveChangesAsync();
-        var folder = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "private-files", "suppliers"); Directory.CreateDirectory(folder);
+        var folder = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "private-files", "suppliers"); Directory
+            .CreateDirectory(folder);
         foreach (var file in officialDocuments!)
         {
             var stored = Guid.NewGuid().ToString("N") + Path.GetExtension(file.FileName).ToLowerInvariant();
-            await using var stream = System.IO.File.Create(Path.Combine(folder, stored)); await file.CopyToAsync(stream);
+            await using var stream = System.IO.File.Create(Path.Combine(folder, stored)); await file
+                .CopyToAsync(stream);
             db.SupplierDocuments.Add(new SupplierDocument { SupplierProfileId = profile.SupplierProfileId,
                 DocumentType = "Official company document", OriginalFileName = Path.GetFileName(file.FileName), StoredFileName = stored,
                 ContentType = file.ContentType, FileSizeBytes = file.Length, UploadedAt = DateTime.UtcNow });
         }
         foreach (var admin in (await users.GetUsersInRoleAsync(RoleNames.Admin)).Where(u => u.IsActive))
-            db.Notifications.Add(new Notification { UserId = admin.Id, Title = "Supplier application received", Message = $"{profile.CompanyName} submitted a supplier registration and official documents for review.", RelativeUrl = "/Admin/SupplierApplications", CreatedAt = DateTime.UtcNow });
+            db.Notifications.Add(new Notification { UserId = admin.Id,
+                Title = "Supplier application received",
+                Message = $"{profile.CompanyName} submitted a supplier registration and official documents for review.",
+                RelativeUrl = "/Admin/SupplierApplications",
+                CreatedAt = DateTime.UtcNow });
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         await signIn.SignInAsync(user, false);
@@ -429,7 +443,11 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         profile.Status = "Pending"; profile.ReviewNotes = null;
         await db.SaveChangesAsync();
         foreach (var admin in (await users.GetUsersInRoleAsync(RoleNames.Admin)).Where(u => u.IsActive))
-            db.Notifications.Add(new Notification { UserId = admin.Id, Title = "Supplier application resubmitted", Message = $"{profile.CompanyName} updated its company details and resubmitted the application for review.", RelativeUrl = "/Admin/SupplierApplications", CreatedAt = DateTime.UtcNow });
+            db.Notifications.Add(new Notification { UserId = admin.Id,
+                Title = "Supplier application resubmitted",
+                Message = $"{profile.CompanyName} updated its company details and resubmitted the application for review.",
+                RelativeUrl = "/Admin/SupplierApplications",
+                CreatedAt = DateTime.UtcNow });
         await db.SaveChangesAsync();
         return RedirectToAction(nameof(RegistrationStatus));
     }

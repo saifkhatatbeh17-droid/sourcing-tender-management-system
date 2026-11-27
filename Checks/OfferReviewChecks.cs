@@ -13,8 +13,12 @@ public static class OfferReviewChecks
         Check(SourcingOfficerController.ValidateOfferDecisions([submitted, second], new Dictionary<int,string>{{1,"Compliant"}}) != null, "Incomplete review");
         Check(SourcingOfficerController.ValidateOfferDecisions([submitted], new Dictionary<int,string>{{1,"Accepted"}}) != null, "Unsupported decision");
         Check(SourcingOfficerController.ValidateOfferDecisions([submitted], new Dictionary<int,string>{{1,"NonCompliant"}}) != null, "All non-compliant");
-        Check(SourcingOfficerController.ValidateOfferDecisions([submitted, second], new Dictionary<int,string>{{1,"Compliant"},{2,"NonCompliant"}}) == null, "Mixed decisions");
-        Check(submitted.ComplianceStatus == null && second.ComplianceStatus == null, "Validation must not partially save");
+        Check(SourcingOfficerController.ValidateOfferDecisions([submitted,
+            second], new Dictionary<int,
+            string>{{1,"Compliant"},
+            {2,"NonCompliant"}}) == null, "Mixed decisions");
+        Check(submitted.ComplianceStatus == null
+            && second.ComplianceStatus == null, "Validation must not partially save");
         second.ComplianceStatus = "NonCompliant";
         Check(SourcingOfficerController.ValidateOfferDecisions([second], new Dictionary<int,string>{{2,"Compliant"}}) != null, "Cannot override recorded rejection");
         second.ComplianceStatus = "Compliant";

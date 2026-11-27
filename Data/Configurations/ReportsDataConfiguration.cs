@@ -43,7 +43,10 @@ internal sealed class ReportsDataConfiguration :
         entity.Property(x => x.VerificationStatus).HasMaxLength(20).HasDefaultValue("Pending");
         entity.Property(x => x.VerifiedByUserId).HasMaxLength(450);
         entity.Property(x => x.VerificationNote).HasMaxLength(1000);
-        entity.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.VerifiedByUserId).OnDelete(DeleteBehavior.NoAction);
+        entity.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(x => x.VerifiedByUserId)
+            .OnDelete(DeleteBehavior.NoAction);
         entity.ToTable(t => t.HasCheckConstraint("CK_SupplierDocuments_VerificationStatus",
             "[VerificationStatus] IN ('Pending','Verified','Rejected')"));
     }

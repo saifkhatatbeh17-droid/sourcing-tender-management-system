@@ -9,7 +9,10 @@ internal static class TopCommitteeClarificationScope
 {
     internal static IQueryable<Clarification> Query(ApplicationDbContext db) => db.Clarifications.AsNoTracking()
         .Where(c => c.TenderId.HasValue && !c.PurchaseRequestId.HasValue && !c.BidId.HasValue &&
-            db.CommitteeAssignments.Any(a => a.TenderId == c.TenderId && a.CommitteeType == "Top" && a.UserId == c.SenderUserId) &&
+            db.CommitteeAssignments.Any(a => a.TenderId == c.TenderId
+                && a.CommitteeType == "Top"
+                && a.UserId == c.SenderUserId)
+                &&
             db.TenderApprovals.Any(a => a.TenderId == c.TenderId && a.Stage == "Manager" &&
                 a.Decision == "Approved" && a.UserId == c.RecipientUserId));
 

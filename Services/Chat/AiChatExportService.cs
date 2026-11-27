@@ -40,7 +40,10 @@ public sealed partial class AiChatExportService(
         CancellationToken ct)
     {
         var recordType = (GetString(args, "recordType") ?? "tender").Trim().ToLowerInvariant();
-        var id = GetInt(args, "id") ?? GetInt(args, "tenderId") ?? GetInt(args, "requestId") ?? GetInt(args, "supplierId");
+        var id = GetInt(args, "id")
+            ?? GetInt(args, "tenderId")
+            ?? GetInt(args, "requestId")
+            ?? GetInt(args, "supplierId");
         var search = GetString(args, "search")?.Trim();
 
         if (recordType.Contains("request"))
@@ -113,7 +116,8 @@ public sealed partial class AiChatExportService(
                 supplier.Status,
                 InvitationsCount = supplier.Invitations.Count,
                 SubmittedOffersCount = bids.Count,
-                AwardedCount = supplier.Invitations.Count(i => i.Tender.Status == "Awarded" && i.Bids.Any(b => b.BidId == i.Tender.AwardedBidId)),
+                AwardedCount = supplier.Invitations.Count(i => i.Tender.Status == "Awarded"
+                    && i.Bids.Any(b => b.BidId == i.Tender.AwardedBidId)),
                 RecentOffers = bids.OrderByDescending(b => b.SubmittedAt).Take(8).Select(b => new
                 {
                     b.TenderId,
@@ -172,7 +176,8 @@ public sealed partial class AiChatExportService(
 
         if (rawScope == "tender" || tenderId is > 0)
         {
-            var tender = await LoadAuthorizedTenderAsync(workspace, principal, user, tenderId, search ?? customTitle, ct);
+            var tender = await LoadAuthorizedTenderAsync(workspace, principal, user, tenderId, search
+                ?? customTitle, ct);
             if (tender == null)
                 return new(false, false, "Could not find an authorized Tender matching that ID or title to export.");
 
@@ -192,7 +197,15 @@ public sealed partial class AiChatExportService(
         }
         else if (rawScope == "workspace")
         {
-            docModel = await BuildWorkspaceExportDocumentAsync(workspace, principal, user, customTitle, executiveSummary, highlights, customColumns, customRows, ct);
+            docModel = await BuildWorkspaceExportDocumentAsync(workspace,
+                principal,
+                user,
+                customTitle,
+                executiveSummary,
+                highlights,
+                customColumns,
+                customRows,
+                ct);
         }
         else
         {
@@ -283,7 +296,8 @@ public sealed partial class AiChatExportService(
             RoleNames.Department when user.DepartmentId.HasValue =>
                 baseQuery.Where(t => t.PurchaseRequest.DepartmentId == user.DepartmentId.Value),
             RoleNames.Supplier =>
-                baseQuery.Where(t => t.Invitations.Any(i => i.SupplierProfile.UserId == user.Id && i.SupplierProfile.Status == "Approved")),
+                baseQuery.Where(t => t.Invitations.Any(i => i.SupplierProfile.UserId == user.Id
+                    && i.SupplierProfile.Status == "Approved")),
             _ => baseQuery.Where(_ => false)
         };
 
@@ -346,7 +360,8 @@ public sealed partial class AiChatExportService(
             return await scoped.FirstOrDefaultAsync(r => r.PurchaseRequestId == requestId.Value, ct);
 
         if (!string.IsNullOrWhiteSpace(search))
-            return await scoped.OrderByDescending(r => r.PurchaseRequestId).FirstOrDefaultAsync(r => r.Title.Contains(search), ct);
+            return await scoped.OrderByDescending(r => r.PurchaseRequestId)
+                .FirstOrDefaultAsync(r => r.Title.Contains(search), ct);
 
         return await scoped.OrderByDescending(r => r.PurchaseRequestId).FirstOrDefaultAsync(ct);
     }
@@ -568,7 +583,8 @@ public sealed partial class AiChatExportService(
 
             metrics.Add(("Invited Suppliers", tender.Invitations.Count.ToString(CultureInfo.InvariantCulture)));
             metrics.Add(("Submitted Offers", visibleBids.Count.ToString(CultureInfo.InvariantCulture)));
-            metrics.Add(("Compliant Offers", visibleBids.Count(b => b.ComplianceStatus == "Compliant").ToString(CultureInfo.InvariantCulture)));
+            metrics.Add(("Compliant Offers", visibleBids.Count(b => b.ComplianceStatus == "Compliant")
+                .ToString(CultureInfo.InvariantCulture)));
 
             if (evalPage.ConsensusLocked)
             {
@@ -775,7 +791,9 @@ public sealed partial class AiChatExportService(
                     ["Tender ID", "Title", "Category", "Status", "Invited", "Submitted Offers", "Compliant", "Closes (UTC)"],
                     tenders.Select(t =>
                     {
-                        var bids = t.Invitations.SelectMany(i => i.Bids).Where(b => b.SubmittedAt != null && b.Status != "Withdrawn").ToList();
+                        var bids = t.Invitations.SelectMany(i => i.Bids)
+                            .Where(b => b.SubmittedAt != null && b.Status != "Withdrawn")
+                            .ToList();
                         return new[]
                         {
                             $"#{t.TenderId}",
@@ -827,7 +845,8 @@ public sealed partial class AiChatExportService(
                         r.Status,
                         r.PurchaseRequestItems.Count.ToString(CultureInfo.InvariantCulture),
                         r.TargetDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                        r.Tenders.Any() ? string.Join(", ", r.Tenders.Select(t => $"#{t.TenderId} ({t.Status})")) : "None"
+                        r.Tenders.Any() ? string
+                            .Join(", ", r.Tenders.Select(t => $"#{t.TenderId} ({t.Status})")) : "None"
                     }).ToList()));
                 break;
             }
@@ -938,8 +957,14 @@ public sealed partial class AiChatExportService(
 
             case RoleNames.Admin:
             {
-                var tenders = await db.Tenders.AsNoTracking().OrderByDescending(t => t.TenderId).Take(30).ToListAsync(ct);
-                var suppliers = await db.SupplierProfiles.AsNoTracking().OrderByDescending(s => s.SupplierProfileId).Take(40).ToListAsync(ct);
+                var tenders = await db.Tenders.AsNoTracking()
+                    .OrderByDescending(t => t.TenderId)
+                    .Take(30)
+                    .ToListAsync(ct);
+                var suppliers = await db.SupplierProfiles.AsNoTracking()
+                    .OrderByDescending(s => s.SupplierProfileId)
+                    .Take(40)
+                    .ToListAsync(ct);
                 metrics.Add(("Total Users", (await db.Users.CountAsync(ct)).ToString(CultureInfo.InvariantCulture)));
                 metrics.Add(("Total Suppliers", suppliers.Count.ToString(CultureInfo.InvariantCulture)));
                 metrics.Add(("Recent Tenders", tenders.Count.ToString(CultureInfo.InvariantCulture)));
@@ -1051,7 +1076,8 @@ public sealed partial class AiChatExportService(
         if (!string.IsNullOrWhiteSpace(model.ExecutiveSummary))
         {
             TopCommitteeReportExport.Heading(section, "Executive Summary");
-            foreach (var block in model.ExecutiveSummary.Replace("\r\n", "\n").Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            foreach (var block in model.ExecutiveSummary.Replace("\r\n", "\n")
+                .Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
                 TopCommitteeReportExport.AddPdfText(section, block).Format.SpaceAfter = 5;
             }
@@ -1227,7 +1253,9 @@ public sealed partial class AiChatExportService(
 
     private static AiChatExportTable NormalizeCustomTable(string defaultTitle, IReadOnlyList<string> cols, IReadOnlyList<string[]> rows)
     {
-        var headers = cols.Take(10).Select((c, idx) => string.IsNullOrWhiteSpace(c) ? $"Column {idx + 1}" : c.Trim()).ToArray();
+        var headers = cols.Take(10)
+            .Select((c, idx) => string.IsNullOrWhiteSpace(c) ? $"Column {idx + 1}" : c.Trim())
+            .ToArray();
         var normalizedRows = rows.Take(150).Select(r =>
         {
             var arr = new string[headers.Length];
@@ -1280,7 +1308,9 @@ public sealed partial class AiChatExportService(
     // ---------------- JSON ARG HELPERS ----------------
 
     private static string? GetString(JsonElement el, string prop) =>
-        el.ValueKind == JsonValueKind.Object && el.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.String
+        el.ValueKind == JsonValueKind.Object
+            && el.TryGetProperty(prop, out var v)
+            && v.ValueKind == JsonValueKind.String
             ? v.GetString()
             : null;
 
@@ -1294,7 +1324,9 @@ public sealed partial class AiChatExportService(
 
     private static IReadOnlyList<string> GetStringArray(JsonElement el, string prop)
     {
-        if (el.ValueKind != JsonValueKind.Object || !el.TryGetProperty(prop, out var v) || v.ValueKind != JsonValueKind.Array)
+        if (el.ValueKind != JsonValueKind.Object
+            || !el.TryGetProperty(prop, out var v)
+            || v.ValueKind != JsonValueKind.Array)
             return [];
         var list = new List<string>();
         foreach (var item in v.EnumerateArray())
@@ -1307,7 +1339,9 @@ public sealed partial class AiChatExportService(
 
     private static IReadOnlyList<string[]> GetStringMatrix(JsonElement el, string prop)
     {
-        if (el.ValueKind != JsonValueKind.Object || !el.TryGetProperty(prop, out var v) || v.ValueKind != JsonValueKind.Array)
+        if (el.ValueKind != JsonValueKind.Object
+            || !el.TryGetProperty(prop, out var v)
+            || v.ValueKind != JsonValueKind.Array)
             return [];
         var rows = new List<string[]>();
         foreach (var rowEl in v.EnumerateArray())

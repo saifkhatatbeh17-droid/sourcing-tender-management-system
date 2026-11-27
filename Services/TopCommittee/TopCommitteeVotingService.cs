@@ -15,11 +15,15 @@ internal sealed class TopCommitteeVotingService(ITopCommitteeVotingStore store) 
     public async Task<CommitteeVoteResult> SubmitAsync(ClaimsPrincipal member, CommitteeVoteInput input, CancellationToken cancellationToken = default)
     {
         var memberId = member.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (member.Identity?.IsAuthenticated != true || string.IsNullOrWhiteSpace(memberId) || !member.IsInRole(RoleNames.TopCommittee))
+        if (member.Identity?.IsAuthenticated != true
+            || string.IsNullOrWhiteSpace(memberId)
+            || !member
+            .IsInRole(RoleNames.TopCommittee))
             throw new CommitteeAccessDeniedException();
         ArgumentNullException.ThrowIfNull(input);
         Validator.ValidateObject(input, new ValidationContext(input), validateAllProperties: true);
-        var notes = input.Decision is "Rejected" or "RequestEdit" ? input.Notes?.Replace("\r\n", "\n").Trim() : input.Notes?.Replace("\r\n", "\n").Trim();
+        var notes = input.Decision is "Rejected" or "RequestEdit" ? input.Notes?.Replace("\r\n", "\n").Trim() : input.Notes?.Replace("\r\n", "\n")
+            .Trim();
         if (string.IsNullOrWhiteSpace(notes)) notes = null;
         try
         {
@@ -27,13 +31,15 @@ internal sealed class TopCommitteeVotingService(ITopCommitteeVotingStore store) 
             {
                 var context = session.Context;
                 var access = context.Access;
-                if (!access.ActorIsActive || !access.ActorRoles.Contains(RoleNames.TopCommittee)) throw new CommitteeAccessDeniedException();
+                if (!access.ActorIsActive
+                    || !access.ActorRoles.Contains(RoleNames.TopCommittee)) throw new CommitteeAccessDeniedException();
                 var assignment = access.Members.FirstOrDefault(m => m.UserId == memberId && m.IsEligible);
                 if (access.Tender == null || assignment == null) throw new CommitteeTenderNotFoundException();
                 var tender = access.Tender;
                 var readiness = TopCommitteeRules.Inspect(tender, access.Members, access.Managers, context.Nomination, 0, memberId);
                 if (!readiness.CanCurrentMemberVote)
-                    throw new CommitteeStateConflictException(readiness.BlockingReason ?? "A final vote cannot be recorded for this tender.");
+                    throw new CommitteeStateConflictException(readiness.BlockingReason
+                        ?? "A final vote cannot be recorded for this tender.");
                 if (context.Nomination!.BidId != input.ExpectedNominatedBidId)
                     throw new CommitteeStateConflictException("The Manager nomination changed. Reload the tender and review it before voting.");
                 await session.AssertNotPausedAsync(ct);
@@ -60,7 +66,9 @@ internal sealed class TopCommitteeVotingService(ITopCommitteeVotingStore store) 
                 session.Add(new TenderApproval { TenderId = tender.TenderId, UserId = memberId,
                     CommitteeAssignmentId = assignment.AssignmentId, Stage = "Top", Decision = input.Decision,
                     Notes = notes, DecidedAt = now });
-                var award = input.Decision == "Approved" && previous.Count == 3 && previous.All(v => v.Decision == "Approved");
+                var award = input.Decision == "Approved"
+                    && previous.Count == 3
+                    && previous.All(v => v.Decision == "Approved");
                 if (input.Decision == "Rejected")
                 {
                     tender.Status = "AwaitingManagerReview";

@@ -161,7 +161,8 @@ public static class AiGatewayChecks
     private static int CountOf(string text, string value)
     {
         var count = 0;
-        for (var i = text.IndexOf(value, StringComparison.Ordinal); i >= 0; i = text.IndexOf(value, i + 1, StringComparison.Ordinal))
+        for (var i = text.IndexOf(value, StringComparison.Ordinal); i >= 0; i = text
+            .IndexOf(value, i + 1, StringComparison.Ordinal))
             count++;
         return count;
     }

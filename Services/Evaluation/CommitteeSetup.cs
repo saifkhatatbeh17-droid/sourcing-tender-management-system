@@ -7,7 +7,9 @@ public static class CommitteeSetup
 {
     public static async Task<string?> Prepare(ApplicationDbContext db, Tender tender)
     {
-        var assigned = await db.CommitteeAssignments.Where(a => a.TenderId == tender.TenderId && a.CommitteeType == "Evaluation").ToListAsync();
+        var assigned = await db.CommitteeAssignments.Where(a => a.TenderId == tender.TenderId
+            && a.CommitteeType == "Evaluation")
+            .ToListAsync();
         if (assigned.Count == 4 && assigned.Select(a => a.UserId).Distinct().Count() == 4) return null;
         if (assigned.Count != 0) return "The committee assignments are incomplete. Ask the administrator to correct them.";
         var members = new List<string>();
@@ -23,7 +25,11 @@ public static class CommitteeSetup
         for (var i = 0; i < members.Count; i++)
         {
             tender.CommitteeAssignments.Add(new CommitteeAssignment { UserId = members[i], CommitteeType = "Evaluation", Position = i + 1 });
-            db.Notifications.Add(new Notification { UserId = members[i], Title = "Tender ready for review", Message = $"{tender.Title}: review the offers and choose a supplier.", RelativeUrl = $"/EvaluationCommittee/Evaluations/{tender.TenderId}", CreatedAt = DateTime.UtcNow });
+            db.Notifications.Add(new Notification { UserId = members[i],
+                Title = "Tender ready for review",
+                Message = $"{tender.Title}: review the offers and choose a supplier.",
+                RelativeUrl = $"/EvaluationCommittee/Evaluations/{tender.TenderId}",
+                CreatedAt = DateTime.UtcNow });
         }
         if (!await db.EvaluationCriteria.AnyAsync(c => c.TenderId == tender.TenderId))
         {

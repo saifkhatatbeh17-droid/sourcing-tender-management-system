@@ -57,5 +57,6 @@ public sealed class PdfWatermarkResultFilter(IPdfWatermarkService watermark, Tim
     private static bool IsPdf(FileResult file) =>
         string.Equals(file.ContentType.Split(';')[0].Trim(), "application/pdf", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(Path.GetExtension(file.FileDownloadName), ".pdf", StringComparison.OrdinalIgnoreCase) ||
-        file is PhysicalFileResult physical && string.Equals(Path.GetExtension(physical.FileName), ".pdf", StringComparison.OrdinalIgnoreCase);
+        file is PhysicalFileResult physical
+            && string.Equals(Path.GetExtension(physical.FileName), ".pdf", StringComparison.OrdinalIgnoreCase);
 }
