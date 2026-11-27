@@ -7,6 +7,7 @@ using SourcingTenderManagement.Services;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Serves a product photo from a supplier's offer, but only to people allowed to see that offer.
 [Authorize, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class OfferProductPhotosController(ApplicationDbContext db, OfferProductPhotos photos, UserManager<ApplicationUser> users) : Controller
 {

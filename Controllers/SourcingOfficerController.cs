@@ -8,6 +8,9 @@ using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Controllers;
+// The Sourcing Officer workspace: review purchase requests, create tenders, invite suppliers,
+// check offers for compliance and send them to the Evaluation Committee.
+// This class is split into several files (SourcingOfficerController.*.cs).
 [Authorize(Roles = RoleNames.SourcingOfficer)]
 public partial class SourcingOfficerController(ApplicationDbContext db) : Controller
 {

@@ -9,6 +9,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services.Reports.Data;
 
+// Writes an audit-log entry automatically whenever one of the audited record types (listed in Audited below) is saved.
 public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor accessor) : SaveChangesInterceptor
 {
     private sealed record Change(EntityEntry Entry, string Action, string? Values, object? OriginalKey, int? OriginalTenderId);

@@ -10,6 +10,7 @@ using SourcingTenderManagement.Services;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Bank guarantees attached to offers: verify one from its QR code, download its document, and draw the QR image.
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class GuaranteesController(
     ApplicationDbContext db, OfferGuarantees guarantees, OfferProductPhotos access) : Controller

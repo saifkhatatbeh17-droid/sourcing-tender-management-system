@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Admin actions on a supplier account: suspend or reactivate it, and mark its documents as verified.
 public partial class AdminController
 {
     [HttpPost, ValidateAntiForgeryToken]

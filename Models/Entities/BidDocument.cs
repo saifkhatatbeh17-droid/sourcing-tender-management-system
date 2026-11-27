@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a file a supplier attached to their offer.
 public class BidDocument
 {
     public int BidDocumentId { get; set; }

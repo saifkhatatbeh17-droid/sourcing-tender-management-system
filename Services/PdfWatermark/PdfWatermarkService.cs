@@ -7,6 +7,7 @@ using PdfSharp.Pdf.IO;
 
 namespace SourcingTenderManagement.Services.PdfWatermark;
 
+// Draws the watermark text onto every page of a PDF.
 public sealed class PdfWatermarkService : IPdfWatermarkService
 {
     public const int MaxInputBytes = 20 * 1024 * 1024;

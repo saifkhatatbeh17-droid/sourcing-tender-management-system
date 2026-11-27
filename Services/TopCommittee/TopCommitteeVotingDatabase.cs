@@ -6,6 +6,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Checks the database is ready for voting (the needed constraint exists) before showing the vote form.
 public sealed class TopCommitteeVotingDatabase(ApplicationDbContext db, TopCommitteeAccessService access) : ITopCommitteeVotingReadiness
 {
     internal const string Unavailable = "Voting is temporarily unavailable. Contact the system administrator, then reload this page.";

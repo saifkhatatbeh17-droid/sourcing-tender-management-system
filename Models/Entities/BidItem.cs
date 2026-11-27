@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: one priced line in an offer (one requested item, its quantity and unit price).
 public class BidItem
 {
     public int BidItemId { get; set; }

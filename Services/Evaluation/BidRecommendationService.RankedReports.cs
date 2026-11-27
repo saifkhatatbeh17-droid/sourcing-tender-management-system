@@ -6,6 +6,7 @@ using SourcingTenderManagement.Models;
 
 namespace SourcingTenderManagement.Services.Evaluation;
 
+// The ranked written report part of the AI recommendation (see BidRecommendationService.cs).
 public partial class BidRecommendationService
 {
     private record ShortlistAssessment(int BidId, string Assessment, string Caveats);

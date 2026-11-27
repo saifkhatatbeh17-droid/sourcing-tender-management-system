@@ -1,3 +1,4 @@
+// Sourcing Officer: the approve / send-back form for the committee report.
 const decisionModal = document.getElementById('officer-decision-modal');
 decisionModal?.addEventListener('show.bs.modal', event => {
     const form = decisionModal.querySelector('form');

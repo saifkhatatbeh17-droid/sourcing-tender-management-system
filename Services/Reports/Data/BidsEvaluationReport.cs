@@ -4,6 +4,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Services.Reports.Data;
 
+// Reports hub: the 'Bids evaluation' report (offers, scores and outcomes per tender).
 public sealed class BidsEvaluationReport(ApplicationDbContext db) : IReport
 {
     public string Key => "bids-evaluation";

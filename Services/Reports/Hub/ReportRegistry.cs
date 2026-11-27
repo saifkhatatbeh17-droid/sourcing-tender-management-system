@@ -5,6 +5,7 @@ using SourcingTenderManagement.Models.Reports;
 
 namespace SourcingTenderManagement.Services.Reports.Hub;
 
+// The list of all reports, and the rules for which roles may open each one.
 public sealed class ReportRegistry
 {
     private readonly Dictionary<string, IReport> reports = new(StringComparer.OrdinalIgnoreCase);

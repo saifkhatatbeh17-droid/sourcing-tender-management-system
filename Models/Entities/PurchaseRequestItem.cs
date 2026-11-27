@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: one item in a purchase request (name, quantity, unit, specification).
 public class PurchaseRequestItem
 {
     public int PurchaseRequestItemId { get; set; }

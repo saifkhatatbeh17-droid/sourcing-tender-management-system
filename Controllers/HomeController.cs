@@ -9,6 +9,7 @@ using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
+// The public website: home, about, how it works, team, contact form and the error page.
 public class HomeController(ApplicationDbContext db, ILogger<HomeController> logger) : Controller
 {
     public IActionResult Index() => View();

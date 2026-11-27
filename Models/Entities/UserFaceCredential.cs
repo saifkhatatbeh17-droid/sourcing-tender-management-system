@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a user's registered face data (encrypted) and consent.
 public sealed class UserFaceCredential
 {
     public string UserId { get; set; } = null!;

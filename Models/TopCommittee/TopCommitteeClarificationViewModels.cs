@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SourcingTenderManagement.Models.TopCommittee;
 
+// Data shown and posted on the CEO & Chiefs clarifications page.
 public sealed class CommitteeCreateClarification
 {
     [Range(1, int.MaxValue)] public int TenderId { get; set; }

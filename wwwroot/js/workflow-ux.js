@@ -1,3 +1,4 @@
+// Small helpers used on every page: QR pop-ups and hiding success messages after a few seconds.
 (() => {
  'use strict';
  document.querySelectorAll('[data-qr-open]').forEach(trigger=>{const dialog=document.getElementById(trigger.dataset.qrOpen);if(!dialog)return;trigger.addEventListener('click',()=>dialog.showModal());dialog.querySelector('[data-qr-close]').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>trigger.focus());dialog.addEventListener('click',event=>{const r=dialog.getBoundingClientRect();if(event.target===dialog&&(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom))dialog.close();});});

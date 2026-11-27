@@ -3,6 +3,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Models;
 
+// Data for the Supplier pages: dashboard and the offer form with one line per requested item.
 public class SupplierDashboardViewModel
 {
     public string CompanyName { get; set; } = "";

@@ -9,6 +9,8 @@ using SourcingTenderManagement.Services.Intelligence;
 
 namespace SourcingTenderManagement.Services.Compliance;
 
+// Pre-check of a supplier offer before the officer's compliance decision:
+// automatic checks in code plus an optional AI review of the attached documents.
 public static class PreCheckSeverity
 {
     public const string Issue = "issue";

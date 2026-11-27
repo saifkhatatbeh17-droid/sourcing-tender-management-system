@@ -5,6 +5,8 @@ using SourcingTenderManagement.Services.Ai;
 
 namespace SourcingTenderManagement.Services.Chat;
 
+// Safi's brain: sends the conversation and the user's workspace data to the AI and decides
+// whether to answer directly or run a workspace action (tool).
 public sealed record AiChatHistoryTurn(string Role, string Content);
 
 public sealed record AiChatPlannedToolCall(string ToolName, string ArgumentsJson);

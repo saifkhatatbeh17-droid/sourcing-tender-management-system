@@ -1,3 +1,4 @@
+// Sourcing Officer offers: marks an offer as read once it is opened.
 (() => {
     document.querySelectorAll('.ow-offer-modal[data-offer-id]').forEach(modal => {
         const row = document.querySelector(`.os-offer-row[data-offer-id="${modal.dataset.offerId}"]`);

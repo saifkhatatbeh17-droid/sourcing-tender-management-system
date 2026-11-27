@@ -3,6 +3,7 @@ using SourcingTenderManagement.Services.Evaluation;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Evaluation Committee action to confirm the agreed financial/technical percentage for a tender.
 public partial class EvaluationCommitteeController
 {
     [HttpPost, ValidateAntiForgeryToken]

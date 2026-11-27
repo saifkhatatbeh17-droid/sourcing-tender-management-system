@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a department's purchase request (what they need, why, and its status).
 public class PurchaseRequest
 {
     public int PurchaseRequestId { get; set; }

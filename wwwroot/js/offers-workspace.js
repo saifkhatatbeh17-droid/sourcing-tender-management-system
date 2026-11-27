@@ -1,3 +1,4 @@
+// Sourcing Officer tender workspace: offer pop-ups and the header buttons.
 (() => {
  document.querySelectorAll('.offer-redesign .modal').forEach(modal => {
    let trigger;

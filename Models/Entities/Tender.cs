@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a tender (the request opened to suppliers for offers), with its deadlines and status.
 public class Tender
 {
     public int TenderId { get; set; }

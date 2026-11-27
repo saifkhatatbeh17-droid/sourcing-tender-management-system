@@ -8,6 +8,7 @@ using SourcingTenderManagement.Services.Reports;
 
 namespace SourcingTenderManagement.Controllers;
 
+// The contract for an awarded tender: generate it, upload the signed copy and download it.
 [Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class TenderContractsController(ApplicationDbContext db, IWebHostEnvironment environment) : Controller

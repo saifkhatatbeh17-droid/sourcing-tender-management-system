@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Database access for CEO & Chiefs voting.
 internal sealed record CommitteeVotingContext(CommitteeClarificationContext Access, Bid? Nomination);
 
 internal interface ICommitteeVotingSession

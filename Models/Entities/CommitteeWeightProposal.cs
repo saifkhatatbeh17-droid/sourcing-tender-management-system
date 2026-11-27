@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a committee member's proposed financial/technical weight for a tender.
 public sealed class CommitteeWeightProposal
 {
     public int CommitteeWeightProposalId { get; set; }

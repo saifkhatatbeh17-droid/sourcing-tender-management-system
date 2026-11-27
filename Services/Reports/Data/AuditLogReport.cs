@@ -4,6 +4,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Services.Reports.Data;
 
+// Reports hub: the 'Audit log' report.
 public sealed class AuditLogReport(ApplicationDbContext db) : IReport
 {
     public string Key => "audit-log";

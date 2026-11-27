@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models;
 
+// The 'where things stand' chart on dashboards: counts per stage.
 public sealed record DashboardSlice(string Label, int Count, string Tone = "active", string? Link = null);
 
 public sealed record DashboardOverview(string Title, string Scope, string Unit, string FocusLabel,

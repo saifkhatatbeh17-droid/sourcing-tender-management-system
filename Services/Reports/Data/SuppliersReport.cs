@@ -4,6 +4,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Services.Reports.Data;
 
+// Reports hub: the 'Suppliers' report (status, documents and activity per supplier).
 public sealed class SuppliersReport(ApplicationDbContext db, SupplierActivityQuery activity, IConfiguration config) : IReport
 {
     public string Key => "suppliers";

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using SourcingTenderManagement.Services.TopCommittee;
 namespace SourcingTenderManagement.Controllers;
+// CEO & Chiefs notifications page and marking notifications as read.
 public partial class TopCommitteeController
 {
  [HttpGet]

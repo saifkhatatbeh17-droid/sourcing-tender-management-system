@@ -1,3 +1,4 @@
+// Opens and collapses the workspace sidebar menu.
 const sidebar = document.querySelector('.admin-sidebar');
 const menuToggle = sidebar.querySelector('.admin-sidebar-toggle');
 const mobile = window.matchMedia('(max-width: 650px)');

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SourcingTenderManagement.Models.FaceEnrollment;
 
+// Data posted and shown when a user registers their face.
 public sealed class FaceEnrollmentRequest
 {
     [Required, StringLength(1024)] public string Password { get; set; } = "";

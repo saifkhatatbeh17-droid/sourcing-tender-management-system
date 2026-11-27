@@ -3,6 +3,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Models;
 
+// Data shown on the Sourcing Manager pages (dashboard, review, reports, clarifications).
 public record ManagerDashboard(int AwaitingReview, int Approved, int AwaitingCommittee, int PendingClarifications);
 public record ManagerReviewPage(
     IReadOnlyList<EvaluationReport> Reports,

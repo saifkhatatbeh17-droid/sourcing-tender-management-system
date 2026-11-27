@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Models;
 
+// Form data for a bank guarantee or warranty attached to an offer, and the data shown when it is verified.
 public sealed class GuaranteeInput
 {
     public bool Enabled { get; set; }

@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a clarification thread between two people about a request, tender or offer.
 public class Clarification
 {
     public int ClarificationId { get; set; }

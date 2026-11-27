@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 
 namespace SourcingTenderManagement.Services.Chat;
 
+// Keeps files that Safi generates (PDF/Excel) for a short time so the user can download them.
 public sealed record AiChatDownloadLink(
     string Url,
     string FileName,

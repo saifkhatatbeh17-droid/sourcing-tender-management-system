@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: the contract for an awarded tender and its signed copy.
 public sealed class TenderContract
 {
     public int TenderContractId { get; set; }

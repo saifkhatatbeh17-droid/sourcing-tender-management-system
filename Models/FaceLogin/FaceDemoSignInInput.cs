@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SourcingTenderManagement.Models.FaceLogin;
 
+// Data posted by the demo face sign-in button.
 public sealed class FaceDemoSignInInput
 {
     [Required, EmailAddress, StringLength(256)] public string Email { get; set; } = "";

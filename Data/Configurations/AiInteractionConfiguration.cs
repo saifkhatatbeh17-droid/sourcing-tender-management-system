@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Data.Configurations;
 
+// Database setup (columns, indexes) for the AI log table.
 public sealed class AiInteractionConfiguration : IEntityTypeConfiguration<AiInteraction>
 {
     public void Configure(EntityTypeBuilder<AiInteraction> entity)

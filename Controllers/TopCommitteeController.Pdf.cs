@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using SourcingTenderManagement.Models.TopCommittee;
 using SourcingTenderManagement.Services.Reports;
 namespace SourcingTenderManagement.Controllers;
+// CEO & Chiefs PDF download of a tender's unified report.
 public partial class TopCommitteeController
 {
     [HttpGet]

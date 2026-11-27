@@ -3,6 +3,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Models;
 
+// Turns a purchase request's status into the progress steps shown to the department.
 public static class DepartmentRequestProgress
 {
     public static readonly string[] Statuses =

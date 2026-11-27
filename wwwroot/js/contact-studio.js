@@ -1,3 +1,4 @@
+// Public Contact page: shows a live preview of the message and the sending status.
 (() => {
     'use strict';
     const successMessage = document.querySelector('.contact-panel .alert-success[role="status"]');

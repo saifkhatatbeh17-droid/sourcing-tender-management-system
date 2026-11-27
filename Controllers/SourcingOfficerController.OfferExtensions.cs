@@ -5,6 +5,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Sourcing Officer actions on a tender's offer deadline: close early, extend the round, or (in demos) simulate the deadline.
 public partial class SourcingOfficerController
 {
     [HttpPost, ValidateAntiForgeryToken]

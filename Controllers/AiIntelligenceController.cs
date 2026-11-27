@@ -11,6 +11,8 @@ using SourcingTenderManagement.Services.Intelligence;
 
 namespace SourcingTenderManagement.Controllers;
 
+// The AI Intelligence page shared by every staff role: overview figures, tender reports,
+// AI questions and file analysis, exports, and the supplier-links (possible collusion) map.
 [Authorize(Roles = "Admin,Department,SourcingOfficer,EvaluationCommittee,SourcingManager,TopCommittee")]
 [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
 public sealed class AiIntelligenceController(

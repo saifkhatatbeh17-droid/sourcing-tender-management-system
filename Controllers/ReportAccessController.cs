@@ -11,6 +11,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Admin page to choose which roles may open which reports in the Reports hub.
 [Authorize(Roles = RoleNames.Admin)]
 [Route("Reports/Access")]
 [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]

@@ -2,6 +2,8 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services;
 
+// Reusable query filters that limit records to what one role may see
+// (a department's own requests, an officer's reviewable requests, a committee member's tenders, the manager's queue).
 internal static class ProcurementVisibilityQueries
 {
     public static IQueryable<PurchaseRequest> InDepartment(this IQueryable<PurchaseRequest> requests, int? departmentId) =>

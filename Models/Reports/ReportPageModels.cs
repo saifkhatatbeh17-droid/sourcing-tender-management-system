@@ -4,6 +4,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Models.Reports;
 
+// Data shown on the Reports hub pages (the list of reports and one report with its filters).
 public sealed record ReportsHubPage(ReportScope Scope, IReadOnlyList<IReport> Reports);
 public sealed record ReportFilterOption(int Id, string Label);
 public sealed record ReportFilterChoices(

@@ -8,6 +8,7 @@ using SourcingTenderManagement.Services.Ai;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Safi on the public website: answers visitors' general questions without any private data.
 [ApiController]
 [AllowAnonymous]
 [Route("PublicSafi")]

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace SourcingTenderManagement.Services.PdfWatermark;
 
+// Registers the PDF watermark services with the app at startup (called from Program.cs).
 public static class PdfWatermarkExtensions
 {
     public static IServiceCollection AddPdfWatermarks(this IServiceCollection services)

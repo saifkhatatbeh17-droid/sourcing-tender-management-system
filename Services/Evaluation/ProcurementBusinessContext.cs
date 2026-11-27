@@ -3,6 +3,8 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Services.Evaluation;
 
+// Company facts, department budgets and past purchases that are given to the AI
+// so its tender assessment can consider budget and history.
 public sealed record CompanyFacts(string Name, string Industry, string Country, string Currency, decimal AnnualRevenue,
     decimal AnnualProcurementBudget, int Employees, string? Sites, string? Overview);
 

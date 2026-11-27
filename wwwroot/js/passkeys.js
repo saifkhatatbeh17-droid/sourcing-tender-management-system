@@ -1,3 +1,4 @@
+// Passkey (fingerprint / device) sign-in and registration in the browser.
 document.querySelectorAll("[data-passkey-form]").forEach(form => {
     const button = form.querySelector("button");
     const status = form.querySelector("[role='status']");

@@ -5,6 +5,7 @@ using SourcingTenderManagement.Services.Reports.Data;
 
 namespace SourcingTenderManagement.Services.Reports.Hub;
 
+// Loads the choices for the report filters (departments, suppliers, tenders) that the user may see.
 public sealed class ReportFilterOptions(ApplicationDbContext db)
 {
     public async Task<ReportFilterChoices> LoadAsync(IReport report, ReportScope scope, CancellationToken ct)

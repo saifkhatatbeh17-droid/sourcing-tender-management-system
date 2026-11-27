@@ -3,6 +3,7 @@ using QRCoder;
 
 namespace SourcingTenderManagement.ViewComponents;
 
+// View component: a small QR code button that opens the details page of a record on a phone.
 public sealed class DetailsQrViewComponent(IConfiguration configuration) : ViewComponent
 {
     public IViewComponentResult Invoke(string controller, string action, int id, string label, bool compact = false)

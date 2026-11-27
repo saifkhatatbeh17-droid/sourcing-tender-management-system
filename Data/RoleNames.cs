@@ -1,4 +1,5 @@
 namespace SourcingTenderManagement.Data;
+// The names of every role in the app (Admin, Department, SourcingOfficer...), in one place.
 public static class RoleNames
 {
     public const string Admin = "Admin";

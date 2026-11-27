@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SourcingTenderManagement.Models.TopCommittee;
 
+// Data posted when a CEO & Chiefs member votes on a tender.
 public sealed class CommitteeVoteInput : IValidatableObject
 {
     [Range(1, int.MaxValue)] public int TenderId { get; set; }

@@ -1,3 +1,4 @@
+// Login page: the show/hide password button.
 const passwordToggle = document.querySelector(".login-password-toggle");
 const loginPassword = document.getElementById("Password");
 const loginIdentity = document.querySelector(".login-identity");

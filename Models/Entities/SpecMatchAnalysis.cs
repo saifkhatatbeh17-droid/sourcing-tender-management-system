@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a saved spec match result for a tender, so it is not recomputed every time.
 public sealed class SpecMatchAnalysis
 {
     public int SpecMatchAnalysisId { get; set; }

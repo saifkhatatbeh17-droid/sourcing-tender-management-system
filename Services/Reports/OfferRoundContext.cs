@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services.Reports;
 
+// Writes a short summary of extra offer rounds and any shortfall reason for reports.
 public static class OfferRoundContext
 {
     public static string Describe(Tender tender)

@@ -8,6 +8,7 @@ using SourcingTenderManagement.Services.Evaluation;
 
 namespace SourcingTenderManagement.Services.Chat;
 
+// Collects the facts Safi may use for one user (their requests, tenders, offers...), limited to what their role may see.
 public sealed record AiChatWorkspaceSnapshot(
     object UserProfile,
     object WorkspaceData,

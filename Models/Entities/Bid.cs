@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a supplier's offer (bid) for a tender, with its status and compliance review.
 public class Bid
 {
     public int BidId { get; set; }

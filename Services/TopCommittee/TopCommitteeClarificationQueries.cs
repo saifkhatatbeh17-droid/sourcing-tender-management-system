@@ -6,6 +6,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Loads the CEO & Chiefs clarifications page.
 public sealed class TopCommitteeClarificationQueries(ApplicationDbContext db, TopCommitteeAccessService access) : ITopCommitteeClarificationQueries
 {
     public async Task<CommitteeClarificationsPage> GetPageAsync(ClaimsPrincipal actor, int? tenderId, CancellationToken cancellationToken = default)

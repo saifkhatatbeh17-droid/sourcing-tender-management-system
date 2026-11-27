@@ -5,6 +5,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services.Reports;
 
+// Writes the purchase facts (request, tender, winning offer) that go with the manager's referral to the CEO & Chiefs.
 public static class ManagerReferralContext
 {
     // Saved purchase facts accompany every referral, including manually written referrals.

@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: whether a role may open a report (set on the Admin 'Report access' page).
 public sealed class ReportAccessRule
 {
     public int ReportAccessRuleId { get; set; }

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SourcingTenderManagement.Models.FaceVerification;
 
+// Data posted and returned when a user's face is checked before a sensitive step.
 public sealed class FaceVerificationRequest
 {
     [Required] public float[]? Descriptor { get; set; }

@@ -2,6 +2,7 @@ using System.Globalization;
 
 namespace SourcingTenderManagement.Models.TopCommittee;
 
+// Data shown on the CEO & Chiefs pages, plus small display helpers (status names, money format).
 public sealed record CommitteePendingPage(CommitteePage<CommitteeTenderRow> Tenders, CommitteeTenderFilter Filter);
 public sealed record CommitteeTenderPage(CommitteeTenderDetails Tender, CommitteeBid? SelectedBid,
     CommitteeVoteInput? Vote = null, bool VotingDatabaseReady = false);

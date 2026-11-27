@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a saved AI recommendation for a tender (the weights used and the AI's answer).
 public class AiAnalysis
 {
     public int AiAnalysisId { get; set; }

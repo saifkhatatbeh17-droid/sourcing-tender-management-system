@@ -7,6 +7,7 @@ using System.Security.Claims;
 
 namespace SourcingTenderManagement.ViewComponents;
 
+// View component: the list of past clarification messages about one request, tender or offer.
 public sealed class ClarificationHistoryViewComponent(ApplicationDbContext db) : ViewComponent
 {
     public async Task<IViewComponentResult> InvokeAsync(string kind, int recordId, string? title = null)

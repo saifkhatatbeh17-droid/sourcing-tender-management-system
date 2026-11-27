@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models;
 
+// Form data the Sourcing Officer fills in to create a tender.
 public class SourcingOfficerTenderForm : ProcurementCategoryInput
 {
     public int TenderId { get; set; }

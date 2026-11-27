@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Services.Reports;
 namespace SourcingTenderManagement.Controllers;
+// Sourcing Manager PDF downloads: the reports list and one submission.
 public partial class SourcingManagerController
 {
     [HttpGet]

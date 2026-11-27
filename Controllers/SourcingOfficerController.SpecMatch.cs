@@ -7,6 +7,7 @@ using SourcingTenderManagement.Services.Evaluation;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Sourcing Officer spec match: compares each offered item with the requested specification and shows the result.
 public sealed record OfficerSpecMatchPage(SpecMatchInput Input, SpecMatchResult? Result, bool Outdated, DateTime? CreatedAt,
     IReadOnlyDictionary<int, BidGuarantee>? LegalWarranties = null);
 

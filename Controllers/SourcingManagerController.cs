@@ -10,6 +10,8 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
+// The Sourcing Manager workspace: review the officer's submitted reports and forward them to the CEO & Chiefs.
+// This class is split into several files (SourcingManagerController.*.cs).
 [Authorize(Roles = RoleNames.SourcingManager)]
 [AutoValidateAntiforgeryToken]
 public partial class SourcingManagerController : Controller

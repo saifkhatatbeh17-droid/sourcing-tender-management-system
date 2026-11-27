@@ -6,6 +6,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Sourcing Manager handling of tenders the CEO & Chiefs rejected or asked to edit.
 public partial class SourcingManagerController
 {
     private IQueryable<Tender> ManagedRejections() => _context.Tenders.AsNoTracking()

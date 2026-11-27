@@ -4,6 +4,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Services.FaceEnrollment;
 
+// Decides when to show the 'set up face sign-in' prompt and remembers if the user declined it.
 public static class FaceSetupFlow
 {
     // UI preference only, never an authorization/verification token. Reset on every password login.

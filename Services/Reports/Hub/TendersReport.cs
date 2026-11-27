@@ -6,6 +6,7 @@ using SourcingTenderManagement.Services.Reports.Data;
 
 namespace SourcingTenderManagement.Services.Reports.Hub;
 
+// Reports hub: the 'Tenders' report.
 public sealed class TendersReport(ApplicationDbContext db, IConfiguration config) : IReport
 {
     public string Key => "tenders";

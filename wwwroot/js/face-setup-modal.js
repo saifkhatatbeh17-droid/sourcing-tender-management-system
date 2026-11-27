@@ -1,3 +1,4 @@
+// The 'set up face sign-in' pop-up shown after login.
 (() => {
     'use strict';
     const element = document.getElementById('face-setup-modal');

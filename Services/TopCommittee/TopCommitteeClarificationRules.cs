@@ -5,6 +5,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// The rules for CEO & Chiefs clarifications: who may ask, answer, follow up and resolve.
 internal static class TopCommitteeClarificationRules
 {
     private static void RequireActor(CommitteeClarificationContext context, string role)

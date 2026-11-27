@@ -7,6 +7,7 @@ using SourcingTenderManagement.Models.FaceEnrollment;
 
 namespace SourcingTenderManagement.Services.FaceEnrollment;
 
+// Saves, loads and deletes a user's registered face data (stored encrypted).
 public sealed class FaceEnrollmentService(ApplicationDbContext db, UserManager<ApplicationUser> users,
     SignInManager<ApplicationUser> signIn, FaceTemplateProtector protector)
 {

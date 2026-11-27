@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.DataProtection;
 
 namespace SourcingTenderManagement.Services.FaceEnrollment;
 
+// Registers the face enrollment services with the app at startup (called from Program.cs).
 public static class FaceEnrollmentExtensions
 {
     public static IServiceCollection AddFaceEnrollment(this IServiceCollection services)

@@ -5,6 +5,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Pauses voting while a tender has open clarifications.
 public sealed class TopCommitteeVotingPause(ApplicationDbContext db, TopCommitteeAccessService access) : ITopCommitteeVotingPause
 {
     public async Task<CommitteeVotingPause> GetAsync(ClaimsPrincipal member, int tenderId, CancellationToken cancellationToken = default)

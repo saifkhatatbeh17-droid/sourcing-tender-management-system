@@ -4,6 +4,7 @@ using SourcingTenderManagement.Services.Reports;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Admin pages for the audit trail: one audit entry, and a tender's evaluation report as PDF.
 public partial class AdminController
 {
     [HttpGet, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]

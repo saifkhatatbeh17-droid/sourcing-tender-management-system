@@ -1,3 +1,4 @@
+// Sourcing Officer spec match: runs the comparison and shows its progress and result.
 document.querySelectorAll("[data-spec-match]").forEach(section => {
     const form = section.querySelector("[data-spec-form]");
     const run = form?.querySelector("button");

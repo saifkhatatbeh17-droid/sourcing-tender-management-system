@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models;
 
+// The people shown on the public Team page.
 public sealed record TeamMember(int Id, string Name, string Role, string Department, string Bio)
 {
     public string? PortraitFile { get; init; }

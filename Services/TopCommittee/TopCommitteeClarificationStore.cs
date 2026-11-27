@@ -6,6 +6,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Database access for CEO & Chiefs clarifications.
 internal sealed record CommitteeClarificationContext(Tender? Tender, bool ActorIsActive,
     IReadOnlyList<string> ActorRoles, IReadOnlyList<CommitteeMember> Members, IReadOnlyList<CommitteeManager> Managers);
 

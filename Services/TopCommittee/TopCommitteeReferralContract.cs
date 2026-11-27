@@ -5,6 +5,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Prepares the referral details a CEO & Chiefs member sees before voting.
 public sealed class TopCommitteeReferralContract(ApplicationDbContext db, TopCommitteeAccessService access)
     : ITopCommitteeReferralContract
 {

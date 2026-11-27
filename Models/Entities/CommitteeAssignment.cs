@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a person's seat on a tender's Evaluation Committee or CEO & Chiefs committee.
 public class CommitteeAssignment
 {
     public int CommitteeAssignmentId { get; set; }

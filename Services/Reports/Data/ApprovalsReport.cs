@@ -5,6 +5,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Services.Reports.Data;
 
+// Reports hub: the 'Approvals' report (who approved or rejected what, and when).
 public sealed class ApprovalsReport(ApplicationDbContext db) : IReport
 {
     public string Key => "approvals";

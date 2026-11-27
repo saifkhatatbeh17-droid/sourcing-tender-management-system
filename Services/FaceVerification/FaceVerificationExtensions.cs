@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.FaceVerification;
 
 namespace SourcingTenderManagement.Services.FaceVerification;
 
+// Registers the face verification services with the app at startup (called from Program.cs).
 public static class FaceVerificationExtensions
 {
     public static IServiceCollection AddFaceVerification(this IServiceCollection services, IConfiguration configuration)

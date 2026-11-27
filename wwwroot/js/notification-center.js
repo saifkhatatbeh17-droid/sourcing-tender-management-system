@@ -1,3 +1,4 @@
+// The notification list in the top bar: filter by read/unread and show an empty message.
 document.querySelectorAll('.notice-center').forEach(center => {
     const list = center.querySelector('.notice-center-list');
     if (!list) return;

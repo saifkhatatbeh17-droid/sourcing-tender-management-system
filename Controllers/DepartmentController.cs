@@ -10,6 +10,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
+// The Department workspace: create and edit purchase requests and follow their progress.
 [Authorize(Roles = RoleNames.Department)]
 [AutoValidateAntiforgeryToken]
 public class DepartmentController(ApplicationDbContext db, UserManager<ApplicationUser> users)

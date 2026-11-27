@@ -10,6 +10,7 @@ using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 
 namespace SourcingTenderManagement.Services.Chat;
 
+// Lets Safi read a file the user attaches (image, PDF or spreadsheet) and answer questions about it.
 public sealed class AiChatAttachmentAnalysis(HttpClient http, IConfiguration configuration, AiGateway gateway)
 {
     public const int MaxFileBytes = 5 * 1024 * 1024;

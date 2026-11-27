@@ -1,3 +1,4 @@
+// The light/dark mode button. Loaded on every page.
 (() => {
     const root = document.documentElement;
     const key = 'sourcing-theme';

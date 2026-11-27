@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 using SourcingTenderManagement.Services.TopCommittee;
 namespace SourcingTenderManagement.Controllers;
 
+// CEO & Chiefs page listing past decisions.
 public partial class TopCommitteeController
 {
     [HttpGet]

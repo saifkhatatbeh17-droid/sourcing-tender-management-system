@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Data;
+// A user account: the standard ASP.NET Identity user plus name, active flag and department.
 public class ApplicationUser : IdentityUser
 {
     [MaxLength(150)] public string FullName { get; set; } = "";

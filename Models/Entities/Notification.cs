@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a notification shown in a user's bell.
 public class Notification
 {
     public int NotificationId { get; set; }

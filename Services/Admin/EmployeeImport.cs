@@ -9,6 +9,7 @@ using SourcingTenderManagement.Services.Chat;
 
 namespace SourcingTenderManagement.Services.Admin;
 
+// Reads an Excel sheet of staff, previews the rows with any problems, and creates the accounts.
 public sealed record EmployeeImportRow(
     int RowNumber,
     string FullName,

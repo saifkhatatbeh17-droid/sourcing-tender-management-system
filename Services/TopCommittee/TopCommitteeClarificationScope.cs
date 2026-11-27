@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Query that finds clarifications between a CEO & Chiefs member and the approving manager.
 internal static class TopCommitteeClarificationScope
 {
     internal static IQueryable<Clarification> Query(ApplicationDbContext db) => db.Clarifications.AsNoTracking()

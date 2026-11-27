@@ -2,6 +2,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services;
 
+// Query filters that decide which clarifications a user may see (their own, or all for the officer).
 internal static class ClarificationVisibility
 {
     internal static IQueryable<Clarification> ForRecord(this IQueryable<Clarification> threads, string? kind, int id) =>

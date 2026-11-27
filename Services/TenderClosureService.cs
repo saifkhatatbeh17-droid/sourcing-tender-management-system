@@ -3,6 +3,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Services;
 
+// Background job that closes tenders automatically when their offer deadline passes.
 public sealed class TenderClosureService(IServiceScopeFactory scopes, ILogger<TenderClosureService> logger) : BackgroundService
 {
     public static Task<int> CloseExpired(ApplicationDbContext db, DateTime now, CancellationToken ct = default, string? ownerId = null) =>

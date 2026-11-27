@@ -7,6 +7,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Creates, answers, follows up and resolves CEO & Chiefs clarifications.
 internal sealed class TopCommitteeClarificationService(ITopCommitteeClarificationStore store)
     : ITopCommitteeClarifications, ITopCommitteeManagerAnswers
 {

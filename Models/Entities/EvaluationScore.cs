@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: one score a committee member gave one offer on one criterion.
 public class EvaluationScore
 {
     public int EvaluationScoreId { get; set; }

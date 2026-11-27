@@ -11,6 +11,8 @@ using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.Admin;
 namespace SourcingTenderManagement.Controllers;
+// The Admin workspace: dashboard, users, departments and supplier accounts.
+// This class is split into several files (AdminController.*.cs); each file holds one area of the admin pages.
 [Authorize(Roles = RoleNames.Admin)]
 public partial class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
     IConfiguration configuration, IWebHostEnvironment environment) : Controller

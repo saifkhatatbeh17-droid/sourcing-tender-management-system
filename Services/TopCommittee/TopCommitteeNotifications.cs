@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.TopCommittee;
 namespace SourcingTenderManagement.Services.TopCommittee;
+// Loads CEO & Chiefs notifications and marks them as read.
 public sealed class TopCommitteeNotifications(ApplicationDbContext db,TopCommitteeAccessService access)
 {
  public async Task<CommitteeNotificationPage> GetAsync(ClaimsPrincipal actor,int page=1,CancellationToken ct=default)

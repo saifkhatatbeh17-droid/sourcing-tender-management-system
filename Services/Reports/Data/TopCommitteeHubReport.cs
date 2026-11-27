@@ -6,6 +6,7 @@ using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Services.Reports.Data;
 
+// Reports hub: the CEO & Chiefs decisions report.
 public sealed class TopCommitteeHubReport(TopCommitteeReports reports) : IReport
 {
     public string Key => "top-committee";

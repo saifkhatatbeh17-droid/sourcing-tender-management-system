@@ -8,6 +8,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Loads the CEO & Chiefs dashboard, the list of tenders to decide, and one tender's details.
 public sealed class TopCommitteeQueryService(ApplicationDbContext db, TopCommitteeAccessService access)
     : ITopCommitteeQueries
 {

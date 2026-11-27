@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a file attached to a tender for suppliers to read.
 public class TenderDocument
 {
     public int TenderDocumentId { get; set; }

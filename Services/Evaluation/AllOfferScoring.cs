@@ -3,6 +3,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services.Evaluation;
 
+// Committee scoring across all offers: totals, ranking, ties, shortlist and picking the winner.
 public static class AllOfferScoring
 {
     public static bool Accepted(CommitteeEvaluationPage page, Models.Entities.Evaluation? review) => page.ConsensusLocked

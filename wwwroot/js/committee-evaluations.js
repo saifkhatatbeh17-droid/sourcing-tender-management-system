@@ -1,3 +1,4 @@
+// Evaluation Committee page: switches between tenders and remembers the chosen colour theme.
 (() => {
     const page = document.querySelector('.evaluation-page');
     if (!page) return;

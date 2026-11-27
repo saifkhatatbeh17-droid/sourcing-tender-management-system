@@ -7,6 +7,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Passkey (fingerprint / device) sign-in: register a passkey and sign in with it.
 [Route("Account/Passkeys")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class PasskeysController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, IAuditLog? audit = null) : Controller

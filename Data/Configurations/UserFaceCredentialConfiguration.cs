@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Data.Configurations;
 
+// Database setup (columns, indexes) for the face data table.
 public sealed class UserFaceCredentialConfiguration : IEntityTypeConfiguration<UserFaceCredential>
 {
     public void Configure(EntityTypeBuilder<UserFaceCredential> entity)

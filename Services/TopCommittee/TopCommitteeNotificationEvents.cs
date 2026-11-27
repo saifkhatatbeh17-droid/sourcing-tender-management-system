@@ -4,6 +4,7 @@ using SourcingTenderManagement.Contracts.TopCommittee;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Services.TopCommittee;
+// Creates the notifications sent when the CEO & Chiefs award or reject a tender.
 public static class TopCommitteeNotificationEvents
 {
  private static async Task AddAsync(ApplicationDbContext db,int tenderId,IEnumerable<string> recipients,string title,CancellationToken ct)

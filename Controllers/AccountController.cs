@@ -7,6 +7,8 @@ using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Controllers;
+// Sign-in, sign-out, registration and the user's own profile (name, phone, password).
+// Also opens a notification and sends each user to their role's dashboard after login.
 public class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     ApplicationDbContext db, IAuditLog? audit = null) : Controller
 {

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Services.Reports;
 namespace SourcingTenderManagement.Controllers;
+// Evaluation Committee PDF downloads: the committee report, the evaluation report and the AI recommendation.
 public partial class EvaluationCommitteeController
 {
     [HttpGet]

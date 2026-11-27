@@ -1,3 +1,4 @@
+// Admin supplier review pop-up: moves through the review steps and enables the decision once all documents are verified.
 const reviewDialog = document.getElementById('supplier-review-dialog');
 if (reviewDialog) {
     let request;

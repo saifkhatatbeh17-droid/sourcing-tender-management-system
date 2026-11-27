@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models;
 
+// Data shown on the AI Intelligence page: figures, chart points, tender and supplier rows.
 public sealed record AiKpiCard(
     string Label,
     string Value,

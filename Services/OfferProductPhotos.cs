@@ -7,6 +7,8 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services;
 
+// Product photos that suppliers attach to each offered item: resize, store and list them,
+// and decide which users may see which offer's photos.
 public sealed record ProductPhotoView(int DocumentId, string ItemName);
 public sealed class OfferProductPhotos(ApplicationDbContext db, IWebHostEnvironment env)
 {

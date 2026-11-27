@@ -2,6 +2,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services;
 
+// Helpers for closing a clarification: a clarification counts as resolved once both people confirm it.
 internal static class ClarificationResolution
 {
     internal const string Confirmation = "[Portal: resolution confirmed]";

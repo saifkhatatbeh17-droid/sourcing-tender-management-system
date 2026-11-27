@@ -1,3 +1,4 @@
+// Sourcing Officer reports page: search and open reports.
 (() => {
  const search=document.getElementById('report-search'),filter=document.getElementById('report-filter');
  if(!search||!filter)return;

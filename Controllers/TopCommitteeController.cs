@@ -5,6 +5,8 @@ using SourcingTenderManagement.Contracts.TopCommittee;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.TopCommittee;
 namespace SourcingTenderManagement.Controllers;
+// The CEO & Chiefs (Top Committee) workspace: review recommended tenders, vote, and ask clarifications.
+// This class is split into several files (TopCommitteeController.*.cs).
 [Authorize(Roles = RoleNames.TopCommittee)]
 [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
 public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCommitteeClarifications clarifications,

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Services.Evaluation;
+// Checks that a tender has its four Evaluation Committee members before evaluation starts.
 public static class CommitteeSetup
 {
     public static async Task<string?> Prepare(ApplicationDbContext db, Tender tender)

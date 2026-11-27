@@ -7,6 +7,8 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Runs a CEO & Chiefs change inside a database transaction with a lock on the tender,
+// so two members cannot change the same tender at the same moment.
 public sealed class TopCommitteeTenderTransaction(DbContextOptions<ApplicationDbContext> options) : ITopCommitteeTenderTransaction
 {
     internal static string Resource(int tenderId) => $"TopCommittee:Tender:{tenderId}";

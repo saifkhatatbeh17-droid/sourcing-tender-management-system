@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a document a supplier uploaded to their company profile.
 public class SupplierDocument
 {
     public int SupplierDocumentId { get; set; }

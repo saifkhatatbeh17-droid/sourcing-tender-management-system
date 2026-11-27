@@ -1,3 +1,4 @@
+// Voice search: lets the user speak into search boxes.
 (() => {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const controls = [...document.querySelectorAll('[data-voice-search]')];

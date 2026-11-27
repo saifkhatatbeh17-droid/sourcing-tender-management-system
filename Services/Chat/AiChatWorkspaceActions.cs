@@ -14,6 +14,8 @@ using SourcingTenderManagement.Services.Reports;
 
 namespace SourcingTenderManagement.Services.Chat;
 
+// The actions (tools) Safi may run for the user, such as creating or editing a request,
+// each checked against the user's role before it runs.
 public sealed record AiChatToolDefinition(string Name, string Description, string ParametersSchemaHint);
 
 public sealed record AiChatToolExecutionResult(

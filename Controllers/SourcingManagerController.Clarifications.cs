@@ -7,6 +7,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Sourcing Manager clarifications: ask, reply to and resolve questions about a submission.
 public partial class SourcingManagerController
 {
     [HttpGet]

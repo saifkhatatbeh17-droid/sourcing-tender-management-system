@@ -3,6 +3,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Models;
 
+// Form data for creating or editing a purchase request and its items, with validation rules.
 public class PurchaseRequestForm : IValidatableObject
 {
     public static readonly string[] Priorities = ["Low", "Normal", "High", "Urgent"];

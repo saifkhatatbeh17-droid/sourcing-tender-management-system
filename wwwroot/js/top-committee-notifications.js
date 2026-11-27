@@ -1,3 +1,4 @@
+// CEO & Chiefs notification bell: opens a notification and marks it read.
 (() => {
     'use strict';
     const openBell = () => {

@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Services.Reports.Data;
 
+// Labels a document as Valid, Expiring soon, Expired or No expiry date.
 public static class DocumentExpiry
 {
     public static string State(DateOnly? expires, DateOnly today, int warningDays) =>

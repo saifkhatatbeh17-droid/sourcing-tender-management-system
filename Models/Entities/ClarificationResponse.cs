@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: one message inside a clarification thread.
 public class ClarificationResponse
 {
     public int ClarificationResponseId { get; set; }

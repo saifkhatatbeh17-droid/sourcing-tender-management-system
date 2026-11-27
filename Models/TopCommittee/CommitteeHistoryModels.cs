@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 namespace SourcingTenderManagement.Models.TopCommittee;
 
+// Data shown on the CEO & Chiefs history page.
 public sealed class CommitteeHistoryFilter
 {
     [StringLength(200)] public string? Search { get; set; }

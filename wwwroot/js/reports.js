@@ -1,3 +1,4 @@
+// Reports pages: the Admin report-access switches and saving them.
 (() => {
     "use strict";
     const form = document.querySelector("[data-report-access]");

@@ -5,6 +5,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Admin pages for messages sent from the public Contact form: list, details and mark as read.
 public partial class AdminController
 {
     [HttpGet]

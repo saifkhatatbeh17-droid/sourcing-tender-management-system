@@ -1,3 +1,4 @@
+// Clarifications page: search the records you can ask about and show 'no results' when nothing matches.
 (() => {
     const search = document.querySelector('#record-search');
     if (!search) return;

@@ -1,3 +1,4 @@
+// Department request form: checks each field and item and shows the errors next to them.
 (() => {
     'use strict';
     const form = document.getElementById('purchase-request-form');

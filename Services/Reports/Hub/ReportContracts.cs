@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Services.Reports.Hub;
 
+// The shared shapes used by every report in the Reports hub: the query, the user's scope, KPIs, columns and rows.
 public sealed record ReportQuery(
     DateOnly? From = null, DateOnly? To = null,
     int? DepartmentId = null, int? SupplierId = null, int? TenderId = null,

@@ -1,3 +1,4 @@
+// Face sign-in pop-up: camera preview and matching.
 (() => {
     'use strict';
     const element = document.getElementById('face-login-modal');

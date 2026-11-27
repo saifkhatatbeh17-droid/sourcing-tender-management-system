@@ -5,6 +5,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Services.Reports.Data;
 
+// Small helpers shared by the reports: date and money formatting, date-range and role filters.
 internal static class ReportRows
 {
     public static string Date(DateTime? value) => value?.ToString("dd MMM yyyy", CultureInfo.InvariantCulture) ?? "—";

@@ -7,6 +7,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services;
 
+// Bank guarantees and warranties that suppliers attach to offers: check, save, load and verify them.
 public sealed class OfferGuarantees(ApplicationDbContext db, IWebHostEnvironment environment)
 {
     private static (string Prefix, string Kind, GuaranteeInput Input)[] Inputs(OfferFormViewModel form) =>

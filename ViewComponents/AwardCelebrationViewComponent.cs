@@ -6,6 +6,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.ViewComponents;
 
+// View component (a reusable piece of a page): the celebration pop-up a supplier sees when their offer wins.
 public sealed record AwardCelebrationViewModel(int NotificationId, int BidId, int TenderId, string TenderTitle,
     string CompanyName, decimal Total, string Currency, DateTime? AwardedAt, int MoreCount);
 

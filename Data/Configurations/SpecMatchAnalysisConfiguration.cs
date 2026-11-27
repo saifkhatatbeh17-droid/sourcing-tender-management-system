@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Data.Configurations;
 
+// Database setup (columns, indexes) for the saved spec match results table.
 public sealed class SpecMatchAnalysisConfiguration : IEntityTypeConfiguration<SpecMatchAnalysis>
 {
     public void Configure(EntityTypeBuilder<SpecMatchAnalysis> entity)

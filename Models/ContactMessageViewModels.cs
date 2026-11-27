@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Models;
 
+// Form data for the public Contact page and the Admin list of contact messages.
 public sealed class ContactMessageInput
 {
     [Required, StringLength(120)]

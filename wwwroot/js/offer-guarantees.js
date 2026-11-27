@@ -1,3 +1,4 @@
+// Supplier offer form: turns the bank guarantee / warranty fields on or off and checks their dates.
 (() => {
     'use strict';
     document.querySelectorAll('[data-guarantee-editor]').forEach(editor => {

@@ -1,3 +1,4 @@
+// Public home page: the 3D cleanroom scene (three.js) that plays while scrolling.
 import * as THREE from '../lib/login-scene/three.module.js';
 
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;

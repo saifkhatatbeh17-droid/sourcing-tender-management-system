@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 namespace SourcingTenderManagement.Models.TopCommittee;
+// Data shown on the CEO & Chiefs reports page.
 public sealed class CommitteeReportFilter
 {
  [StringLength(200)] public string? Search {get;set;}

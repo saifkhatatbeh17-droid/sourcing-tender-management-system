@@ -2,6 +2,7 @@ using SourcingTenderManagement.Contracts.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Registers all CEO & Chiefs services with the app at startup (called from Program.cs).
 public static class TopCommitteeServiceCollectionExtensions
 {
     public static IServiceCollection AddTopCommitteeFoundation(this IServiceCollection services)

@@ -7,6 +7,7 @@ using SourcingTenderManagement.Services.FaceVerification;
 
 namespace SourcingTenderManagement.Controllers;
 
+// The 'set up face sign-in' prompt shown after login, which the user can accept or decline.
 [Authorize, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class FaceSetupController(ApplicationDbContext db, FaceEnrollmentService enrollment, FaceVerificationService verification) : Controller
 {

@@ -1,3 +1,4 @@
+// Login page animations and the sign-in method buttons.
 (() => {
     const identity = document.querySelector('.login-identity');
     const form = document.getElementById('password-login');

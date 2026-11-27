@@ -3,6 +3,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Models;
 
+// Data shown on the Admin pages (dashboard, users, departments, suppliers).
 public sealed class AdminDashboardViewModel
 {
     public int UsersCount { get; init; }

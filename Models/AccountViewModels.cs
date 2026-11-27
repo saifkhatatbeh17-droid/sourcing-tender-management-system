@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 namespace SourcingTenderManagement.Models;
+// Form data for login, creating users and supplier registration, with the input rules for each field.
 public class LoginViewModel
 {
     [Required(ErrorMessage = "Enter your email address.")]

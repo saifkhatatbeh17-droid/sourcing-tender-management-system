@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: the evaluation report for a tender, with the recommended offer and each stage's summary.
 public class EvaluationReport
 {
     public int EvaluationReportId { get; set; }

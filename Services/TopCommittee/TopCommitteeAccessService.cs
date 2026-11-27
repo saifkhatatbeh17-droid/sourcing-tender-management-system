@@ -6,6 +6,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Checks that a user is an active CEO & Chiefs member and is assigned to the tender.
 public sealed class TopCommitteeAccessService(ApplicationDbContext db)
 {
     public async Task<string> RequireRoleAsync(ClaimsPrincipal actor, string role,

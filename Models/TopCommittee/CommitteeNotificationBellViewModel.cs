@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.TopCommittee;
 
+// Data shown in the CEO & Chiefs notification bell.
 public sealed class CommitteeNotificationBellViewModel : NotificationBellViewModel
 {
     public int Total { get; init; }

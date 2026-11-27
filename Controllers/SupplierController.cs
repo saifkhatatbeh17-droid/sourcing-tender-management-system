@@ -9,6 +9,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
+// The Supplier workspace: invitations, preparing and submitting offers, and offer history.
 [Authorize(Policy = "SupplierHistory")]
 public class SupplierController(ApplicationDbContext db, UserManager<ApplicationUser> users, IWebHostEnvironment env) : Controller
 {

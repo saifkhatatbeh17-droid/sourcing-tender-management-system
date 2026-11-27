@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace SourcingTenderManagement.Services.Reports;
 
+// Returns a generated PDF as a download, or a clear error message if it cannot be built.
 internal static class ReportPdfDownload
 {
     // Ordinary FileResult: the existing global watermark filter runs exactly once.

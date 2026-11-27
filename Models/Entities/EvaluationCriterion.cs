@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a scoring criterion for a tender (name, category and weight).
 public class EvaluationCriterion
 {
     public int EvaluationCriterionId { get; set; }

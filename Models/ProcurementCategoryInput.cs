@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SourcingTenderManagement.Models;
 
+// The procurement category picker (a fixed list plus 'Other') used on request and tender forms.
 public class ProcurementCategoryInput : IValidatableObject
 {
     public const string Other = "Other";

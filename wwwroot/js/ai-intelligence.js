@@ -1,3 +1,4 @@
+// AI Intelligence page: charts, the tenders table, the tender report, the AI question box and file upload.
 (() => {
     const root = document.querySelector("[data-ai-intelligence]");
     if (!root) return;

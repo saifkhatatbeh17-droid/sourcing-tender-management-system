@@ -11,6 +11,8 @@ using SourcingTenderManagement.Services.Chat;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Back end for Safi, the chat assistant shown inside every workspace.
+// Receives questions, voice (speech to text and text to speech) and attachments, and returns the assistant's reply.
 [ApiController]
 [Authorize]
 [Route("AiChat")]

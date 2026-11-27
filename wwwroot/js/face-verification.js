@@ -1,3 +1,4 @@
+// Checks the user's face with the camera before a sensitive step.
 (() => {
     'use strict';
     const form = document.getElementById('verification-form');

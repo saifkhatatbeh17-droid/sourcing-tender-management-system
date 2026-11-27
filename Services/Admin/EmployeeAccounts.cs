@@ -8,6 +8,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Services.Admin;
 
+// Creates staff accounts with the right role and committee seat, with checks on every field.
 public sealed record EmployeeAccountInput(
     string FullName,
     string Email,

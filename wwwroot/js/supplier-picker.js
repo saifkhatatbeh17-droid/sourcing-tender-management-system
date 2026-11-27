@@ -1,3 +1,4 @@
+// Choosing which suppliers to invite, including the 'invite all' option.
 (() => {
     const sync = picker => {
         const all = picker.querySelector('[data-invite-all]');

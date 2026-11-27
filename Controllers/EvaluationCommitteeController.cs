@@ -12,6 +12,8 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
+// The Evaluation Committee workspace: agree the scoring weights, score each offer and approve the report.
+// This class is split into several files (EvaluationCommitteeController.*.cs).
 [Authorize(Roles = RoleNames.EvaluationCommittee)]
 public partial class EvaluationCommitteeController(ApplicationDbContext db, UserManager<ApplicationUser> users, BidRecommendationService ai, ILogger<EvaluationCommitteeController> logger) : Controller
 {

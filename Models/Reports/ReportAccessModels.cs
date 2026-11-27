@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SourcingTenderManagement.Models.Reports;
 
+// Data shown and posted on the Admin 'Report access' page.
 public sealed class ReportAccessChange
 {
     [Required, StringLength(100)]

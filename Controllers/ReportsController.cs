@@ -11,6 +11,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Controllers;
 
+// The Reports hub: lists the reports a user may open, shows one with filters, and exports it.
 [Authorize]
 [Route("Reports")]
 [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]

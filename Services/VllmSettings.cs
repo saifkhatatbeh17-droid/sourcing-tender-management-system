@@ -5,6 +5,8 @@ using System.Text.RegularExpressions;
 
 namespace SourcingTenderManagement.Services;
 
+// Low-level connection to the AI model: reads the model settings and sends one JSON request.
+// Features should go through AiGateway (Services/Ai) instead of calling this directly.
 internal static partial class VllmSettings
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

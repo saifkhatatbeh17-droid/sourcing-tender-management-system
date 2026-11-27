@@ -5,6 +5,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services.Reports.Data;
 
+// Writes one audit entry (who did what to which record) for actions that bypass normal saving.
 public interface IAuditLog
 {
     Task WriteAsync(string action, string entityType, string entityId, string summary,

@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a committee member's pick when two offers are tied.
 public sealed class CommitteeTieVote
 {
     public int CommitteeTieVoteId { get; set; }

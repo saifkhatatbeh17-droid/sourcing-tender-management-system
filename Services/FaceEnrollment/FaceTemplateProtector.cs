@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.DataProtection;
 
 namespace SourcingTenderManagement.Services.FaceEnrollment;
 
+// Encrypts and decrypts stored face data using ASP.NET data protection.
 public sealed class FaceTemplateProtector(IDataProtectionProvider provider)
 {
     public byte[] Protect(string userId, float[][] descriptors) =>

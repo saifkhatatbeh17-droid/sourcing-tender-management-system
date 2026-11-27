@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: one audit-log line (who did what, to which record, and when).
 public sealed class AuditEntry
 {
     public long AuditEntryId { get; set; }

@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models;
 
+// One supplier's activity (invitations, offers, wins) for the activity report.
 public sealed record SupplierTenderActivity(int TenderId, string Title, int BidId, DateTime SubmittedAt,
     string Outcome, decimal Total, string Currency, string? Compliance);
 

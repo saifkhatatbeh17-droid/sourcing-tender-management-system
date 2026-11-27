@@ -1,3 +1,4 @@
+// Asks the user to confirm before important buttons (approve, reject, send) and collects an optional note. Loaded on every page.
 (() => {
     'use strict';
     const dialog = document.getElementById('action-confirmation');

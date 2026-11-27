@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: one approval or rejection of a tender at a stage (committee, manager, CEO & Chiefs).
 public class TenderApproval
 {
     public int TenderApprovalId { get; set; }

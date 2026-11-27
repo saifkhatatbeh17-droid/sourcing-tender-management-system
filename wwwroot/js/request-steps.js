@@ -1,3 +1,4 @@
+// Department request form: splits it into steps with next/previous buttons.
 (() => {
  'use strict';
  const form=document.getElementById('purchase-request-form');if(!form)return;

@@ -5,6 +5,7 @@ using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.TopCommittee;
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Loads the CEO & Chiefs decision history.
 public sealed class TopCommitteeHistory(ApplicationDbContext db, TopCommitteeAccessService access)
 {
     public async Task<CommitteeHistoryPage> GetAsync(ClaimsPrincipal actor, CommitteeHistoryFilter filter, CancellationToken ct = default)

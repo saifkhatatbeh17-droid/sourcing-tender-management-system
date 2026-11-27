@@ -5,6 +5,7 @@ using SourcingTenderManagement.Services;
 
 namespace SourcingTenderManagement.ViewComponents;
 
+// View component: shows the bank guarantees and warranties attached to one offer.
 public sealed class OfferGuaranteesViewComponent(ApplicationDbContext db, OfferProductPhotos access) : ViewComponent
 {
     public async Task<IViewComponentResult> InvokeAsync(int bidId)

@@ -1,3 +1,4 @@
+// CEO & Chiefs tender page: the 'Assess report with AI' pop-up.
 const importanceDialog = document.getElementById('tender-importance');
 document.querySelector('[data-importance-open]')?.addEventListener('click', () => importanceDialog.showModal());
 importanceDialog?.querySelectorAll('[data-importance-close]').forEach(button =>

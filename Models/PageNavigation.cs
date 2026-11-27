@@ -1,4 +1,5 @@
 namespace SourcingTenderManagement.Models;
+// The sidebar menu for each role: which pages appear and in what order.
 public sealed record PageNavigationItem(string Action, string Title, string? Controller = null)
 {
     public static implicit operator PageNavigationItem((string Action, string Title) item) => new(item.Action, item.Title);

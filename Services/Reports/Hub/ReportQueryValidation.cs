@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace SourcingTenderManagement.Services.Reports.Hub;
 
+// Cleans up report filter values and explains any that were ignored.
 public static class ReportQueryValidation
 {
     public static (ReportQuery Query, List<string> Messages) Normalize(IReport report, ReportQuery query)

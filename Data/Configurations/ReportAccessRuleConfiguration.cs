@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Data.Configurations;
 
+// Database setup (columns, indexes) for the report access rules table.
 public sealed class ReportAccessRuleConfiguration : IEntityTypeConfiguration<ReportAccessRule>
 {
     public void Configure(EntityTypeBuilder<ReportAccessRule> entity)

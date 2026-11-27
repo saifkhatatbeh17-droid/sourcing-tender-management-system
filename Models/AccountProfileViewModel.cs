@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SourcingTenderManagement.Models;
 
+// Data shown and posted by the profile pages (edit profile, change password).
 public sealed class EditProfileViewModel
 {
     [Phone, StringLength(32)]

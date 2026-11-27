@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace SourcingTenderManagement.Services.PdfWatermark;
 
+// Runs after any action that returns a PDF and stamps the watermark on it automatically.
 public sealed class PdfWatermarkResultFilter(IPdfWatermarkService watermark, TimeProvider clock,
     ILogger<PdfWatermarkResultFilter> logger) : IAsyncResultFilter
 {

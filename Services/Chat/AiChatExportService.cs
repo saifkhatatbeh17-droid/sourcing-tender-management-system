@@ -13,6 +13,7 @@ using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Services.Chat;
 
+// Builds the PDF and Excel files that Safi offers for download.
 public sealed record AiChatExportTable(string Title, string[] Headers, IReadOnlyList<string[]> Rows);
 
 public sealed record AiChatExportDocument(

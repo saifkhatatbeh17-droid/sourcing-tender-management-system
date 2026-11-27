@@ -4,6 +4,7 @@ using SourcingTenderManagement.Services.Ai;
 
 namespace SourcingTenderManagement.Services.Integrity;
 
+// Asks the AI to explain, in plain words, why two suppliers were flagged as possibly working together.
 public sealed record SupplierLinkExplanation(string Summary, IReadOnlyList<string> Checks);
 
 /// <summary>

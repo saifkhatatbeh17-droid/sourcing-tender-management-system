@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: an invitation sent to a supplier to bid on a tender.
 public class Invitation
 {
     public int InvitationId { get; set; }

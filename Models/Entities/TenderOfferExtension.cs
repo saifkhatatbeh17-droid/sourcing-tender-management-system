@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: an extra offer round (a deadline extension) for a tender.
 public sealed class TenderOfferExtension
 {
     public const int MaximumRound = 4;

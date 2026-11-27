@@ -7,6 +7,7 @@ using SourcingTenderManagement.Services.FaceVerification;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Checks the user's face against the registered one before a sensitive step.
 [Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class FaceVerificationController(FaceVerificationService verification) : Controller

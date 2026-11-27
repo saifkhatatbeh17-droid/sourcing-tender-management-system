@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models;
 
+// Data shown on the Admin 'AI log' page: totals, per-feature stats and each AI call.
 public sealed class AiLogPageViewModel
 {
     public const int PageSize = 50;

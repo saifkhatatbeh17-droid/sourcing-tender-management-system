@@ -9,6 +9,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Builds the CEO & Chiefs reports as Excel and PDF files.
 public sealed class TopCommitteeReportExport
 {
     private static readonly object FontLock = new();

@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Data.Configurations;
 
+// Database setup (columns, indexes) for the audit log, contracts and other report tables.
 internal sealed class ReportsDataConfiguration :
     IEntityTypeConfiguration<AuditEntry>, IEntityTypeConfiguration<TenderContract>, IEntityTypeConfiguration<SupplierDocument>
 {

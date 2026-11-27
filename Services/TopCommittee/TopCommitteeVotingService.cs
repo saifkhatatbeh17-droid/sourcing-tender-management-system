@@ -9,6 +9,7 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 
+// Records a CEO & Chiefs member's vote and awards the tender once all four approve.
 internal sealed class TopCommitteeVotingService(ITopCommitteeVotingStore store) : ITopCommitteeVoting
 {
     public async Task<CommitteeVoteResult> SubmitAsync(ClaimsPrincipal member, CommitteeVoteInput input, CancellationToken cancellationToken = default)

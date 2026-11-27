@@ -1,3 +1,4 @@
+// Category picker: shows the 'Other category' box when 'Other' is chosen.
 document.querySelectorAll('[data-category-fields]').forEach(fields => {
     const category = fields.querySelector('[data-category-select]');
     const otherField = fields.querySelector('[data-other-category]');

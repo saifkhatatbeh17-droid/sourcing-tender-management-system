@@ -5,6 +5,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Evaluation Committee actions to score an offer and to settle a tie between offers.
 public partial class EvaluationCommitteeController
 {
     [HttpPost, ValidateAntiForgeryToken]

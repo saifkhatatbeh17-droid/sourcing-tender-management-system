@@ -1,3 +1,4 @@
+// Face sign-in inside the login form: uses the camera to match the user's face.
 (() => {
     'use strict';
     const button = document.getElementById('face-login-button');

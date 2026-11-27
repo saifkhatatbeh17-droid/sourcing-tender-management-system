@@ -1,3 +1,4 @@
+// Registers the user's face with the camera (several samples) for face sign-in.
 (() => {
     'use strict';
     const form = document.getElementById('face-form');

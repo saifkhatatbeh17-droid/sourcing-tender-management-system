@@ -1,5 +1,6 @@
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a message sent from the public Contact form.
 public sealed class ContactMessage
 {
     public const string Unread = "Unread";

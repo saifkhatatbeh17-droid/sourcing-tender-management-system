@@ -6,6 +6,8 @@ using SourcingTenderManagement.Services.Ai;
 
 namespace SourcingTenderManagement.Services.Evaluation;
 
+// AI recommendation for the Evaluation Committee: compares offers, suggests a winner under different
+// weights, and checks the AI's sentences against the real figures before showing them.
 public record BidComparison(int BidId, string Strengths, string Tradeoffs);
 public record BidScenario(decimal FinancialWeight, int? RecommendedBidId, string Reason);
 public record BidRecommendation(BidScenario[] Scenarios, string[] MissingInformation, BidComparison[] Comparisons, string? Report = null)

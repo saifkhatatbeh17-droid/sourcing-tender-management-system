@@ -5,6 +5,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services.Reports.Hub;
 
+// Reports hub: the 'Purchase requests' report.
 public sealed class PurchaseRequestsReport(ApplicationDbContext db) : IReport
 {
     public string Key => "purchase-requests";

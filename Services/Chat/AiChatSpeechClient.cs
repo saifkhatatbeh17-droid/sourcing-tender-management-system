@@ -4,6 +4,7 @@ using System.Text.Json;
 
 namespace SourcingTenderManagement.Services.Chat;
 
+// Speech for Safi: turns the user's voice into text and Safi's reply into audio.
 public sealed record AiChatSpeechClip(byte[] Bytes, string ContentType, string Provider);
 
 public sealed class AiChatSpeechClient(HttpClient http, IConfiguration configuration)

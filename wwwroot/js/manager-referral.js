@@ -1,3 +1,4 @@
+// Sourcing Manager: asks the AI to draft the referral text and shows the result.
 document.querySelector('[data-draft-referral]')?.addEventListener('click', async event => {
     const button = event.currentTarget, form = button.form;
     const field = form.elements.Reason, feedback = form.querySelector('[data-referral-feedback]');

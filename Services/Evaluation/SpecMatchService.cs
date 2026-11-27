@@ -8,6 +8,8 @@ using SourcingTenderManagement.Services.Compliance;
 
 namespace SourcingTenderManagement.Services.Evaluation;
 
+// Spec match: compares each offered item's specification with what was requested,
+// first with simple code rules and then with the AI for the unclear cases.
 public sealed record SpecMatchCell(int BidId, int ItemId, string Verdict, string? Reason, string? Evidence, string Source);
 public sealed record SpecMatchResult(IReadOnlyList<SpecMatchCell> Cells, bool AiAvailable, string? ModelName);
 

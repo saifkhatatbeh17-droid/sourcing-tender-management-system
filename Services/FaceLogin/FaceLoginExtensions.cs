@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 
 namespace SourcingTenderManagement.Services.FaceLogin;
 
+// Registers the face sign-in services with the app at startup (called from Program.cs).
 public static class FaceLoginExtensions
 {
     public static IServiceCollection AddFaceLogin(this IServiceCollection services)

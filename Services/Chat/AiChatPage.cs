@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Services.Chat;
 
+// Describes each page Safi can be opened on: what the user is looking at, starter prompts and greetings.
 internal enum AiChatRecord
 {
     DepartmentRequest,

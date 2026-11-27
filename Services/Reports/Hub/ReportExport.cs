@@ -6,6 +6,7 @@ using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Services.Reports.Hub;
 
+// Turns any Reports hub report into an Excel or PDF file.
 public sealed class ReportExport
 {
     public const int MaximumRows = 5000;

@@ -5,6 +5,7 @@ using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Models.TopCommittee;
 namespace SourcingTenderManagement.Services.TopCommittee;
+// Loads the CEO & Chiefs reports page data.
 public sealed class TopCommitteeReports(ApplicationDbContext db,TopCommitteeAccessService access)
 {
  public static readonly string[] Statuses=["Draft","Published","Open","Closed","UnderEvaluation","AwaitingOfficerSummary","AwaitingManagerReview","AwaitingCommitteeDecision","Awarded","Cancelled"];

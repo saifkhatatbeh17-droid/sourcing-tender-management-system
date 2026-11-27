@@ -1,3 +1,4 @@
+// Supplier registration form: splits it into steps with next/previous buttons.
 (() => {
     'use strict';
     const form = document.querySelector('.supplier-registration-form');

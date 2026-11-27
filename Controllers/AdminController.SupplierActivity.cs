@@ -6,6 +6,7 @@ using SourcingTenderManagement.Services.Reports.Data;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Admin page that shows what each supplier has done (invitations, offers, awards).
 public partial class AdminController
 {
     [HttpGet, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a bank guarantee or warranty attached to an offer.
 public sealed class BidGuarantee
 {
     public int BidGuaranteeId { get; set; }

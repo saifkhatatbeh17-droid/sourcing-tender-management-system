@@ -8,6 +8,7 @@ using Microsoft.Extensions.Primitives;
 
 namespace SourcingTenderManagement.ViewComponents;
 
+// View component: the notification bell in the top bar, with the unread count and latest messages.
 public class NotificationBellViewComponent(ApplicationDbContext db) : ViewComponent
 {
     public async Task<IViewComponentResult> InvokeAsync()

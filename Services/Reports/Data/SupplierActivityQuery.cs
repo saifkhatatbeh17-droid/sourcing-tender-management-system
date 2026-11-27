@@ -4,6 +4,7 @@ using SourcingTenderManagement.Models;
 
 namespace SourcingTenderManagement.Services.Reports.Data;
 
+// Counts each supplier's invitations, offers and awards (used by the supplier reports).
 public sealed class SupplierActivityQuery(ApplicationDbContext db)
 {
     public async Task<ILookup<int, SupplierTenderActivity>> ReadAsync(IQueryable<int> tenderIds,

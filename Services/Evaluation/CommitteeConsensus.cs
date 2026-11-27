@@ -3,6 +3,7 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Services.Evaluation;
 
+// Each committee member proposes a financial/technical weight; when all four agree, the weights are locked.
 public static class CommitteeConsensus
 {
     public static string? ConfirmWeight(CommitteeEvaluationPage page, decimal? financialWeight, DateTime now)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.Reports;
 namespace SourcingTenderManagement.Controllers;
+// Sourcing Officer PDF downloads: the tender report and the evaluation report.
 public partial class SourcingOfficerController
 {
     [HttpGet]

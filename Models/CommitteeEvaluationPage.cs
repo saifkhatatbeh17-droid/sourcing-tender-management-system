@@ -3,6 +3,8 @@ using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Models;
 
+// Everything the Evaluation Committee page needs for one tender: members, offers, scores, weights,
+// plus the scoring maths (price score, ranking).
 public class CommitteeEvaluationPage
 {
     public SourcingTenderManagement.Services.Evaluation.BidRecommendation? AiRecommendation { get; set; }

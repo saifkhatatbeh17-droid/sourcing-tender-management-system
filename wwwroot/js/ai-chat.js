@@ -1,3 +1,4 @@
+// Safi, the chat assistant in every workspace: opens the chat, sends questions, plays voice replies and handles attachments.
 (() => {
     const chat = document.querySelector("[data-ai-chat]");
     if (!chat) return;

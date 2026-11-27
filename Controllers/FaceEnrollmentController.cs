@@ -10,6 +10,7 @@ using SourcingTenderManagement.Services.FaceEnrollment;
 
 namespace SourcingTenderManagement.Controllers;
 
+// Lets a signed-in user register (or remove) their face for face sign-in.
 [Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class FaceEnrollmentController(FaceEnrollmentService enrollment) : Controller

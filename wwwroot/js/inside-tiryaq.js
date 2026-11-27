@@ -1,3 +1,4 @@
+// Public 'How it works' page: the interactive campus map.
 import { createCityScene } from './tiryaq-city-scene.js';
 
 const page = document.querySelector('[data-campus]');

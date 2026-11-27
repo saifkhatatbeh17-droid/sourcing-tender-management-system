@@ -2,6 +2,7 @@ using SourcingTenderManagement.Data;
 
 namespace SourcingTenderManagement.Models.Entities;
 
+// Database table: a supplier company's profile and approval status.
 public class SupplierProfile
 {
     public int SupplierProfileId { get; set; }
