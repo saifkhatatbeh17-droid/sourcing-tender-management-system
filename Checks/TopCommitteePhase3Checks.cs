@@ -289,7 +289,8 @@ public static class TopCommitteePhase3Checks
             await File.WriteAllTextAsync(Path.Combine(output, "clarifications-error.html"), errorHtml);
             await File.WriteAllTextAsync(Path.Combine(output, "clarifications-long.html"), longHtml);
         }
-        Console.WriteLine($"PASS: {passed} Phase 3 clarification checks, in-memory command/race tests and real SQL lock serialization; no SQL fixture or production data writes.");
+        Console.WriteLine($"PASS: {passed} Phase 3 clarification checks, in-memory command/race tests and real SQL lock " +
+                $"serialization; no SQL fixture or production data writes.");
     }
 
     private static ClaimsPrincipal Actor(string id, string role) => new(new ClaimsIdentity(new[] {

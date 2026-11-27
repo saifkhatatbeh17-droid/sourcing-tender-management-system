@@ -33,7 +33,8 @@ public static class DatabaseChecks
         Require(await users.IsInRoleAsync(user, RoleNames.TopCommitteeMember1), "Individual approval role missing.");
         Require(!await users.IsInRoleAsync(user, RoleNames.Admin), "Unexpected administrator role.");
         await transaction.RollbackAsync();
-        Console.WriteLine("PASS: mapped schema matches migrations; live database reads including saved spec matches; Identity password validation; multiple committee roles. Test account rolled back.");
+        Console.WriteLine("PASS: mapped schema matches migrations; live database reads including saved spec matches; " +
+                "Identity password validation; multiple committee roles. Test account rolled back.");
     }
 
     private static void Require(bool condition, string message)

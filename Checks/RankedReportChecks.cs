@@ -100,7 +100,8 @@ public static class RankedReportChecks
                 .Contains("Supplier 4"), "AI received offers outside shortlist.");
             return Reply(new { winnerBidId = mode == "wrong-winner" ? 2 : 1, offers = ids.Select(id => new {
                 bidId = id, assessment = mode == "contradiction" ? "This supplier is cheaper despite the actual quotation facts, which must be ignored."
-                    : "The requested specification provides limited evidence of product suitability. Supplier documentation requires verification before purchase.",
+                    : "The requested specification provides limited evidence of product suitability. Supplier documentation " +
+                            "requires verification before purchase.",
                 caveats = "Confirm the requested quantities and packaging against the supplier documentation before making a purchase decision."
             }).ToArray() });
         }

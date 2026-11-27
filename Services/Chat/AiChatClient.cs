@@ -139,7 +139,8 @@ public sealed partial class AiChatClient(
             userProfile = snapshot.UserProfile,
             canDiscussAllWorkspaces = workspace == RoleNames.Admin,
             workspaceGuidance = workspace == RoleNames.Admin
-                ? AiChatPage.Guidance(RoleNames.Admin) + " Cross-role flow: Department -> Sourcing Officer -> Evaluation Committee (4 seats) -> Sourcing Manager -> CEO & Chiefs (4 seats) -> Award."
+                ? AiChatPage.Guidance(RoleNames.Admin) + " Cross-role flow: Department -> Sourcing Officer -> Evaluation Committee (4 seats) -> Sourcing " +
+                        "Manager -> CEO & Chiefs (4 seats) -> Award."
                 : AiChatPage.Guidance(workspace),
             navigationPages,
             authorizedTools = authorizedTools.Select(t => new { t.Name, t.Description, parameters = t.ParametersSchemaHint }),

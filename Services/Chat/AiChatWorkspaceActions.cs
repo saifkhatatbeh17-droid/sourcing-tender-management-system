@@ -37,13 +37,23 @@ public sealed class AiChatWorkspaceActions(
     {
         var allowedPages = workspace switch
         {
-            RoleNames.Department => "Dashboard | AiIntelligence | Create (New request) | Requests (Requests history) | Details (needs recordId) | Edit (needs recordId) | Clarifications | Profile",
-            RoleNames.SourcingOfficer => "Dashboard | AiIntelligence | Requests (Request Review, optional recordId) | Offers (Tender workspace, optional recordId=tenderId) | Create (New tender, optional recordId=requestId) | Comparison (optional recordId=tenderId) | Reports (Evaluation reports, optional recordId) | Clarifications | Profile",
-            RoleNames.EvaluationCommittee => "Dashboard | AiIntelligence | Evaluations (optional recordId=tenderId) | Reports (Combined Reports, optional recordId=tenderId) | Clarifications | Profile",
-            RoleNames.SourcingManager => "Dashboard | AiIntelligence | Submissions (Officer Submissions, optional recordId=reportId) | ChosenOffers (Chosen Offers) | Reports | Clarifications | Profile",
-            RoleNames.TopCommittee => "Dashboard | AiIntelligence | Decisions | TenderDetails (needs recordId=tenderId) | History (Tender History) | Reports | Clarifications | Profile",
-            RoleNames.Supplier => "Dashboard | Invitations | Invitation (needs recordId) | CreateOffer (needs recordId=invitationId) | Offers (My Offers) | Offer (needs recordId=bidId) | History | Clarifications | Profile",
-            RoleNames.Admin => "Dashboard | AiIntelligence | AiLog | Users | Departments | SupplierApplications | Suppliers | SupplierDetails (needs recordId) | SupplierActivity | ContactMessages | ContactMessageDetails (needs recordId) | Profile",
+            RoleNames.Department => "Dashboard | AiIntelligence | Create (New request) | Requests (Requests history) | Details " +
+                    "(needs recordId) | Edit (needs recordId) | Clarifications | Profile",
+            RoleNames.SourcingOfficer => "Dashboard | AiIntelligence | Requests (Request Review, optional recordId) | Offers (Tender " +
+                    "workspace, optional recordId=tenderId) | Create (New tender, optional recordId=requestId) " +
+                    "| Comparison (optional recordId=tenderId) | Reports (Evaluation reports, optional recordId) " +
+                    "| Clarifications | Profile",
+            RoleNames.EvaluationCommittee => "Dashboard | AiIntelligence | Evaluations (optional recordId=tenderId) | Reports (Combined " +
+                    "Reports, optional recordId=tenderId) | Clarifications | Profile",
+            RoleNames.SourcingManager => "Dashboard | AiIntelligence | Submissions (Officer Submissions, optional recordId=reportId) " +
+                    "| ChosenOffers (Chosen Offers) | Reports | Clarifications | Profile",
+            RoleNames.TopCommittee => "Dashboard | AiIntelligence | Decisions | TenderDetails (needs recordId=tenderId) | History " +
+                    "(Tender History) | Reports | Clarifications | Profile",
+            RoleNames.Supplier => "Dashboard | Invitations | Invitation (needs recordId) | CreateOffer (needs recordId=invitationId) " +
+                    "| Offers (My Offers) | Offer (needs recordId=bidId) | History | Clarifications | Profile",
+            RoleNames.Admin => "Dashboard | AiIntelligence | AiLog | Users | Departments | SupplierApplications | Suppliers " +
+                    "| SupplierDetails (needs recordId) | SupplierActivity | ContactMessages | ContactMessageDetails " +
+                    "(needs recordId) | Profile",
             _ => "Dashboard | Profile"
         };
 
@@ -51,16 +61,22 @@ public sealed class AiChatWorkspaceActions(
         {
             new(
                 "navigate_to_page",
-                $"Transfer/navigate the user's browser directly to an authorized page or record inside their {RoleNames.DisplayName(workspace)} workspace when they ask to open, go to, switch to, or transfer to a page.",
+                $"Transfer/navigate the user's browser directly to an authorized page or record inside their " +
+                        $"{RoleNames.DisplayName(workspace)} workspace when they ask to open, go to, switch to, or transfer to a page.",
                 $"{{\"page\":\"{allowedPages}\",\"recordId\":null}}"),
             new(
                 "inspect_record_details",
-                "Load complete live details of an authorized Tender, Purchase Request, or Supplier (items, specifications, quotations, compliance, scores, reports) so you can summarize or answer deep questions about any record by ID or title.",
+                "Load complete live details of an authorized Tender, Purchase Request, or Supplier (items, " +
+                        "specifications, quotations, compliance, scores, reports) so you can summarize or answer deep " +
+                        "questions about any record by ID or title.",
                 "{\"recordType\":\"tender|request|supplier\",\"id\":191,\"search\":\"optional title or company\"}"),
             new(
                 "export_downloadable_file",
-                "Generate downloadable PDF (.pdf) and/or Excel (.xlsx) files for a specific Tender, Purchase Request, full Workspace summary, or any custom summary/note/comparison requested by the user (including follow-ups like 'can I download it' or 'export this').",
-                "{\"scope\":\"tender|request|workspace|custom\",\"tenderId\":null,\"requestId\":null,\"search\":null,\"format\":\"both|pdf|excel\",\"title\":\"string\",\"executiveSummary\":\"detailed summary text\",\"highlights\":[\"bullet 1\"],\"columns\":[\"optional col 1\"],\"rows\":[[\"optional val 1\"]]}")
+                "Generate downloadable PDF (.pdf) and/or Excel (.xlsx) files for a specific Tender, Purchase " +
+                        "Request, full Workspace summary, or any custom summary/note/comparison requested by the user " +
+                        "(including follow-ups like 'can I download it' or 'export this').",
+                "{\"scope\":\"tender|request|workspace|custom\",\"tenderId\":null,\"requestId\":null,\"search\":null,\"format\":\"both|pdf|excel\",\"title\":\"string\",\"executiveSummary\":\"detailed " +
+                        "summary text\",\"highlights\":[\"bullet 1\"],\"columns\":[\"optional col 1\"],\"rows\":[[\"optional val 1\"]]}")
         };
 
         switch (workspace)
@@ -69,11 +85,13 @@ public sealed class AiChatWorkspaceActions(
                 list.Add(new(
                     "department_create_request",
                     "Create and submit a new Purchase Request for the user's department.",
-                    "{\"title\":\"string\",\"reason\":\"string\",\"priority\":\"Low|Normal|High|Urgent\",\"targetDate\":\"YYYY-MM-DD (optional)\",\"items\":[{\"itemName\":\"string\",\"quantity\":100,\"unit\":\"kg|vials|pcs|kits\",\"specifications\":\"string\"}]}"));
+                    "{\"title\":\"string\",\"reason\":\"string\",\"priority\":\"Low|Normal|High|Urgent\",\"targetDate\":\"YYYY-MM-DD " +
+                            "(optional)\",\"items\":[{\"itemName\":\"string\",\"quantity\":100,\"unit\":\"kg|vials|pcs|kits\",\"specifications\":\"string\"}]}"));
                 list.Add(new(
                     "department_update_request",
                     "Edit an existing Returned or unreviewed Submitted Purchase Request in the user's department (and automatically resubmit if Returned).",
-                    "{\"requestId\":1,\"title\":\"optional string\",\"reason\":\"optional string\",\"priority\":\"optional Low|Normal|High|Urgent\",\"targetDate\":\"optional YYYY-MM-DD\",\"items\":[{\"itemName\":\"string\",\"quantity\":100,\"unit\":\"string\",\"specifications\":\"string\"}]}"));
+                    "{\"requestId\":1,\"title\":\"optional string\",\"reason\":\"optional string\",\"priority\":\"optional " +
+                            "Low|Normal|High|Urgent\",\"targetDate\":\"optional YYYY-MM-DD\",\"items\":[{\"itemName\":\"string\",\"quantity\":100,\"unit\":\"string\",\"specifications\":\"string\"}]}"));
                 break;
 
             case RoleNames.SourcingOfficer:
@@ -84,25 +102,32 @@ public sealed class AiChatWorkspaceActions(
                 list.Add(new(
                     "officer_create_tender",
                     "Publish a new Tender from an eligible Purchase Request and invite approved suppliers.",
-                    "{\"requestId\":1,\"title\":\"optional string\",\"category\":\"optional string\",\"description\":\"optional string\",\"terms\":\"optional string\",\"closesInDays\":7}"));
+                    "{\"requestId\":1,\"title\":\"optional string\",\"category\":\"optional string\",\"description\":\"optional " +
+                            "string\",\"terms\":\"optional string\",\"closesInDays\":7}"));
                 list.Add(new(
                     "officer_review_compliance_and_handoff",
-                    "Mark one or all submitted supplier offers on the officer's tender as Compliant or NonCompliant, and optionally send compliant offers to the 4-member Evaluation Committee.",
-                    "{\"tenderId\":1,\"bidId\":null,\"decision\":\"Compliant|NonCompliant\",\"notes\":\"optional string\",\"markAllPendingCompliant\":true,\"sendToCommittee\":false,\"shortfallReason\":\"optional string if <3 offers on round 4\"}"));
+                    "Mark one or all submitted supplier offers on the officer's tender as Compliant or NonCompliant, " +
+                            "and optionally send compliant offers to the 4-member Evaluation Committee.",
+                    "{\"tenderId\":1,\"bidId\":null,\"decision\":\"Compliant|NonCompliant\",\"notes\":\"optional " +
+                            "string\",\"markAllPendingCompliant\":true,\"sendToCommittee\":false,\"shortfallReason\":\"optional " +
+                            "string if <3 offers on round 4\"}"));
                 list.Add(new(
                     "officer_review_committee_report",
-                    "Review a CommitteeApproved evaluation report on the officer's tender (Approve -> sends to Sourcing Manager; RequestEdits -> returns to committee; Reject -> cancels tender).",
+                    "Review a CommitteeApproved evaluation report on the officer's tender (Approve -> sends to " +
+                            "Sourcing Manager; RequestEdits -> returns to committee; Reject -> cancels tender).",
                     "{\"tenderId\":1,\"decision\":\"Approve|RequestEdits|Reject\",\"reason\":\"required for RequestEdits or Reject\"}"));
                 break;
 
             case RoleNames.EvaluationCommittee:
                 list.Add(new(
                     "evaluator_confirm_weight",
-                    "Confirm the current Evaluation Committee member's FinancialWeight whole-number percentage (1–99) on an UnderEvaluation tender (auto-initializing the 4 seats if needed).",
+                    "Confirm the current Evaluation Committee member's FinancialWeight whole-number percentage " +
+                            "(1–99) on an UnderEvaluation tender (auto-initializing the 4 seats if needed).",
                     "{\"tenderId\":1,\"financialWeight\":40}"));
                 list.Add(new(
                     "evaluator_score_offers",
-                    "Submit the current Evaluation Committee member's whole-number FinancialMark (0..FinancialWeightCap) and TechnicalMark (0..TechnicalWeightCap) plus optional comment for one or more compliant offers.",
+                    "Submit the current Evaluation Committee member's whole-number FinancialMark (0..FinancialWeightCap) " +
+                            "and TechnicalMark (0..TechnicalWeightCap) plus optional comment for one or more compliant offers.",
                     "{\"tenderId\":1,\"scores\":[{\"bidId\":1,\"financialMark\":36,\"technicalMark\":54,\"comment\":\"optional string\"}]}"));
                 list.Add(new(
                     "evaluator_resolve_tie",
@@ -110,7 +135,8 @@ public sealed class AiChatWorkspaceActions(
                     "{\"tenderId\":1,\"bidId\":1}"));
                 list.Add(new(
                     "evaluator_submit_report",
-                    "For Position 1 (Department Manager), finalize and submit the CommitteeApproved evaluation report to the Sourcing Officer once all 4 members have scored.",
+                    "For Position 1 (Department Manager), finalize and submit the CommitteeApproved evaluation " +
+                            "report to the Sourcing Officer once all 4 members have scored.",
                     "{\"tenderId\":1,\"summaryNote\":\"optional executive highlight\"}"));
                 break;
 
@@ -118,18 +144,23 @@ public sealed class AiChatWorkspaceActions(
                 list.Add(new(
                     "manager_decide_submission",
                     "Approve, Return for review, or Reject an evaluation report in Sourcing Manager review.",
-                    "{\"reportId\":1,\"tenderId\":null,\"decision\":\"Approved|ReturnedForReview|Rejected\",\"notes\":\"required when ReturnedForReview or Rejected, optional for Approved\"}"));
+                    "{\"reportId\":1,\"tenderId\":null,\"decision\":\"Approved|ReturnedForReview|Rejected\",\"notes\":\"required " +
+                            "when ReturnedForReview or Rejected, optional for Approved\"}"));
                 list.Add(new(
                     "manager_forward_to_ceo_chiefs",
-                    "Forward an evaluation report (auto-approving first if still OfficerSubmitted) with a policy referral reason to CEO & Chiefs for final award voting.",
+                    "Forward an evaluation report (auto-approving first if still OfficerSubmitted) with a policy " +
+                            "referral reason to CEO & Chiefs for final award voting.",
                     "{\"reportId\":1,\"tenderId\":null,\"reason\":\"string referral justification\"}"));
                 break;
 
             case RoleNames.TopCommittee:
                 list.Add(new(
                     "top_committee_cast_vote",
-                    "Cast the current CEO & Chiefs member's decision (Approved, RequestEdit to ask Sourcing Manager/Officer for edits or another offer, or Rejected to completely reject) on an assigned tender in AwaitingCommitteeDecision. Four approvals automatically award the tender.",
-                    "{\"tenderId\":1,\"decision\":\"Approved|RequestEdit|Rejected\",\"notes\":\"required when RequestEdit or Rejected, optional when Approved\"}"));
+                    "Cast the current CEO & Chiefs member's decision (Approved, RequestEdit to ask Sourcing Manager/Officer " +
+                            "for edits or another offer, or Rejected to completely reject) on an assigned tender in AwaitingCommitteeDecision. " +
+                            "Four approvals automatically award the tender.",
+                    "{\"tenderId\":1,\"decision\":\"Approved|RequestEdit|Rejected\",\"notes\":\"required when RequestEdit " +
+                            "or Rejected, optional when Approved\"}"));
                 break;
 
             case RoleNames.Supplier:
@@ -139,8 +170,10 @@ public sealed class AiChatWorkspaceActions(
                     "{\"invitationId\":1,\"tenderId\":null,\"decision\":\"Accepted|Declined\"}"));
                 list.Add(new(
                     "supplier_upsert_offer",
-                    "Create or update this supplier's quotation (offer) in JOD on an open tender invitation (auto-accepts Pending invitation if needed) and save as Draft or Submitted.",
-                    "{\"invitationId\":1,\"tenderId\":null,\"deliveryDays\":14,\"paymentTerms\":\"30 days net\",\"technicalDetails\":\"GMP CoA included\",\"taxPercentage\":4,\"additionalCosts\":50,\"defaultUnitPrice\":12.5,\"items\":[{\"purchaseRequestItemId\":1,\"unitPrice\":12.5,\"specifications\":\"optional\"}],\"submit\":true}"));
+                    "Create or update this supplier's quotation (offer) in JOD on an open tender invitation (auto-accepts " +
+                            "Pending invitation if needed) and save as Draft or Submitted.",
+                    "{\"invitationId\":1,\"tenderId\":null,\"deliveryDays\":14,\"paymentTerms\":\"30 days net\",\"technicalDetails\":\"GMP " +
+                            "CoA included\",\"taxPercentage\":4,\"additionalCosts\":50,\"defaultUnitPrice\":12.5,\"items\":[{\"purchaseRequestItemId\":1,\"unitPrice\":12.5,\"specifications\":\"optional\"}],\"submit\":true}"));
                 list.Add(new(
                     "supplier_withdraw_offer",
                     "Withdraw (cancel) this supplier's submitted offer on an active open tender before the deadline.",
@@ -158,7 +191,8 @@ public sealed class AiChatWorkspaceActions(
                     "{\"supplierProfileId\":1,\"companyName\":\"optional string\",\"status\":\"Approved|ChangesRequested|Rejected|Suspended\",\"notes\":\"string\"}"));
                 list.Add(new(
                     "admin_update_user",
-                    "Update an account's FullName, IsActive status, DepartmentId, or PhoneNumber (protects current admin and active committee position uniqueness).",
+                    "Update an account's FullName, IsActive status, DepartmentId, or PhoneNumber (protects current " +
+                            "admin and active committee position uniqueness).",
                     "{\"email\":\"user@tiryaq.com\",\"fullName\":\"optional string\",\"isActive\":true,\"departmentId\":null,\"phoneNumber\":\"optional string\"}"));
                 list.Add(new(
                     "admin_mark_contact_messages",
@@ -474,7 +508,8 @@ public sealed class AiChatWorkspaceActions(
         return new(
             true,
             true,
-            $"Created and submitted Purchase Request #{request.PurchaseRequestId} ('{request.Title}', Priority: {request.Priority}, Target: {request.TargetDate:yyyy-MM-dd}, {request.PurchaseRequestItems.Count} item(s)).",
+            $"Created and submitted Purchase Request #{request.PurchaseRequestId} ('{request.Title}', Priority: " +
+                    $"{request.Priority}, Target: {request.TargetDate:yyyy-MM-dd}, {request.PurchaseRequestItems.Count} item(s)).",
             $"/Department/Details/{request.PurchaseRequestId}",
             $"Open Request #{request.PurchaseRequestId}");
     }
@@ -543,7 +578,8 @@ public sealed class AiChatWorkspaceActions(
         return new(
             true,
             true,
-            $"Updated {(wasReturned ? "and resubmitted " : "")}Purchase Request #{request.PurchaseRequestId} ('{request.Title}', Priority: {request.Priority}, Target: {request.TargetDate:yyyy-MM-dd}).",
+            $"Updated {(wasReturned ? "and resubmitted " : "")}Purchase Request #{request.PurchaseRequestId} " +
+                    $"('{request.Title}', Priority: {request.Priority}, Target: {request.TargetDate:yyyy-MM-dd}).",
             $"/Department/Details/{request.PurchaseRequestId}",
             $"Open Request #{request.PurchaseRequestId}");
     }
@@ -704,7 +740,8 @@ public sealed class AiChatWorkspaceActions(
         return new(
             true,
             true,
-            $"Published Tender #{tender.TenderId} ('{tender.Title}', category '{tender.Category}') from Request #{req.PurchaseRequestId} and invited {matchedSuppliers.Count} approved supplier(s).",
+            $"Published Tender #{tender.TenderId} ('{tender.Title}', category '{tender.Category}') from " +
+                    $"Request #{req.PurchaseRequestId} and invited {matchedSuppliers.Count} approved supplier(s).",
             $"/SourcingOfficer/Offers?tenderId={tender.TenderId}",
             $"Open Tender #{tender.TenderId}");
     }
@@ -810,7 +847,8 @@ public sealed class AiChatWorkspaceActions(
             if (compliantSuppliers < TenderOfferExtension.RequiredCompliantOffers || round > 1)
                 return new(false,
                     false,
-                    $"Tender #{tenderId} deadline has not passed yet ({tender.ClosesAt:yyyy-MM-dd HH:mm} UTC). At least 3 compliant suppliers on Round 1 are required to close early.");
+                    $"Tender #{tenderId} deadline has not passed yet ({tender.ClosesAt:yyyy-MM-dd HH:mm} UTC). At " +
+                            $"least 3 compliant suppliers on Round 1 are required to close early.");
             if (tender.OpensAt >= now) tender.OpensAt = now.AddMinutes(-5);
             tender.ClosesAt = now;
         }
@@ -822,7 +860,8 @@ public sealed class AiChatWorkspaceActions(
         {
             return new(false,
                 false,
-                $"Tender #{tenderId} currently has {compliantSuppliers} compliant supplier(s) on round {round} (standard handoff requires 3, or round 4 with a shortfallReason).");
+                $"Tender #{tenderId} currently has {compliantSuppliers} compliant supplier(s) on round {round} " +
+                        $"(standard handoff requires 3, or round 4 with a shortfallReason).");
         }
 
         tender.OfferShortfallReason = compliantSuppliers < TenderOfferExtension.RequiredCompliantOffers ? shortfallReason : null;
@@ -837,7 +876,8 @@ public sealed class AiChatWorkspaceActions(
         return new(
             true,
             true,
-            $"Reviewed compliance and handed off Tender #{tenderId} ('{tender.Title}') with {compliantSuppliers} compliant supplier offer(s) to the 4-member Evaluation Committee.",
+            $"Reviewed compliance and handed off Tender #{tenderId} ('{tender.Title}') with {compliantSuppliers} " +
+                    $"compliant supplier offer(s) to the 4-member Evaluation Committee.",
             $"/SourcingOfficer/Offers?tenderId={tenderId}",
             $"Open Tender #{tenderId}");
     }
@@ -916,7 +956,8 @@ public sealed class AiChatWorkspaceActions(
         return new(
             true,
             true,
-            $"Recorded officer decision '{decision}' on Evaluation Report #{report.EvaluationReportId} for Tender #{tenderId} (new tender status: '{tender.Status}').",
+            $"Recorded officer decision '{decision}' on Evaluation Report #{report.EvaluationReportId} for " +
+                    $"Tender #{tenderId} (new tender status: '{tender.Status}').",
             $"/SourcingOfficer/Reports/{report.EvaluationReportId}",
             $"Open Report #{report.EvaluationReportId}");
     }
@@ -1125,7 +1166,8 @@ public sealed class AiChatWorkspaceActions(
         var topRow = ranking.First(r => r.BidId == winBidId);
 
         var header =
-            $"Recommended offer\n**{winnerName}** (Offer #{winBidId}) is recommended with the highest four-member average score ({topRow.Score:0.##} / 100) at {CommitteeEvaluationPage.Total(winner):N2} {winner.Currency}.\n\n" +
+            $"Recommended offer\n**{winnerName}** (Offer #{winBidId}) is recommended with the highest four-member " +
+                    $"average score ({topRow.Score:0.##} / 100) at {CommitteeEvaluationPage.Total(winner):N2} {winner.Currency}.\n\n" +
             (string.IsNullOrWhiteSpace(summaryNote) ? "" : $"Conclusion\n{summaryNote}\n\n");
 
         tender.EvaluationReport.CommitteeSummary = header + AllOfferScoring.Report(page);
@@ -1138,7 +1180,8 @@ public sealed class AiChatWorkspaceActions(
         return new(
             true,
             true,
-            $"Generated and submitted CommitteeApproved Report #{tender.EvaluationReport.EvaluationReportId} for Tender #{tenderId} recommending {winnerName} (Offer #{winBidId}). Sent to Sourcing Officer for summary review.",
+            $"Generated and submitted CommitteeApproved Report #{tender.EvaluationReport.EvaluationReportId} " +
+                    $"for Tender #{tenderId} recommending {winnerName} (Offer #{winBidId}). Sent to Sourcing Officer for summary review.",
             $"/EvaluationCommittee/Reports/{tenderId}",
             $"Open Combined Report #{tenderId}");
     }
@@ -1178,7 +1221,8 @@ public sealed class AiChatWorkspaceActions(
             || report.Status is not ("OfficerSubmitted" or "CommitteeApproved"))
             return new(false,
                 false,
-                $"Submission #{report.EvaluationReportId} is currently '{report.Status}' (tender '{report.Tender.Status}') and not awaiting a manager decision.");
+                $"Submission #{report.EvaluationReportId} is currently '{report.Status}' (tender '{report.Tender.Status}') " +
+                        $"and not awaiting a manager decision.");
 
         if (await db.Clarifications.AnyAsync(c => c.Status != "Resolved"
             && (c.TenderId == report.TenderId || (c.Bid != null && c.Bid.TenderId == report.TenderId)), ct))
@@ -1332,7 +1376,8 @@ public sealed class AiChatWorkspaceActions(
         return new(
             true,
             true,
-            $"Approved and forwarded Tender #{tender.TenderId} ('{tender.Title}', nominating {winningOffer.Invitation.SupplierProfile.CompanyName} — Offer #{winningOffer.BidId}) to CEO & Chiefs for final voting.",
+            $"Approved and forwarded Tender #{tender.TenderId} ('{tender.Title}', nominating {winningOffer.Invitation.SupplierProfile.CompanyName} " +
+                    $"— Offer #{winningOffer.BidId}) to CEO & Chiefs for final voting.",
             "/SourcingManager/Submissions",
             "Open Submissions");
     }
@@ -1580,7 +1625,9 @@ public sealed class AiChatWorkspaceActions(
         return new(
             true,
             true,
-            $"{(wantSubmit ? "Submitted" : "Saved Draft")} Offer #{bid.BidId} on Tender #{inv.TenderId} ('{inv.Tender.Title}') totaling {total:N2} JOD (subtotal {subtotal:N2} + tax {bid.TaxAmount:N2} + extra {bid.AdditionalCosts:N2}, {bid.DeliveryDays}-day delivery).{docNote}",
+            $"{(wantSubmit ? "Submitted" : "Saved Draft")} Offer #{bid.BidId} on Tender #{inv.TenderId} " +
+                    $"('{inv.Tender.Title}') totaling {total:N2} JOD (subtotal {subtotal:N2} + tax {bid.TaxAmount:N2} " +
+                    $"+ extra {bid.AdditionalCosts:N2}, {bid.DeliveryDays}-day delivery).{docNote}",
             $"/Supplier/Offer/{bid.BidId}",
             $"Open Offer #{bid.BidId}");
     }

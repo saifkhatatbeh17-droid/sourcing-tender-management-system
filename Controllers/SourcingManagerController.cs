@@ -297,7 +297,8 @@ public partial class SourcingManagerController : Controller
                     department = report.Tender.PurchaseRequest.Department.Name, report.Tender.PurchaseRequest.Priority, report.Tender.PurchaseRequest.TargetDate,
                     items = report.Tender.PurchaseRequest.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId)
                         .Select(i => new { i.PurchaseRequestItemId, i.ItemName, i.Quantity, i.Unit, i.Specifications }) },
-                outputScope = "Summarize only the first-ranked winning offer. The full top-three committee report is retained separately for reference, not summarized here.",
+                outputScope = "Summarize only the first-ranked winning offer. The full top-three committee report is retained " +
+                        "separately for reference, not summarized here.",
                 selectionBasis = winnerMarks.Count == 4 ? "Highest recorded committee score after every offer received four member reviews." : "Recorded committee recommendation.",
                 winningScore = winnerMarks.Count == 4 ? winnerMarks.Average(e => e.FinancialMark!.Value + e.TechnicalMark!.Value) : (decimal?)null,
                 offer = new { report.Bid.BidId, supplier = report.Bid.Invitation.SupplierProfile.CompanyName,

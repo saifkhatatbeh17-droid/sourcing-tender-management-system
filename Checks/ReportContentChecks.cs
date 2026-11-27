@@ -11,7 +11,8 @@ public static class ReportContentChecks
     public static async Task RunAsync()
     {
         void Check(bool value, string label) { if (!value) throw new Exception(label); }
-        var blocks = ReportContent.Parse("Chosen offer\r\nSupplier: 1,123.00 JOD\r\n\r\n## Financial review\n- Higher cost\n- Faster delivery\n\nConclusion\n<script>alert(1)</script>");
+        var blocks = ReportContent.Parse("Chosen offer\r\nSupplier: 1,123.00 JOD\r\n\r\n## Financial review\n- Higher cost\n- Faster " +
+                "delivery\n\nConclusion\n<script>alert(1)</script>");
         Check(blocks.Count(b => b.Kind == "heading") == 3
             && blocks
             .Single(b => b.Kind == "list").Lines.Length == 2, "Report sections or list parsing failed.");
@@ -90,7 +91,8 @@ public static class ReportContentChecks
         catch (InvalidOperationException) { }
         // A sentence the validator rejects is removed on its own; accurate sentences around it survive.
         var (cleaned, removedCount) = BidNarrativeValidation.Sanitize(page, 2,
-            "Cedar Pharmacy Wholesale is cheapest. Rimal Pharmaceutical Distribution is cheaper than Cedar Pharmacy Wholesale. The warranty is stated by the supplier.");
+            "Cedar Pharmacy Wholesale is cheapest. Rimal Pharmaceutical Distribution is cheaper than Cedar " +
+                    "Pharmacy Wholesale. The warranty is stated by the supplier.");
         Check(removedCount == 1 && cleaned.Contains("is cheapest") && cleaned.Contains("warranty is stated")
             && !cleaned.Contains("Rimal Pharmaceutical Distribution is cheaper"), $"Sanitize must drop only the contradicting sentence, got '{cleaned}' ({removedCount} removed).");
         // Validate checks the sections joined, where the "current offer" carries from one sentence to the next.
@@ -119,10 +121,14 @@ public static class ReportContentChecks
 
     internal static string StructuredResponse(BidRecommendation result) => JsonSerializer.Serialize(new {
         scenarios = result.Scenarios.Select(s => new { s.FinancialWeight, s.RecommendedBidId, reason = new {
-            decisionBasis = "The recommendation uses the saved financial and technical percentages to balance the documented offer details. Committee members still make the final supplier choice.",
-            costAndTerms = "The complete offer totals, including stated taxes and fees, are the basis for cost comparison. The lower priced alternative offers a financial advantage that must be acknowledged.",
-            technicalFitAndDelivery = "Delivery and documented product specifications must be checked against the actual requested requirements. Faster delivery is an advantage only to the extent that it serves the documented need.",
-            tradeoffsAndLimitations = "Supplier statements remain claims to verify before purchase. Missing evidence must be disclosed, and no unsupported urgency, budget or technical superiority should be invented."
+            decisionBasis = "The recommendation uses the saved financial and technical percentages to balance the documented " +
+                    "offer details. Committee members still make the final supplier choice.",
+            costAndTerms = "The complete offer totals, including stated taxes and fees, are the basis for cost comparison. " +
+                    "The lower priced alternative offers a financial advantage that must be acknowledged.",
+            technicalFitAndDelivery = "Delivery and documented product specifications must be checked against the actual requested " +
+                    "requirements. Faster delivery is an advantage only to the extent that it serves the documented need.",
+            tradeoffsAndLimitations = "Supplier statements remain claims to verify before purchase. Missing evidence must be disclosed, " +
+                    "and no unsupported urgency, budget or technical superiority should be invented."
         }}), result.MissingInformation, result.Comparisons, result.Report
     }, BidRecommendationService.Json);
 
@@ -145,7 +151,8 @@ public static class ReportContentChecks
             var result = new BidRecommendation([new(50, 1, "Decision basis\nFaster delivery carries a higher total cost; the committee must weigh this tradeoff.")], [],
                 [new(1, "Faster delivery", "Higher total cost"), new(2, "Lower total cost", "Slower delivery")], "Chosen offer\nOffer #1");
             var response = System.Text.Json.Nodes.JsonNode.Parse(StructuredResponse(result))!;
-            if (Calls == 1) response["scenarios"]![0]!["reason"]!["technicalFitAndDelivery"] = "This alternative has a 7-day delivery, which is faster than the other supplier's three-day delivery. This is a technical advantage to review against the actual requested requirements.";
+            if (Calls == 1) response["scenarios"]![0]!["reason"]!["technicalFitAndDelivery"] = "This alternative has a 7-day delivery, which is faster than the other supplier's three-day " +
+                    "delivery. This is a technical advantage to review against the actual requested requirements.";
             return new(HttpStatusCode.OK) { Content = JsonContent.Create(new {
                 choices = new[] { new { finish_reason = "stop", message = new { content = response.ToJsonString() } } }
             }) };

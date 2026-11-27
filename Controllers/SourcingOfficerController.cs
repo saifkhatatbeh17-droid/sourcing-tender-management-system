@@ -1103,7 +1103,8 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         report.RecommendedBidId = chosenBid.BidId;
 
         var summaryLine = switchedOffer
-            ? $"Selected alternative compliant offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}) instead of offer #{previousBidId}. Officer response: {trimmed}"
+            ? $"Selected alternative compliant offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}) " +
+                    $"instead of offer #{previousBidId}. Officer response: {trimmed}"
             : $"Confirmed offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}). Officer response: {trimmed}";
 
         tender.TopEditOfficerNotes = summaryLine;
@@ -1128,7 +1129,8 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
                 UserId = mgrId,
                 Title = switchedOffer ? "Sourcing Officer selected an alternative offer" : "Sourcing Officer answered edit request",
                 Message = switchedOffer
-                    ? $"Tender #{tenderId}: Officer chose compliant offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}) and answered the edit request."
+                    ? $"Tender #{tenderId}: Officer chose compliant offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}) " +
+                            $"and answered the edit request."
                     : $"Tender #{tenderId}: Officer answered the CEO & Chiefs edit request and returned it to you.",
                 RelativeUrl = $"/SourcingManager/Submissions?rejectedTenderId={tenderId}&showRejections=true",
                 CreatedAt = DateTime.UtcNow
@@ -1139,7 +1141,8 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         await transaction.CommitAsync();
 
         TempData["EvaluationSuccess"] = switchedOffer
-            ? $"Selected alternative offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}) and sent your response back to the Sourcing Manager."
+            ? $"Selected alternative offer #{chosenBid.BidId} ({chosenBid.Invitation.SupplierProfile.CompanyName}) " +
+                    $"and sent your response back to the Sourcing Manager."
             : "Sent your answer back to the Sourcing Manager to continue the CEO & Chiefs cycle.";
         return RedirectToAction(nameof(Offers), new { tenderId });
     }

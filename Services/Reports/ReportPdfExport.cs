@@ -107,7 +107,8 @@ public static class ReportPdfExport
         r.Field("Approved positions",approvals.Count(a=>a.Stage=="Evaluation"&&a.Decision=="Approved").ToString());r
             .Field("Criteria",criteria.Count.ToString());
         r.Heading("Committee Assignments");
-        r.Text($"Submitted or approved evaluator positions: {assignments.Count(a=>evaluations.Any(e=>e.CommitteeAssignmentId==a.CommitteeAssignmentId&&e.Status is "Submitted" or "Approved"))} of {assignments.Count}.");
+        r.Text($"Submitted or approved evaluator positions: {assignments.Count(a=>evaluations.Any(e=>e.CommitteeAssignmentId==a.CommitteeAssignmentId&&e.Status is "Submitted" or "Approved"))} " +
+                $"of {assignments.Count}.");
         r.Rows(["Position","Committee Member","Evaluation Records","Progress"],[2,10,5,9.7],assignments.Select(a=>
         {
             var records=evaluations.Where(e=>e.CommitteeAssignmentId==a.CommitteeAssignmentId).ToList();
@@ -116,7 +117,8 @@ public static class ReportPdfExport
             return new[]{a.Position.ToString(),a.User.FullName,records.Count.ToString(),progress};
         }),"No Evaluation committee assignments are recorded for this Tender.");
         r.Heading("Committee Approval Handoff");
-        r.Text($"Recorded Evaluation approvals: {assignments.Count(a=>approvals.Any(p=>p.CommitteeAssignmentId==a.CommitteeAssignmentId&&p.Stage=="Evaluation"&&p.Decision=="Approved"))} of {assignments.Count} assigned positions.");
+        r.Text($"Recorded Evaluation approvals: {assignments.Count(a=>approvals.Any(p=>p.CommitteeAssignmentId==a.CommitteeAssignmentId&&p.Stage=="Evaluation"&&p.Decision=="Approved"))} " +
+                $"of {assignments.Count} assigned positions.");
         r.Rows(["Position","Committee Member","Decision","Notes","Decided (UTC)"],[2,6,3,11.7,4],
             approvals.Select(a=>new[]{a.CommitteeAssignment?.Position.ToString()??"-",a.User.FullName,a.Decision,a.Notes??"",Date(a.DecidedAt)}),"No committee approval decisions are recorded yet.");
         r.Text("The committee report reaches you after all four members approve and the final report is generated.");
@@ -160,7 +162,8 @@ public static class ReportPdfExport
         if(recommended!=null)
         {
             r.Text(recommended.Invitation.SupplierProfile.CompanyName);
-            r.Text($"Offer #{recommended.BidId} - {CommitteeEvaluationPage.Total(recommended):N2} {recommended.Currency} - {recommended.DeliveryDays}-day delivery");
+            r.Text($"Offer #{recommended.BidId} - {CommitteeEvaluationPage.Total(recommended):N2} {recommended.Currency} " +
+                    $"- {recommended.DeliveryDays}-day delivery");
         }
         else r.Text("No offer recommended yet");
         r.Heading("Committee report");r
@@ -276,7 +279,8 @@ public static class ReportPdfExport
             .Field("Nominated bid",nominated==null?"No submitted nomination is available.":$"{nominated.SupplierName} - Bid #{nominated.BidId}");r
             .Field("Recommendation",CommitteeDisplay.Text(report.ManagerSummary));
         r.Heading("Bid comparison");r
-            .Text("Totals include item prices, taxes and additional costs in each bid's own currency. Evaluation scores are shown as recorded; no currency conversion or combined ranking is applied.");
+            .Text("Totals include item prices, taxes and additional costs in each bid's own currency. Evaluation " +
+                    "scores are shown as recorded; no currency conversion or combined ranking is applied.");
         r.Rows(["Supplier / bid","Total","Delivery","Compliance","Evaluation results"],[5,4,2.5,4,11.2],t.Bids.Select(b=>new[]{
             $"{b.SupplierName}\nBid #{b.BidId} - {CommitteeDisplay.Status(b.Status)}"+(b.IsNominated?"\nManager nominated":""),$"{CommitteeDisplay.Money(b.Total)} {b.Currency}",$"{b.DeliveryDays} days",CommitteeDisplay.Status(b.ComplianceStatus),
             b.Evaluations.Count==0?"No submitted evaluation results":string.Join("\n",b.Evaluations.Select(e=>$"{e.Evaluator} - {CommitteeDisplay.Status(e.Status)}\n"+(e.Scores.Count==0?"No scores recorded":string.Join("\n",e.Scores.Select(s=>$"{(s.Category=="Requirements"?"Technical":s.Category)}: {s.Criterion} - {CommitteeDisplay.Quantity(s.Score)}/{CommitteeDisplay.Quantity(s.Maximum)}")))))}),"No submitted bids are available for this tender.");

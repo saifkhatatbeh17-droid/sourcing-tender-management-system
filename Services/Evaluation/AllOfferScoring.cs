@@ -88,11 +88,14 @@ public static class AllOfferScoring
         var lines = new List<string> { "Offer score comparison" };
         lines.Add("Each offer’s total is the exact arithmetic mean of four financial-plus-technical reviews. Highest total progresses to the report step.");
         if (Leaders(page).Count > 1) lines.Add("Equal highest scores were resolved by four unanimous committee decisions; original marks remain unchanged.");
-        foreach (var row in Ranking(page)) lines.Add($"Offer #{row.BidId} — {row.Supplier}: financial {row.Financial:0.##} / {page.FinancialWeight:0}; technical {row.Requirements:0.##} / {page.TechnicalWeight:0}; overall {row.Score:0.##} / 100.");
+        foreach (var row in Ranking(page)) lines.Add($"Offer #{row.BidId} — {row.Supplier}: financial {row.Financial:0.##} / {page.FinancialWeight:0}; " +
+                $"technical {row.Requirements:0.##} / {page.TechnicalWeight:0}; overall {row.Score:0.##} / 100.");
         lines.Add("\nMember reviews");
         foreach (var offer in page.Offers) foreach (var member in page.Members)
         { var review = page.Evaluation(member, offer)!; lines
-            .Add($"\nOffer #{offer.BidId} — {CommitteeEvaluationPage.MemberName(member.Position)}\nFinancial: {review.FinancialMark:0} / {page.FinancialWeight:0}; technical: {review.TechnicalMark:0} / {page.TechnicalWeight:0}\nComment: {review.Notes ?? "No comment provided."}"); }
+            .Add($"\nOffer #{offer.BidId} — {CommitteeEvaluationPage.MemberName(member.Position)}\nFinancial: " +
+                    $"{review.FinancialMark:0} / {page.FinancialWeight:0}; technical: {review.TechnicalMark:0} / " +
+                    $"{page.TechnicalWeight:0}\nComment: {review.Notes ?? "No comment provided."}"); }
         var rounds = SourcingTenderManagement.Services.Reports.OfferRoundContext.Describe(page.Tender!);
         if (rounds.Length > 0) lines.Add("\n" + rounds);
         return string.Join("\n", lines);

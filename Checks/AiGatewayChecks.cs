@@ -137,7 +137,8 @@ public static class AiGatewayChecks
         Require(AiGateway.PromptVersion("a") == AiGateway.PromptVersion("a") && AiGateway.PromptVersion("a") != AiGateway.PromptVersion("b"),
             "Prompt versions must follow the system prompt text.");
 
-        Console.WriteLine("PASS: AI gateway logs every call, flags schema drift without rejecting, limits interactive use only, passes errors and cancellation through, survives log failures and fences untrusted text.");
+        Console.WriteLine("PASS: AI gateway logs every call, flags schema drift without rejecting, limits interactive " +
+                "use only, passes errors and cancellation through, survives log failures and fences untrusted text.");
     }
 
     private static AiRequest Request(string feature, bool interactive = false, int? recordId = null, string? workspace = "Tester") =>

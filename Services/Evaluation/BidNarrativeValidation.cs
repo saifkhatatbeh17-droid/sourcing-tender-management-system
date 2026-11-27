@@ -82,7 +82,9 @@ public static class BidNarrativeValidation
                             _ => true
                         };
                         if (!ok)
-                            throw new InvalidOperationException($"The claim '{claim.Value}' for competing offers against offer #{anchor.BidId} contradicts the saved {(isDeliveryOther ? "delivery days" : "complete quote totals")}. Follow comparisonStatements; do not reverse the comparison.");
+                            throw new InvalidOperationException($"The claim '{claim.Value}' for competing offers against offer #{anchor.BidId} contradicts the " +
+                                    $"saved {(isDeliveryOther ? "delivery days" : "complete quote totals")}. Follow comparisonStatements; " +
+                                    $"do not reverse the comparison.");
                     }
                     continue;
                 }
@@ -132,7 +134,8 @@ public static class BidNarrativeValidation
                 if (Regex.IsMatch(prefix, @"\b(?:not|isn't|aren't|doesn't|does not|never|no|without)\b(?:\s+(?:a|an|the|be|have|any|materially|significantly))*\s+$", RegexOptions.IgnoreCase) ||
                     (Regex.IsMatch(prefix, @"\bneither\b", RegexOptions.IgnoreCase) && Regex.IsMatch(prefix, @"\bnor\b", RegexOptions.IgnoreCase)))
                     valid = !valid;
-                if (!valid) throw new InvalidOperationException($"The claim '{claim.Value}' for offer #{bid.BidId} contradicts the saved {(delivery ? "delivery days" : "complete quote totals")}. Follow comparisonStatements; do not reverse the comparison.");
+                if (!valid) throw new InvalidOperationException($"The claim '{claim.Value}' for offer #{bid.BidId} contradicts the saved {(delivery ? "delivery days" : "complete quote totals")}. " +
+                        $"Follow comparisonStatements; do not reverse the comparison.");
             }
             if (!directComparison && mentions.Count > 0) subject = mentions[0].Bid;
         }

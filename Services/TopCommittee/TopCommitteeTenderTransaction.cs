@@ -22,7 +22,8 @@ public sealed class TopCommitteeTenderTransaction(DbContextOptions<ApplicationDb
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
         try
         {
-            await using (var command = Command(db, "DECLARE @result int; EXEC @result = sys.sp_getapplock @Resource=@resource, @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000; SELECT @result;"))
+            await using (var command = Command(db, "DECLARE @result int; EXEC @result = sys.sp_getapplock @Resource=@resource, @LockMode='Exclusive', " +
+                    "@LockOwner='Transaction', @LockTimeout=10000; SELECT @result;"))
             {
                 Add(command, "@resource", Resource(tenderId));
                 var result = Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));

@@ -114,7 +114,9 @@ public static class SimplifiedCycleChecks
                 && r.RecommendedBidId == null), "Manual choice not preserved");
             await Controller().ReviewAndSend(tenderId, new() { [bid.BidId] = "Compliant" }); db.ChangeTracker.Clear();
             Require(await db.CommitteeAssignments.CountAsync(a => a.TenderId == tenderId) == 4, "Duplicate assignments");
-            Console.WriteLine("PASS: combined approval/publish/invite; invalid launch and ownership rollback; incomplete review and clarification blockers; automatic four-member setup/weights/report; no automatic supplier selection; repeat handoff guard.");
+            Console.WriteLine("PASS: combined approval/publish/invite; invalid launch and ownership rollback; incomplete " +
+                    "review and clarification blockers; automatic four-member setup/weights/report; no automatic " +
+                    "supplier selection; repeat handoff guard.");
         }
         finally
         {

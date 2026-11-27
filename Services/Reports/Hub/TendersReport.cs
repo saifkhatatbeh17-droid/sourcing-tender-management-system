@@ -158,11 +158,18 @@ public sealed class TendersReport(ApplicationDbContext db, IConfiguration config
             .Skip(export ? 0 : (query.Page - 1) * 25).Take(export ? ReportExport.MaximumRows : 25).ToListAsync(ct);
         var notes = new List<string>(messages)
         {
-            "Dates are UTC. Date filters select tenders by CreatedAt and restrict counted invitations by SentAt and offers by SubmittedAt. Supplier filters restrict these counts to that supplier.",
-            "Participation = submitted, non-withdrawn offers / invitations × 100. A missing invitation denominator is unavailable. Offers without SubmittedAt and withdrawn offers are excluded, matching AI Intelligence's received-offer definition; event date filters can produce a rate above 100%.",
-            "Zero-offer tenders have a passed closing date and no submitted, non-withdrawn offers from any supplier at any time. Unlike AI Intelligence's general zero-offer count, future deadlines are excluded.",
-            $"Actual evaluation delay is unavailable: the schema has no evaluation due date or stage-start timestamp. The >{warningDays}-day age warning uses ClosesAt while Status is UnderEvaluation, not an SLA or a proven delay. Completed evaluations are not flagged.",
-            "KPIs and charts use the applied filters. Chart categories and KPI drill-down narrow the table and exports; changing chart mode alone does not narrow records."
+            "Dates are UTC. Date filters select tenders by CreatedAt and restrict counted invitations by " +
+                    "SentAt and offers by SubmittedAt. Supplier filters restrict these counts to that supplier.",
+            "Participation = submitted, non-withdrawn offers / invitations × 100. A missing invitation " +
+                    "denominator is unavailable. Offers without SubmittedAt and withdrawn offers are excluded, " +
+                    "matching AI Intelligence's received-offer definition; event date filters can produce a rate above 100%.",
+            "Zero-offer tenders have a passed closing date and no submitted, non-withdrawn offers from " +
+                    "any supplier at any time. Unlike AI Intelligence's general zero-offer count, future deadlines are excluded.",
+            $"Actual evaluation delay is unavailable: the schema has no evaluation due date or stage-start " +
+                    $"timestamp. The >{warningDays}-day age warning uses ClosesAt while Status is UnderEvaluation, " +
+                    $"not an SLA or a proven delay. Completed evaluations are not flagged.",
+            "KPIs and charts use the applied filters. Chart categories and KPI drill-down narrow the table " +
+                    "and exports; changing chart mode alone does not narrow records."
         };
         if (scope.Role == RoleNames.EvaluationCommittee) notes.Add("This report uses existing report visibility: only tenders assigned to your Evaluation Committee account.");
         if (scope.Role is RoleNames.Admin or RoleNames.Department)

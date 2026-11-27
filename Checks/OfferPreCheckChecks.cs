@@ -181,7 +181,9 @@ public static class OfferPreCheckChecks
                 && OfferPreCheck.LooksReadable("Certificate valid until 2027"),
             "Glyph-code output must be treated as unreadable.");
 
-        Console.WriteLine("PASS: offer pre-check reads PDF, DOCX and XLSX text, skips images and unreadable text; flags missing items, quantities, prices, terms, validity, tax and documents; hides AI findings without real evidence; judges expiry on the server; fences supplier text.");
+        Console.WriteLine("PASS: offer pre-check reads PDF, DOCX and XLSX text, skips images and unreadable text; flags " +
+                "missing items, quantities, prices, terms, validity, tax and documents; hides AI findings without " +
+                "real evidence; judges expiry on the server; fences supplier text.");
     }
 
     private static void Require(bool condition, string message)

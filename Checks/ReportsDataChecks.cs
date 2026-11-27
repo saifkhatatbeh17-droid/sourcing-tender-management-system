@@ -190,7 +190,8 @@ public static class ReportsDataChecks
             contractController = Controller(contractController, "qa-supplier", RoleNames.Supplier);
             Require(await contractController.Download(tender.TenderId, false, default) is FileContentResult pdf &&
                 pdf.FileContents.AsSpan().StartsWith("%PDF-"u8), "winner can download generated contract");
-            Console.WriteLine("PASS: reports data migration, expiry, dealing frequency, audit actor and changes, two bulk audit paths, suspension, contract guards, and scoped report SQL.");
+            Console.WriteLine("PASS: reports data migration, expiry, dealing frequency, audit actor and changes, two bulk " +
+                    "audit paths, suspension, contract guards, and scoped report SQL.");
         }
         finally
         {

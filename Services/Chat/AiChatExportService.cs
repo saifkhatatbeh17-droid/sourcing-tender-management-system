@@ -248,7 +248,8 @@ public sealed partial class AiChatExportService(
         return new AiChatToolExecutionResult(
             true,
             false,
-            $"Generated downloadable file(s) ({formatsList}) for '{docModel.Title}'. Clickable download buttons are now attached directly below your chat reply.",
+            $"Generated downloadable file(s) ({formatsList}) for '{docModel.Title}'. Clickable download " +
+                    $"buttons are now attached directly below your chat reply.",
             targetUrl,
             targetLabel,
             null,

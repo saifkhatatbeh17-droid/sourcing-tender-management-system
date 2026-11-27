@@ -89,7 +89,8 @@ public static class TopCommitteeNotificationEvents
       && request.PurchaseRequestId == tender.PurchaseRequestId
       && !string.IsNullOrWhiteSpace(request.RequestedByUserId))
       recipients.Add(new(request.RequestedByUserId, Data.RoleNames.Department, $"/Department/Details/{request.PurchaseRequestId}",
-          $"Tender #{tender.TenderId} for your purchase request #{request.PurchaseRequestId} has been awarded. View your request for reference.", request.DepartmentId));
+          $"Tender #{tender.TenderId} for your purchase request #{request.PurchaseRequestId} has been " +
+                  $"awarded. View your request for reference.", request.DepartmentId));
   return recipients;
  }
 

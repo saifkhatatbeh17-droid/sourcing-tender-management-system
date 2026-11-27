@@ -74,7 +74,8 @@ public partial class SourcingOfficerController
         {
             UserId = userId,
             Title = "Tender submissions closed early",
-            Message = $"The officer closed submissions for {tender.Title} at {now:dd MMM yyyy HH:mm} UTC. The original deadline was {previousDeadline:dd MMM yyyy HH:mm} UTC. Offers can no longer be submitted or withdrawn.",
+            Message = $"The officer closed submissions for {tender.Title} at {now:dd MMM yyyy HH:mm} UTC. The original " +
+                    $"deadline was {previousDeadline:dd MMM yyyy HH:mm} UTC. Offers can no longer be submitted or withdrawn.",
             RelativeUrl = $"/Supplier/Invitations#tender-{tenderId}",
             CreatedAt = now
         }));

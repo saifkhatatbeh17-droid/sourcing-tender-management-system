@@ -100,12 +100,15 @@ public sealed class PurchaseRequestsReport(ApplicationDbContext db) : IReport
         var notes = new List<string>(messages)
         {
             "Drafts are not saved in this system.",
-            "Dates are UTC. Date filters use the latest saved SubmittedAt. Review time includes Approved, Returned, Rejected, and ConvertedToTender requests with both dates; invalid negative durations are excluded.",
-            "KPIs and the chart use the applied filters. Drill-down narrows the results table and exports. Returned rate reflects the current status, not historical returns."
+            "Dates are UTC. Date filters use the latest saved SubmittedAt. Review time includes Approved, " +
+                    "Returned, Rejected, and ConvertedToTender requests with both dates; invalid negative durations are excluded.",
+            "KPIs and the chart use the applied filters. Drill-down narrows the results table and exports. " +
+                    "Returned rate reflects the current status, not historical returns."
         };
         if (durations.Count == 0) notes.Add("No completed reviews with valid timestamps are available for the average review time.");
         if (scope.Role is RoleNames.Admin or RoleNames.SourcingManager)
-            notes.Add("Request details links are unavailable for this role because the existing request details pages authorize Department or Sourcing Officer only.");
+            notes.Add("Request details links are unavailable for this role because the existing request details pages " +
+                    "authorize Department or Sourcing Officer only.");
         if (query.ForExport && total > ReportExport.MaximumRows) notes.Add(ReportExport.LimitNote);
         return new(kpis, chart, new(["Request Number", "Title", "Department", "Requester", "Priority", "Status", "Submitted Date (UTC)", "Reviewed Date (UTC)", "Approval Time"],
             records.Select(request => new ReportRow(["#" + request.PurchaseRequestId, request.Title, request.Department, request.Requester,

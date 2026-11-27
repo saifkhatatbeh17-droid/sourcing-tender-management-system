@@ -60,7 +60,8 @@ public sealed partial class OfferPreCheck(HttpClient http, IConfiguration config
                     $"“{item.ItemName}”: offers {Num(quantity)} {item.Unit}, but {Num(item.Quantity)} {item.Unit} were requested.", item.PurchaseRequestItemId));
             else if (quantity > item.Quantity)
                 flags.Add(new(PreCheckSeverity.Info, "quantity",
-                    $"“{item.ItemName}”: offers {Num(quantity)} {item.Unit}, more than the {Num(item.Quantity)} {item.Unit} requested.", item.PurchaseRequestItemId));
+                    $"“{item.ItemName}”: offers {Num(quantity)} {item.Unit}, more than the {Num(item.Quantity)} " +
+                            $"{item.Unit} requested.", item.PurchaseRequestItemId));
             if (lines.Any(l => l.UnitPrice <= 0))
                 flags.Add(new(PreCheckSeverity.Issue, "price", $"“{item.ItemName}” has a zero unit price.", item.PurchaseRequestItemId));
         }

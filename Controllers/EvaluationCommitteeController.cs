@@ -303,7 +303,8 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db,
     public IActionResult Approve(int id) => BadRequest("Submit a financial and technical review for each offer using its scoring form.");
 
     [HttpPost, ValidateAntiForgeryToken]
-    public IActionResult RejectOffer(int id) => BadRequest("Evaluate every offer using its financial and technical marks. Manual selection and rejection are unavailable in the scoring cycle.");
+    public IActionResult RejectOffer(int id) => BadRequest("Evaluate every offer using its financial and technical marks. Manual selection and rejection " +
+            "are unavailable in the scoring cycle.");
 
     internal static void CompleteWeightApproval(CommitteeEvaluationPage page)
     {

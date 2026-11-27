@@ -31,7 +31,8 @@ public sealed class AiIntelligenceService(
     private AiGateway Ai => gateway ?? AiGateway.Detached;
 
     public const string AdvisoryBannerText =
-        "Advisory-Only Secure AI: All insights and recommendations are grounded strictly in live authorized system data. AI has zero authority to approve, score, award, or execute decisions on your behalf.";
+        "Advisory-Only Secure AI: All insights and recommendations are grounded strictly in live authorized " +
+                "system data. AI has zero authority to approve, score, award, or execute decisions on your behalf.";
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -639,7 +640,8 @@ public sealed class AiIntelligenceService(
                     : null
             },
             userInstruction = string.IsNullOrWhiteSpace(customPrompt)
-                ? "Analyze this uploaded file thoroughly, extract its key data/figures, cross-reference relevant Tiryaq tenders or suppliers where applicable, and provide advisory recommendations."
+                ? "Analyze this uploaded file thoroughly, extract its key data/figures, cross-reference relevant " +
+                        "Tiryaq tenders or suppliers where applicable, and provide advisory recommendations."
                 : customPrompt.Trim()
         };
 
@@ -1435,7 +1437,8 @@ public sealed class AiIntelligenceService(
                 topSupplier != null ? $"Most Active: {topSupplier.CompanyName}" : "Supplier Bid Activity",
                 totalSavingsSpread > 0 ? $"{totalSavingsSpread:N2} JOD spread" : $"{suppliers.Count(s => s.Status == "Approved")} approved",
                 topSupplier != null
-                    ? $"{topSupplier.CompanyName} submitted {topSupplier.SubmittedBidsCount} offers ({topSupplier.AwardedCount} awarded, {topSupplier.ComplianceRatePercent:0.#}% compliant)."
+                    ? $"{topSupplier.CompanyName} submitted {topSupplier.SubmittedBidsCount} offers ({topSupplier.AwardedCount} " +
+                            $"awarded, {topSupplier.ComplianceRatePercent:0.#}% compliant)."
                     : "Approved supplier directory is ready for tender invitations.",
                 "positive"));
         }

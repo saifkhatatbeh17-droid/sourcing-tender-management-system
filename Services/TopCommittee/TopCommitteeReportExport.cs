@@ -15,7 +15,8 @@ public sealed class TopCommitteeReportExport
     private static readonly object FontLock = new();
     public const string AwardDefinition = "Awarded Tenders counts distinct tenders with Awarded status and a valid winning bid linked to the supplier. These are procurement awards, not confirmed completed purchases; delivery and payment are not tracked.";
     public const string Scope = "System-wide totals cover all records. Tender details, supplier activity and decision summaries cover assigned tenders matching the active filters. Dates are UTC.";
-    public static string Filters(CommitteeReportFilter f) => $"Title: {f.Search ?? "All"}; Status: {f.Status ?? "All"}; My decision: {f.Decision ?? "All"}; Created UTC: {f.FromDate?.ToString("yyyy-MM-dd") ?? "Any"} to {f.ToDate?.ToString("yyyy-MM-dd") ?? "Any"}";
+    public static string Filters(CommitteeReportFilter f) => $"Title: {f.Search ?? "All"}; Status: {f.Status ?? "All"}; My decision: {f.Decision ?? "All"}; " +
+            $"Created UTC: {f.FromDate?.ToString("yyyy-MM-dd") ?? "Any"} to {f.ToDate?.ToString("yyyy-MM-dd") ?? "Any"}";
     public static string Outcome(CommitteeReportRow r) => r.Rejected ? "Rejected" : r.Status == "Awarded" ? "Awarded" : r.Status == "AwaitingManagerReview" ? "Manager review" : "Not final";
     private static readonly string[] Headers = ["Tender ID",
         "Tender title",
@@ -127,7 +128,8 @@ public sealed class TopCommitteeReportExport
         foreach(var m in DecisionMetrics(p)) { decisions.Cell(row,1).Value=m.Label; decisions
             .Cell(row++,2).Value=m.Count; }
         FormatTable(decisions,row-1,2); decisions.Column(1).Width=60;
-        decisions.Cell(row+1,1).Value="This is a summary of persisted records, not a complete audit trail. Latest committee activity is the award time, or latest recorded Top-stage vote if not awarded.";
+        decisions.Cell(row+1,1).Value="This is a summary of persisted records, not a complete audit trail. Latest committee activity " +
+                "is the award time, or latest recorded Top-stage vote if not awarded.";
         decisions.Range(row+1,1,row+1,3)
             .Merge().Style.Alignment.WrapText=true; decisions
             .Column(3).Width=24; decisions
@@ -165,7 +167,8 @@ public sealed class TopCommitteeReportExport
 
         Heading(section,"A · General statistics");
         if(p.SystemStatistics is {} system)
-            section.AddParagraph($"System-wide (unfiltered): {system.Suppliers:N0} suppliers | {system.Tenders:N0} tenders | {system.AwardedTenders:N0} awarded tenders (status).");
+            section.AddParagraph($"System-wide (unfiltered): {system.Suppliers:N0} suppliers | {system.Tenders:N0} tenders | " +
+                    $"{system.AwardedTenders:N0} awarded tenders (status).");
         else section.AddParagraph("System-wide statistics unavailable.");
         section.AddParagraph("Your assigned tenders: "+string.Join(" | ",MemberMetrics(p).Select(m=>$"{m.Label}: {m.Count:N0}")));
         section.AddParagraph("Member counts follow filters except total assigned. Rejected and Manager-review counts may overlap.").Format.SpaceAfter=12;
@@ -201,9 +204,11 @@ public sealed class TopCommitteeReportExport
         }
 
         if(p.Suppliers.Count>12)section.AddPageBreak(); Heading(section,"D · Decision and audit summary");
-        var auditIntro=section.AddParagraph("Matching assigned tenders only. This summary describes persisted votes and outcomes; it is not a complete audit trail."); auditIntro.Format.SpaceAfter=8; auditIntro.Format.KeepWithNext=true;
+        var auditIntro=section.AddParagraph("Matching assigned tenders only. This summary describes persisted votes and outcomes; it is " +
+                "not a complete audit trail."); auditIntro.Format.SpaceAfter=8; auditIntro.Format.KeepWithNext=true;
         foreach(var m in DecisionMetrics(p))section.AddParagraph($"{m.Label}: {m.Count:N0}").Format.KeepWithNext=true;
-        var auditNote=section.AddParagraph("Latest committee activity preserves the award timestamp, or the latest Top-stage vote when no award is recorded. It is separate from your individual decision timestamp."); auditNote.Format.SpaceAfter=12; auditNote.Format.KeepWithNext=p.Rows.Count>0;
+        var auditNote=section.AddParagraph("Latest committee activity preserves the award timestamp, or the latest Top-stage vote when " +
+                "no award is recorded. It is separate from your individual decision timestamp."); auditNote.Format.SpaceAfter=12; auditNote.Format.KeepWithNext=p.Rows.Count>0;
         if(p.Rows.Count>0)
         {
             var table=Table(section,["Tender ID","Final outcome","Latest committee activity (UTC)","Awarded at (UTC)"],[2,6,9.7,8]);

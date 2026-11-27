@@ -63,7 +63,8 @@ public static class CommitteeApprovalOrderChecks
         var ai = new BidRecommendationService(client, VllmAiChecks.LocalFixtureConfiguration());
         var report = await ai.Recommend(page, 60, CancellationToken.None, 47);
         Check(report.Scenarios.Single().RecommendedBidId == 47, "Report generation substituted another offer.");
-        Console.WriteLine("PASS: explicit selection, approvals before report, no premature handoff, preserved approvals, report constrained to selected offer.");
+        Console.WriteLine("PASS: explicit selection, approvals before report, no premature handoff, preserved approvals, " +
+                "report constrained to selected offer.");
     }
 
     private sealed class ReportHandler : HttpMessageHandler

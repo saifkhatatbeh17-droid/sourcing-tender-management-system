@@ -149,7 +149,8 @@ public static class TopCommitteeFoundationChecks
 
         var memberId = await db.Users.Where(u => u.IsActive && db.UserRoles.Any(ur => ur.UserId == u.Id &&
             db.Roles.Any(r => r.Id == ur.RoleId && r.Name == RoleNames.TopCommittee))).Select(u => u.Id).FirstOrDefaultAsync();
-        if (memberId == null) throw new InvalidOperationException("A pre-existing active Top Committee account is required for read-only integration checks. No account was created.");
+        if (memberId == null) throw new InvalidOperationException("A pre-existing active Top Committee account is required for read-only integration checks. " +
+                "No account was created.");
         var principal = Principal(memberId, RoleNames.TopCommittee);
         await Rejects<CommitteeAccessDeniedException>(() => queries.GetDashboardAsync(Principal(memberId, RoleNames.Supplier)), "A missing committee claim must fail.");
         await Rejects<ValidationException>(() => queries.GetTendersAsync(principal, new CommitteeTenderFilter { PageSize = 101 }), "Invalid paging must fail.");
@@ -192,7 +193,8 @@ public static class TopCommitteeFoundationChecks
         else Console.WriteLine("NOTE: No assigned tender exists; successful details projection tested in memory, not with persisted fixtures.");
         Check(!db.ChangeTracker.HasChanges()
             && readOnly.ReadCommands > 0, "Integration checks must execute SELECTs only.");
-        Console.WriteLine($"PASS: {passed} Top Committee foundation checks; {readOnly.ReadCommands} guarded SQL SELECTs; no data, role, schema or migration writes.");
+        Console.WriteLine($"PASS: {passed} Top Committee foundation checks; {readOnly.ReadCommands} guarded SQL SELECTs; " +
+                $"no data, role, schema or migration writes.");
         await TopCommitteePhase2Checks.RunAsync(services);
         await TopCommitteePhase3Checks.RunAsync(services);
         await TopCommitteePhase4Checks.RunAsync(services);

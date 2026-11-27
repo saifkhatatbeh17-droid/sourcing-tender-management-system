@@ -49,7 +49,8 @@ public static class FinalReportChecks
                 selectedBidId = mode == "wrong-selection" ? 45 : 47,
                 whyChosen = mode == "invented-number" ? "The total cost is within budget and falls into the acceptable range for this committee." : mode == "incomplete"
                     || mode == "retry"
-                    && Calls == 1 ? "Short" : "The selected printer offers the requested network connection and warranty, with delivery within the requested timeframe.",
+                    && Calls == 1 ? "Short" : "The selected printer offers the requested network connection and warranty, with delivery within " +
+                            "the requested timeframe.",
                 comparison = mode == "missing-alternative" ? Array.Empty<object>() : new object[] { new { bidId = 45,
                     strengths = "This alternative has a lower total cost than the selected offer and passed screening.",
                     tradeoffs = "This alternative delivers more slowly than the selected offer and has a shorter warranty." } },

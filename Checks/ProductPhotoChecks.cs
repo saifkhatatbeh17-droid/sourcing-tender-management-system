@@ -152,7 +152,8 @@ public static class ProductPhotoChecks
                 && await db.Bids.AnyAsync(b => b.BidId == bid.BidId && b.Status == "Submitted"), "offer submits with retained photo");
             Require((await officerHttp.GetAsync("/OfferProductPhotos/" + replacement.BidDocumentId)).IsSuccessStatusCode, "assigned officer can view submitted photo");
             using var anonymous = Client(); Require(!(await anonymous.GetAsync("/OfferProductPhotos/" + replacement.BidDocumentId)).IsSuccessStatusCode, "anonymous photo access blocked");
-            Console.WriteLine($"PASS: {checks} product photo checks; real upload, persistence, draft retention, replacement, invalid image rejection, submission, gallery and owner/reviewer/competitor access.");
+            Console.WriteLine($"PASS: {checks} product photo checks; real upload, persistence, draft retention, replacement, " +
+                    $"invalid image rejection, submission, gallery and owner/reviewer/competitor access.");
         }
         finally
         {

@@ -382,7 +382,10 @@ public static class VllmAiChecks
                     "After edit cycle returns to Top Committee, 4 fresh approvals must award the (updated) nominated offer.");
         }
 
-        Console.WriteLine("PASS: vLLM /v1/chat/completions, thinking=false, Bearer API key auth, Groq 120B fallback and cooldown handling, AI Intelligence hub (Supplier-excluded + Excel/PDF upload/download), downloadable PDF/Excel exports, Top Committee complete-reject vs ask-for-edit cycle, role-scoped actions, page transfer (navigate_to_page), and Agentic AiChatClient.");
+        Console.WriteLine("PASS: vLLM /v1/chat/completions, thinking=false, Bearer API key auth, Groq 120B fallback and " +
+                "cooldown handling, AI Intelligence hub (Supplier-excluded + Excel/PDF upload/download), downloadable " +
+                "PDF/Excel exports, Top Committee complete-reject vs ask-for-edit cycle, role-scoped actions, " +
+                "page transfer (navigate_to_page), and Agentic AiChatClient.");
     }
 
     private static async Task CheckElevenLabsSpeechAsync()
@@ -470,7 +473,9 @@ public static class VllmAiChecks
 
             var payload = _callCount switch
             {
-                2 => "<think>hidden</think>{\"mode\":\"reply\",\"reply\":\"In your Evaluation Committee workspace, I can confirm your financial weight, save your offer marks, submit reports, and transfer you to any Evaluation Committee page.\",\"toolCalls\":[]}",
+                2 => "<think>hidden</think>{\"mode\":\"reply\",\"reply\":\"In your Evaluation Committee workspace, " +
+                        "I can confirm your financial weight, save your offer marks, submit reports, and transfer you " +
+                        "to any Evaluation Committee page.\",\"toolCalls\":[]}",
                 3 => "{\"mode\":\"tool_calls\",\"reply\":\"\",\"toolCalls\":[{\"toolName\":\"navigate_to_page\",\"argumentsJson\":\"{\\\"page\\\":\\\"Reports\\\",\\\"recordId\\\":null}\"}]}",
                 _ => "{\"answer\":\"Taking you to Combined Reports now.\"}"
             };

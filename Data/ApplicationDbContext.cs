@@ -114,11 +114,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasForeignKey(v => new { v.TenderId, v.BidId });
         });
         modelBuilder.Entity<Tender>().ToTable("Tenders", table => table.HasCheckConstraint("CK_Tenders_CommitteeWeightLock",
-            "([CommitteeFinancialWeight] IS NULL AND [CommitteeWeightsLockedAt] IS NULL) OR ([CommitteeFinancialWeight] IS NOT NULL AND [CommitteeFinancialWeight] > 0 AND [CommitteeFinancialWeight] < 100 AND [CommitteeWeightsLockedAt] IS NOT NULL)"));
+            "([CommitteeFinancialWeight] IS NULL AND [CommitteeWeightsLockedAt] IS NULL) OR ([CommitteeFinancialWeight] " +
+                    "IS NOT NULL AND [CommitteeFinancialWeight] > 0 AND [CommitteeFinancialWeight] < 100 AND [CommitteeWeightsLockedAt] IS NOT NULL)"));
         modelBuilder.Entity<Evaluation>().Property(e => e.FinancialMark).HasPrecision(5, 2);
         modelBuilder.Entity<Evaluation>().Property(e => e.TechnicalMark).HasPrecision(5, 2);
         modelBuilder.Entity<Evaluation>().ToTable("Evaluations", table => table.HasCheckConstraint("CK_Evaluations_DirectMarks",
-            "([FinancialMark] IS NULL AND [TechnicalMark] IS NULL) OR ([FinancialMark] IS NOT NULL AND [TechnicalMark] IS NOT NULL AND [FinancialMark] >= 0 AND [TechnicalMark] >= 0 AND [FinancialMark] + [TechnicalMark] <= 100)"));
+            "([FinancialMark] IS NULL AND [TechnicalMark] IS NULL) OR ([FinancialMark] IS NOT NULL AND " +
+                    "[TechnicalMark] IS NOT NULL AND [FinancialMark] >= 0 AND [TechnicalMark] >= 0 AND [FinancialMark] " +
+                    "+ [TechnicalMark] <= 100)"));
         modelBuilder.Entity<ContactMessage>(entity =>
         {
             entity.ToTable("ContactMessages", "dbo");
@@ -564,7 +567,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .OnDelete(DeleteBehavior.NoAction);
             entity.ToTable("Tenders", table => {
                 table.HasCheckConstraint("CK_Tenders_Replacement", "[ReplacesTenderId] IS NULL OR [ReplacesTenderId] <> [TenderId]");
-                table.HasCheckConstraint("CK_Tenders_RejectionForward", "([RejectionForwardedAt] IS NULL AND [RejectionForwardedByUserId] IS NULL) OR ([RejectionForwardedAt] IS NOT NULL AND [RejectionForwardedByUserId] IS NOT NULL)");
+                table.HasCheckConstraint("CK_Tenders_RejectionForward", "([RejectionForwardedAt] IS NULL AND [RejectionForwardedByUserId] IS NULL) OR ([RejectionForwardedAt] " +
+                        "IS NOT NULL AND [RejectionForwardedByUserId] IS NOT NULL)");
             });
             entity.Property(e => e.TenderId).UseIdentityColumn();
             entity.HasKey(e => e.TenderId);
@@ -645,7 +649,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<AiAnalysis>().ToTable("AiAnalyses", table =>
         {
             table.HasCheckConstraint("CK_AiAnalyses_1", "(isjson([ResultJson])=(1))");
-            table.HasCheckConstraint("CK_AiAnalyses_2", "([FinancialWeight]>=0 AND [FinancialWeight]<=100 AND [RequirementsWeight]>=0 AND [RequirementsWeight]<=100 AND [FinancialWeight]+[RequirementsWeight]=100)");
+            table.HasCheckConstraint("CK_AiAnalyses_2", "([FinancialWeight]>=0 AND [FinancialWeight]<=100 AND [RequirementsWeight]>=0 AND [RequirementsWeight]<=100 " +
+                    "AND [FinancialWeight]+[RequirementsWeight]=100)");
         });
 
         modelBuilder.Entity<Bid>().ToTable("Bids", table =>
@@ -653,7 +658,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             table.HasCheckConstraint("CK_Bids_1", "([AdditionalCosts]>=(0))");
             table.HasCheckConstraint("CK_Bids_2", "([ComplianceStatus]='PendingClarification' OR [ComplianceStatus]='NonCompliant' OR [ComplianceStatus]='Compliant')");
             table.HasCheckConstraint("CK_Bids_3", "([DeliveryDays]>=(0))");
-            table.HasCheckConstraint("CK_Bids_4", "([Status]='Withdrawn' OR [Status]='Rejected' OR [Status]='Accepted' OR [Status]='NonCompliant' OR [Status]='Compliant' OR [Status]='UnderReview' OR [Status]='Submitted' OR [Status]='Draft')");
+            table.HasCheckConstraint("CK_Bids_4", "([Status]='Withdrawn' OR [Status]='Rejected' OR [Status]='Accepted' OR [Status]='NonCompliant' " +
+                    "OR [Status]='Compliant' OR [Status]='UnderReview' OR [Status]='Submitted' OR [Status]='Draft')");
             table.HasCheckConstraint("CK_Bids_5", "([TaxAmount]>=(0))");
         });
 
@@ -672,7 +678,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             table.HasCheckConstraint("CK_Clarifications_1", "([Status]='Resolved' OR [Status]='Answered' OR [Status]='Pending')");
             table.HasCheckConstraint("CK_Clarifications_2", "([SenderUserId]<>[RecipientUserId])");
-            table.HasCheckConstraint("CK_Clarifications_3", "(((case when [PurchaseRequestId] IS NULL then (0) else (1) end+case when [TenderId] IS NULL then (0) else (1) end)+case when [BidId] IS NULL then (0) else (1) end)=(1))");
+            table.HasCheckConstraint("CK_Clarifications_3", "(((case when [PurchaseRequestId] IS NULL then (0) else (1) end+case when [TenderId] IS NULL " +
+                    "then (0) else (1) end)+case when [BidId] IS NULL then (0) else (1) end)=(1))");
         });
 
         modelBuilder.Entity<ClarificationResponse>().ToTable("ClarificationResponses");
@@ -698,7 +705,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<EvaluationReport>().ToTable("EvaluationReports", table =>
         {
-            table.HasCheckConstraint("CK_EvaluationReports_1", "([Status]='Approved' OR [Status]='TopApproved' OR [Status]='ReturnedForReview' OR [Status]='ManagerRejected' OR [Status]='ManagerApproved' OR [Status]='OfficerSubmitted' OR [Status]='CommitteeApproved' OR [Status]='Draft')");
+            table.HasCheckConstraint("CK_EvaluationReports_1", "([Status]='Approved' OR [Status]='TopApproved' OR [Status]='ReturnedForReview' OR [Status]='ManagerRejected' " +
+                    "OR [Status]='ManagerApproved' OR [Status]='OfficerSubmitted' OR [Status]='CommitteeApproved' " +
+                    "OR [Status]='Draft')");
         });
 
         modelBuilder.Entity<EvaluationScore>().ToTable("EvaluationScores", table =>
@@ -716,7 +725,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<PurchaseRequest>().ToTable("PurchaseRequests", table =>
         {
             table.HasCheckConstraint("CK_PurchaseRequests_1", "([Priority]='Urgent' OR [Priority]='High' OR [Priority]='Normal' OR [Priority]='Low')");
-            table.HasCheckConstraint("CK_PurchaseRequests_2", "([Status]='ConvertedToTender' OR [Status]='Returned' OR [Status]='Rejected' OR [Status]='Approved' OR [Status]='UnderReview' OR [Status]='Submitted' OR [Status]='Draft')");
+            table.HasCheckConstraint("CK_PurchaseRequests_2", "([Status]='ConvertedToTender' OR [Status]='Returned' OR [Status]='Rejected' OR [Status]='Approved' " +
+                    "OR [Status]='UnderReview' OR [Status]='Submitted' OR [Status]='Draft')");
         });
 
         modelBuilder.Entity<PurchaseRequestItem>().ToTable("PurchaseRequestItems", table =>
@@ -732,20 +742,25 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<SupplierProfile>().ToTable("SupplierProfiles", table =>
         {
-            table.HasCheckConstraint("CK_SupplierProfiles_1", "([Status]='Suspended' OR [Status]='ChangesRequested' OR [Status]='Rejected' OR [Status]='Approved' OR [Status]='Pending')");
+            table.HasCheckConstraint("CK_SupplierProfiles_1", "([Status]='Suspended' OR [Status]='ChangesRequested' OR [Status]='Rejected' OR [Status]='Approved' " +
+                    "OR [Status]='Pending')");
         });
 
         modelBuilder.Entity<Tender>().ToTable("Tenders", table =>
         {
             table.HasCheckConstraint("CK_Tenders_1", "([ClosesAt]>[OpensAt])");
-            table.HasCheckConstraint("CK_Tenders_2", "([Status]='Awarded' AND [AwardedBidId] IS NOT NULL AND [AwardedAt] IS NOT NULL OR [Status]<>'Awarded' AND [AwardedBidId] IS NULL AND [AwardedAt] IS NULL)");
-            table.HasCheckConstraint("CK_Tenders_3", "([Status]='Cancelled' OR [Status]='Awarded' OR [Status]='AwaitingCommitteeDecision' OR [Status]='AwaitingManagerReview' OR [Status]='AwaitingOfficerSummary' OR [Status]='UnderEvaluation' OR [Status]='Closed' OR [Status]='Open' OR [Status]='Published')");
+            table.HasCheckConstraint("CK_Tenders_2", "([Status]='Awarded' AND [AwardedBidId] IS NOT NULL AND [AwardedAt] IS NOT NULL OR [Status]<>'Awarded' " +
+                    "AND [AwardedBidId] IS NULL AND [AwardedAt] IS NULL)");
+            table.HasCheckConstraint("CK_Tenders_3", "([Status]='Cancelled' OR [Status]='Awarded' OR [Status]='AwaitingCommitteeDecision' OR [Status]='AwaitingManagerReview' " +
+                    "OR [Status]='AwaitingOfficerSummary' OR [Status]='UnderEvaluation' OR [Status]='Closed' OR " +
+                    "[Status]='Open' OR [Status]='Published')");
         });
 
         modelBuilder.Entity<TenderApproval>().ToTable("TenderApprovals", table =>
         {
             table.HasCheckConstraint("CK_TenderApprovals_1", "([Stage]='Top' OR [Stage]='Manager' OR [Stage]='Evaluation')");
-            table.HasCheckConstraint("CK_TenderApprovals_2", "([Stage]='Manager' AND [CommitteeAssignmentId] IS NULL OR ([Stage]='Top' OR [Stage]='Evaluation') AND [CommitteeAssignmentId] IS NOT NULL)");
+            table.HasCheckConstraint("CK_TenderApprovals_2", "([Stage]='Manager' AND [CommitteeAssignmentId] IS NULL OR ([Stage]='Top' OR [Stage]='Evaluation') " +
+                    "AND [CommitteeAssignmentId] IS NOT NULL)");
             table.HasCheckConstraint("CK_TenderApprovals_3", "([Stage]='Manager' OR [Decision]='Approved' OR ([Stage]='Top' AND [Decision]='Rejected'))");
             table.HasCheckConstraint("CK_TenderApprovals_4", "([Decision]='ReturnedForReview' OR [Decision]='Rejected' OR [Decision]='Approved')");
         });

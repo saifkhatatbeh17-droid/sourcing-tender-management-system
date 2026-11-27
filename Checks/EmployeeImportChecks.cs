@@ -84,7 +84,9 @@ public static class EmployeeImportChecks
                 && !PasswordChangeRequiredFilter.IsAllowed("AiChat", "Ask"),
             "Only Profile, ChangePassword, Logout, AccessDenied and Login may be reached with a temporary password.");
 
-        Console.WriteLine("PASS: account import reads English/Arabic sheets, ignores password columns, rejects bad files, refuses Admin/Supplier rows, matches roles and positions, generates policy-compliant one-time credentials and locks accounts until the temporary password is changed.");
+        Console.WriteLine("PASS: account import reads English/Arabic sheets, ignores password columns, rejects bad files, " +
+                "refuses Admin/Supplier rows, matches roles and positions, generates policy-compliant one-time " +
+                "credentials and locks accounts until the temporary password is changed.");
     }
 
     private static MemoryStream Workbook(string[] headers, params string[][] rows)

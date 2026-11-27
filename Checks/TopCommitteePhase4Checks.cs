@@ -124,7 +124,8 @@ public static class TopCommitteePhase4Checks
                 && requestEdit.Tender.TopEditRequestedByUserId == "member-3"
                 &&
             requestEdit.Tender.TopEditRequestNotes == "Please verify cold-chain SLA or check second offer." &&
-            !requestEdit.Votes.Any(), "RequestEdit returns tender to Manager with TopEditState=WithManager and clears prior round approvals so voting can reopen.");
+            !requestEdit.Votes.Any(), "RequestEdit returns tender to Manager with TopEditState=WithManager and clears prior round " +
+                    "approvals so voting can reopen.");
 
         async Task<CommitteeVoteResult?> TryVote(MemoryStore d, int member, string decision = "Approved")
         { try { return await Voting(d).SubmitAsync(Actor(member), Input(decision, "Reason")); } catch (Exception ex) when (ex is CommitteeStateConflictException or ValidationException) { return null; } }
@@ -267,7 +268,8 @@ public static class TopCommitteePhase4Checks
             .Single() is { Stage: "Top", Decision: "Rejected", NewAccepted: true }, "Only Top rejection may change acceptance.");
         var liveReady = await TopCommitteeVotingDatabase.IsReadyAsync(db, default);
         var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
-        Console.WriteLine($"NOTE: Live SQL voting readiness = {liveReady}; pending Phase 4 migration = {pending.Contains("20261113064343_AllowTopCommitteeRejection")}. No migration applied by checks.");
+        Console.WriteLine($"NOTE: Live SQL voting readiness = {liveReady}; pending Phase 4 migration = {pending.Contains("20261113064343_AllowTopCommitteeRejection")}. " +
+                $"No migration applied by checks.");
         await Denied<CommitteeAccessDeniedException>(() => services.GetRequiredService<ITopCommitteeVotingReadiness>()
             .IsDatabaseReadyAsync(new ClaimsPrincipal(), 1), "Readiness must not disclose tender access to anonymous callers.");
         Check(!db.ChangeTracker.HasChanges(), "Phase 4 checks must leave the SQL context unchanged.");
@@ -282,7 +284,8 @@ public static class TopCommitteePhase4Checks
             File.Copy(Path.Combine(services.GetRequiredService<IWebHostEnvironment>().WebRootPath, "js", "top-committee-voting.js"), Path
                 .Combine(output, "js", "top-committee-voting.js"), true);
         }
-        Console.WriteLine($"PASS: {passed} Phase 4 voting, rejection, award, concurrency, rollback, MVC/Razor and constraint checks. Mutation tests are isolated in memory; SQL checks are SELECT-only, not SQL persistence tests.");
+        Console.WriteLine($"PASS: {passed} Phase 4 voting, rejection, award, concurrency, rollback, MVC/Razor and constraint " +
+                $"checks. Mutation tests are isolated in memory; SQL checks are SELECT-only, not SQL persistence tests.");
     }
 
     private static ClaimsPrincipal Actor(int member, string role = RoleNames.TopCommittee) => new(new ClaimsIdentity(new[] {

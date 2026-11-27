@@ -241,8 +241,10 @@ public static class SupplierWorkflowChecks
                 && await db.EvaluationReports
                 .AnyAsync(r => r.TenderId == tender.TenderId), "Committee setup missing after handoff");
             Console.WriteLine("PASS: combined close-and-send rejects pending review, then closes submissions and prepares committee evaluation.");
-            Console.WriteLine("PASS: early handoff and expired cancellation guards, owner-only tender cancellation, supplier withdrawal, and shared cancellation status.");
-            Console.WriteLine("PASS: deadline transitions and future dates; new/draft attachment failures rolled back with file cleanup; successful submission; supplier-scoped history.");
+            Console.WriteLine("PASS: early handoff and expired cancellation guards, owner-only tender cancellation, supplier " +
+                    "withdrawal, and shared cancellation status.");
+            Console.WriteLine("PASS: deadline transitions and future dates; new/draft attachment failures rolled back with " +
+                    "file cleanup; successful submission; supplier-scoped history.");
         }
         finally
         {

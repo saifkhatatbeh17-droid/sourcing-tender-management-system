@@ -309,7 +309,8 @@ public sealed partial class EmployeeImport(
             var missing = new[] { Column.Name, Column.Email, Column.Role }.Where(c => !columns.ContainsKey(c)).ToList();
             if (missing.Count > 0)
                 throw new EmployeeImportFileException(
-                    $"The first row must contain the column headings Full name, Email and Role (missing: {string.Join(", ", missing.Select(c => c.ToString()))}). Download the template for the expected layout.");
+                    $"The first row must contain the column headings Full name, Email and Role (missing: {string.Join(", ", missing.Select(c => c.ToString()))}). " +
+                            $"Download the template for the expected layout.");
             if (columns.ContainsKey(Column.Password))
                 notices.Add("The Password column was ignored. Tiryaq creates a temporary password for each account; delete passwords from the file.");
 

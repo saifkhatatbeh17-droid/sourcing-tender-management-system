@@ -22,10 +22,12 @@ public static class ManagerReferralContext
         foreach (var item in request.PurchaseRequestItems.OrderBy(i => i.PurchaseRequestItemId))
             text.AppendLine($"- {item.ItemName}: {Number(item.Quantity)} {item.Unit}. Specifications: {Value(item.Specifications)}");
         text.AppendLine($"Tender terms: {Value(tender.Terms)}").AppendLine().AppendLine("## Winning offer")
-            .AppendLine($"{winner.Invitation.SupplierProfile.CompanyName}, offer #{winner.BidId}: {CommitteeEvaluationPage.Total(winner).ToString("N2", CultureInfo.InvariantCulture)} {winner.Currency} including tax and fees; {winner.DeliveryDays}-day delivery.")
+            .AppendLine($"{winner.Invitation.SupplierProfile.CompanyName}, offer #{winner.BidId}: {CommitteeEvaluationPage.Total(winner).ToString("N2", CultureInfo.InvariantCulture)} " +
+                    $"{winner.Currency} including tax and fees; {winner.DeliveryDays}-day delivery.")
             .AppendLine($"Payment: {Value(winner.PaymentTerms)}")
             .AppendLine($"Supplier-stated technical details: {Value(winner.TechnicalDetails)}");
-        text.AppendLine("Purchase requirements are recorded facts; supplier statements require verification. Missing or unclear requirements must be clarified, not inferred.");
+        text.AppendLine("Purchase requirements are recorded facts; supplier statements require verification. Missing " +
+                "or unclear requirements must be clarified, not inferred.");
         var rounds = OfferRoundContext.Describe(tender);
         if (rounds.Length > 0) text.AppendLine().AppendLine(rounds);
         return text.ToString().Trim();

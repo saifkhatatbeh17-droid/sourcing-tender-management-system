@@ -144,7 +144,8 @@ public partial class SourcingManagerController
                 {
                     UserId = member.UserId,
                     Title = "Edits answered — tender ready for decision",
-                    Message = $"Sourcing Manager answered the edit request on Tender #{id} (nominated offer #{winningOffer.BidId} · {winningOffer.Invitation.SupplierProfile.CompanyName}). Please record your decision.",
+                    Message = $"Sourcing Manager answered the edit request on Tender #{id} (nominated offer #{winningOffer.BidId} " +
+                            $"· {winningOffer.Invitation.SupplierProfile.CompanyName}). Please record your decision.",
                     RelativeUrl = $"/TopCommittee/TenderDetails/{id}",
                     CreatedAt = DateTime.UtcNow
                 });
@@ -208,7 +209,8 @@ public partial class SourcingManagerController
             {
                 UserId = tender.CreatedByUserId,
                 Title = "CEO & Chiefs edit request pushed to you",
-                Message = $"Tender #{id}: Sourcing Manager forwarded an edit request from CEO & Chiefs. Answer and return to Manager, or choose another compliant offer instead.",
+                Message = $"Tender #{id}: Sourcing Manager forwarded an edit request from CEO & Chiefs. Answer and return " +
+                        $"to Manager, or choose another compliant offer instead.",
                 RelativeUrl = $"/SourcingOfficer/Offers?tenderId={id}",
                 CreatedAt = DateTime.UtcNow
             });
