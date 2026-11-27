@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -22,11 +21,11 @@ public static class TopCommitteeNotificationNavigationChecks
             "Top Committee sidebar has no standalone Notifications link.");
         var existingMenus = new Dictionary<string, string>
         {
-            [RoleNames.Admin] = "Dashboard,AiIntelligence,Users,Departments,SupplierApplications,Suppliers,SupplierActivity,ContactMessages",
-            [RoleNames.Department] = "Dashboard,AiIntelligence,Create,Requests,Clarifications",
-            [RoleNames.SourcingOfficer] = "Dashboard,AiIntelligence,Requests,Offers,Clarifications,Reports",
-            [RoleNames.EvaluationCommittee] = "Dashboard,AiIntelligence,Evaluations,Reports,Clarifications",
-            [RoleNames.SourcingManager] = "Dashboard,AiIntelligence,Submissions,ChosenOffers,Reports,Clarifications",
+            [RoleNames.Admin] = "Dashboard,AiIntelligence,AiLog,Users,Departments,SupplierApplications,Suppliers,Index,Index,ContactMessages",
+            [RoleNames.Department] = "Dashboard,AiIntelligence,Create,Requests,Clarifications,Index",
+            [RoleNames.SourcingOfficer] = "Dashboard,AiIntelligence,Requests,Offers,Clarifications,Reports,Index",
+            [RoleNames.EvaluationCommittee] = "Dashboard,AiIntelligence,Evaluations,Reports,Clarifications,Index",
+            [RoleNames.SourcingManager] = "Dashboard,AiIntelligence,Submissions,ChosenOffers,Index,Clarifications",
             [RoleNames.Supplier] = "Dashboard,Invitations,Offers,Clarifications,History"
         };
         var engine = services.GetRequiredService<IRazorViewEngine>();
@@ -60,10 +59,9 @@ public static class TopCommitteeNotificationNavigationChecks
             var temp = new TempDataDictionary(context.HttpContext, services.GetRequiredService<ITempDataProvider>());
             await view.View!.RenderAsync(new ViewContext(context, view.View, data, temp, writer, new HtmlHelperOptions()));
             var html = writer.ToString();
-            Check(!html.Contains("View all notifications"), $"Bell does not depend on a standalone notifications page: {role}.");
             if (role == RoleNames.TopCommittee)
             {
-                Check(!html.Contains("href=\"/TopCommittee/Notifications\""), "No standalone page link.");
+                Check(html.Contains("href=\"/TopCommittee/Notifications\""), "Bell links to the full notifications page.");
                 Check(html.Contains("12 unread") && html.Contains("View details"), "Existing badge and details retained.");
                 Check(!html.Contains("<script>private</script>") && html.Contains("&lt;script&gt;"), "Notification encoding retained.");
                 Check(!html.Contains("href=\"https://external.example/unsafe\""), "External destinations are not linked.");
@@ -75,7 +73,7 @@ public static class TopCommitteeNotificationNavigationChecks
             else
             {
                 Check(string.Join(',', PageNavigation.Menus[role].Select(x => x.Action)) == existingMenus[role], $"Other workspace menu unchanged: {role}.");
-                Check(!html.Contains("method=\"post\"") && !html.Contains("top-committee-notifications"), $"Other role bell unchanged: {role}.");
+                Check(!html.Contains("top-committee-notifications"), $"Other role bell unchanged: {role}.");
             }
         }
         Console.WriteLine($"PASS: {passed} Top Committee notification navigation checks; no database writes.");

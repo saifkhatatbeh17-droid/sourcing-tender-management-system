@@ -1,6 +1,4 @@
 using SourcingTenderManagement.Data;
-﻿using System;
-using System.Collections.Generic;
 
 namespace SourcingTenderManagement.Models.Entities;
 

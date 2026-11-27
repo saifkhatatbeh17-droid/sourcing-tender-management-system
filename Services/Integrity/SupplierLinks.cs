@@ -315,7 +315,6 @@ public sealed partial class SupplierLinks(ApplicationDbContext db, IWebHostEnvir
         string.IsNullOrWhiteSpace(text) ? [] : WordRegex().Matches(text.ToLowerInvariant()).Select(m => m.Value).ToList();
 
     private static string Normal(string? text) => string.Join(' ', Words(text));
-    private static string Pct(decimal ratio) => (ratio * 100).ToString(ratio < 0.001m ? "0.##" : "0.#", CultureInfo.InvariantCulture) + "%";
     private static string Money(decimal value) => value.ToString("N2", CultureInfo.InvariantCulture);
     private static string Tenders(List<int> ids) => string.Join(", ", ids.Select(id => "#" + id));
 

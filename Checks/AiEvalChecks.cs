@@ -1,10 +1,8 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Configuration;
 using SourcingTenderManagement.Services.Ai;
 using SourcingTenderManagement.Services.Chat;
 using SourcingTenderManagement.Services.Compliance;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 
 namespace SourcingTenderManagement.Checks;

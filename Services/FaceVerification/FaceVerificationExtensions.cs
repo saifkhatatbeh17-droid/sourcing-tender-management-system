@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
 using SourcingTenderManagement.Models.FaceVerification;
 
 namespace SourcingTenderManagement.Services.FaceVerification;

@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.Compliance;

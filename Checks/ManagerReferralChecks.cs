@@ -1,12 +1,10 @@
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
 using SourcingTenderManagement.Contracts.TopCommittee;
 using SourcingTenderManagement.Models.TopCommittee;
 using SourcingTenderManagement.Controllers;

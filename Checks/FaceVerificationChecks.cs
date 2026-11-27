@@ -1,7 +1,5 @@
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SourcingTenderManagement.Data;

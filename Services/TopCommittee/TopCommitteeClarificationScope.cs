@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.Entities;
-using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Services.TopCommittee;
 

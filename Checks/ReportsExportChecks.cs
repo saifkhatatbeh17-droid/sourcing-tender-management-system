@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using SourcingTenderManagement.Controllers;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.Entities;
-using SourcingTenderManagement.Models.Reports;
 using SourcingTenderManagement.Services.Reports.Hub;
 using PdfDocument = UglyToad.PdfPig.PdfDocument;
 

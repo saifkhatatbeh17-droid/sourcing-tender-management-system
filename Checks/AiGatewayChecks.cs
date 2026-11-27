@@ -2,8 +2,6 @@ using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.Ai;
 

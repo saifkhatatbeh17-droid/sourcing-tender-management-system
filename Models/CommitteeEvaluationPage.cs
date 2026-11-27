@@ -1,5 +1,4 @@
 using SourcingTenderManagement.Services.Evaluation;
-using System.ComponentModel.DataAnnotations;
 using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Models;
@@ -51,8 +50,6 @@ public class CommitteeEvaluationPage
         && Offers.Select(b => b.Currency).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1
         && Members.All(m => Offers.All(b => ForMember(m).All(c => Score(m, b, c) != null)));
 
-    public decimal? SharedScore(Bid bid, EvaluationCriterion criterion) => Members
-        .Where(m => ForMember(m).Contains(criterion)).Select(m => Score(m, bid, criterion)).FirstOrDefault(s => s.HasValue);
     public string SharedVersion => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
         System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new {
             Consensus = new { Tender?.CommitteeFinancialWeight, Tender?.CommitteeWeightsLockedAt },
@@ -100,16 +97,4 @@ public class CommitteeEvaluationPage
 public record CommitteeRanking(int BidId, string Supplier, decimal Total, string Currency, decimal Financial, decimal Requirements)
 {
     public decimal Score { get; init; }
-}
-public class CommitteeCriterionInput
-{
-    [Required, StringLength(150)] public string Name { get; set; } = "";
-    [Required, RegularExpression("Financial|Requirements")] public string Category { get; set; } = "";
-    [Range(typeof(decimal), "0.01", "100")] public decimal Weight { get; set; }
-}
-public class CommitteeScoreInput
-{
-    public int BidId { get; set; }
-    public int CriterionId { get; set; }
-    [Required, Range(typeof(decimal), "0", "100")] public decimal? Score { get; set; }
 }

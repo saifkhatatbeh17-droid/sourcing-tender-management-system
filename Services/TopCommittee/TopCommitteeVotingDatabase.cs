@@ -1,4 +1,3 @@
-using System.Data.Common;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;

@@ -1,7 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SourcingTenderManagement.Models;
-using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.Evaluation;
 
 namespace SourcingTenderManagement.Controllers;

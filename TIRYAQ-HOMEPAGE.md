@@ -5,7 +5,6 @@
 - `Views/Home/Index.cshtml` holds the markup, cards and Razor links. It uses its own nav (`HidePublicNavigation`), and that nav keeps Login, Supplier registration, the dashboard, the notification bell and Sign out.
 - `wwwroot/css/tiryaq-journey.css` holds the styles. Classes are prefixed `tj-` to avoid Bootstrap.
 - `wwwroot/js/tiryaq-journey.js` holds the scene and timeline. Station timings live in `heroPath`, `CAM` and the `data-in`/`data-out` beats on the cards.
-- `docs/tiryaq-pharma-journey.html` is the standalone prototype, kept for reference.
 
 ## Brand colors (whole site)
 - Primary teal `#1d5560` (hover `#174750`, deep `#0c252d`) is used for sidebars, links, focus, selection and outlined buttons.

@@ -174,11 +174,11 @@ public static class TopCommitteePhase4Checks
         Check(html.Contains("name=\"Vote.ExpectedNominatedBidId\"") && !html.Contains("name=\"UserId\"") && !html.Contains("name=\"CommitteeAssignmentId\""), "Browser cannot select actor/assignment.");
         var pausedUi = new MemoryStore(); pausedUi.Question("Pending");
         var pausedHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", Page(pausedUi));
-        Check(pausedHtml.Contains("Approvals are paused") && !pausedHtml.Contains("tc-member-approval-form"), "Paused UI cannot offer submission.");
+        Check(pausedHtml.Contains("Voting paused") && !pausedHtml.Contains("tc-member-approval-form"), "Paused UI cannot offer submission.");
         var votedHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", Page(data));
         Check(votedHtml.Contains("decision is recorded and cannot be changed") && votedHtml.Contains("Reviewed offer.") && !votedHtml.Contains("tc-member-approval-form"), "Recorded votes/notes are visible and immutable.");
         var awardedHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", Page(awardData));
-        Check(awardedHtml.Contains("4 of 4 approvals") && awardedHtml.Contains("Winning bid") && !awardedHtml.Contains("tc-member-approval-form"), "Final award must be read-only.");
+        Check(awardedHtml.Contains("4 / 4 recorded") && awardedHtml.Contains("Winning bid") && !awardedHtml.Contains("tc-member-approval-form"), "Final award must be read-only.");
         var schemaHtml = await TopCommitteePhase2Checks.RenderAsync(services, Actor(1), "TenderDetails", eligiblePage with { VotingDatabaseReady = false });
         Check(schemaHtml.Contains("Voting is temporarily unavailable") && !schemaHtml.Contains("tc-member-approval-form"), "Pending database application must fail closed in UI.");
         var validation = new ModelStateDictionary(); validation.AddModelError("Vote.Notes", "A rejection justification is required.");

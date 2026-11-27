@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Contracts.TopCommittee;
 using SourcingTenderManagement.Controllers;
@@ -93,7 +92,7 @@ public static class TopCommitteePhase2Checks
             "GET filters and paging must preserve and encode search text.");
         Check(htmlDetails.Contains("Manager nominated") && htmlDetails.Contains("Test manager recommendation") &&
             htmlDetails.Contains("Test committee report"), "Details must expose the nomination, recommendation and unified report.");
-        Check(htmlDetails.Contains("215.00 USD") && htmlDetails.Contains("80/100") && htmlDetails.Contains("Financial"),
+        Check(htmlDetails.Contains("215.00 USD") && htmlDetails.Contains("80 / 100") && htmlDetails.Contains("Financial"),
             "Bid comparison must show actual per-currency prices and technical/financial scores.");
         Check(htmlDetails.Contains("bidId=12#selected-bid") && htmlDetails.Contains("Withdrawn"),
             "Submitted bid history and secure tender-scoped offer links must remain visible.");
@@ -127,7 +126,7 @@ public static class TopCommitteePhase2Checks
         Check(completedHtml.Contains("Recorded decision") && completedHtml.Contains("Winning bid"), "Completed details must stay readable.");
         var errorHtml = await RenderAsync(services, actor, "Decisions", ((ViewResult)await invalid.Decisions(new(), default)).Model!,
             invalid.ModelState);
-        Check(errorHtml.Contains("Correct the filter values"), "Filter errors must render an actionable recovery.");
+        Check(errorHtml.Contains("Check your search and try again."), "Filter errors must render an actionable recovery.");
 
         var output = Environment.GetEnvironmentVariable("TOP_COMMITTEE_PREVIEW_DIR");
         if (!string.IsNullOrWhiteSpace(output))

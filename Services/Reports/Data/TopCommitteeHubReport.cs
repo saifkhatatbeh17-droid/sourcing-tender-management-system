@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.TopCommittee;
 using SourcingTenderManagement.Services.Reports.Hub;

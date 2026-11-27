@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SourcingTenderManagement.Data;
-using SourcingTenderManagement.Models;
 
 namespace SourcingTenderManagement.ViewComponents;
 
