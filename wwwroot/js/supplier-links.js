@@ -1,10 +1,18 @@
-// Supplier links map (Admin AI Intelligence): suppliers on a ring, curved lines between linked pairs.
-// Selecting a line or a pair in the list opens its evidence; "Explain with AI" asks for a short brief.
+// Link signals (AI Intelligence, Admin and Top Committee): flagged supplier pairs, a map, and the evidence for one pair.
+// The pair list stays beside the evidence on wide screens; on narrow screens the evidence replaces the list.
+// Routes (set by ai-intelligence.js): #links, #links/3-7 (open a pair), #links?supplier=5 (pairs involving supplier 5).
 (() => {
     const root = document.querySelector("[data-supplier-links]");
     if (!root || !root.querySelector("[data-sl-graph]")) return;
+    const page = document.querySelector("[data-ai-intelligence]") || document;
     const svg = root.querySelector("[data-sl-graph]");
-    const list = root.querySelector("[data-sl-list]");
+    const ws = root.querySelector("[data-sl-ws]");
+    const overview = root.querySelector("[data-sl-overview]");
+    const items = Array.from(root.querySelectorAll("[data-sl-item]"));
+    const none = root.querySelector("[data-sl-none]");
+    const levelButtons = Array.from(root.querySelectorAll("[data-sl-level]"));
+    const supplierNote = root.querySelector("[data-sl-supplier-filter]");
+    const supplierNoteText = root.querySelector("[data-sl-supplier-filter-text]");
     const csrf = document.querySelector("input[name='__RequestVerificationToken']")?.value || "";
     const NS = "http://www.w3.org/2000/svg";
     let graph;
@@ -18,18 +26,22 @@
         return node;
     };
     const keyOf = (a, b) => `${Math.min(a, b)}-${Math.max(a, b)}`;
+    const name = (id) => nodes.find(n => n.id === id)?.name || "Supplier";
+    // Server keys keep the order SupplierA-SupplierB; map keys are min-max. Find whichever exists.
+    const detailFor = (key) => {
+        const [a, b] = key.split("-");
+        return root.querySelector(`[data-sl-detail="${a}-${b}"]`) || root.querySelector(`[data-sl-detail="${b}-${a}"]`);
+    };
 
-    // ---------- Drawing ----------
+    // ---------- Map: suppliers on a ring, curved lines between flagged pairs ----------
     const W = 700, H = 440, cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 64;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     const pos = new Map();
-    // Linked suppliers sit next to each other so their lines stay short and readable.
     const order = [...nodes].sort((x, y) => (y.linked - x.linked));
     order.forEach((n, i) => {
         const angle = -Math.PI / 2 + (i / Math.max(1, order.length)) * Math.PI * 2;
         pos.set(n.id, { x: cx + R * Math.cos(angle), y: cy + R * Math.sin(angle), angle });
     });
-
     el("circle", { cx, cy, r: R, class: "sl-ring" });
     const edgeLayer = el("g", { class: "sl-edges" });
     const nodeLayer = el("g", { class: "sl-nodes" });
@@ -38,20 +50,18 @@
     for (const link of links) {
         const a = pos.get(link.a), b = pos.get(link.b);
         if (!a || !b) continue;
-        // Bend each line toward the centre so lines between neighbours do not hug the ring.
         const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
         const qx = mx + (cx - mx) * 0.45, qy = my + (cy - my) * 0.45;
         const d = `M${a.x},${a.y} Q${qx},${qy} ${b.x},${b.y}`;
         const key = keyOf(link.a, link.b);
         const g = el("g", { class: `sl-edge is-${link.level}`, tabindex: "0", role: "button", "data-key": key,
-            "aria-label": `${name(link.a)} and ${name(link.b)}: ${link.label}. Show why.` }, edgeLayer);
+            "aria-label": `${name(link.a)} and ${name(link.b)}: ${link.label}. Show the evidence.` }, edgeLayer);
         el("path", { d, class: "sl-edge-hit" }, g);
         el("path", { d, class: "sl-edge-line", "stroke-width": Math.min(7, 2 + link.score * 0.6) }, g);
-        g.addEventListener("click", () => open(key));
-        g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(key); } });
+        g.addEventListener("click", () => goPair(key));
+        g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goPair(key); } });
         edgeByKey.set(key, g);
     }
-
     for (const n of order) {
         const p = pos.get(n.id);
         const g = el("g", { class: `sl-node ${n.linked ? "is-linked" : ""}`, "data-id": n.id }, nodeLayer);
@@ -63,62 +73,115 @@
         }, g);
         const max = Math.abs(outward) < 0.2 ? 40 : 24;
         label.textContent = n.name.length > max ? n.name.slice(0, max - 1) + "…" : n.name;
-        const title = el("title", {}, g);
-        title.textContent = `${n.name}: ${n.offers} offer${n.offers === 1 ? "" : "s"}`;
+        el("title", {}, g).textContent = `${n.name}: ${n.offers} offer${n.offers === 1 ? "" : "s"}`;
     }
+    if (nodes.length === 0) el("text", { x: cx, y: cy, "text-anchor": "middle", class: "sl-empty-text" }).textContent = "No submitted offers yet";
 
-    if (nodes.length === 0) {
-        const t = el("text", { x: cx, y: cy, "text-anchor": "middle", class: "sl-empty-text" });
-        t.textContent = "No submitted offers yet";
+    // ---------- Filters: signal strength and one supplier ----------
+    let level = "", supplier = null;
+    function applyFilters() {
+        let shown = 0;
+        for (const li of items) {
+            const okLevel = !level || li.dataset.level === level;
+            const okSupplier = supplier == null || li.dataset.a === String(supplier) || li.dataset.b === String(supplier);
+            li.hidden = !(okLevel && okSupplier);
+            if (!li.hidden) shown++;
+        }
+        levelButtons.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.slLevel === level)));
+        if (none) none.hidden = shown > 0;
+        if (supplierNote) {
+            supplierNote.hidden = supplier == null;
+            if (supplier != null) {
+                const li = items.find(i => i.dataset.a === String(supplier) || i.dataset.b === String(supplier));
+                const [na, nb] = (li?.dataset.names || "|").split("|");
+                const who = li ? (li.dataset.a === String(supplier) ? na : nb) : `supplier #${supplier}`;
+                supplierNoteText.textContent = `Showing pairs with ${who}.`;
+            }
+        }
+        // Dim map lines that the filters hide, so the map and the list agree.
+        edgeByKey.forEach((g, key) => {
+            const li = items.find(i => keyOf(+i.dataset.a, +i.dataset.b) === key);
+            g.classList.toggle("is-filtered-out", Boolean(li?.hidden));
+        });
     }
-
-    function name(id) { return nodes.find(n => n.id === id)?.name || "Supplier"; }
+    levelButtons.forEach(b => b.addEventListener("click", () => { level = b.dataset.slLevel; applyFilters(); }));
+    root.querySelector("[data-sl-supplier-clear]")?.addEventListener("click", () => {
+        supplier = null;
+        history.replaceState(null, "", location.pathname + location.search + "#links");
+        applyFilters();
+    });
 
     // ---------- Selection ----------
-    function open(key) {
-        root.querySelectorAll("[data-sl-detail]").forEach(d => d.hidden = d.dataset.slDetail !== key);
-        list.hidden = true;
-        svg.classList.add("has-selection");
-        edgeByKey.forEach((g, k) => g.classList.toggle("is-selected", k === key));
-        const [a, b] = key.split("-").map(Number);
-        nodeLayer.querySelectorAll(".sl-node").forEach(n => n.classList.toggle("is-selected", +n.dataset.id === a || +n.dataset.id === b));
-        root.querySelector(`[data-sl-detail="${key}"]`)?.focus({ preventScroll: true });
+    let openKey = null;
+    function show(key, { focus = true } = {}) {
+        const detail = key ? detailFor(key) : null;
+        openKey = detail ? key : null;
+        root.querySelectorAll("[data-sl-detail]").forEach(d => { d.hidden = d !== detail; });
+        if (overview) overview.hidden = Boolean(detail);
+        ws?.classList.toggle("has-detail", Boolean(detail));
+        const mapKey = detail ? keyOf(...detail.dataset.slDetail.split("-").map(Number)) : null;
+        root.querySelectorAll("[data-sl-open]").forEach(btn => {
+            const on = detail && btn.dataset.slOpen === detail.dataset.slDetail;
+            btn.setAttribute("aria-pressed", String(Boolean(on)));
+            btn.classList.toggle("is-current", Boolean(on));
+        });
+        svg.classList.toggle("has-selection", Boolean(detail));
+        edgeByKey.forEach((g, k) => g.classList.toggle("is-selected", k === mapKey));
+        if (detail && focus) detail.focus({ preventScroll: true });
+        // On narrow screens the evidence replaces the list, so bring its top into view.
+        if (detail && window.matchMedia("(max-width: 960px)").matches) detail.scrollIntoView({ block: "start" });
     }
-
-    function close() {
-        root.querySelectorAll("[data-sl-detail]").forEach(d => d.hidden = true);
-        list.hidden = false;
-        svg.classList.remove("has-selection");
-        svg.querySelectorAll(".is-selected").forEach(n => n.classList.remove("is-selected"));
-        list.querySelector("button")?.focus({ preventScroll: true });
-    }
+    const goPair = (key) => {
+        const detail = detailFor(key);
+        if (!detail) return;
+        const hash = `#links/${detail.dataset.slDetail}`;
+        if (location.hash === hash) show(detail.dataset.slDetail); else location.hash = hash;
+    };
 
     root.addEventListener("click", e => {
         const opener = e.target.closest("[data-sl-open]");
-        if (opener) return open(opener.dataset.slOpen);
-        if (e.target.closest("[data-sl-back]")) return close();
+        if (opener) return goPair(opener.dataset.slOpen);
+        if (e.target.closest("[data-sl-back]")) {
+            const from = openKey;
+            location.hash = supplier != null ? `#links?supplier=${supplier}` : "#links";
+            requestAnimationFrame(() => root.querySelector(`[data-sl-open="${from}"]`)?.focus({ preventScroll: true }));
+            return;
+        }
         const explain = e.target.closest("[data-sl-explain]");
         if (explain) brief(explain);
     });
-    root.addEventListener("keydown", e => { if (e.key === "Escape" && list.hidden) close(); });
+    root.addEventListener("keydown", e => { if (e.key === "Escape" && openKey) root.querySelector("[data-sl-back]:not([hidden])")?.click(); });
 
-    // Arriving from a tender page (?pair=3-7): open that pair, scroll to it and give it a short highlight.
-    const wanted = new URLSearchParams(location.search).get("pair");
-    if (wanted && /^\d+-\d+$/.test(wanted) && root.querySelector(`[data-sl-detail="${wanted}"]`)) {
-        const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        open(wanted);
-        root.classList.add("is-arrived");
-        root.querySelector(`[data-sl-detail="${wanted}"]`)?.classList.add("is-arrived");
-        requestAnimationFrame(() => root.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" }));
-        setTimeout(() => { root.classList.remove("is-arrived"); root.querySelector(".sl-detail.is-arrived")?.classList.remove("is-arrived"); }, 4000);
-    }
-
-    // Hovering a pair in the list previews its line on the map.
-    list.addEventListener("pointerover", e => {
-        const key = e.target.closest("[data-sl-open]")?.dataset.slOpen;
+    // Hovering a pair previews its line on the map (when the map is showing).
+    root.addEventListener("pointerover", e => {
+        const btn = e.target.closest("[data-sl-open]");
+        const key = btn ? keyOf(...btn.dataset.slOpen.split("-").map(Number)) : null;
         edgeByKey.forEach((g, k) => g.classList.toggle("is-hover", k === key));
     });
-    list.addEventListener("pointerleave", () => edgeByKey.forEach(g => g.classList.remove("is-hover")));
+
+    // Follow the router: #links, #links/3-7, #links?supplier=5. Arriving from a tender page (?pair=3-7) gives a short highlight.
+    page.addEventListener("ai:route", (e) => {
+        const r = e.detail;
+        if (r.view !== "links") return;
+        const sup = r.params.get("supplier");
+        supplier = sup && /^\d+$/.test(sup) ? Number(sup) : (r.sub ? supplier : null);
+        applyFilters();
+        if (r.sub && /^\d+-\d+$/.test(r.sub)) {
+            show(r.sub, { focus: !r.legacy });
+            if (r.legacy) {
+                const detail = detailFor(r.sub);
+                detail?.classList.add("is-arrived");
+                setTimeout(() => detail?.classList.remove("is-arrived"), 4000);
+            }
+        } else {
+            show(null);
+            if (supplier != null) {
+                const first = items.find(i => !i.hidden);
+                // One matching pair: open it straight away.
+                if (first && items.filter(i => !i.hidden).length === 1) goPair(first.querySelector("[data-sl-open]").dataset.slOpen);
+            }
+        }
+    });
 
     // ---------- AI brief ----------
     async function brief(button) {
@@ -158,5 +221,14 @@
             if (!note) { note = document.createElement("p"); note.className = "sl-brief-error"; note.setAttribute("role", "status"); box.appendChild(note); }
             note.textContent = err.message;
         }
+    }
+
+    applyFilters();
+    // ai-intelligence.js routed before this script loaded; apply the current route now.
+    if (location.hash.startsWith("#links")) {
+        const [path, qs] = location.hash.slice(1).split("?");
+        const sub = path.split("/")[1] || "";
+        const arrived = Boolean(sub) && new URLSearchParams(location.search).get("pair") === sub;   // came from a tender page
+        page.dispatchEvent(new CustomEvent("ai:route", { detail: { view: "links", sub, params: new URLSearchParams(qs || ""), legacy: arrived } }));
     }
 })();

@@ -186,3 +186,106 @@ a.sl-tender-chip:focus-visible { outline: 3px solid rgba(0, 163, 166, .45); outl
 .sl.is-arrived .sl-panel, .sl.is-arrived .sl-graph-card { animation: sl-pulse 1.4s ease-out 2; }
 .sl .sl-detail.is-arrived { border-radius: 12px; outline: 2px solid var(--sl-high); outline-offset: 6px; }
 @media (prefers-reduced-motion: reduce) { .sl.is-arrived .sl-panel, .sl.is-arrived .sl-graph-card { animation: none; } }
+
+/* ---------- Link signals workspace view (AI Intelligence) ----------
+   Pair list on the left as quiet rows; the map, or the evidence for one pair, on the right. No cards: hairlines and space. */
+.sl [hidden] { display: none !important; }
+.sl-ws { display: grid; grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); gap: 3rem; align-items: start; }
+.sl-list-pane { position: sticky; top: 4.6rem; min-width: 0; max-height: calc(100vh - 6rem); overflow-y: auto; padding-right: .25rem; scrollbar-width: thin; }
+.sl-detail-pane { min-width: 0; }
+.sl-list-head .sl-panel-title { font-size: 1rem; font-weight: 650; }
+.sl-list-head .sl-panel-sub { margin: .25rem 0 1rem; font-size: .84rem; }
+
+.sl-filters { display: inline-flex; flex-wrap: wrap; gap: .2rem; margin-bottom: .9rem; padding: .22rem; border-radius: 11px; background: var(--ai-tint-strong, rgba(29, 85, 96, .085)); }
+.sl-filter {
+    display: inline-flex; align-items: center; gap: .4rem; min-height: 2rem; padding: 0 .8rem; border: 0; border-radius: 8px;
+    background: transparent; color: var(--sl-muted); font-size: .82rem; font-weight: 600; cursor: pointer; transition: background-color .15s, color .15s;
+}
+.sl-filter span { font-weight: 650; opacity: .75; }
+.sl-filter.is-high::before, .sl-filter.is-medium::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sl-high); }
+.sl-filter.is-medium::before { background: var(--sl-medium); }
+.sl-filter:hover { color: var(--sl-ink); }
+.sl-filter[aria-pressed="true"] { background: var(--sl-surface); color: var(--sl-ink); box-shadow: 0 1px 3px rgba(12, 37, 45, .14); }
+.sl-filter:focus-visible { outline: 2px solid #00a3a6; outline-offset: 2px; }
+.sl-supplier-filter { display: flex; flex-wrap: wrap; gap: .4rem; align-items: baseline; margin: 0 0 .7rem; font-size: .85rem; color: var(--sl-muted); }
+.sl-none { margin: .8rem 0 0; color: var(--sl-muted); font-size: .9rem; }
+
+.sl-ws .sl-pairs { gap: 0; }
+.sl-ws .sl-pairs li + li { border-top: 1px solid var(--ai-line, rgba(12, 37, 45, .09)); }
+.sl-ws .sl-pair {
+    position: relative; gap: .25rem; margin: 0 -.7rem; width: calc(100% + 1.4rem); padding: .85rem .7rem .85rem 1.55rem;
+    border: 0; border-radius: 10px; background: transparent;
+}
+.sl-ws .sl-pair::before { content: ""; position: absolute; left: .7rem; top: 1.25rem; width: 7px; height: 7px; border-radius: 50%; background: var(--sl-medium); }
+.sl-ws li[data-level="high"] > .sl-pair::before { background: var(--sl-high); box-shadow: 0 0 0 3px var(--sl-high-soft); }
+.sl-ws .sl-pair:hover { background: var(--ai-tint, rgba(29, 85, 96, .045)); border: 0; }
+.sl-ws .sl-pair.is-current { background: var(--ai-tint-strong, rgba(29, 85, 96, .085)); }
+.sl-ws .sl-pair-names { font-weight: 600; }
+.sl-ws .sl-level { padding: 0; background: none; font-size: .78rem; font-weight: 650; }
+.sl-ws .sl-pair-why { font-size: .85rem; }
+.sl-pair-meta { font-size: .78rem; color: var(--ai-faint, #8a979e); }
+
+/* Map: drawn straight on the page, key underneath. */
+.sl-ws .sl-graph-card { display: block; padding: 0; border: 0; background: none; }
+.sl-graph-hint { margin: 0 0 .4rem; color: var(--sl-muted); font-size: .88rem; }
+.sl-ws .sl-graph { max-height: 460px; }
+.sl-ws .sl-node text { stroke: var(--ai-canvas, #f5f7fa); }
+.sl-edge.is-filtered-out { opacity: .1; pointer-events: none; }
+.sl-ws .sl-key-panel { margin-top: .6rem; padding: .9rem 0 0; border: 0; border-top: 1px solid var(--ai-line, rgba(12, 37, 45, .09)); }
+.sl-ws .sl-key-panel dl { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+
+/* Evidence for one pair. */
+.sl-ws .sl-detail { padding: 0; border: 0; background: none; scroll-margin-top: 4.6rem; }
+.sl-ws .sl-detail h3 { margin: 0; font-size: 1.45rem; font-weight: 650; letter-spacing: -.015em; }
+.sl-ws .sl-verdict { margin: .9rem 0 1.6rem; padding: .8rem 1rem; border-radius: 12px; }
+.sl-ws .sl-why-title { margin: 0 0 .5rem; font-size: .74rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--sl-muted); }
+.sl-ws .sl-evidence { gap: 0; }
+.sl-ws .sl-evidence li { padding: .85rem 0; border-radius: 0; background: none; border-bottom: 1px solid var(--ai-line, rgba(12, 37, 45, .09)); grid-template-columns: 8.5rem minmax(0, 1fr); }
+.sl-ws .sl-evidence li:first-child { border-top: 1px solid var(--ai-line, rgba(12, 37, 45, .09)); }
+.sl-ws .sl-kind { font-size: .78rem; color: var(--sl-muted); }
+.sl-ws .sl-tender-chip { background: var(--ai-tint-strong, rgba(29, 85, 96, .085)); border: 0; }
+.sl-ws .sl-back { margin: 0 0 1rem; font-size: .88rem; }
+.sl-ws .sl-back::before { content: none; }
+.sl-ws .sl-brief { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; margin-top: 1.6rem; padding: 0; border: 0; }
+.sl-ws .sl-brief:has(.sl-brief-text) { display: block; padding-inline-start: 1.1rem; border-inline-start: 2px solid var(--ai-accent, #0e6f75); }
+.sl-ws .sl-brief .ai-intel-muted { font-size: .84rem; flex: 1 1 16rem; }
+.sl-backlink { margin: 0; }
+
+/* Wide screens keep the list beside the evidence, so the back link is only needed on narrow ones. */
+@media (min-width: 961px) { .sl-ws .sl-detail .sl-back { display: none; } }
+@media (max-width: 960px) {
+    .sl-ws { grid-template-columns: 1fr; gap: 1.5rem; }
+    .sl-list-pane { position: static; max-height: none; overflow: visible; }
+    .sl-ws.has-detail .sl-list-pane { display: none; }
+}
+@media (max-width: 600px) { .sl-ws .sl-graph-card { display: none; } .sl-ws .sl-evidence li { grid-template-columns: 1fr; } }
+
+/* Surface layer for the Link signals view: bordered cards with level colours, matching the rest of AI Intelligence. */
+.ai-intel-page .sl-ws { gap: var(--ai-gap, 1.25rem); }
+.ai-intel-page .sl-ws :is(.sl-list-pane, .sl-graph-card, .sl-detail) {
+    padding: 1.25rem 1.35rem; border: 1px solid var(--ai-card-border, rgba(12, 37, 45, .11)); border-radius: 18px;
+    background: var(--ai-card, #fff); box-shadow: var(--ai-card-shadow, 0 6px 18px -10px rgba(12, 37, 45, .18));
+}
+.ai-intel-page .sl-ws .sl-list-pane { top: 5.4rem; max-height: calc(100vh - 7rem); }
+.ai-intel-page .sl-ws .sl-detail { border-top: 3px solid var(--sl-medium); }
+.ai-intel-page .sl-ws .sl-detail:has(.sl-verdict.is-high) { border-top-color: var(--sl-high); }
+.ai-intel-page .sl-ws .sl-pairs { display: grid; gap: .5rem; }
+.ai-intel-page .sl-ws .sl-pairs li + li { border-top: 0; }
+.ai-intel-page .sl-ws .sl-pair {
+    margin: 0; width: 100%; padding: .8rem .9rem .8rem 1.6rem;
+    border: 1px solid var(--ai-line, rgba(12, 37, 45, .09)); border-inline-start: 3px solid var(--sl-medium); border-radius: 12px;
+}
+.ai-intel-page .sl-ws li[data-level="high"] > .sl-pair { border-inline-start-color: var(--sl-high); }
+.ai-intel-page .sl-ws .sl-pair::before { left: .75rem; }
+.ai-intel-page .sl-ws .sl-pair:hover { border-color: rgba(14, 111, 117, .3); }
+.ai-intel-page .sl-ws .sl-pair.is-current { background: var(--c-teal-bg, #e7f3f3); border-color: rgba(14, 111, 117, .4); box-shadow: 0 0 0 3px rgba(14, 111, 117, .08); }
+.ai-intel-page .sl-ws .sl-level.is-high { color: var(--sl-high); }
+.ai-intel-page .sl-ws .sl-evidence { border: 1px solid var(--ai-line, rgba(12, 37, 45, .09)); border-radius: 12px; overflow: hidden; }
+.ai-intel-page .sl-ws .sl-evidence li { padding: .8rem 1rem; }
+.ai-intel-page .sl-ws .sl-evidence li:first-child { border-top: 0; }
+.ai-intel-page .sl-ws .sl-evidence li:last-child { border-bottom: 0; }
+.ai-intel-page .sl-ws .sl-evidence li:nth-child(even) { background: var(--ai-tint, rgba(29, 85, 96, .045)); }
+.ai-intel-page .sl-ws .sl-kind { font-weight: 650; color: var(--c-teal, #1d6470); }
+.ai-intel-page .sl-ws .sl-brief:has(.sl-brief-text) { padding: .9rem 1rem; border-radius: 4px 12px 12px 4px; background: linear-gradient(90deg, var(--c-teal-bg, #e7f3f3), transparent 80%); }
+.ai-intel-page .sl-ws .sl-key-panel { margin-top: 1rem; padding: .9rem 1rem; border: 1px solid var(--ai-line, rgba(12, 37, 45, .09)); border-radius: 12px; background: var(--ai-tint, rgba(29, 85, 96, .045)); }
+@media (max-width: 768px) { .ai-intel-page .sl-ws :is(.sl-list-pane, .sl-graph-card, .sl-detail) { padding: 1rem; } }

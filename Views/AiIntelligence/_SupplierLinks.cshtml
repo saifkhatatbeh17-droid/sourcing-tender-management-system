@@ -1,9 +1,10 @@
-@* Partial view (a reusable piece of a page). Used by: AiIntelligence/Index. *@
+@* Partial view (a reusable piece of a page). Used by: AiIntelligence/Index, as the "Link signals" view.
+   Flagged supplier pairs on the left; the map, or the evidence for the selected pair, on the right. *@
 @model SourcingTenderManagement.Services.Integrity.SupplierLinkMap
 @using System.Text.Json
 @using SourcingTenderManagement.Services.Integrity
 @{
-    // The map shows the busiest suppliers; every supplier in a suspected pair is always included.
+    // The map shows the busiest suppliers; every supplier in a flagged pair is always included.
     var linked = Model.Links.SelectMany(l => new[] { l.SupplierA, l.SupplierB }).ToHashSet();
     var nodes = Model.Nodes.Where(n => linked.Contains(n.Id))
         .Concat(Model.Nodes.Where(n => !linked.Contains(n.Id)).Take(Math.Max(0, 18 - linked.Count))).ToList();
@@ -14,76 +15,95 @@
     }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
     var workspace = ViewData["WorkspaceController"] as string ?? "Admin";
     var back = ViewData["BackTender"] as int?;
-    var tenderLinkFormat = $"/{workspace}/AiIntelligence?tenderId={{0}}#tender-explorer";
+    // Tender numbers in the evidence open that tender's report in this workspace, without leaving the page.
+    var tenderLinkFormat = "#tenders/{0}";
+    var pairs = Model.Links.OrderByDescending(l => l.Level == SupplierLinks.High).ThenByDescending(l => l.Score).ToList();
+    var highCount = pairs.Count(l => l.Level == SupplierLinks.High);
 }
 
-<section class="ai-intel-section sl" id="supplier-links" aria-labelledby="supplier-links-heading" data-supplier-links data-workspace="@workspace" data-graph="@graphJson">
-    <div class="ai-intel-section-head">
+<section class="ai-ws-view sl" role="tabpanel" id="view-links" aria-labelledby="tab-links" data-view="links" tabindex="-1" hidden
+         data-supplier-links data-workspace="@workspace" data-graph="@graphJson">
+    <span id="supplier-links" class="ai-anchor" aria-hidden="true"></span>
+    <div class="ai-ws-view-head">
         <div>
-            <h2 id="supplier-links-heading">Suppliers who may be working together</h2>
-            <p class="ai-intel-section-sub">Every supplier is a dot. When two suppliers send offers that look too similar, a line joins them. Click a line or a pair to see why.</p>
+            <h2 class="ai-ws-view-title" id="supplier-links-heading">Supplier link signals</h2>
+            <p class="ai-intel-section-sub">A flag means two suppliers sent offers with unusual similarities. It is a signal to review before an award, not proof that they worked together.</p>
         </div>
+        @if (back is int backTender)
+        {
+            <a class="sl-backlink" href="/TopCommittee/TenderDetails/@backTender#recommendation"><span aria-hidden="true">←</span> Back to tender #@backTender</a>
+        }
     </div>
-    @if (back is int backTender)
-    {
-        <a class="sl-backlink" href="/TopCommittee/TenderDetails/@backTender#recommendation"><span aria-hidden="true">←</span> Back to tender #@backTender</a>
-    }
 
-    <div class="sl-layout">
-        <div class="sl-graph-card">
-            <svg class="sl-graph" viewBox="0 0 600 440" role="img" aria-label="Map of suppliers. Lines join suppliers whose offers look too similar." data-sl-graph></svg>
-            <aside class="sl-key-panel" aria-label="Map key">
-                <h3>Map key</h3>
-                <dl>
-                    <div><dt><span class="sl-key is-high"></span></dt><dd><strong>High risk</strong>Several strong reasons they may be working together</dd></div>
-                    <div><dt><span class="sl-key is-medium"></span></dt><dd><strong>Worth checking</strong>One reason, worth a look</dd></div>
-                    <div><dt><span class="sl-key is-linked"></span></dt><dd><strong>Supplier in a pair</strong>Has at least one line</dd></div>
-                    <div><dt><span class="sl-key is-node"></span></dt><dd><strong>No warning signs</strong>Offers look independent</dd></div>
-                </dl>
-                <p>Thicker line = more reasons.</p>
-            </aside>
+    <div class="sl-ws" data-sl-ws>
+        <div class="sl-list-pane" data-sl-list>
+            @if (Model.Links.Count == 0)
+            {
+                <div class="sl-empty">
+                    <h3>All clear</h3>
+                    <p>We checked @(Model.OffersChecked > 0 ? $"{Model.OffersChecked} offers in {Model.TendersChecked} tenders" : $"the {Model.TendersChecked} tenders in your workspace"). No two suppliers show signals of working together.</p>
+                </div>
+            }
+            else
+            {
+                <div class="sl-list-head">
+                    <h3 class="sl-panel-title">@Model.Links.Count @(Model.Links.Count == 1 ? "pair" : "pairs") to review</h3>
+                    <p class="sl-panel-sub">Found @(Model.OffersChecked > 0 ? $"in {Model.OffersChecked} offers across {Model.TendersChecked} tenders" : $"across the {Model.TendersChecked} tenders in your workspace").</p>
+                </div>
+                <div class="sl-filters" role="group" aria-label="Show pairs by signal strength">
+                    <button type="button" class="sl-filter" data-sl-level="" aria-pressed="true">All <span>@Model.Links.Count</span></button>
+                    <button type="button" class="sl-filter is-high" data-sl-level="high" aria-pressed="false">High risk <span>@highCount</span></button>
+                    <button type="button" class="sl-filter is-medium" data-sl-level="medium" aria-pressed="false">Worth checking <span>@(Model.Links.Count - highCount)</span></button>
+                </div>
+                <p class="sl-supplier-filter" data-sl-supplier-filter hidden>
+                    <span data-sl-supplier-filter-text></span>
+                    <button type="button" class="ai-intel-linkbtn" data-sl-supplier-clear>Show all pairs</button>
+                </p>
+                <ul class="sl-pairs">
+                    @foreach (var link in pairs)
+                    {
+                        <li data-sl-item data-level="@link.Level" data-a="@link.SupplierA" data-b="@link.SupplierB" data-names="@link.NameA|@link.NameB">
+                            <button type="button" class="sl-pair" data-sl-open="@link.SupplierA-@link.SupplierB" aria-pressed="false">
+                                <span class="sl-pair-top">
+                                    <span class="sl-pair-names">@link.NameA <span>&amp;</span> @link.NameB</span>
+                                    <span class="sl-level is-@link.Level">@SupplierLinks.LevelLabel(link.Level)</span>
+                                </span>
+                                <span class="sl-pair-why">@SupplierLinks.Reasons(link)</span>
+                                <span class="sl-pair-meta">@link.SharedTenders.Count shared @(link.SharedTenders.Count == 1 ? "tender" : "tenders")</span>
+                            </button>
+                        </li>
+                    }
+                </ul>
+                <p class="sl-none" data-sl-none hidden>No pairs match this filter.</p>
+            }
         </div>
 
-        <div class="sl-panel" aria-live="polite">
-            <div data-sl-list>
-                @if (Model.Links.Count == 0)
-                {
-                    <div class="sl-empty">
-                        <h3>All clear</h3>
-                        <p>We checked @(Model.OffersChecked > 0 ? $"{Model.OffersChecked} offers in {Model.TendersChecked} tenders" : $"the {Model.TendersChecked} tenders in your workspace"). No two suppliers look like they are working together.</p>
-                    </div>
-                }
-                else
-                {
-                    <h3 class="sl-panel-title">@Model.Links.Count @(Model.Links.Count == 1 ? "pair" : "pairs") to check</h3>
-                    <p class="sl-panel-sub">Found @(Model.OffersChecked > 0 ? $"in {Model.OffersChecked} offers across {Model.TendersChecked} tenders" : $"across the {Model.TendersChecked} tenders in your workspace").</p>
-                    <ul class="sl-pairs">
-                        @foreach (var link in Model.Links)
-                        {
-                            <li>
-                                <button type="button" class="sl-pair" data-sl-open="@link.SupplierA-@link.SupplierB">
-                                    <span class="sl-pair-top">
-                                        <span class="sl-pair-names">@link.NameA <span>&amp;</span> @link.NameB</span>
-                                        <span class="sl-level is-@link.Level">@SupplierLinks.LevelLabel(link.Level)</span>
-                                    </span>
-                                    <span class="sl-pair-why">@SupplierLinks.Reasons(link)</span>
-                                </button>
-                            </li>
-                        }
-                    </ul>
-                }
+        <div class="sl-detail-pane">
+            <div class="sl-graph-card" data-sl-overview>
+                <p class="sl-graph-hint">@(Model.Links.Count > 0 ? "Choose a pair, or a line on the map, to see the evidence behind the flag." : "Every supplier with offers is a dot. Lines would join suppliers whose offers look too similar.")</p>
+                <svg class="sl-graph" viewBox="0 0 600 440" role="img" aria-label="Map of suppliers. Lines join suppliers whose offers look too similar." data-sl-graph></svg>
+                <aside class="sl-key-panel" aria-label="Map key">
+                    <dl>
+                        <div><dt><span class="sl-key is-high"></span></dt><dd><strong>High risk</strong>Several strong signals</dd></div>
+                        <div><dt><span class="sl-key is-medium"></span></dt><dd><strong>Worth checking</strong>One signal</dd></div>
+                        <div><dt><span class="sl-key is-linked"></span></dt><dd><strong>Supplier in a pair</strong>Has at least one line</dd></div>
+                        <div><dt><span class="sl-key is-node"></span></dt><dd><strong>No signals</strong>Offers look independent</dd></div>
+                    </dl>
+                    <p>Thicker line = more signals.</p>
+                </aside>
             </div>
 
-            @foreach (var link in Model.Links)
+            @foreach (var link in pairs)
             {
                 <article class="sl-detail" data-sl-detail="@link.SupplierA-@link.SupplierB" hidden tabindex="-1" aria-labelledby="sl-detail-@link.SupplierA-@link.SupplierB">
-                    <button type="button" class="sl-back" data-sl-back>Back to all pairs</button>
+                    <button type="button" class="sl-back" data-sl-back><span aria-hidden="true">←</span> All pairs and map</button>
                     <h3 id="sl-detail-@link.SupplierA-@link.SupplierB">@link.NameA <span>&amp;</span> @link.NameB</h3>
-                    <p class="sl-verdict is-@link.Level"><strong>@SupplierLinks.LevelLabel(link.Level).</strong> Their offers look too similar to be fully independent. Check before you award.</p>
-                    <h4 class="sl-why-title">Why</h4>
+                    <p class="sl-verdict is-@link.Level"><strong>@SupplierLinks.LevelLabel(link.Level).</strong> Their offers share similarities that independent suppliers rarely have. Review the evidence before you award.</p>
+                    <h4 class="sl-why-title">Evidence</h4>
                     <partial name="~/Views/Shared/_SupplierLinkEvidence.cshtml" model="link" view-data='new ViewDataDictionary(ViewData) { ["TenderLink"] = tenderLinkFormat }' />
                     <div class="sl-brief" data-sl-brief>
                         <button type="button" class="ai-intel-btn is-primary" data-sl-explain data-a="@link.SupplierA" data-b="@link.SupplierB" data-busy-label="Thinking…">Explain with AI</button>
+                        <span class="ai-intel-muted">A short plain-language brief of the evidence and what to check next.</span>
                     </div>
                 </article>
             }
