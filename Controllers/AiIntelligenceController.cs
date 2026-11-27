@@ -20,6 +20,7 @@ public sealed class AiIntelligenceController(
     AiIntelligenceService intelligence,
     ILogger<AiIntelligenceController> logger) : Controller
 {
+    // GET /AiIntelligence (and 6 more URLs): Opens the start page of this area.
     [HttpGet("/AiIntelligence")]
     [HttpGet("/Admin/AiIntelligence")]
     [HttpGet("/Department/AiIntelligence")]
@@ -72,6 +73,7 @@ public sealed class AiIntelligenceController(
         return View(model);
     }
 
+    // GET /AiIntelligence/TenderReport: Tender report: sends back data (JSON) for the page's script.
     [HttpGet("/AiIntelligence/TenderReport")]
     public async Task<IActionResult> TenderReport(int tenderId, string? workspace, CancellationToken ct)
     {
@@ -89,6 +91,7 @@ public sealed class AiIntelligenceController(
         return Ok(report);
     }
 
+    // POST /AiIntelligence/PortfolioInsights: Portfolio insights: sends back data (JSON) for the page's script.
     [HttpPost("/AiIntelligence/PortfolioInsights")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]
@@ -115,6 +118,7 @@ public sealed class AiIntelligenceController(
         }
     }
 
+    // POST /AiIntelligence/TenderInsights: Tender insights: sends back data (JSON) for the page's script.
     [HttpPost("/AiIntelligence/TenderInsights")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]
@@ -146,6 +150,7 @@ public sealed class AiIntelligenceController(
         }
     }
 
+    // POST /AiIntelligence/SupplierLinkBrief: Supplier link brief: sends back data (JSON) for the page's script.
     [HttpPost("/AiIntelligence/SupplierLinkBrief")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]
@@ -183,6 +188,7 @@ public sealed class AiIntelligenceController(
         }
     }
 
+    // POST /AiIntelligence/AnalyzeUpload: Analyze upload: sends back data (JSON) for the page's script.
     [HttpPost("/AiIntelligence/AnalyzeUpload")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]
@@ -229,6 +235,7 @@ public sealed class AiIntelligenceController(
         }
     }
 
+    // GET /AiIntelligence/ExportDashboard: Export dashboard: sends back a file download.
     [HttpGet("/AiIntelligence/ExportDashboard")]
     public async Task<IActionResult> ExportDashboard(string? workspace, string format = "pdf", CancellationToken ct = default)
     {
@@ -240,6 +247,7 @@ public sealed class AiIntelligenceController(
         return File(bytes, contentType, fileName);
     }
 
+    // GET /AiIntelligence/ExportTender: Export tender: sends back a file download.
     [HttpGet("/AiIntelligence/ExportTender")]
     public async Task<IActionResult> ExportTender(int tenderId, string? workspace, string format = "pdf", CancellationToken ct = default)
     {

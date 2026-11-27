@@ -13,13 +13,16 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
     ITopCommitteeClarificationQueries clarificationQueries, ITopCommitteeVoting voting,
     ITopCommitteeVotingReadiness votingReadiness) : Controller
 {
+    // GET /TopCommittee/Index: Opens the start page of this area.
     [HttpGet]
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
 
+    // GET /TopCommittee/Dashboard: Shows the "CEO & Chiefs Dashboard" page.
     [HttpGet]
     public async Task<IActionResult> Dashboard(CancellationToken cancellationToken) =>
         await ReadAsync(async () => View(await queries.GetDashboardAsync(User, cancellationToken)));
 
+    // GET /TopCommittee/Decisions: Shows the "Pending Tenders" page.
     [HttpGet]
     public async Task<IActionResult> Decisions([FromQuery] CommitteeTenderFilter filter, CancellationToken cancellationToken)
     {
@@ -44,6 +47,7 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
         });
     }
 
+    // GET /TopCommittee/TenderDetails: Opens the tender details page.
     [HttpGet]
     public async Task<IActionResult> TenderDetails(int id, int? bidId, CancellationToken cancellationToken)
     {
@@ -64,6 +68,7 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
             ExpectedNominatedBidId = tender.Report?.RecommendedBidId ?? 0 },
             tender.Readiness.CanCurrentMemberVote && await votingReadiness.IsDatabaseReadyAsync(User, tender.TenderId, cancellationToken));
 
+    // POST /TopCommittee/AssessImportance: Assess importance: sends back data (JSON) for the page's script.
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> AssessImportance(int id,
         [FromServices] SourcingTenderManagement.Services.Evaluation.BidRecommendationService ai,
@@ -113,6 +118,7 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
         };
     }
 
+    // POST /TopCommittee/SubmitVote: Submit vote. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SubmitVote([Bind(Prefix = "Vote")] CommitteeVoteInput input, CancellationToken cancellationToken)
     {
@@ -150,6 +156,7 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
         catch (CommitteeAccessDeniedException) { return Forbid(); }
         catch (CommitteeTenderNotFoundException) { return NotFound(); }
     }
+    // GET /TopCommittee/Clarifications: Shows the "Committee Clarifications" page.
     [HttpGet]
     public async Task<IActionResult> Clarifications(int? tenderId, CancellationToken cancellationToken)
     {
@@ -157,6 +164,7 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
         return await ReadAsync(async () => View(await clarificationQueries.GetPageAsync(User, tenderId, cancellationToken)));
     }
 
+    // POST /TopCommittee/CreateClarification: Create clarification. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateClarification([Bind(Prefix = "Create")] CommitteeCreateClarification input, CancellationToken cancellationToken)
     {
@@ -181,6 +189,7 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
         });
     }
 
+    // POST /TopCommittee/FollowUpClarification: Follow up clarification. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> FollowUpClarification(int id, int tenderId, string? message, CancellationToken cancellationToken) =>
         await ReadAsync(async () =>
@@ -198,6 +207,7 @@ public partial class TopCommitteeController(ITopCommitteeQueries queries, ITopCo
             }
         });
 
+    // POST /TopCommittee/ResolveClarification: Resolve clarification. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ResolveClarification(int id, CancellationToken cancellationToken) =>
         await ReadAsync(async () =>

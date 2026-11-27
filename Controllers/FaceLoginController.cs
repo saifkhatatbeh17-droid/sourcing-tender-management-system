@@ -10,6 +10,7 @@ namespace SourcingTenderManagement.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class FaceLoginController(FaceVerificationService verification) : Controller
 {
+    // GET /FaceLogin/Index: Opens the start page of this area.
     [HttpGet]
     public Task<IActionResult> Index(CancellationToken ct, string? returnUrl = null)
     {
@@ -17,6 +18,7 @@ public sealed class FaceLoginController(FaceVerificationService verification) : 
         return ReadAsync(ct, false);
     }
 
+    // GET /FaceLogin/Modal: Opens the modal page.
     [HttpGet]
     public Task<IActionResult> Modal(CancellationToken ct) => ReadAsync(ct, true);
 

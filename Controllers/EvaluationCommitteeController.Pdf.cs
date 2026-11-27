@@ -5,8 +5,10 @@ namespace SourcingTenderManagement.Controllers;
 // Evaluation Committee PDF downloads: the committee report, the evaluation report and the AI recommendation.
 public partial class EvaluationCommitteeController
 {
+    // GET /EvaluationCommittee/ReportPdf: Opens the report pdf page.
     [HttpGet]
     public async Task<IActionResult> ReportPdf(int id)=>await CommitteePdf(id);
+    // GET /EvaluationCommittee/EvaluationReportPdf: Opens the evaluation report pdf page.
     [HttpGet]
     public async Task<IActionResult> EvaluationReportPdf(int id)=>await CommitteePdf(id);
     private async Task<IActionResult> CommitteePdf(int id)
@@ -17,6 +19,7 @@ public partial class EvaluationCommitteeController
             ||string.IsNullOrWhiteSpace(page.Tender.EvaluationReport?.CommitteeSummary))return NotFound();
         return ReportPdfDownload.Create(this,()=>ReportPdfExport.CommitteeReport(page),$"committee-report-{id}.pdf");
     }
+    // GET /EvaluationCommittee/RecommendationPdf: Opens the recommendation pdf page.
     [HttpGet]
     public async Task<IActionResult> RecommendationPdf(int id)
     {

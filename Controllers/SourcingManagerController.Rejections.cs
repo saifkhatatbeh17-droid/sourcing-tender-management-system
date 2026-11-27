@@ -28,6 +28,7 @@ public partial class SourcingManagerController
     [HttpGet]
     public IActionResult Rejections(int? id) => RedirectToAction(nameof(Submissions), new { rejectedTenderId = id, showRejections = true });
 
+    // POST /SourcingManager/ForwardRejection: Forward rejection. Runs when its form or button is submitted.
     [HttpPost]
     public async Task<IActionResult> ForwardRejection(int id, [FromServices] ITopCommitteeTenderTransaction coordinator, CancellationToken ct)
     {
@@ -56,6 +57,7 @@ public partial class SourcingManagerController
         return RedirectToAction(nameof(Submissions), new { rejectedTenderId = id, showRejections = true });
     }
 
+    // POST /SourcingManager/AnswerTopEditRequest: Answer top edit request. Runs when its form or button is submitted.
     [HttpPost]
     public async Task<IActionResult> AnswerTopEditRequest(
         int id,
@@ -166,6 +168,7 @@ public partial class SourcingManagerController
         return RedirectToAction(nameof(Submissions));
     }
 
+    // POST /SourcingManager/PushTopEditToOfficer: Push top edit to officer. Runs when its form or button is submitted.
     [HttpPost]
     public async Task<IActionResult> PushTopEditToOfficer(
         int id,

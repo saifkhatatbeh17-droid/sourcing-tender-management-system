@@ -8,6 +8,7 @@ namespace SourcingTenderManagement.Controllers;
 // Sourcing Officer actions on a tender's offer deadline: close early, extend the round, or (in demos) simulate the deadline.
 public partial class SourcingOfficerController
 {
+    // POST /SourcingOfficer/CloseSubmissionsEarly: Close submissions early. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CloseSubmissionsEarly(int tenderId, bool sendToCommittee = false)
     {
@@ -87,6 +88,7 @@ public partial class SourcingOfficerController
         return RedirectToAction(nameof(Offers), new { tenderId });
     }
 
+    // POST /SourcingOfficer/SimulateDeadline: Simulate deadline. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SimulateDeadline(int tenderId, int currentRound, [FromServices] IWebHostEnvironment environment)
     {
@@ -121,6 +123,7 @@ public partial class SourcingOfficerController
         return RedirectToAction(nameof(Offers), new { tenderId });
     }
 
+    // POST /SourcingOfficer/ExtendOfferRound: Extend offer round. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ExtendOfferRound(int tenderId, int currentRound, DateTime? newDeadline)
     {

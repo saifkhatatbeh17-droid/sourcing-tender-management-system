@@ -14,6 +14,7 @@ public sealed class FaceVerificationController(FaceVerificationService verificat
 {
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
 
+    // GET /FaceVerification/Index: Shows the "Face verification" page.
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
@@ -21,6 +22,7 @@ public sealed class FaceVerificationController(FaceVerificationService verificat
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
+    // POST /FaceVerification/Verify: Verify: sends back data (JSON) for the page's script.
     [HttpPost, ValidateAntiForgeryToken, EnableRateLimiting("FaceVerification"), RequestSizeLimit(12_000)]
     public async Task<IActionResult> Verify([FromBody] FaceVerificationRequest input, CancellationToken ct)
     {

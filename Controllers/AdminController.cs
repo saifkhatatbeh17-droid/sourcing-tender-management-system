@@ -17,7 +17,9 @@ namespace SourcingTenderManagement.Controllers;
 public partial class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
     IConfiguration configuration, IWebHostEnvironment environment) : Controller
 {
+    // GET /Admin/Index: Opens the start page of this area.
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
+    // GET /Admin/Dashboard: Shows the "Dashboard" page.
     public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
     {
         ViewBag.DashboardSupplierStates = await db.SupplierProfiles.AsNoTracking().GroupBy(s => s.Status)
@@ -41,8 +43,10 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
 
         return View(model);
     }
+    // GET /Admin/Users: Shows the "Users" page.
     public async Task<IActionResult> Users(string? search, string? role, bool? isActive) =>
         View(await LoadUsersPage(search: search, role: role, isActive: isActive));
+    // GET /Admin/Departments: Shows the "Departments" page.
     public async Task<IActionResult> Departments() => View(await LoadDepartmentsPage());
 
     private async Task<DepartmentsPageViewModel> LoadDepartmentsPage(
@@ -57,10 +61,13 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
             EditInput = editInput
         };
     }
+    // GET /Admin/Suppliers: Opens the suppliers page.
     public Task<IActionResult> Suppliers(string? status) => LoadSupplierList(status, applicationsOnly: false);
 
+    // GET /Admin/SupplierApplications: Opens the supplier applications page.
     public Task<IActionResult> SupplierApplications(string? status) => LoadSupplierList(status, applicationsOnly: true);
 
+    // GET /Admin/ExportSuppliers: Export suppliers: sends back a file download.
     [HttpGet]
     public async Task<IActionResult> ExportSuppliers(string? status, CancellationToken cancellationToken)
     {
@@ -133,6 +140,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         });
     }
 
+    // GET /Admin/SupplierDetails: Opens the supplier details page.
     [HttpGet]
     public async Task<IActionResult> SupplierDetails(int id)
     {
@@ -159,6 +167,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         return View(nameof(SupplierDetails), new SupplierDetailsViewModel(supplier, review, SupplierDocumentRoot() != null));
     }
 
+    // GET /Admin/SupplierDocument: Supplier document: sends back a file download.
     [HttpGet]
     public async Task<IActionResult> SupplierDocument(int id, bool preview = false)
     {
@@ -276,6 +285,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
          where user.IsActive && user.Id != exceptUserId && role.Name == position
          select user.FullName).FirstOrDefaultAsync();
 
+    // POST /Admin/CreateDepartment: Create department. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateDepartment(string? name)
     {
@@ -296,6 +306,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         TempData["DepartmentsFeedback"] = $"“{name}” is now active in the department directory.";
         return RedirectToAction(nameof(Departments));
     }
+    // POST /Admin/CreateUser: Create user. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateUser(CreateUserViewModel model, [FromServices] EmployeeAccounts accounts)
     {
@@ -319,6 +330,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         return RedirectToAction(nameof(Users));
     }
 
+    // POST /Admin/ReviewSupplier: Review supplier. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ReviewSupplier([Bind(Prefix = "Review")] ReviewSupplierViewModel review)
     {
@@ -357,6 +369,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         return RedirectToAction(nameof(SupplierDetails), new { id = review.Id });
     }
 
+    // POST /Admin/EditUser: Edit user. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> EditUser(EditUserViewModel model)
     {
@@ -408,6 +421,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         return View("Users", await LoadUsersPage());
     }
 
+    // POST /Admin/EditDepartment: Edit department. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> EditDepartment(EditDepartmentViewModel model)
     {

@@ -7,6 +7,7 @@ namespace SourcingTenderManagement.Controllers;
 // CEO & Chiefs page listing past decisions.
 public partial class TopCommitteeController
 {
+    // GET /TopCommittee/History: Shows the "Decision History" page.
     [HttpGet]
     public async Task<IActionResult> History([FromServices] TopCommitteeHistory history,
         [FromQuery] CommitteeHistoryFilter filter, CancellationToken ct) => await ReadAsync(async () =>

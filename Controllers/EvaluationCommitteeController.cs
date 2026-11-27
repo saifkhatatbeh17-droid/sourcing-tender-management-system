@@ -21,8 +21,11 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db,
     ILogger<EvaluationCommitteeController> logger) : Controller
 {
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    // GET /EvaluationCommittee/Index: Opens the start page of this area.
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
+    // GET /EvaluationCommittee/Dashboard: Shows the "Committee dashboard" page.
     public async Task<IActionResult> Dashboard() => View(await LoadPage(null));
+    // GET /EvaluationCommittee/Evaluations: Shows the "Tender evaluations" page.
     public async Task<IActionResult> Evaluations(int? id, int? offerId = null)
     {
         var page = await LoadPage(id, selectFirst: false);
@@ -30,11 +33,13 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db,
         page.ReviewOfferId = offerId;
         return View(page);
     }
+    // GET /EvaluationCommittee/Reports: Shows the "Committee report" page.
     public async Task<IActionResult> Reports(int? id)
     {
         var page = await LoadPage(id, selectFirst: false);
         return View(page);
     }
+    // GET /EvaluationCommittee/Clarifications: Opens the clarifications page.
     public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
 
     private async Task<CommitteeEvaluationPage> LoadPage(int? id, bool selectFirst = true)
@@ -78,6 +83,7 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db,
         return page;
     }
 
+    // POST /EvaluationCommittee/RecommendBids: Recommend bids. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> RecommendBids(int id,
         decimal financialWeight,
@@ -246,6 +252,7 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db,
             offerId = TempData["EvaluationOffer"] });
     }
 
+    // POST /EvaluationCommittee/Start: Start. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> Start(int id) => Change(id, async page =>
     {
@@ -274,6 +281,7 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db,
         return null;
     }, initialize: true);
 
+    // POST /EvaluationCommittee/SaveComment: Save comment. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult SaveComment(int id) => BadRequest("Add your comment to the review for each offer. Submitted reviews are locked.");
 
@@ -293,15 +301,19 @@ public partial class EvaluationCommitteeController(ApplicationDbContext db,
         return entry;
     }
 
+    // POST /EvaluationCommittee/SaveWeights: Save weights. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult SaveWeights(int id) => BadRequest("Each member must confirm their own percentage. The calculated average cannot be edited.");
 
+    // POST /EvaluationCommittee/SelectOffer: Select offer. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult SelectOffer(int id) => BadRequest("Every offer must be reviewed. The highest average score determines the recommended offer.");
 
+    // POST /EvaluationCommittee/Approve: Approve. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult Approve(int id) => BadRequest("Submit a financial and technical review for each offer using its scoring form.");
 
+    // POST /EvaluationCommittee/RejectOffer: Reject offer. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult RejectOffer(int id) => BadRequest("Evaluate every offer using its financial and technical marks. Manual selection and rejection " +
             "are unavailable in the scoring cycle.");

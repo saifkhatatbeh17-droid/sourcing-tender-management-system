@@ -9,6 +9,7 @@ namespace SourcingTenderManagement.Controllers;
 // Admin page that shows what each supplier has done (invitations, offers, awards).
 public partial class AdminController
 {
+    // GET /Admin/SupplierActivity: Shows the "Supplier activity report" page.
     [HttpGet, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> SupplierActivity(int? supplierId, [FromServices] SupplierActivityQuery activity, CancellationToken ct)
     {

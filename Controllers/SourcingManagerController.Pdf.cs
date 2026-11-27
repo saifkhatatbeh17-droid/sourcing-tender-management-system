@@ -5,6 +5,7 @@ namespace SourcingTenderManagement.Controllers;
 // Sourcing Manager PDF downloads: the reports list and one submission.
 public partial class SourcingManagerController
 {
+    // GET /SourcingManager/ReportsPdf: Opens the reports pdf page.
     [HttpGet]
     public IActionResult ReportsPdf(string? search,string? decision)
     {
@@ -12,6 +13,7 @@ public partial class SourcingManagerController
         if(result is not ViewResult {Model:ManagerReportPage page})return result;
         return ReportPdfDownload.Create(this,()=>ReportPdfExport.ManagerDecisions(page),"manager-decisions.pdf");
     }
+    // GET /SourcingManager/SubmissionPdf: Opens the submission pdf page.
     [HttpGet]
     public IActionResult SubmissionPdf(int id)
     {

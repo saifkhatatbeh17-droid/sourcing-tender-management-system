@@ -11,6 +11,7 @@ namespace SourcingTenderManagement.Controllers;
 [Authorize, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class FaceSetupController(ApplicationDbContext db, FaceEnrollmentService enrollment, FaceVerificationService verification) : Controller
 {
+    // GET /FaceSetup/Index: Shows the "Set Up Face ID" page.
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
@@ -19,6 +20,7 @@ public sealed class FaceSetupController(ApplicationDbContext db, FaceEnrollmentS
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
+    // GET /FaceSetup/Modal: Opens the modal page.
     [HttpGet]
     public async Task<IActionResult> Modal(CancellationToken ct, string? returnUrl = null)
     {
@@ -34,6 +36,7 @@ public sealed class FaceSetupController(ApplicationDbContext db, FaceEnrollmentS
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
+    // POST /FaceSetup/Decline: Decline: sends back data (JSON) for the page's script.
     [HttpPost, ValidateAntiForgeryToken, RequestSizeLimit(4_000)]
     public IActionResult Decline()
     {

@@ -19,6 +19,7 @@ namespace SourcingTenderManagement.Controllers;
 [AutoValidateAntiforgeryToken]
 public class ClarificationController(ApplicationDbContext db, UserManager<ApplicationUser> users, ITopCommitteeManagerAnswers committeeAnswers) : Controller
 {
+    // GET /Clarification/Index: Shows the "Clarifications" page.
     public async Task<IActionResult> Index(int? id, string? direction, string? status,
         string? kind, int? recordId, CancellationToken ct)
     {
@@ -141,6 +142,7 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         return records;
     }
 
+    // POST /Clarification/Create: Create. Runs when its form or button is submitted.
     [HttpPost]
     public async Task<IActionResult> Create(string kind, int recordId, string recipient, string? subject,
         string? description, CancellationToken ct)
@@ -172,6 +174,7 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
         return RedirectToAction(nameof(Index), new { id = thread.ClarificationId, kind, recordId });
     }
 
+    // POST /Clarification/Update: Update. Runs when its form or button is submitted.
     [HttpPost]
     public async Task<IActionResult> Update(int id, string? message, bool resolve, CancellationToken ct)
     {

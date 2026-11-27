@@ -18,6 +18,7 @@ public sealed class TenderContractsController(ApplicationDbContext db, IWebHostE
     private string? UserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
     private string Storage => Path.Combine(environment.ContentRootPath, "App_Data", "private-files", "contracts");
 
+    // GET /TenderContracts/Details: Shows the "Award contract" page.
     [HttpGet]
     public async Task<IActionResult> Details(int id, CancellationToken ct)
     {
@@ -29,6 +30,7 @@ public sealed class TenderContractsController(ApplicationDbContext db, IWebHostE
             contract?.SignedFileName, contract?.SignedUploadedAt, contract?.Notes, User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SourcingManager)));
     }
 
+    // POST /TenderContracts/Generate: Generate. Runs when its form or button is submitted.
     [Authorize(Roles = Editors), HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Generate(int id, CancellationToken ct)
     {
@@ -60,6 +62,7 @@ public sealed class TenderContractsController(ApplicationDbContext db, IWebHostE
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    // POST /TenderContracts/UploadSigned: Upload signed. Runs when its form or button is submitted.
     [Authorize(Roles = Editors), HttpPost, ValidateAntiForgeryToken, RequestSizeLimit(MaxFileSize + 128 * 1024)]
     public async Task<IActionResult> UploadSigned(int id, IFormFile? signedFile, string? notes, CancellationToken ct)
     {
@@ -105,6 +108,7 @@ public sealed class TenderContractsController(ApplicationDbContext db, IWebHostE
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    // GET /TenderContracts/Download: Download: sends back a file download.
     [HttpGet]
     public async Task<IActionResult> Download(int id, bool signed, CancellationToken ct)
     {

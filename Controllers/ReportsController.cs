@@ -18,6 +18,7 @@ namespace SourcingTenderManagement.Controllers;
 public sealed class ReportsController(ApplicationDbContext db, ReportRegistry registry,
     ReportFilterOptions filters, ReportExport exporter, ILogger<ReportsController> logger) : Controller
 {
+    // GET /Reports/Index: Shows the "Reports" page.
     [HttpGet("")]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
@@ -34,6 +35,7 @@ public sealed class ReportsController(ApplicationDbContext db, ReportRegistry re
         }
     }
 
+    // GET /Reports/{key}: Opens the show page.
     [HttpGet("{key}")]
     public async Task<IActionResult> Show(string key, [FromQuery] ReportQuery query, CancellationToken ct)
     {
@@ -69,6 +71,7 @@ public sealed class ReportsController(ApplicationDbContext db, ReportRegistry re
         }
     }
 
+    // GET /Reports/{key}/export: Export: sends back a file download.
     [HttpGet("{key}/export")]
     public async Task<IActionResult> Export(string key, [FromQuery] ReportQuery query, string? format, CancellationToken ct)
     {

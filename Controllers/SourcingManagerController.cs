@@ -32,12 +32,14 @@ public partial class SourcingManagerController : Controller
 
     private string ManagerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+    // GET /SourcingManager/Index: Opens the start page of this area.
     [HttpGet]
     public IActionResult Index()
     {
         return RedirectToAction(nameof(Dashboard));
     }
 
+    // GET /SourcingManager/Dashboard: Shows the "Sourcing Manager Dashboard" page.
     [HttpGet]
     public IActionResult Dashboard()
     {
@@ -66,6 +68,7 @@ public partial class SourcingManagerController : Controller
         return View(dashboard);
     }
 
+    // GET /SourcingManager/Submissions: Shows the "Officer Submissions" page.
     [HttpGet]
     public IActionResult Submissions(int? id, int? rejectedTenderId = null, bool showRejections = false)
     {
@@ -147,6 +150,7 @@ public partial class SourcingManagerController : Controller
         return View(page);
     }
 
+    // POST /SourcingManager/Decide: Decide. Runs when its form or button is submitted.
     [HttpPost]
     public IActionResult Decide(ManagerDecisionInput input)
     {
@@ -261,6 +265,7 @@ public partial class SourcingManagerController : Controller
         return SubmissionMessage("Decision saved.");
     }
 
+    // POST /SourcingManager/DraftReferral: Draft referral: sends back data (JSON) for the page's script.
     [HttpPost]
     public async Task<IActionResult> DraftReferral(int reportId,
         [FromServices] SourcingTenderManagement.Services.Evaluation.BidRecommendationService ai, CancellationToken cancellationToken)
@@ -314,6 +319,7 @@ public partial class SourcingManagerController : Controller
         { return StatusCode(503, new { error = "Could not generate the summary. Check your vLLM / AI endpoint or API key and try again." }); }
     }
 
+    // POST /SourcingManager/Forward: Forward. Runs when its form or button is submitted.
     [HttpPost]
     public IActionResult Forward(ManagerForwardInput input)
     {
@@ -413,6 +419,7 @@ public partial class SourcingManagerController : Controller
         return SubmissionMessage("Tender forwarded to the CEO & Chiefs.");
     }
 
+    // GET /SourcingManager/ChosenOffers: Shows the "Chosen Offers" page.
     [HttpGet]
     public IActionResult ChosenOffers()
     {
@@ -426,6 +433,7 @@ public partial class SourcingManagerController : Controller
         return View(tenders);
     }
 
+    // GET /SourcingManager/Reports: Shows the "Reports & decisions" page.
     [HttpGet]
     public IActionResult Reports(string? search, string? decision)
     {

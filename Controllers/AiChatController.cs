@@ -26,6 +26,7 @@ public sealed class AiChatController(
     AiChatDownloadStore downloadStore,
     ILogger<AiChatController> logger) : ControllerBase
 {
+    // GET /AiChat/Download/{token}: Download: sends back a file download.
     [HttpGet("Download/{token}")]
     public async Task<IActionResult> Download(string token)
     {
@@ -46,6 +47,7 @@ public sealed class AiChatController(
 
         return File(file.Bytes, file.ContentType, file.FileName);
     }
+    // POST /AiChat/Speak: Speak: sends back a file download.
     [HttpPost("Speak")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]
@@ -71,6 +73,7 @@ public sealed class AiChatController(
         }
     }
 
+    // POST /AiChat/Transcribe: Transcribe: sends back data (JSON) for the page's script.
     [HttpPost("Transcribe")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]
@@ -99,6 +102,7 @@ public sealed class AiChatController(
         }
     }
 
+    // POST /AiChat/AnalyzeAttachment: Analyze attachment: sends back data (JSON) for the page's script.
     [HttpPost("AnalyzeAttachment")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]
@@ -152,6 +156,7 @@ public sealed class AiChatController(
             (await authorization.AuthorizeAsync(User, HttpContext, "ApprovedSupplier")).Succeeded;
     }
 
+    // POST /AiChat/Ask: Ask: sends back data (JSON) for the page's script.
     [HttpPost("Ask")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]

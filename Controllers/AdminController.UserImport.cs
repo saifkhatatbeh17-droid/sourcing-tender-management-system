@@ -8,12 +8,14 @@ namespace SourcingTenderManagement.Controllers;
 // No AI is involved: the sheet is read and validated here and never sent to the model.
 public partial class AdminController
 {
+    // GET /Admin/UserImportTemplate: User import template: sends back a file download.
     [HttpGet]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> UserImportTemplate([FromServices] EmployeeImport import, CancellationToken ct) =>
         File(await import.TemplateAsync(ct), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "tiryaq-account-import-template.xlsx");
 
+    // POST /Admin/UserImportPreview: User import preview: sends back data (JSON) for the page's script.
     [HttpPost, ValidateAntiForgeryToken]
     [RequestSizeLimit(EmployeeImport.MaxFileBytes + 64 * 1024)]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
@@ -66,6 +68,7 @@ public partial class AdminController
         return Ok(new { name = account.FullName, email = account.Email, password });
     }
 
+    // POST /Admin/UserImportConfirm: User import confirm: sends back data (JSON) for the page's script.
     [HttpPost, ValidateAntiForgeryToken]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> UserImportConfirm(string? token, [FromServices] EmployeeImport import, CancellationToken ct)

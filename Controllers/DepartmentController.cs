@@ -16,8 +16,10 @@ namespace SourcingTenderManagement.Controllers;
 public class DepartmentController(ApplicationDbContext db, UserManager<ApplicationUser> users)
     : Controller
 {
+    // GET /Department/Index: Opens the start page of this area.
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
 
+    // GET /Department/Dashboard: Shows the "Department dashboard" page.
     public async Task<IActionResult> Dashboard()
     {
         var user = await users.GetUserAsync(User);
@@ -25,6 +27,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return View(await DepartmentRequests(user).OrderByDescending(r => r.CreatedAt).ToListAsync());
     }
 
+    // GET /Department/Requests: Shows the "Requests history" page.
     public async Task<IActionResult> Requests(string? q, string? status)
     {
         var user = await users.GetUserAsync(User);
@@ -41,6 +44,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return View(await requests.OrderByDescending(r => r.CreatedAt).ToListAsync());
     }
 
+    // GET /Department/Details: Opens the details page.
     public async Task<IActionResult> Details(int id)
     {
         var user = await users.GetUserAsync(User);
@@ -57,6 +61,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return View(request);
     }
 
+    // GET /Department/Create: Opens the create page.
     [HttpGet]
     public async Task<IActionResult> Create()
     {
@@ -65,6 +70,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return View("RequestForm", new PurchaseRequestForm { Items = [new()] });
     }
 
+    // POST /Department/Create: Create. Runs when its form or button is submitted.
     [HttpPost]
     public async Task<IActionResult> Create(PurchaseRequestForm form)
     {
@@ -88,6 +94,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return RedirectToAction(nameof(Details), new { id = request.PurchaseRequestId });
     }
 
+    // GET /Department/Edit: Opens the edit page.
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
@@ -117,6 +124,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         });
     }
 
+    // POST /Department/Edit: Edit. Runs when its form or button is submitted.
     [HttpPost]
     public async Task<IActionResult> Edit(int id, PurchaseRequestForm form)
     {
@@ -146,6 +154,7 @@ public class DepartmentController(ApplicationDbContext db, UserManager<Applicati
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    // GET /Department/Clarifications: Opens the clarifications page.
     public IActionResult Clarifications() => RedirectToAction("Index", "Clarification");
 
     private async Task AddSubmissionNotifications(PurchaseRequest request, bool resubmitted)

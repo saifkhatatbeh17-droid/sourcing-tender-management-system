@@ -12,6 +12,7 @@ namespace SourcingTenderManagement.Controllers;
 public class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     ApplicationDbContext db, IAuditLog? audit = null) : Controller
 {
+    // POST /Account/OpenNotification: Open notification. Runs when its form or button is submitted.
     [Authorize, HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> OpenNotification(int id, CancellationToken ct)
     {
@@ -24,6 +25,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return LocalRedirect(destination!);
     }
 
+    // GET /Account/Login: Shows the "Sign In" page.
     [HttpGet]
     public IActionResult Login(string? returnUrl)
     {
@@ -52,6 +54,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         })
         : View("Login", model);
 
+    // POST /Account/Login: Login. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
@@ -149,6 +152,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) });
     }
 
+    // POST /Account/DemoFaceSignIn: Demo face sign in: sends back data (JSON) for the page's script.
     [HttpPost, ValidateAntiForgeryToken,
      Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
     public async Task<IActionResult> DemoFaceSignIn(
@@ -199,6 +203,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return Ok(new { redirectUrl = Url.Action(nameof(GoToDashboard), new { returnUrl = SafeReturnUrl(model.ReturnUrl) }) });
     }
 
+    // GET /Account/GoToDashboard: Opens the go to dashboard page.
     [Authorize]
     public async Task<IActionResult> GoToDashboard(string? returnUrl = null)
     {
@@ -218,6 +223,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return RedirectToAction(nameof(AccessDenied));
     }
 
+    // GET /Account/Profile: Shows the "My Profile" page.
     [HttpGet, Authorize]
     public async Task<IActionResult> Profile()
     {
@@ -244,6 +250,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return View(profile);
     }
 
+    // GET /Account/EditProfile: Shows the "Edit Profile" page.
     [HttpGet, Authorize]
     public async Task<IActionResult> EditProfile()
     {
@@ -256,6 +263,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return View(new EditProfileViewModel { PhoneNumber = account.PhoneNumber });
     }
 
+    // POST /Account/EditProfile: Edit profile. Runs when its form or button is submitted.
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> EditProfile(EditProfileViewModel input)
     {
@@ -291,10 +299,12 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return RedirectToAction(nameof(Profile));
     }
 
+    // GET /Account/ChangePassword: Opens the change password page.
     [HttpGet, Authorize]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public IActionResult ChangePassword() => RedirectToProfileSecurity();
 
+    // POST /Account/ChangePassword: Change password. Runs when its form or button is submitted.
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("ChangePassword")]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
@@ -340,6 +350,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         RedirectToAction(nameof(Profile), User.IsInRole(RoleNames.Supplier) ? "Supplier" : "Account",
             routeValues: null, fragment: "profile-security");
 
+    // POST /Account/Logout: Logout. Runs when its form or button is submitted.
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout(string? returnUrl = null)
     {
@@ -351,8 +362,10 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return RedirectToAction("Index", "Home");
     }
 
+    // GET /Account/Register: Shows the "Supplier Registration" page.
     public IActionResult Register() => View(new RegisterViewModel());
 
+    // POST /Account/Register: Register. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken, RequestSizeLimit(30_000_000)]
     public async Task<IActionResult> Register(RegisterViewModel model, List<IFormFile>? officialDocuments)
     {
@@ -407,6 +420,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return RedirectToAction(nameof(RegistrationStatus));
     }
 
+    // GET /Account/RegistrationStatus: Shows the "Registration Status" page.
     [Authorize(Roles = RoleNames.Supplier)]
     public async Task<IActionResult> RegistrationStatus()
     {
@@ -414,6 +428,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return View(await db.SupplierProfiles.AsNoTracking().SingleOrDefaultAsync(s => s.UserId == id));
     }
 
+    // GET /Account/EditRegistration: Shows the "Update Company Details" page.
     [Authorize(Roles = RoleNames.Supplier)]
     public async Task<IActionResult> EditRegistration()
     {
@@ -427,6 +442,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return View(model);
     }
 
+    // POST /Account/EditRegistration: Edit registration. Runs when its form or button is submitted.
     [HttpPost, Authorize(Roles = RoleNames.Supplier), ValidateAntiForgeryToken]
     public async Task<IActionResult> EditRegistration(SupplierCompanyViewModel input)
     {
@@ -452,6 +468,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return RedirectToAction(nameof(RegistrationStatus));
     }
 
+    // GET /Account/AccessDenied: Shows the "Access Denied" page.
     public IActionResult AccessDenied(string? returnUrl = null)
     {
         Response.StatusCode = 403;

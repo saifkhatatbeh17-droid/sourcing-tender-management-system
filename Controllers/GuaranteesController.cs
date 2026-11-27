@@ -15,6 +15,7 @@ namespace SourcingTenderManagement.Controllers;
 public sealed class GuaranteesController(
     ApplicationDbContext db, OfferGuarantees guarantees, OfferProductPhotos access) : Controller
 {
+    // GET /Guarantees/Verify/{token}: Opens the verify page.
     [AllowAnonymous, HttpGet("/Guarantees/Verify/{token}")]
     public async Task<IActionResult> Verify(string token, string? number)
     {
@@ -26,6 +27,7 @@ public sealed class GuaranteesController(
         return View(model);
     }
 
+    // GET /Guarantees/Document/{id:int}: Document: sends back a file download.
     [Authorize, HttpGet("/Guarantees/Document/{id:int}")]
     public async Task<IActionResult> Document(int id)
     {
@@ -38,6 +40,7 @@ public sealed class GuaranteesController(
             ? PhysicalFile(path, guarantee.ContentType, guarantee.OriginalFileName) : NotFound();
     }
 
+    // GET /Guarantees/Qr/{token}: Qr: sends back a file download.
     [AllowAnonymous, HttpGet("/Guarantees/Qr/{token}")]
     public async Task<IActionResult> Qr(string token)
     {

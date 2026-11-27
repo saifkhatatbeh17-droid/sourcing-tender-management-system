@@ -11,6 +11,7 @@ namespace SourcingTenderManagement.Controllers;
 // AI document review for one submitted offer. Read-only: it never changes the compliance decision.
 public partial class SourcingOfficerController
 {
+    // POST /SourcingOfficer/AiOfferReview: Ai offer review: sends back data (JSON) for the page's script.
     [HttpPost, ValidateAntiForgeryToken]
     [EnableRateLimiting("AiChat")]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]

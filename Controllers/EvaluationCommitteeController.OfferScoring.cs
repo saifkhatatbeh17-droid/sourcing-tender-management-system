@@ -8,6 +8,7 @@ namespace SourcingTenderManagement.Controllers;
 // Evaluation Committee actions to score an offer and to settle a tie between offers.
 public partial class EvaluationCommitteeController
 {
+    // POST /EvaluationCommittee/ScoreOffer: Score offer. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> ScoreOffer(int id, int bidId, decimal? financialMark, decimal? technicalMark, string? comment, string version) => Change(id, async page =>
     {
@@ -23,6 +24,7 @@ public partial class EvaluationCommitteeController
         return null;
     });
 
+    // POST /EvaluationCommittee/ResolveScoreTie: Resolve score tie. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> ResolveScoreTie(int id, int bidId, string version) => Change(id, page =>
     {

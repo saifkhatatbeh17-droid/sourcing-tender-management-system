@@ -6,10 +6,12 @@ namespace SourcingTenderManagement.Controllers;
 // CEO & Chiefs reports page and its export.
 public partial class TopCommitteeController
 {
+ // GET /TopCommittee/Reports: Shows the "CEO & Chiefs Reports" page.
  [HttpGet]
  public async Task<IActionResult> Reports([FromServices]TopCommitteeReports reports,
      [FromQuery]CommitteeReportFilter filter,
      CancellationToken ct)=>await ReadAsync(async()=>{try{if(!ModelState.IsValid)throw new ValidationException("Check the report filter values.");return View(await reports.GetAsync(User,filter,false,ct));}catch(ValidationException e){Response.StatusCode=400;ModelState.AddModelError("",e.Message);return View(new CommitteeReportPage(filter,new(0,0,0,0,0,0,0),[],DateTime.UtcNow));}});
+ // GET /TopCommittee/ReportExport: Report export: sends back a file download.
  [HttpGet]
  public async Task<IActionResult> ReportExport([FromServices]TopCommitteeReports reports,[FromServices]TopCommitteeReportExport exporter,[FromQuery]CommitteeReportFilter filter,string format,CancellationToken ct)=>await ReadAsync(async()=>{try{if(!ModelState.IsValid
      ||format is not("pdf" or "xlsx"))throw new ValidationException("Choose PDF or Excel and valid filters.");var p=await reports.GetAsync(User,filter,true,ct);return format=="pdf"?File(exporter.Pdf(p),"application/pdf","top-committee-report.pdf"):File(exporter

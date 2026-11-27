@@ -44,6 +44,7 @@ public sealed partial class PublicSafiController(
         required = new[] { "answer", "page" }
     };
 
+    // POST /PublicSafi/Ask: Ask. Runs when its form or button is submitted.
     [HttpPost("Ask")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("PublicSafi")]

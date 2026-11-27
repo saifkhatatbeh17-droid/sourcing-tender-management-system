@@ -8,6 +8,7 @@ namespace SourcingTenderManagement.Controllers;
 // Admin pages for messages sent from the public Contact form: list, details and mark as read.
 public partial class AdminController
 {
+    // GET /Admin/ContactMessages: Shows the "Contact messages" page.
     [HttpGet]
     public async Task<IActionResult> ContactMessages(string? search, string? status, int page = 1,
         CancellationToken cancellationToken = default)
@@ -35,6 +36,7 @@ public partial class AdminController
         return View(new ContactMessagesPage(messages, search, status, page, totalPages));
     }
 
+    // GET /Admin/ContactMessageDetails: Shows the "Contact message" page.
     [HttpGet]
     public async Task<IActionResult> ContactMessageDetails(int id, CancellationToken cancellationToken)
     {
@@ -44,6 +46,7 @@ public partial class AdminController
         return message == null ? NotFound() : View(message);
     }
 
+    // POST /Admin/MarkContactMessageRead: Mark contact message read. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkContactMessageRead(int id, CancellationToken cancellationToken)
     {
@@ -66,6 +69,7 @@ public partial class AdminController
         return RedirectToAction(nameof(ContactMessageDetails), new { id });
     }
 
+    // POST /Admin/OpenContactNotification: Open contact notification. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> OpenContactNotification(int id, CancellationToken cancellationToken)
     {

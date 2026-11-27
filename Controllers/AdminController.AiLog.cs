@@ -8,6 +8,7 @@ namespace SourcingTenderManagement.Controllers;
 // Read-only view of every AI call recorded by the AI gateway (AiInteractions).
 public partial class AdminController
 {
+    // GET /Admin/AiLog: Shows the "AI log" page.
     [HttpGet]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> AiLog(string? search, string? feature, string? workspace, string? outcome,

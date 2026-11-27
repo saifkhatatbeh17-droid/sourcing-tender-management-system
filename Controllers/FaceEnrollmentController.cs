@@ -17,6 +17,7 @@ public sealed class FaceEnrollmentController(FaceEnrollmentService enrollment) :
 {
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
 
+    // GET /FaceEnrollment/Index: Shows the "Biometric sign-in" page.
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
@@ -24,9 +25,11 @@ public sealed class FaceEnrollmentController(FaceEnrollmentService enrollment) :
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
+    // POST /FaceEnrollment/Save: Save. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken, EnableRateLimiting("FaceEnrollment"), RequestSizeLimit(48_000)]
     public Task<IActionResult> Save([FromBody] FaceEnrollmentRequest input, CancellationToken ct) => Change(input, false, ct);
 
+    // POST /FaceEnrollment/Delete: Delete. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken, EnableRateLimiting("FaceEnrollment"), RequestSizeLimit(48_000)]
     public Task<IActionResult> Delete([FromBody] FaceEnrollmentRequest input, CancellationToken ct) => Change(input, true, ct);
 

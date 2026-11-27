@@ -12,9 +12,11 @@ namespace SourcingTenderManagement.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class PasskeysController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, IAuditLog? audit = null) : Controller
 {
+    // GET /Passkeys/Index: Opens the start page of this area.
     [HttpGet, Authorize]
     public IActionResult Index() => RedirectToAction("Index", "FaceEnrollment", null, "passkey");
 
+    // POST /Account/Passkeys/EnrollmentOptions: Enrollment options. Runs when its form or button is submitted.
     [HttpPost("EnrollmentOptions"), Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> EnrollmentOptions()
     {
@@ -30,6 +32,7 @@ public class PasskeysController(UserManager<ApplicationUser> users, SignInManage
         return Content(options, "application/json");
     }
 
+    // POST /Account/Passkeys/Enroll: Enroll: sends back data (JSON) for the page's script.
     [HttpPost("Enroll"), Authorize, ValidateAntiForgeryToken, EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
     public async Task<IActionResult> Enroll(string? credential, string? password)
     {
@@ -50,6 +53,7 @@ public class PasskeysController(UserManager<ApplicationUser> users, SignInManage
         return saved.Succeeded ? Ok() : BadRequest(new { message = "The passkey could not be saved." });
     }
 
+    // POST /Account/Passkeys/LoginOptions: Login options. Runs when its form or button is submitted.
     [HttpPost("LoginOptions"), AllowAnonymous, ValidateAntiForgeryToken, EnableRateLimiting("FaceLogin")]
     public async Task<IActionResult> LoginOptions()
     {
@@ -58,6 +62,7 @@ public class PasskeysController(UserManager<ApplicationUser> users, SignInManage
         return Content(options, "application/json");
     }
 
+    // POST /Account/Passkeys/SignIn: Sign in with passkey: sends back data (JSON) for the page's script.
     [HttpPost("SignIn"), AllowAnonymous, ValidateAntiForgeryToken, EnableRateLimiting("FaceLogin"), RequestSizeLimit(64_000)]
     public async Task<IActionResult> SignInWithPasskey(string? credential, string? returnUrl = null)
     {

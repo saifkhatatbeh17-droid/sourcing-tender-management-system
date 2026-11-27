@@ -5,6 +5,7 @@ namespace SourcingTenderManagement.Controllers;
 // Sourcing Officer PDF downloads: the tender report and the evaluation report.
 public partial class SourcingOfficerController
 {
+    // GET /SourcingOfficer/ReportPdf: Opens the report pdf page.
     [HttpGet]
     public async Task<IActionResult> ReportPdf(int? id)
     {
@@ -17,6 +18,7 @@ public partial class SourcingOfficerController
         }
         return ReportPdfDownload.Create(this,()=>ReportPdfExport.OfficerReports(reports),"officer-reports.pdf");
     }
+    // GET /SourcingOfficer/EvaluationReportPdf: Opens the evaluation report pdf page.
     [HttpGet]
     public async Task<IActionResult> EvaluationReportPdf(int tenderId)
     {

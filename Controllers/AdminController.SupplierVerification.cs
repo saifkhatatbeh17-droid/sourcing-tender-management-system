@@ -7,6 +7,7 @@ namespace SourcingTenderManagement.Controllers;
 // Admin actions on a supplier account: suspend or reactivate it, and mark its documents as verified.
 public partial class AdminController
 {
+    // POST /Admin/SetSupplierSuspension: Set supplier suspension. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SetSupplierSuspension(int id, bool suspend, string? reason, CancellationToken ct)
     {
@@ -29,6 +30,7 @@ public partial class AdminController
         return RedirectToAction(nameof(SupplierDetails), new { id });
     }
 
+    // POST /Admin/VerifySupplierDocument: Verify supplier document. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> VerifySupplierDocument(int id, string status, CancellationToken ct)
     {

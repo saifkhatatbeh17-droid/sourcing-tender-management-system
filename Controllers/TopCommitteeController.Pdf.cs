@@ -5,6 +5,7 @@ namespace SourcingTenderManagement.Controllers;
 // CEO & Chiefs PDF download of a tender's unified report.
 public partial class TopCommitteeController
 {
+    // GET /TopCommittee/UnifiedReportPdf: Opens the unified report pdf page.
     [HttpGet]
     public async Task<IActionResult> UnifiedReportPdf(int id,int? bidId,CancellationToken cancellationToken)
     {

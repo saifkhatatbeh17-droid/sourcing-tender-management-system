@@ -11,6 +11,7 @@ namespace SourcingTenderManagement.Controllers;
 [Authorize, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class OfferProductPhotosController(ApplicationDbContext db, OfferProductPhotos photos, UserManager<ApplicationUser> users) : Controller
 {
+    // GET /OfferProductPhotos/{id:int}: Image: sends back a file download.
     [HttpGet("/OfferProductPhotos/{id:int}")]
     public async Task<IActionResult> Image(int id)
     {

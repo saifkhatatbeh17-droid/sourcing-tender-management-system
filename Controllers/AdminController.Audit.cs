@@ -7,6 +7,7 @@ namespace SourcingTenderManagement.Controllers;
 // Admin pages for the audit trail: one audit entry, and a tender's evaluation report as PDF.
 public partial class AdminController
 {
+    // GET /Admin/TenderEvaluationPdf: Opens the tender evaluation pdf page.
     [HttpGet, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> TenderEvaluationPdf(int id, CancellationToken ct)
     {
@@ -17,6 +18,7 @@ public partial class AdminController
             $"tender-{id}-evaluation.pdf");
     }
 
+    // GET /Admin/AuditEntry: Shows the "Audit entry" page.
     [HttpGet, ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> AuditEntry(long id, CancellationToken ct)
     {

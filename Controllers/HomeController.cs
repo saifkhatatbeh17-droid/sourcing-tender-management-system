@@ -12,13 +12,19 @@ namespace SourcingTenderManagement.Controllers;
 // The public website: home, about, how it works, team, contact form and the error page.
 public class HomeController(ApplicationDbContext db, ILogger<HomeController> logger) : Controller
 {
+    // GET /Home/Index: Shows the "Tiryaq Pharma" page.
     public IActionResult Index() => View();
+    // GET /Home/About: Shows the "About" page.
     public IActionResult About() => View();
+    // GET /Home/HowItWorks: Shows the "How It Works" page.
     public IActionResult HowItWorks() => View();
+    // GET /Home/Team: Shows the "Meet Our Team" page.
     public IActionResult Team() => View(TeamMember.Roster);
+    // GET /Home/Contact: Shows the "Contact Us" page.
     [HttpGet, AllowAnonymous]
     public IActionResult Contact() => View(new ContactMessageInput());
 
+    // POST /Home/Contact: Contact. Runs when its form or button is submitted.
     [HttpPost, AllowAnonymous, ValidateAntiForgeryToken, RequestSizeLimit(65536)]
     public async Task<IActionResult> Contact(ContactMessageInput input, CancellationToken cancellationToken)
     {
@@ -90,5 +96,6 @@ public class HomeController(ApplicationDbContext db, ILogger<HomeController> log
         TempData["ContactSuccess"] = "Your message has been sent successfully!";
         return RedirectToAction(nameof(Contact), null, null, "contact");
     }
+    // GET /Home/Error: Opens the error page.
     public IActionResult Error() { Response.StatusCode = 500; return View(); }
 }

@@ -17,6 +17,7 @@ public partial class SourcingOfficerController
     private static readonly SemaphoreSlim[] SpecMatchLocks =
         Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1)).ToArray();
 
+    // POST /SourcingOfficer/RunSpecMatch: Run spec match. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> RunSpecMatch(int id, [FromServices] SpecMatchService service, CancellationToken ct)
     {

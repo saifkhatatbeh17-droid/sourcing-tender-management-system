@@ -7,6 +7,7 @@ Every file starts with a short comment that says what it is for:
 - C# and JavaScript files: a `// ...` line above the class or at the top.
 - Views (`.cshtml`): an `@* ... *@` line at the top saying which page it is and which controller action shows it. Razor comments are never sent to the browser.
 - Stylesheets (`.css`): a `/* ... */` line saying which pages use it.
+- Controller actions: a `// GET /Folder/Action: ...` line above each one, giving the URL that runs it and what it does. Search for a URL from your browser's address bar to find its code.
 
 ## 1. What the app does, in one paragraph
 

@@ -5,15 +5,18 @@ namespace SourcingTenderManagement.Controllers;
 // CEO & Chiefs notifications page and marking notifications as read.
 public partial class TopCommitteeController
 {
+ // GET /TopCommittee/Notifications: Shows the "Committee Notifications" page.
  [HttpGet]
  public async Task<IActionResult> Notifications([FromServices]TopCommitteeNotifications notifications,
      int page=1,
      CancellationToken ct=default)=>await ReadAsync(async()=>{try{if(!ModelState.IsValid)throw new ValidationException("Choose a valid page.");return View(await notifications.GetAsync(User,page,ct));}catch(ValidationException e){return BadRequest(e.Message);}});
+ // POST /TopCommittee/MarkNotificationRead: Mark notification read. Runs when its form or button is submitted.
  [HttpPost,ValidateAntiForgeryToken]
  public async Task<IActionResult> MarkNotificationRead([FromServices]TopCommitteeNotifications notifications,
      int id,
      CancellationToken ct,
      string? returnUrl=null)=>await ReadAsync(async()=>{if(!await notifications.MarkAsync(User,id,ct))return NotFound();TempData["NotificationSuccess"]="Notification marked as read.";return NotificationReturn(returnUrl);});
+ // POST /TopCommittee/MarkAllNotificationsRead: Mark all notifications read. Runs when its form or button is submitted.
  [HttpPost,ValidateAntiForgeryToken]
  public async Task<IActionResult> MarkAllNotificationsRead([FromServices]TopCommitteeNotifications notifications,
      CancellationToken ct,

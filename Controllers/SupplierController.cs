@@ -17,8 +17,10 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
     private Task<SupplierProfile?> MyProfile() => db.SupplierProfiles.Include(p => p.User)
         .SingleOrDefaultAsync(p => p.UserId == UserId && (p.Status == "Approved" || p.Status == "Suspended"));
 
+    // GET /Supplier/Index: Opens the start page of this area.
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
 
+    // GET /Supplier/Dashboard: Shows the "Supplier dashboard" page.
     public async Task<IActionResult> Dashboard()
     {
         var profile = await MyProfile();
@@ -66,6 +68,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return View(vm);
     }
 
+    // GET /Supplier/Invitations: Shows the "Tender invitations" page.
     [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> Invitations(string? status)
     {
@@ -84,6 +87,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return View(await query.OrderByDescending(i => i.SentAt).ToListAsync());
     }
 
+    // GET /Supplier/Invitation: Shows the "Tender details" page.
     [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> Invitation(int id)
     {
@@ -96,6 +100,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return invitation == null ? NotFound() : View(invitation);
     }
 
+    // GET /Supplier/DownloadTenderDocument: Download tender document: sends back a file download.
     [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> DownloadTenderDocument(int id)
     {
@@ -108,6 +113,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return System.IO.File.Exists(path)?PhysicalFile(path,document.ContentType,document.OriginalFileName):NotFound();
     }
 
+    // POST /Supplier/Respond: Respond. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> Respond(int id, string response)
@@ -135,6 +141,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return RedirectToAction(nameof(Invitation), new { id });
     }
 
+    // GET /Supplier/Offers: Shows the "My offers" page.
     public async Task<IActionResult> Offers(string? q, string? status)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
@@ -156,6 +163,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return View(await query.OrderByDescending(b => b.SubmittedAt ?? b.CreatedAt).ToListAsync());
     }
 
+    // GET /Supplier/History: Shows the "Offer history" page.
     public async Task<IActionResult> History()
     {
         var profile = await MyProfile();
@@ -168,6 +176,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return View(offers);
     }
 
+    // GET /Supplier/CreateOffer: Opens the create offer page.
     [HttpGet]
     [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> CreateOffer(int invitationId, int? bidId)
@@ -209,6 +218,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return View(form);
     }
 
+    // POST /Supplier/SaveOffer: Save offer. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken, RequestSizeLimit(20_000_000)]
     [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> SaveOffer(OfferFormViewModel model, string submissionCommand, List<IFormFile>? documents)
@@ -430,6 +440,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             line.ProductPhotoDocumentId = documents.LastOrDefault(d => d.DocumentType == SourcingTenderManagement.Services.OfferProductPhotos.Type(line.PurchaseRequestItemId))?.BidDocumentId;
     }
 
+    // POST /Supplier/CancelOffer: Cancel offer. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> CancelOffer(int id)
@@ -462,6 +473,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return RedirectToAction(nameof(Offer), new { id });
     }
 
+    // GET /Supplier/Offer: Shows the "Offer details" page.
     public async Task<IActionResult> Offer(int id)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
@@ -479,6 +491,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return bid == null ? NotFound() : View(bid);
     }
 
+    // GET /Supplier/DownloadDocument: Download document: sends back a file download.
     public async Task<IActionResult> DownloadDocument(int id)
     {
         var profile = await MyProfile(); if (profile == null) return NotFound();
@@ -490,6 +503,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return System.IO.File.Exists(path) ? PhysicalFile(path, doc.ContentType, doc.OriginalFileName) : NotFound();
     }
 
+    // GET /Supplier/DownloadSummary: Opens the download summary page.
     public async Task<IActionResult> DownloadSummary(int id)
     {
         var result = await Offer(id);
@@ -498,6 +512,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
             () => SourcingTenderManagement.Services.Reports.ReportPdfExport.SupplierSummary(bid), $"BID-{id:D6}-summary.pdf");
     }
 
+    // GET /Supplier/Profile: Shows the "Company profile" page.
     public async Task<IActionResult> Profile()
     {
         var profile = await db.SupplierProfiles.AsNoTracking()
@@ -507,6 +522,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return profile == null ? NotFound() : View(profile);
     }
 
+    // POST /Supplier/UpdateCategory: Update category. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> UpdateCategory(ProcurementCategoryInput input)
@@ -527,6 +543,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return RedirectToAction(nameof(Profile));
     }
 
+    // GET /Supplier/DownloadProfileDocument: Download profile document: sends back a file download.
     public async Task<IActionResult> DownloadProfileDocument(int id)
     {
         var profileId = await db.SupplierProfiles.Where(p => p.UserId == UserId)
@@ -540,8 +557,10 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return System.IO.File.Exists(path) ? PhysicalFile(path, document.ContentType, document.OriginalFileName) : NotFound();
     }
 
+    // GET /Supplier/Clarifications: Opens the clarifications page.
     public IActionResult Clarifications(int? id) => RedirectToAction("Index", "Clarification", new { id });
 
+    // POST /Supplier/Reply: Reply. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Policy = "ApprovedSupplier")]
     public async Task<IActionResult> Reply(int id, string message)
@@ -590,6 +609,7 @@ public class SupplierController(ApplicationDbContext db, UserManager<Application
         return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? NoContent() : RedirectToAction(nameof(Dashboard));
     }
 
+    // GET /Supplier/Notifications: Shows the "Notifications" page.
     public async Task<IActionResult> Notifications()
     {
         return View(await db.Notifications.AsNoTracking().Where(n => n.UserId == UserId)

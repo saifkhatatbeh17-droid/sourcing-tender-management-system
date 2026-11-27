@@ -10,6 +10,7 @@ namespace SourcingTenderManagement.Controllers;
 // Sourcing Manager clarifications: ask, reply to and resolve questions about a submission.
 public partial class SourcingManagerController
 {
+    // GET /SourcingManager/Clarifications: Shows the "Clarifications" page.
     [HttpGet]
     public IActionResult Clarifications(int? tenderId, int? id)
     {
@@ -78,6 +79,7 @@ public partial class SourcingManagerController
         return View(page);
     }
 
+    // POST /SourcingManager/CreateClarification: Create clarification. Runs when its form or button is submitted.
     [HttpPost]
     public IActionResult CreateClarification(ManagerClarificationInput input)
     {
@@ -120,6 +122,7 @@ public partial class SourcingManagerController
         return ClarificationMessage("Question sent.", input.TenderId, clarification.ClarificationId);
     }
 
+    // POST /SourcingManager/ReplyToClarification: Reply to clarification. Runs when its form or button is submitted.
     [HttpPost]
     public IActionResult ReplyToClarification(ManagerClarificationReply input)
     {
@@ -176,6 +179,7 @@ public partial class SourcingManagerController
         return ClarificationMessage("Response sent.", id: input.Id);
     }
 
+    // POST /SourcingManager/ResolveClarification: Resolve clarification. Runs when its form or button is submitted.
     [HttpPost]
     public IActionResult ResolveClarification(int id)
     {

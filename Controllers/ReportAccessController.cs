@@ -18,6 +18,7 @@ namespace SourcingTenderManagement.Controllers;
 public sealed class ReportAccessController(ApplicationDbContext db, ReportRegistry registry,
     ILogger<ReportAccessController> logger) : Controller
 {
+    // GET /ReportAccess/Index: Index: sends back data (JSON) for the page's script.
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct, bool data = false)
     {
@@ -34,6 +35,7 @@ public sealed class ReportAccessController(ApplicationDbContext db, ReportRegist
         }
     }
 
+    // POST /ReportAccess/Save: Save: sends back data (JSON) for the page's script.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Save([FromBody] List<ReportAccessChange>? changes, CancellationToken ct)
     {

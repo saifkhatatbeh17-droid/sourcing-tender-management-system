@@ -14,7 +14,9 @@ namespace SourcingTenderManagement.Controllers;
 [Authorize(Roles = RoleNames.SourcingOfficer)]
 public partial class SourcingOfficerController(ApplicationDbContext db) : Controller
 {
+    // GET /SourcingOfficer/Index: Opens the start page of this area.
     public IActionResult Index() => RedirectToAction(nameof(Dashboard));
+    // GET /SourcingOfficer/Dashboard: Shows the "Sourcing officer dashboard" page.
     public async Task<IActionResult> Dashboard()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -46,6 +48,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
 
         return View();
     }
+    // GET /SourcingOfficer/Requests: Shows the "Request review" page.
     public async Task<IActionResult> Requests(int? id, string status = "All", string? q = null, int page = 1)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -103,6 +106,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return View(requests);
     }
 
+    // GET /SourcingOfficer/Details: Opens the details page.
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
@@ -114,6 +118,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return RedirectToAction(nameof(Requests), new { id, status = request.Status });
     }
 
+    // POST /SourcingOfficer/StartReview: Start review. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> StartReview(int id)
     {
@@ -145,14 +150,17 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return RedirectToAction(nameof(Requests), new { id });
     }
 
+    // POST /SourcingOfficer/ApproveRequest: Approve request. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> ApproveRequest(int id, string? notes = null) =>
         SaveRequestDecision(id, "Approved", notes, notesRequired: false);
 
+    // POST /SourcingOfficer/ReturnRequest: Return request. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> ReturnRequest(int id, string? reason) =>
         SaveRequestDecision(id, "Returned", reason, notesRequired: true);
 
+    // POST /SourcingOfficer/RejectRequest: Reject request. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> RejectRequest(int id, string? reason) =>
         SaveRequestDecision(id, "Rejected", reason, notesRequired: true);
@@ -226,6 +234,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
 
     private IQueryable<PurchaseRequest> ReviewableRequests(string userId) =>
         db.PurchaseRequests.ReviewableBy(userId);
+    // GET /SourcingOfficer/Tenders: Opens the tenders page.
     public IActionResult Tenders(int? id) => RedirectToAction(nameof(Offers), new { tenderId = id });
 
     private async Task<IActionResult> LoadTenderForms()
@@ -248,6 +257,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return await Offers(null, null);
     }
 
+    // GET /SourcingOfficer/Create: Opens the create page.
     [HttpGet]
     public async Task<IActionResult> Create(int? purchaseRequestId, int? replacesTenderId = null)
     {
@@ -282,6 +292,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             OpensAt = DateTime.UtcNow, ClosesAt = DateTime.UtcNow.AddDays(7) });
     }
 
+    // POST /SourcingOfficer/Create: Create. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([Bind("PurchaseRequestId,Title,Description,Terms,OpensAt,ClosesAt,Category,OtherCategory,ReplacesTenderId")] SourcingOfficerTenderForm tender,
         bool launch = true,
@@ -421,6 +432,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return RedirectToAction(nameof(Offers), new { tenderId = id });
     }
 
+    // POST /SourcingOfficer/Edit: Edit. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult Edit(SourcingOfficerTenderForm input) => NotFound();
 
@@ -433,6 +445,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return RedirectToAction(nameof(Offers), new { tenderId = id });
     }
 
+    // POST /SourcingOfficer/PublishAndInvite: Publish and invite. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> PublishAndInvite(int id, List<int>? supplierProfileIds, bool allSuppliers = false)
     {
@@ -463,6 +476,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return RedirectToAction(nameof(Offers), new { tenderId = id });
     }
 
+    // POST /SourcingOfficer/CancelTender: Cancel tender. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CancelTender(int id, bool fromList = false, bool declineReplacement = false)
     {
@@ -494,6 +508,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return fromList ? RedirectToAction(nameof(Tenders)) : RedirectToAction(nameof(Offers), new { tenderId = id });
     }
 
+    // POST /SourcingOfficer/SendToEvaluation: Send to evaluation. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> SendToEvaluation(int id) => ReviewAndSend(id, new Dictionary<int, string>());
 
@@ -517,6 +532,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             EF.Functions.Collate(s.Category!, "Latin1_General_100_CI_AS") == category);
     }
 
+    // GET /SourcingOfficer/Invitations: Shows the "Supplier Invitations" page.
     public async Task<IActionResult> Invitations(int? tenderId)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -549,6 +565,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return View(invitations);
     }
 
+    // POST /SourcingOfficer/CreateInvitation: Create invitation. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateInvitation(int tenderId, List<int>? supplierProfileIds, bool allSuppliers = false)
     {
@@ -607,6 +624,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return RedirectToAction(nameof(Invitations), new { tenderId });
     }
 
+    // GET /SourcingOfficer/Offers: Shows the "Tender workspace" page.
     public async Task<IActionResult> Offers(int? id, int? tenderId)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -707,6 +725,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return View("Offers", bids);
     }
 
+    // POST /SourcingOfficer/ReviewAndSend: Review and send. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ReviewAndSend(int tenderId, Dictionary<int, string> decisions, bool saveOnly = false, string? shortfallReason = null)
     {
@@ -790,6 +809,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return RedirectToAction(nameof(Offers), new { tenderId });
     }
 
+    // POST /SourcingOfficer/MarkOfferOpened: Mark offer opened. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkOfferOpened(int id)
     {
@@ -817,8 +837,10 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             ? null : "At least one offer must be compliant to continue.";
     }
 
+    // GET /SourcingOfficer/Compliance: Opens the compliance page.
     public IActionResult Compliance(int? id) => RedirectToAction(nameof(Offers), new { id });
 
+    // POST /SourcingOfficer/ReviewCompliance: Review compliance. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ReviewCompliance(int id, string decision, string? notes)
     {
@@ -889,6 +911,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         TempData["ComplianceSuccess"] = "Compliance decision saved.";
         return RedirectToAction(nameof(Compliance), new { id });
     }
+    // GET /SourcingOfficer/Comparison: Shows the "Comparison & Analysis" page.
     public async Task<IActionResult> Comparison(int? tenderId)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -921,6 +944,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             : new List<EvaluationCriterion>();
         return View(bids);
     }
+    // GET /SourcingOfficer/Evaluations: Shows the "Evaluations & Recommendations" page.
     public async Task<IActionResult> Evaluations(int? tenderId)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -986,6 +1010,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
             System.Text.Json.JsonSerializer.Serialize(new { report.EvaluationReportId, report.CommitteeSummary, report.RecommendedBidId, report.Status, report.SubmittedAt }))));
 
+    // POST /SourcingOfficer/ReviewCommitteeReport: Review committee report. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ReviewCommitteeReport(int tenderId, string decision, string? reason, string version, bool fromReports = false)
     {
@@ -1058,6 +1083,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         return ReviewDestination();
     }
 
+    // POST /SourcingOfficer/RespondToTopEdit: Respond to top edit. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> RespondToTopEdit(int tenderId, int selectedBidId, string? officerNotes)
     {
@@ -1146,8 +1172,10 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
             : "Sent your answer back to the Sourcing Manager to continue the CEO & Chiefs cycle.";
         return RedirectToAction(nameof(Offers), new { tenderId });
     }
+    // GET /SourcingOfficer/Clarifications: Opens the clarifications page.
     public IActionResult Clarifications(int? id) => RedirectToAction("Index", "Clarification", new { id });
 
+    // POST /SourcingOfficer/ReplyClarification: Reply clarification. Runs when its form or button is submitted.
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ReplyClarification(int id, string? message)
     {
@@ -1185,6 +1213,7 @@ public partial class SourcingOfficerController(ApplicationDbContext db) : Contro
         TempData["ClarificationSuccess"] = "Your response has been sent.";
         return RedirectToAction(nameof(Clarifications), new { id });
     }
+    // GET /SourcingOfficer/Reports: Shows the "Report review" page.
     public async Task<IActionResult> Reports(int? id, bool review = false)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
