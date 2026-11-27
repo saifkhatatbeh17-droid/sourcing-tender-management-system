@@ -1,7 +1,7 @@
 using SourcingTenderManagement.Controllers;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Checks;
-// Self-test, not part of the website.
+// Self-test, not part of the website. Tests offer review. Not run from Program.cs: Checks/full-qa-checks.py builds a temporary test host that calls it.
 public static class OfferReviewChecks
 {
     public static Task RunAsync()

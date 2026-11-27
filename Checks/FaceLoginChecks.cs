@@ -1,3 +1,4 @@
+// Real HTTP/cookie tests, restricted to the existing isolated biometric test database.
 using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
@@ -14,7 +15,6 @@ using SourcingTenderManagement.Services.FaceVerification;
 
 namespace SourcingTenderManagement.Checks;
 
-// Real HTTP/cookie tests, restricted to the existing isolated biometric test database.
 public static class FaceLoginChecks
 {
     public static async Task<int> RunAsync(string connection, string contentRoot)

@@ -1,3 +1,5 @@
+// Data and AI behind the AI Intelligence page: figures and charts per role, tender reports,
+// AI questions, uploaded-file analysis and PDF/Excel exports.
 using System.Globalization;
 using System.Security.Claims;
 using System.Text;
@@ -18,8 +20,6 @@ using SourcingTenderManagement.Services.Evaluation;
 
 namespace SourcingTenderManagement.Services.Intelligence;
 
-// Data and AI behind the AI Intelligence page: figures and charts per role, tender reports,
-// AI questions, uploaded-file analysis and PDF/Excel exports.
 public sealed class AiIntelligenceService(
     ApplicationDbContext db,
     HttpClient http,

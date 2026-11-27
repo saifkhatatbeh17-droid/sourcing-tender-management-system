@@ -10,7 +10,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 using PdfDocument = UglyToad.PdfPig.PdfDocument;
 
 namespace SourcingTenderManagement.Checks;
-// Self-test, not part of the website.
+// Self-test, not part of the website. Tests reports export. Not run from Program.cs: a temporary test host gives it an in-memory SQLite database (see REPORTS-INTEGRATION-NOTES.md).
 
 public static class ReportsExportChecks
 {

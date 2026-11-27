@@ -14,7 +14,7 @@ using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
-// Self-test, not part of the website.
+// Self-test, not part of the website. Tests manager referral. Not run from Program.cs; nothing calls it now, so it is kept only for running by hand.
 
 public static class ManagerReferralChecks
 {

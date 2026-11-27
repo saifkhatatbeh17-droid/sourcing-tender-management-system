@@ -9,7 +9,7 @@ using SourcingTenderManagement.Services.FaceEnrollment;
 using SourcingTenderManagement.Services.FaceVerification;
 
 namespace SourcingTenderManagement.Checks;
-// Self-test, not part of the website.
+// Self-test, not part of the website. Tests face verification. Not run from Program.cs: see docs/FACE-VERIFICATION-PHASE3.md for how it is run.
 
 public static class FaceVerificationChecks
 {

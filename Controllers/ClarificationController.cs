@@ -1,3 +1,5 @@
+// Clarification questions: a short conversation about a request, tender or offer between two people.
+// Used by departments, sourcing officers, suppliers and the committees.
 using SourcingTenderManagement.Services.Reports.Data;
 using System.Data;
 using System.ComponentModel.DataAnnotations;
@@ -13,8 +15,6 @@ using SourcingTenderManagement.Services;
 
 namespace SourcingTenderManagement.Controllers;
 
-// Clarification questions: a short conversation about a request, tender or offer between two people.
-// Used by departments, sourcing officers, suppliers and the committees.
 [Authorize(Roles = "Department,SourcingOfficer,Supplier,EvaluationCommittee,SourcingManager,TopCommittee")]
 [AutoValidateAntiforgeryToken]
 public class ClarificationController(ApplicationDbContext db, UserManager<ApplicationUser> users, ITopCommitteeManagerAnswers committeeAnswers) : Controller

@@ -1,3 +1,5 @@
+// Called only by the explicit read-only foundation check. Test models are never saved or registered
+// as production services. No website, login, role seed, schema change or database fixture is created.
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Security.Claims;
@@ -16,8 +18,6 @@ using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
 
-// Called only by the explicit read-only foundation check. Test models are never saved or registered
-// as production services. No website, login, role seed, schema change or database fixture is created.
 public static class TopCommitteePhase2Checks
 {
     public static async Task RunAsync(IServiceProvider services)

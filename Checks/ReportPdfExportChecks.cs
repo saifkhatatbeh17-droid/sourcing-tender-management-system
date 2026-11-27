@@ -11,7 +11,7 @@ using SourcingTenderManagement.Services.Reports;
 using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
-// Self-test, not part of the website.
+// Self-test, not part of the website. Tests report pdf export. Not run from Program.cs: Checks/full-qa-checks.py builds a temporary test host that calls it.
 
 public static class ReportPdfExportChecks
 {

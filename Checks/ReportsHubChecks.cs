@@ -10,7 +10,7 @@ using SourcingTenderManagement.Models.Reports;
 using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Checks;
-// Self-test, not part of the website.
+// Self-test, not part of the website. Tests reports hub. Not run from Program.cs: a temporary test host gives it an in-memory SQLite database (see REPORTS-INTEGRATION-NOTES.md).
 
 public static class ReportsHubChecks
 {

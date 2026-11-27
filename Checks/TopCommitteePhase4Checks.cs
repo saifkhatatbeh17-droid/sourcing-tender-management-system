@@ -1,3 +1,5 @@
+// No SQL fixtures or persisted votes. Both real command services share one isolated memory transaction
+// store for race tests. SQL checks below execute SELECTs only; Phase 3 checks the real SQL lock itself.
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Security.Claims;
@@ -15,8 +17,6 @@ using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
 
-// No SQL fixtures or persisted votes. Both real command services share one isolated memory transaction
-// store for race tests. SQL checks below execute SELECTs only; Phase 3 checks the real SQL lock itself.
 public static class TopCommitteePhase4Checks
 {
     public static async Task RunAsync(IServiceProvider services)

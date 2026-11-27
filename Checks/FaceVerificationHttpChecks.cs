@@ -12,7 +12,7 @@ using SourcingTenderManagement.Services.FaceVerification;
 using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
-// Self-test, not part of the website.
+// Self-test, not part of the website. Tests face verification http. Not run from Program.cs: see docs/FACE-VERIFICATION-PHASE3.md for how it is run.
 
 public static class FaceVerificationHttpChecks
 {

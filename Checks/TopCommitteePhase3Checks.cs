@@ -1,3 +1,5 @@
+// All mutation scenarios run against an in-memory session store, not SQL rows. The SQL concurrency
+// check below acquires transaction locks on an absent tender ID; its callbacks never save any data.
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Security.Claims;
@@ -13,8 +15,6 @@ using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
 
-// All mutation scenarios run against an in-memory session store, not SQL rows. The SQL concurrency
-// check below acquires transaction locks on an absent tender ID; its callbacks never save any data.
 public static class TopCommitteePhase3Checks
 {
     public static async Task RunAsync(IServiceProvider services)
