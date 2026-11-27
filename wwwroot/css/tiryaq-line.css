@@ -1,4 +1,4 @@
-/* Tiryaq homepage, acts 1 and 3: the illustrated production line and the windowsill ending.
+/* Tiryaq homepage, scene 1: the illustrated production line (the windowsill ending is now drawn in 3D by tiryaq-journey.js).
    Ported from the earlier homepage; class names carry an "ln-" prefix so they never collide with the 3D cleanroom styles
    in tiryaq-journey.css. Loaded after tiryaq-journey.css by Views/Home/Index.cshtml. */
 
@@ -14,11 +14,23 @@
   background: var(--ln-night);
 }
 
-/* One track for all three acts: 14.6 viewports of travel + the sticky viewport (see tiryaq-home-stage.js). */
-.tj-root #track { height: 1560vh; }
+/* One track for both scenes: 17.6 viewports of travel + the sticky viewport (see tiryaq-home-stage.js). */
+.tj-root #track { height: 1860vh; }
 
 #line-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
 .tj-root #gl-canvas, .tj-root #gl-fallback { opacity: 0; transition: none; }
+
+/* ============ LOT TAG (follows TQ-0417 across the handoffs) ============ */
+#tq-thread { position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; opacity: 0; will-change: transform, opacity;
+  font: 500 .62rem/1 var(--ln-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ln-ivory); }
+#tq-thread .tq-card { display: flex; align-items: center; gap: 8px; padding: 7px 11px 7px 9px; border-radius: 8px; white-space: nowrap;
+  background: rgba(10, 31, 38, .84); box-shadow: inset 0 0 0 1px rgba(239, 184, 92, .55), 0 10px 24px rgba(4, 14, 18, .32);
+  transform: translateY(-100%); position: relative; }
+#tq-thread .tq-card::before { content: ""; position: absolute; left: -14px; bottom: -1px; width: 14px; height: 1px; background: var(--ln-honey); }
+#tq-thread i { width: 7px; height: 7px; border-radius: 50%; background: var(--ln-honey); box-shadow: 0 0 0 3px rgba(239, 184, 92, .26); }
+#tq-thread b { color: var(--ln-honey); font-weight: 600; }
+#tq-thread span { opacity: .82; }
+@media (max-width: 720px) { #tq-thread span { display: none; } }
 
 /* ============ CARDS ============ */
 .ln-card { position: absolute; z-index: 5; opacity: 0; visibility: hidden; transform: translateY(18px);
@@ -140,6 +152,8 @@
 #home-rail button:hover span, #home-rail button:focus-visible span, #home-rail button.now span { opacity: 1; transform: none; }
 #home-rail .ln-mini { position: absolute; top: 0; left: calc(var(--p, 0) * 100%); transform: translateX(-50%); width: 14px; height: 24px; transition: left .08s linear; }
 #home-rail.dim { opacity: 0; pointer-events: none; }
+#home-rail.hush { opacity: .28; transition: opacity 1.2s; }
+#home-rail.hush:hover, #home-rail.hush:focus-within { opacity: 1; transition: opacity .3s; }
 
 .ln-hint { position: absolute; right: var(--ln-pad); bottom: 84px; z-index: 6; margin: 0; font: 500 .66rem/1 var(--ln-mono); letter-spacing: .2em; text-transform: uppercase;
   color: var(--ln-ivory); opacity: .6; display: flex; gap: 10px; align-items: center; transition: opacity .5s; }
@@ -181,3 +195,4 @@
   #stage::before, .ln-card, .ln-btn { transition: none !important; }
   .ln-hint i { animation: none; }
 }
+

@@ -1,4 +1,4 @@
-// Tiryaq homepage, acts 1 and 3: the illustrated production line (hero to packaging) and the windowsill ending.
+// Tiryaq homepage, scene 1: the illustrated production line, hero to inspection. It hands TQ-0417 to the 3D cleanroom and is not shown again.
 // The page controller (tiryaq-home-stage.js) decides the beat B; this file only draws it and syncs the line cards.
 (() => {
 'use strict';
@@ -42,7 +42,9 @@ addEventListener('resize', resize); resize();
 /* ---------------- journey data ---------------- */
 // Station positions along the conveyor (world units; belt top is y = 0, up is negative).
 const X = { form: 420, fill: 900, cap: 1500, label: 2100, qc: 2700, pack: 3300, dock: 4150 };
-const heroPath = [[0, 0], [.85, 0], [3.1, 900], [4.0, 900], [4.4, 1500], [5.1, 1500], [5.45, 2100], [6.1, 2100], [6.5, 2700], [7.3, 2700], [7.62, 3300]];
+// The bottle leaves inspection at beat 7.34 (end of the first line shot), is followed through the cleanroom, and is
+// already waiting at the cartoner when the second line shot begins at beat 7.52.
+const heroPath = [[0, 0], [.85, 0], [3.1, 900], [4.0, 900], [4.4, 1500], [5.1, 1500], [5.45, 2100], [6.1, 2100], [6.5, 2700], [7.34, 2700], [7.46, 3300]];
 const cartonPath = [[8.45, 3300], [9.05, 3880], [9.5, 4080]];
 // Camera keyframes: [beat, x, y, zoom, screen-offset-x, screen-offset-y]
 const CAM = [
@@ -52,8 +54,9 @@ const CAM = [
   [2.95, 720, -540, 1.35, 0, 0], [3.25, 900, -200, 1.9, -.16, 0], [3.85, 900, -150, 2.6, -.16, .02],
   [4.15, 1200, -150, 1.4, 0, 0], [4.45, 1500, -230, 1.75, .16, 0], [4.95, 1500, -158, 3.3, .16, .02],
   [5.25, 1800, -150, 1.4, 0, 0], [5.55, 2100, -110, 1.75, -.16, 0], [5.92, 2100, -99, 2.75, -.16, 0], [6.1, 2100, -99, 2.75, -.16, 0],
-  [6.3, 2450, -180, 1.35, 0, 0], [6.55, 2730, -130, 2.4, .17, 0], [7.25, 2730, -110, 2.7, .17, 0],
-  [7.5, 3000, -200, 1.35, 0, 0], [7.75, 3300, -170, 1.55, -.16, 0], [8.42, 3300, -135, 2.0, -.16, 0],
+  [6.3, 2450, -180, 1.35, 0, 0], [6.55, 2730, -130, 2.4, .17, 0], [7.25, 2730, -110, 2.7, .17, 0], [7.34, 2730, -110, 2.7, .17, 0],
+  // beats 7.34 -> 7.52 are never shown: the cleanroom covers the stage while the line jumps to the packaging cell
+  [7.52, 3300, -170, 1.55, -.16, 0], [7.75, 3300, -170, 1.55, -.16, 0], [8.42, 3300, -135, 2.0, -.16, 0],
   [8.9, 2050, -560, .26, 0, -.17], [9.2, 2250, -560, .275, 0, -.17],
   [9.45, 4205, -200, 1.1, 0, 0], [9.75, 4205, -150, 7, 0, 0], [10, 4205, -150, 7, 0, 0]
 ];
@@ -72,14 +75,18 @@ function camAt(b) {
     camera.z = lerp(camera.z, fittedZoom, labelView);
     camera.oy += (fittedBelt - beltY) * labelView / H;
   }
+  // Handoff: the camera keeps drifting in on TQ-0417 while the cleanroom fades in. framing() goes through here too,
+  // so the 3D camera starts on exactly this pushed-in framing.
+  const hp = b > 7.2 ? (stage()?.handoffPush?.() ?? 0) : 0;
+  if (hp > 0) { const e = sstep(hp); camera.z *= 1 + .1 * e; camera.y += 6 * e; }
   const overview = sm(b, .72, 1.05) * (1 - sm(b, 1.75, 2.15));
   if (!overview) return camera;
 
   // Fit the belt and dispatch dock above the overview caption, including the belt supports.
-  const rightEdge = X.dock + 300;
-  const scale = Math.min(W * .94 / (rightEdge - BELT0), H * .4 / 1300);
+  const rightEdge = X.dock + 300, leftEdge = BELT0 - 170;      // the infeed machine at the start of the belt stays in frame
+  const scale = Math.min(W * .94 / (rightEdge - leftEdge), H * .4 / 1300);
   return {
-    x: lerp(camera.x, (BELT0 + rightEdge) / 2, overview),
+    x: lerp(camera.x, (leftEdge + rightEdge) / 2, overview),
     y: lerp(camera.y, 160, overview),
     z: lerp(camera.z, scale / BZ, overview),
     ox: lerp(camera.ox, 0, overview),
@@ -256,6 +263,44 @@ function conveyorFront(belt) {
   // front side guide (in front of the bottles' feet)
   g.fillStyle = steelH(-30, 6); g.fillRect(BELT0, -30, BELT1 - BELT0, 5); line(BELT0, -30, BELT1, -30, 'rgba(10,31,38,.6)', px(1));
   for (let x = BELT0 + 90; x < BELT1; x += 120) { g.fillStyle = P.s4; g.fillRect(x, -26, 5, 28); screw(x + 2.5, -28); }
+}
+
+/* ---------------- bottle infeed: where the line's empty bottles come from ---------------- */
+// The belt starts inside U-01: empty bottles are unscrambled from bulk, air-rinsed upside down and set onto the belt.
+function infeed() {
+  const x0 = BELT0 - 150, x1 = BELT0 + 34, top = -300;
+  // depalletiser bed with a layer of empty glass waiting behind the machine
+  box(x0 - 210, -64, 190, 104, '#14373f', 6);
+  for (let r = 0; r < 2; r++) for (let i = 0; i < 6; i++) { g.save(); g.translate(x0 - 196 + i * 30 + r * 15, -64 - r * 2); g.scale(.36, .36); bottlePath(); g.fillStyle = 'rgba(214,236,230,.2)'; g.fill(); g.lineWidth = px(1); g.strokeStyle = 'rgba(207,230,218,.55)'; g.stroke(); g.restore(); }
+  text('EMPTY GLASS · LAYER PAD', x0 - 200, -20, 9, P.mint, 'JetBrains Mono', 500);
+  // sweep arm carries a layer into the unscrambler
+  line(x0 - 30, -150, x0 + 10, -150, P.s3, 6); box(x0 - 40, -166, 22, 32, P.s4, 3);
+  // unscrambler bowl on top
+  g.fillStyle = steelV(x0 + 20, 150); g.beginPath(); g.moveTo(x0 + 10, top - 92); g.lineTo(x0 + 170, top - 92); g.lineTo(x0 + 150, top - 10); g.lineTo(x0 + 30, top - 10); g.closePath(); g.fill(); g.lineWidth = px(1.1); g.strokeStyle = P.ink; g.stroke();
+  g.beginPath(); g.ellipse(x0 + 90, top - 92, 80, 14, 0, 0, 7); g.fillStyle = P.s1; g.fill(); g.stroke();
+  for (let i = 0; i < 6; i++) { g.save(); g.translate(x0 + 40 + i * 20, top - 94 - (i % 2) * 4); g.rotate(i % 2 ? .9 : -1.1); g.scale(.3, .3); bottlePath(); g.fillStyle = 'rgba(214,236,230,.22)'; g.fill(); g.lineWidth = px(1); g.strokeStyle = 'rgba(10,31,38,.7)'; g.stroke(); g.restore(); }
+  // main housing: stainless frame, teal skin, polycarbonate window onto the inverted rinse
+  box(x0, top, x1 - x0, -top + 40, lg(x0, 0, x1, 0, [[0, '#123f47'], [.5, '#1b555f'], [1, '#0f343c']]), 10);
+  g.fillStyle = steelH(top, 22); g.fillRect(x0, top, x1 - x0, 22); line(x0, top + 22, x1, top + 22, P.ink, px(1));
+  rr(x0 + 18, top + 44, x1 - x0 - 36, 150, 8); g.fillStyle = 'rgba(8,26,32,.85)'; g.fill(); g.lineWidth = px(1.2); g.strokeStyle = 'rgba(207,230,218,.4)'; g.stroke();
+  g.save(); rr(x0 + 18, top + 44, x1 - x0 - 36, 150, 8); g.clip();
+  for (let i = 0; i < 4; i++) {           // bottles turned neck-down over the air nozzles
+    const bx = x0 + 52 + i * 38; g.save(); g.translate(bx, top + 60); g.scale(.42, -.42); bottlePath(); g.fillStyle = 'rgba(214,236,230,.14)'; g.fill(); g.lineWidth = px(1); g.strokeStyle = 'rgba(207,230,218,.6)'; g.stroke(); g.restore();
+    for (let k = 0; k < 4; k++) { const yy = top + 128 + ((T * 60 + k * 9 + i * 5) % 34); g.beginPath(); g.arc(bx + Math.sin(k + i) * 2, yy, 1.3, 0, 7); g.fillStyle = 'rgba(207,230,218,.35)'; g.fill(); }
+    line(bx, top + 168, bx, top + 192, P.s3, 2);
+  }
+  g.fillStyle = 'rgba(255,255,255,.06)'; g.beginPath(); g.moveTo(x0 + 40, top + 44); g.lineTo(x0 + 80, top + 44); g.lineTo(x0 + 30, top + 194); g.lineTo(x0 + 18, top + 194); g.fill();
+  g.restore();
+  // outfeed port where the belt leaves the machine: framed opening with a strip curtain
+  box(x1 - 16, -76, 22, 78, P.s4, 3);
+  for (let i = 0; i < 4; i++) { g.fillStyle = `rgba(207,230,218,${.16 + (i % 2) * .06})`; g.fillRect(x1 + 6 + i * 5, -70, 4, 66); }
+  // HMI, stack light, tag
+  box(x0 + 26, top + 206, 76, 50, '#0b1f25', 6); text('U-01 · INFEED', x0 + 33, top + 222, 7.5, P.mint, 'JetBrains Mono', 500);
+  text('RINSE OK', x0 + 33, top + 236, 9, P.signal, 'JetBrains Mono', 500);
+  box(x1 - 34, top - 70, 12, 62, P.s4, 3); led(x1 - 28, top - 60, 3.6, false, P.coral); led(x1 - 28, top - 46, 3.6, false, P.honey); led(x1 - 28, top - 32, 3.6, true, P.signal);
+  text('UNSCRAMBLER · AIR RINSE', x0 + 8, top - 112, 11, P.mint, 'JetBrains Mono', 500);
+  // feet
+  for (const fx of [x0 + 14, x1 - 24]) { g.fillStyle = P.s4; g.fillRect(fx, 36, 12, 6); }
 }
 
 /* ---------------- formulation (mezzanine) ---------------- */
@@ -478,15 +523,26 @@ function labellerFront(b) {
 
 /* ---------------- inspection station ---------------- */
 const QC = [6.6, 6.72, 6.84, 6.96, 7.08];
-function qcBack(b) {
+function qcBack(b, rej) {
   const x = X.qc;
   box(x - 140, -280, 280, 270, lg(x - 140, 0, x + 140, 0, [[0, '#13363e'], [1, '#0d2a31']]), 22);
   // diffuse backlight panel behind the bottle
   const pass = sm(b, 7.1, 7.22), on = b > 6.5 && b < 7.3;
   g.fillStyle = rg(x, -110, 10, 120, [[0, on ? 'rgba(244,238,226,.55)' : 'rgba(244,238,226,.12)'], [1, 'rgba(244,238,226,0)']]); g.fillRect(x - 120, -260, 240, 240);
-  // reject lane + pusher (behind the belt)
-  g.fillStyle = '#0e2b32'; g.fillRect(x + 160, -60, 160, 22); line(x + 160, -60, x + 320, -60, P.s3, 2);
+  // reject lane + pusher (behind the belt), ending in a locked reject bin
+  g.fillStyle = '#0e2b32'; g.fillRect(x + 160, -60, 190, 22); line(x + 160, -60, x + 350, -60, P.s3, 2);
+  box(x + 340, -128, 100, 168, lg(x + 340, 0, x + 440, 0, [[0, '#2b3a3e'], [1, '#1b282b']]), 8);
   text('REJECT', x + 250, -66, 9, P.coral, 'JetBrains Mono', 500);
+  // the under-filled bottle: pushed onto the lane, carried along it, dropped into the bin
+  if (rej && rej.p > 0 && rej.p < 1) {
+    const q = rej.p, bx = lerp(rej.x, x + 390, sm(q, .8, 1)), by = -clamp(q * 3) * 34 + sm(q, .75, 1) * 40;
+    g.save(); g.globalAlpha = 1 - sm(q, .92, 1); drawBottle(bx, by, { fill: .62, cap: { base: -128, rot: 0 }, label: 1, detail: false, dim: true }, .94); g.restore();
+  }
+  // reject bin front: coral band, lock, label
+  box(x + 340, -96, 100, 136, lg(x + 340, 0, x + 440, 0, [[0, '#33464b'], [1, '#223236']]), 6);
+  g.fillStyle = P.coral; g.fillRect(x + 340, -96, 100, 10);
+  text('REJECT BIN', x + 352, -60, 9, P.ivory, 'JetBrains Mono', 500); text('LOCKED · QA ONLY', x + 352, -46, 7, 'rgba(244,238,226,.7)', 'JetBrains Mono', 500);
+  box(x + 412, -34, 16, 20, P.s3, 3); g.beginPath(); g.arc(x + 420, -34, 5, Math.PI, 0); g.lineWidth = px(2); g.strokeStyle = P.s3; g.stroke();
 }
 function qcFront(b, rejectP) {
   const x = X.qc, pass = sm(b, 7.1, 7.22);
@@ -503,7 +559,7 @@ function qcFront(b, rejectP) {
   box(x + 112, -360, 14, 70, P.s4, 3);
   led(x + 119, -350, 4.5, rejectP > 0 && rejectP < 1, P.coral); led(x + 119, -333, 4.5, b > 6.5 && b < 7.1, P.honey); led(x + 119, -316, 4.5, pass > .5 && b < 7.6, P.signal);
   // pusher
-  const ext = Math.sin(rejectP * Math.PI) * 20;
+  const ext = Math.sin(clamp(rejectP * 3) * Math.PI) * 20;
   box(x + 200, -110, 60, 26, P.s3, 4); g.fillStyle = P.s1; g.fillRect(x + 186 - ext, -100, 14 + ext, 6);
   text('QC-1', x - 128, -292, 12, P.mint, 'JetBrains Mono', 500);
 }
@@ -609,6 +665,11 @@ function dock() {
   for (let i = 0; i < 6; i++) { g.fillStyle = i % 2 ? '#c4cfd0' : '#b2bfc1'; g.fillRect(x - 64, -380 + i * 8, 238, 8); }
   line(x - 64, -332, x + 174, -332, P.ink, px(1.2));
   text('DISPATCH', x - 50, -394, 12, P.mint, 'JetBrains Mono', 500);
+  // empty landing table at the end of the belt: a stop plate, light-curtain posts and an amber beacon, with nothing waiting on it
+  g.fillStyle = steelV(x - 52, 10); g.fillRect(x - 52, -64, 10, 66); g.fillStyle = P.s4; g.fillRect(x - 56, -6, 18, 6);
+  for (const lx of [x - 8, x + 120]) { box(lx, -150, 8, 150, steelV(lx, 8), 2); led(lx + 4, -136, 2.4, true, P.signal); }
+  line(x - 4, -138, x + 120, -138, 'rgba(111,224,168,.28)', px(1)); line(x - 4, -96, x + 120, -96, 'rgba(111,224,168,.16)', px(1));
+  box(x - 56, -82, 18, 18, '#0f2d35', 4); led(x - 47, -73, 3.2, true, P.honey);
   // light spill on the floor
   g.fillStyle = lg(0, 40, 0, 300, [[0, 'rgba(250,225,190,.35)'], [1, 'rgba(250,225,190,0)']]);
   g.beginPath(); g.moveTo(x - 60, 40); g.lineTo(x + 170, 40); g.lineTo(x + 320, 300); g.lineTo(x - 200, 300); g.closePath(); g.fill();
@@ -663,18 +724,44 @@ function home(b, a) {
   g.globalAlpha = 1;
 }
 
+/* ---------------- lot thread ---------------- */
+// A honey halo under TQ-0417 plus the screen position the lot tag follows. The cleanroom draws the same halo and tag on the same
+// bottle, so the eye can stay on one bottle across every cut. It shows from inspection until the bottle is lowered into its carton.
+function threadMark(b, hx, lift, inPack) {
+  const v = sm(b, 6.95, 7.2) * (1 - sm(b, 8.1, 8.3)), ts = stage(), cam = CAMNOW, xh = inPack ? X.pack : hx;
+  if (ts) {
+    const t = ts.thread2d;
+    t.x = W / 2 + cam.ox * W + (xh - cam.x) * Z; t.y = H / 2 + cam.oy * H + (lift - 78 - cam.y) * Z; t.h = 156 * Z; t.v = v;
+  }
+  if (v <= .002) return;
+  layer(cam);
+  const pulse = 1 + (RM ? 0 : .05 * Math.sin(T * 3.8));
+  g.save(); g.translate(xh, 3); g.globalAlpha = v;
+  g.fillStyle = rg(0, 0, 4, 120, [[0, 'rgba(239,184,92,.30)'], [1, 'rgba(239,184,92,0)']]); g.beginPath(); g.ellipse(0, 0, 120, 20, 0, 0, 7); g.fill();
+  g.beginPath(); g.ellipse(0, 0, 52 * pulse, 8.2 * pulse, 0, 0, 7); g.lineWidth = px(2.2); g.strokeStyle = 'rgba(239,184,92,.9)'; g.stroke();
+  g.restore();
+}
+// Where the bottle sits on screen at a given beat. The cleanroom camera starts and ends on exactly these framings.
+function framing(b) {
+  const cam = camAt(b), z = cam.z * BZ, hx = path(b, heroPath);
+  return { x: W / 2 + cam.ox * W + (hx - cam.x) * z, y: H / 2 + cam.oy * H + (-78 - cam.y) * z, h: 156 * z };
+}
+if (stage()) stage().lineFraming = framing;
+
 /* ---------------- frame ---------------- */
 let B = 0, tgt = 0, last = performance.now();
 const targetFromScroll = () => stage()?.lineBeat() ?? 0;
+let CAMNOW = null;
 function render() {
-  const cam = camAt(B); Z = cam.z * BZ;
+  const cam = camAt(B); Z = cam.z * BZ; CAMNOW = cam;
   g.setTransform(DPR, 0, 0, DPR, 0, 0); g.fillStyle = P.night; g.fillRect(0, 0, W, H);
   hall(cam); floor(cam);
   layer(cam);
   // derived states
   const hx = path(B, heroPath), belt = hx;
   formulation(B); transferPipe(B);
-  fillerBack(B); capperBack(B); labellerBack(B); qcBack(B); packBack(B); dock();
+  const rejX = hx + 2 * 140, rejP = clamp((rejX - (X.qc + 150)) / 230);
+  fillerBack(B); capperBack(B); labellerBack(B); qcBack(B, { x: rejX, p: rejP }); packBack(B); dock();
   conveyorBack(B);
   if (B < 1.3) { const a = 1 - sm(B, .7, 1.3); g.fillStyle = rg(hx, -80, 10, 240, [[0, `rgba(255,232,190,${.32 * a})`], [1, 'rgba(255,232,190,0)']]); g.fillRect(hx - 260, -330, 520, 340); }
   // the queue of bottles on the belt; each bottle's state follows from where it is on the line
@@ -685,14 +772,14 @@ function render() {
     const under = k === 2;                                           // the one bottle that will fail inspection
     if (x < BELT0 + 30) continue;
     if (under) {
-      rejectP = clamp((x - (X.qc + 150)) / 70);
+      // pushed off the belt onto the reject lane, then carried along it into the bin
+      rejectP = clamp((x - (X.qc + 150)) / 230);
       if (rejectP === 1) continue;
-      if (rejectP > 0) { y = -rejectP * 34; dim = true; }
+      if (rejectP > 0) continue;                                     // drawn on the reject lane by qcBack
     }
     if (!under && x > X.pack - 70) continue;
     const st = { fill: x > X.fill + 30 ? (under ? .62 : 1) : 0, cap: x > X.cap + 30 ? { base: -128, rot: 0 } : null, label: x > X.label + 30 ? 1 : 0, detail: false, dim };
     g.save();
-    if (under) g.globalAlpha = 1 - sm(rejectP, .35, 1);
     drawBottle(x, y, st, y ? .94 : 1);
     g.restore();
   }
@@ -707,30 +794,36 @@ function render() {
   }
   if (B > 7.55 && B < 8.35) gripper(X.pack, gripY(B), B > 7.73 && B < 8.17);
   if (ct) ct.front();
-  // further cartons waiting at dispatch
-  const cpx = B > 8.45 ? path(B, cartonPath) : X.pack;
-  for (let j = 1; j < 6; j++) { const x = Math.max(cpx, X.pack + 140) + j * 128; if (x < X.dock - 60) carton(x, 1, 1, 1).front(); }
+  // Dispatch stays empty until TQ-0417's own carton arrives: the first finished carton anyone sees is the one it is packed into.
   fillerFront(B); capperFront(B); labellerFront(B); qcFront(B, rejectP);
   conveyorFront(belt);
+  infeed();
   scanOverlay(B);
+  threadMark(B, hx, lift, inPack);
+  // handoff anticipation: a warm key light gathers on TQ-0417 while the rest of the hall falls back
+  const hp = stage()?.handoffPush?.() ?? 0;
+  if (hp > 0 && B > 7.2) {
+    layer(CAMNOW);
+    g.fillStyle = rg(hx, -86, 6, 200, [[0, `rgba(255,226,170,${.2 * hp})`], [.55, `rgba(239,184,92,${.07 * hp})`], [1, 'rgba(239,184,92,0)']]);
+    g.fillRect(hx - 220, -300, 440, 330);
+  }
   // match cut: the doorway's daylight becomes the morning at home
   const homeA = sm(B, 9.58, 9.78);
   if (B > 9.4) { g.setTransform(DPR, 0, 0, DPR, 0, 0); g.fillStyle = `rgba(250,236,214,${sm(B, 9.45, 9.65) * (1 - homeA * .0)})`; g.fillRect(0, 0, W, H); }
   home(B, homeA);
   // vignette
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
-  g.fillStyle = rg(W / 2, H / 2, Math.min(W, H) * .35, Math.max(W, H) * .8, [[0, 'rgba(0,0,0,0)'], [1, `rgba(4,14,18,${.45 * (1 - homeA)})`]]); g.fillRect(0, 0, W, H);
+  g.fillStyle = rg(W / 2, H / 2, Math.min(W, H) * (.35 - .1 * hp), Math.max(W, H) * .8, [[0, 'rgba(0,0,0,0)'], [1, `rgba(4,14,18,${(.45 + .25 * hp) * (1 - homeA)})`]]); g.fillRect(0, 0, W, H);
 }
 
 /* ---------------- DOM sync: cards, readouts, rail ---------------- */
-const cards = $$('.ln-card[data-in]'), formSteps = $$('#form-steps li'), packSteps = $$('#pack-steps li'), qcItems = $$('#ln-qc li');
+const cards = $$('.ln-card[data-in]'), formSteps = $$('#form-steps li'), qcItems = $$('#ln-qc li');
 const tube = $('#ln-tube'), arc = $('#ln-dial-arc'), needle = $('#ln-needle'), hint = $('#ln-hint');
 let lastUi = -1;
 function ui() {
   if (Math.abs(B - lastUi) < .002) return; lastUi = B;
   cards.forEach(c => c.classList.toggle('on', B >= +c.dataset.in && B < +c.dataset.out));
   formSteps.forEach(li => li.classList.toggle('on', B >= +li.dataset.at));
-  packSteps.forEach(li => li.classList.toggle('on', B >= +li.dataset.at));
   qcItems.forEach(li => { const t = +li.dataset.at; li.classList.toggle('run', B >= t && B < t + .1); li.classList.toggle('ok', B >= t + .1); });
   const fill = sm(B, 3.3, 3.8), down = sm(B, 3.13, 3.3) - sm(B, 3.8, 3.96);
   tube.style.setProperty('--f', fill);
@@ -752,8 +845,8 @@ function frame(now) {
   const dt = Math.min(.25, (now - last) / 1000); last = now;
   if (!RM) T += dt;
   tgt = targetFromScroll();
-  // Big jumps (the cut from the cleanroom back to the windowsill, rail clicks) snap instead of replaying the line.
-  B = RM || Math.abs(tgt - B) > .6 ? tgt : B + (tgt - B) * (1 - Math.exp(-dt * 7));
+  // Big jumps (rail clicks) and anything that happens while the cleanroom covers the stage snap instead of replaying the line.
+  B = RM || Math.abs(tgt - B) > .6 || stage()?.lineVisible() === false ? tgt : B + (tgt - B) * (1 - Math.exp(-dt * 7));
   if (Math.abs(tgt - B) < 1e-4) B = tgt;
   try { if (stage()?.lineVisible() !== false) render(); ui(); }
   catch (err) { if (failures++ < 3) console.error('Tiryaq scene error', err); if (failures > 20) { cancelAnimationFrame(raf); document.documentElement.classList.add('nocanvas'); } }

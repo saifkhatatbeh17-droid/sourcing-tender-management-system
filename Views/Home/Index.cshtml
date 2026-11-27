@@ -5,17 +5,18 @@
     var signedIn = User.Identity?.IsAuthenticated == true;
 }
 @* Tiryaq Pharma homepage: follow one bottle, lot TQ-0417, from the production line to someone's home.
-   One scroll drives three acts on one sticky stage (wwwroot/js/tiryaq-home-stage.js):
-     1. the illustrated production line, hero to packaging   (wwwroot/js/tiryaq-line.js, wwwroot/css/tiryaq-line.css)
-     2. the 3D twelve-line cleanroom                          (wwwroot/js/tiryaq-journey.js, wwwroot/css/tiryaq-journey.css)
-     3. the illustrated windowsill ending                     (tiryaq-line.js again)
-   Line cards use beats of tiryaq-line.js in data-in/data-out; the cleanroom card uses beats of tiryaq-journey.js.
+   One scroll drives two scenes on one sticky stage, always moving forward (wwwroot/js/tiryaq-home-stage.js):
+     1. the illustrated production line, hero to inspection    (wwwroot/js/tiryaq-line.js, wwwroot/css/tiryaq-line.css)
+     2. the 3D cleanroom, packaging cell K-06, dispatch and the windowsill at home
+                                                                (wwwroot/js/tiryaq-journey.js, wwwroot/css/tiryaq-journey.css)
+   Scene 1 cards use beats of tiryaq-line.js in data-in/data-out; scene 2 cards use cleanroom beats in data-in/data-out
+   (.tj-beat) or data-gl-in/data-gl-out (.ln-card, toggled by tiryaq-home-stage.js).
    Section id "contact" is preserved on the closing section for legacy anchor compatibility. *@
 <div class="tj-root" id="top">
   <div id="track">
     <section id="stage" aria-label="The making of one medicine, controlled by scrolling">
-      <canvas id="line-canvas" role="img" aria-label="An illustrated pharmaceutical production line. One bottle, lot TQ-0417, travels on a conveyor through formulation, filling, capping, labelling, inspection and packaging."></canvas>
-      <canvas id="gl-canvas" role="img" aria-label="A 3D twelve-line cleanroom where the same care is repeated across oral solutions, tablets, sterile injectables and topicals."></canvas>
+      <canvas id="line-canvas" role="img" aria-label="An illustrated pharmaceutical production line. One bottle, lot TQ-0417, travels on a conveyor through formulation, filling, capping, labelling and inspection before it is handed to the cleanroom."></canvas>
+      <canvas id="gl-canvas" role="img" aria-label="A 3D twelve-line cleanroom where the same care is repeated on every line. Lot TQ-0417 is followed through it to the cartoner, out through dispatch, and onto a windowsill at home."></canvas>
 
       <!-- Illustrated fallback for the cleanroom if WebGL is unavailable -->
       <div id="gl-fallback" hidden role="status">
@@ -27,7 +28,13 @@
         </svg>
       </div>
 
-      <!-- ==================== ACT 1: THE PRODUCTION LINE ==================== -->
+      <!-- Daylight veil: the dispatch doorway's light becomes the morning at home (driven by tiryaq-journey.js) -->
+      <div class="tj-sun-veil" id="sun-veil" aria-hidden="true"></div>
+
+      <!-- Lot tag: follows the same bottle through the line, the cleanroom and back (positioned by tiryaq-home-stage.js) -->
+      <div id="tq-thread" aria-hidden="true"><div class="tq-card"><i></i><b>TQ-0417</b><span data-tq-state>Inspection passed · unboxed</span></div></div>
+
+      <!-- ==================== SCENE 1: THE PRODUCTION LINE, HERO TO INSPECTION ==================== -->
       <div class="ln-card" id="c-hero" data-in="-1" data-out=".72">
         <h1>From the smallest detail to the <em>greatest human impact.</em></h1>
         <p>Tiryaq Pharma develops and manufactures medicines. This is one bottle, lot TQ-0417, and the care it receives on its way to someone’s home.</p>
@@ -46,7 +53,7 @@
 
       <div class="ln-card" id="c-reveal" data-in="1.05" data-out="1.75">
         <h2>One line. One bottle. <em>Every detail.</em></h2>
-        <p>Line 04 joins formulation, filling, capping, labelling, inspection and packaging in a single continuous rail. Our bottle has just stepped onto it.</p>
+        <p>Line 04 joins formulation, filling, capping, labelling and inspection on a single continuous rail, with packaging waiting at the far end. Our bottle has just stepped onto it.</p>
       </div>
 
       <article class="ln-card ln-L ln-ins" id="c-form" data-tab="01 · Formulation" data-in="1.95" data-out="3.0">
@@ -123,22 +130,22 @@
         </ol>
       </article>
 
-      <article class="ln-card ln-R ln-ins" id="c-pack" data-tab="06 · Packaging" data-in="7.7" data-out="8.5">
+      <article class="ln-card ln-R ln-ins" id="c-pack" data-tab="07 · Packaging" data-gl-in="8.2" data-gl-out="8.86">
         <h2>Folded around <em>it.</em></h2>
-        <p>A flat carton blank opens into a box. The bottle is lowered in, the flaps fold and tuck, and the carton carries the same identity as the label.</p>
+        <p>At the end of Line 04, cartoner K-06 opens a flat blank into a box. TQ-0417 is lifted in, the flaps fold and tuck, and the carton carries the same identity as the label.</p>
         <ol class="ln-steps" id="pack-steps">
-          <li data-at="7.74">Bottle picked from the line <span>gripper</span></li>
-          <li data-at="7.94">Carton erected from a flat blank <span>magazine</span></li>
-          <li data-at="8.08">Lowered into the carton <span>insert</span></li>
-          <li data-at="8.24">Flaps folded &amp; tucked <span>closing</span></li>
+          <li data-gl-at="8.27">Bottle picked from the line <span>gripper</span></li>
+          <li data-gl-at="8.40">Carton erected from a flat blank <span>magazine</span></li>
+          <li data-gl-at="8.52">Lowered into the carton <span>insert</span></li>
+          <li data-gl-at="8.66">Flaps folded &amp; tucked <span>closing</span></li>
         </ol>
       </article>
 
-      <!-- ==================== ACT 2: THE TWELVE-LINE CLEANROOM (3D) ==================== -->
-      <aside class="tj-beat tj-dock" id="b-scale" data-in="6.98" data-out="8.1" aria-labelledby="t-scale">
+      <!-- ==================== SCENE 2: THE TWELVE-LINE CLEANROOM (3D) ==================== -->
+      <aside class="tj-beat tj-dock" id="b-scale" data-in="7.36" data-out="7.86" aria-labelledby="t-scale">
         <div class="tj-dock-top">
           <div>
-            <span class="tj-eyebrow"><i></i>07 · Twelve-line cleanroom · Drag to look around</span>
+            <span class="tj-eyebrow"><i></i>06 · Twelve-line cleanroom · Drag to look around</span>
             <h2 id="t-scale">The same care, multiplied across <em>every form.</em></h2>
           </div>
           <div class="tj-cam-pills" role="group" aria-label="Cleanroom camera angle">
@@ -168,14 +175,14 @@
         </div>
       </aside>
 
-      <!-- ==================== ACT 3: ON THE WINDOWSILL AT HOME ==================== -->
-      <div class="ln-card" id="c-end" data-in="9.8" data-out="11">
+      <!-- ==================== SCENE 2, CONTINUED: PACKAGING CELL K-06, DISPATCH, THE WINDOWSILL AT HOME (3D) ==================== -->
+      <div class="ln-card" id="c-end" data-gl-in="9.46">
         <p class="ln-eyebrow"><i></i>Lot TQ-0417 · delivered</p>
         <h2>Every detail matters, because every medicine <em>reaches a person.</em></h2>
         <p>Tiryaq Pharma brings scientific precision, careful manufacturing and quality checks to every unit, so a quiet morning can stay quiet.</p>
         <div class="ln-btns">
           <a class="ln-btn solid" asp-controller="Home" asp-action="Contact">Partner with Tiryaq</a>
-          <button class="ln-btn" type="button" data-go-d="0">Watch it again <span aria-hidden="true">↑</span></button>
+          <button class="ln-btn" type="button" data-go-next="contact">Keep scrolling <b aria-hidden="true">↓</b></button>
         </div>
       </div>
 

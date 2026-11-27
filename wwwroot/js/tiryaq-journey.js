@@ -1,4 +1,4 @@
-// Public home page: the 3D cleanroom scene (three.js) that plays while scrolling.
+// Public home page, scene 2: the 3D cleanroom, packaging cell K-06, dispatch and the windowsill at home (three.js).
 import * as THREE from '../lib/login-scene/three.module.js';
 
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -206,90 +206,202 @@ function makeEtchTexture() {
   return tex;
 }
 
+/* ============ TEXTURES REDRAWN FROM THE ILLUSTRATED LINE ============ */
+// The cleanroom bottle, belts and hall are drawn from the same palette and the same artwork as the illustrated line,
+// so a bottle that crosses between the two shots keeps its label, cap and glass.
+const INK = '#0a1f26';
+
+// Fonts are embedded in the page; canvas text needs them loaded before it is drawn, so textures redraw once they are.
+const fontRedraws = [];
+if (document.fonts) {
+  Promise.all(['400 20px "Instrument Serif"', '500 20px "Geist"', '600 20px "Geist"', '500 20px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => null)))
+    .then(() => fontRedraws.forEach(fn => fn()));
+}
+
+// The line's detailed label (drawLabel), 68 x 64 units, flat. Returned as a canvas so it can be wrapped around the bottle.
+function drawFlatLabel(g, k) {
+  const w = 68 * k, h = 64 * k, u = v => v * k;
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = '#fbf7ef'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#1d5560'; g.fillRect(0, 0, w, u(9));
+  g.fillStyle = '#e07a5f'; g.fillRect(0, u(9), w, u(1.6));
+  const text = (s, x, y, size, color, font, weight) => { g.font = `${weight} ${u(size)}px ${font}`; g.fillStyle = color; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText(s, u(x + 34), u(y)); };
+  text('TIRYAQ PHARMA', -27, 6.6, 4.4, '#f4eee2', 'Geist, system-ui, sans-serif', 600);
+  text('Rx', 22, 6.6, 4.4, '#efb85c', 'Geist, system-ui, sans-serif', 600);
+  text('Velmira', -27, 25, 13, '#1d5560', '"Instrument Serif", Georgia, serif', 400);
+  text('5 mg / 5 mL', -27, 33, 5, INK, 'Geist, system-ui, sans-serif', 600);
+  text('Oral solution · 100 mL', -27, 39.5, 4, '#3b5052', 'Geist, system-ui, sans-serif', 500);
+  g.fillStyle = '#e07a5f'; g.fillRect(u(-27 + 34), u(42.5), u(22), u(.9));
+  text('LOT TQ-0417', -27, 50, 3.6, INK, '"JetBrains Mono", Consolas, monospace', 500);
+  text('EXP 11/2028', -27, 55, 3.6, INK, '"JetBrains Mono", Consolas, monospace', 500);
+  g.fillStyle = INK;
+  for (let i = 0; i < 26; i++) g.fillRect(u(8 + 34 + i * .85), u(45), u((i * 7 % 3) * .35 + .35), u(11));
+  text('Illustrative product', 8, 60, 2.6, '#7a8a8a', 'Geist, system-ui, sans-serif', 500);
+}
+
+// Wrapped label: the flat art is pre-warped so that, seen side-on, it covers the bottle exactly as it does on the line.
+const LABEL_ARC = 3.5;                          // radians of cylinder the label wraps (about 200 degrees)
 function makeLabelTexture() {
-  const c = document.createElement('canvas');
-  c.width = 1024;
-  c.height = 512;
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
   const g = c.getContext('2d');
-
-  g.fillStyle = '#fcf9f2';
-  g.fillRect(0, 0, 1024, 512);
-
-  g.fillStyle = '#1d5560';
-  g.fillRect(0, 0, 1024, 96);
-
-  g.fillStyle = '#f5efe3';
-  g.font = '600 30px system-ui, sans-serif';
-  g.fillText('TIRYAQ PHARMA', 330, 60);
-  g.fillStyle = '#efb85c';
-  g.font = '700 28px monospace';
-  g.fillText('Rx', 652, 60);
-
-  g.fillStyle = '#0a1f26';
-  g.font = 'italic 108px Georgia, serif';
-  g.fillText('Velmira', 326, 228);
-
-  g.fillStyle = '#efb85c';
-  g.fillRect(330, 256, 350, 6);
-
-  g.fillStyle = '#2b4549';
-  g.font = '500 30px system-ui, sans-serif';
-  g.fillText('5 mg / 5 mL Oral Solution  ·  100 mL', 330, 312);
-
-  g.fillStyle = '#0a1f26';
-  g.font = '600 26px Consolas, monospace';
-  g.fillText('LOT TQ-0417   EXP 11/2028', 330, 386);
-
-  for (let i = 0; i < 28; i++) {
-    const w = (i % 3 === 0) ? 5 : (i % 2 === 0 ? 3 : 2);
-    g.fillRect(718 + i * 7, 342, w, 96);
-  }
-
-  g.fillStyle = '#1d5560';
-  g.fillRect(0, 488, 1024, 24);
-
+  const flat = document.createElement('canvas'); flat.width = 544; flat.height = 512;
+  const fg = flat.getContext('2d');
   const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const draw = () => {
+    drawFlatLabel(fg, 8);
+    g.fillStyle = '#fbf7ef'; g.fillRect(0, 0, 1024, 512);
+    const r = 0.348;
+    for (let cx = 0; cx < 1024; cx++) {
+      const th = (cx / 1024 - .5) * LABEL_ARC;
+      if (Math.abs(th) >= 1.52) continue;
+      const fx = 272 + Math.sin(th) * r * 100 * 8;          // flat-art column that sits at this angle when seen from the front
+      g.drawImage(flat, Math.max(0, Math.min(543, Math.floor(fx))), 0, 1, 512, cx, 0, 1, 512);
+    }
+    tex.needsUpdate = true;
+  };
+  draw(); fontRedraws.push(draw);
   return tex;
 }
 
-function makeCartonTexture() {
-  const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 1024;
+// Simplified label for the bottles waiting on the belts (the line draws them without text as well).
+function makeLabelStripTexture() {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
   const g = c.getContext('2d');
+  g.fillStyle = '#fbf7ef'; g.fillRect(0, 0, 128, 128);
+  g.fillStyle = '#e07a5f'; g.fillRect(0, 18, 128, 3);
+  g.fillStyle = '#1d5560'; g.fillRect(34, 40, 36, 8); g.fillRect(34, 56, 22, 4);
+  g.fillStyle = INK; g.fillRect(74, 84, 26, 16);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 
-  g.fillStyle = '#1d5560';
-  g.fillRect(0, 0, 512, 1024);
-
-  g.fillStyle = '#f5efe3';
-  g.font = '88px Georgia, serif';
-  g.fillText('Tiryaq', 54, 175);
-  g.font = '600 22px system-ui, sans-serif';
-  g.fillStyle = 'rgba(245, 239, 227, 0.78)';
-  g.fillText('PHARMA  ·  ORAL CARE', 58, 218);
-
-  g.fillStyle = '#fcf9f2';
-  g.fillRect(0, 430, 512, 340);
-
-  g.fillStyle = '#0a1f26';
-  g.font = 'italic 92px Georgia, serif';
-  g.fillText('Velmira', 52, 558);
-
-  g.fillStyle = '#efb85c';
-  g.fillRect(54, 588, 404, 7);
-
-  g.fillStyle = '#2c464a';
-  g.font = '500 28px system-ui, sans-serif';
-  g.fillText('5 mg / 5 mL Oral Solution', 54, 646);
-  g.fillText('100 mL Amber Bottle + Cup', 54, 692);
-
-  g.fillStyle = '#efb85c';
-  g.font = '600 25px Consolas, monospace';
-  g.fillText('LOT TQ-0417  ·  EXP 11/2028', 54, 888);
-
+// Chain belt: pale ticks on a darker ground, like the line's belt lip. Greyscale, so any belt colour multiplies it.
+function makeBeltTexture() {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = '#9aa4a4'; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = '#ffffff'; for (let x = 0; x < 64; x += 16) g.fillRect(x, 6, 3, 52);
+  g.fillStyle = '#6c7a7a'; g.fillRect(0, 0, 64, 6); g.fillRect(0, 58, 64, 6);
   const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.ClampToEdgeWrapping; tex.anisotropy = 4;
+  return tex;
+}
+
+// Soft contact shadow (the line puts a dark ellipse under every bottle).
+function makeShadowTexture() {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+  const g = c.getContext('2d');
+  const q = g.createRadialGradient(64, 64, 6, 64, 64, 62);
+  q.addColorStop(0, 'rgba(5,15,18,.85)'); q.addColorStop(.55, 'rgba(5,15,18,.45)'); q.addColorStop(1, 'rgba(5,15,18,0)');
+  g.fillStyle = q; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+
+// Radial warm glow under the followed bottle.
+function makeGlowTexture() {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+  const g = c.getContext('2d');
+  const q = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+  q.addColorStop(0, 'rgba(255,214,140,.95)'); q.addColorStop(1, 'rgba(255,214,140,0)');
+  g.fillStyle = q; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+
+// Hall wall: the line's hall (hall() in the illustrated line) rebuilt as a wall texture, in its night and its lifted day state.
+// One tile = four windows. Day keeps the same teal but lifts it, so the cleanroom reads as a brighter room of the same factory.
+function makeHallTexture(day) {
+  const W = 1536, H = 1000, pitch = W / 4;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const wall = g.createLinearGradient(0, 0, 0, H);
+  if (day) { wall.addColorStop(0, '#2b6a72'); wall.addColorStop(.55, '#3f8187'); wall.addColorStop(1, '#6aa49d'); }
+  else { wall.addColorStop(0, '#0a222a'); wall.addColorStop(.55, '#123842'); wall.addColorStop(1, '#174450'); }
+  g.fillStyle = wall; g.fillRect(0, 0, W, H);
+  g.strokeStyle = day ? 'rgba(244,238,226,.07)' : 'rgba(207,230,218,.045)'; g.lineWidth = 2;
+  for (let x = 0; x <= W; x += pitch / 3.5) { g.beginPath(); g.moveTo(x, H * .60); g.lineTo(x, H); g.stroke(); }
+  g.strokeStyle = day ? 'rgba(244,238,226,.14)' : 'rgba(207,230,218,.08)'; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(0, H * .895); g.lineTo(W, H * .895); g.stroke();
+  // tall windows with muntins
+  const ww = pitch * .54, wx0 = (pitch - ww) / 2, wy0 = H * .567, wh = H * .30;
+  for (let i = 0; i < 4; i++) {
+    const x = i * pitch + wx0;
+    const glass = g.createLinearGradient(0, wy0, 0, wy0 + wh);
+    glass.addColorStop(0, '#9fc9c2'); glass.addColorStop(.6, '#d8e7dc'); glass.addColorStop(1, '#f0dcc0');
+    g.fillStyle = glass; g.fillRect(x, wy0, ww, wh);
+    g.strokeStyle = '#0c2a32'; g.lineWidth = 7; g.strokeRect(x, wy0, ww, wh);
+    g.lineWidth = 3;
+    for (let k = 1; k < 4; k++) { g.beginPath(); g.moveTo(x + k * ww / 4, wy0); g.lineTo(x + k * ww / 4, wy0 + wh); g.stroke(); }
+    for (let k = 1; k < 6; k++) { g.beginPath(); g.moveTo(x, wy0 + k * wh / 6); g.lineTo(x + ww, wy0 + k * wh / 6); g.stroke(); }
+    // column between windows
+    const cg = g.createLinearGradient(x - pitch * .24, 0, x - pitch * .12, 0);
+    cg.addColorStop(0, day ? '#2a666d' : '#0b2128'); cg.addColorStop(.5, day ? '#4a8f93' : '#163a43'); cg.addColorStop(1, day ? '#2a666d' : '#0b2128');
+    g.fillStyle = cg; g.fillRect(x - pitch * .24, 0, pitch * .12, H);
+  }
+  // roof trusses along the top
+  g.strokeStyle = day ? 'rgba(244,238,226,.20)' : 'rgba(207,230,218,.12)'; g.lineWidth = 3;
+  g.beginPath(); for (let x = 0; x < W; x += pitch / 3) { g.moveTo(x, H * .035); g.lineTo(x + pitch / 6, 0); g.lineTo(x + pitch / 3, H * .035); } g.stroke();
+  g.beginPath(); g.moveTo(0, H * .035); g.lineTo(W, H * .035); g.moveTo(0, 1); g.lineTo(W, 1); g.stroke();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = THREE.RepeatWrapping; tex.anisotropy = 4;
+  return tex;
+}
+
+// Light shaft: warm gradient that fades along its length (the line's window light).
+function makeShaftTexture() {
+  const c = document.createElement('canvas'); c.width = 32; c.height = 128;
+  const g = c.getContext('2d');
+  const q = g.createLinearGradient(0, 0, 0, 128);
+  q.addColorStop(0, 'rgba(255,236,205,1)'); q.addColorStop(1, 'rgba(255,236,205,0)');
+  g.fillStyle = q; g.fillRect(0, 0, 32, 128);
+  const h = g.createLinearGradient(0, 0, 32, 0);
+  h.addColorStop(0, 'rgba(0,0,0,0)'); h.addColorStop(.5, 'rgba(0,0,0,1)'); h.addColorStop(1, 'rgba(0,0,0,0)');
+  g.globalCompositeOperation = 'destination-in'; g.fillStyle = h; g.fillRect(0, 0, 32, 128);
+  return new THREE.CanvasTexture(c);
+}
+
+// Dashed amber floor line, as on the line's floor.
+function makeDashTexture() {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 8;
+  const g = c.getContext('2d');
+  g.fillStyle = 'rgba(239,184,92,1)'; g.fillRect(0, 0, 76, 8);
+  const tex = new THREE.CanvasTexture(c); tex.wrapS = THREE.RepeatWrapping; tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// The carton face is the line's own carton (window.TiryaqArt.cartonFace), so the carton TQ-0417 is packed into in the
+// cleanroom, the blanks in the line's magazine and the carton on the windowsill are one design.
+function makeCartonTexture() {
+  const k = 6, c = document.createElement('canvas');
+  c.width = 92 * k; c.height = 172 * k;
+  const g = c.getContext('2d');
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const draw = () => {
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
+    g.setTransform(k, 0, 0, k, 0, 0);
+    if (window.TiryaqArt) window.TiryaqArt.cartonFace(g);
+    else { g.fillStyle = '#1d5560'; g.fillRect(0, 0, 92, 172); }
+    tex.needsUpdate = true;
+  };
+  draw(); fontRedraws.push(draw);
+  return tex;
+}
+
+// Small machine nameplates: mono text on the machines' dark plates.
+function makePlateTexture(text, sub) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128;
+  const g = c.getContext('2d');
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const draw = () => {
+    g.clearRect(0, 0, 512, 128);
+    g.fillStyle = '#0b1f25'; g.fillRect(0, 0, 512, 128);
+    g.fillStyle = '#efb85c'; g.fillRect(0, 0, 8, 128);
+    g.font = '600 46px "JetBrains Mono", Consolas, monospace'; g.fillStyle = '#cfe6da'; g.textBaseline = 'alphabetic'; g.fillText(text, 30, 62);
+    if (sub) { g.font = '500 28px "JetBrains Mono", Consolas, monospace'; g.fillStyle = 'rgba(207,230,218,.62)'; g.fillText(sub, 30, 104); }
+    tex.needsUpdate = true;
+  };
+  draw(); fontRedraws.push(draw);
   return tex;
 }
 
@@ -399,17 +511,24 @@ function makeSunriseTexture() {
   return tex;
 }
 
-/* ============ PIECEWISE HERO SPECIMEN PATH ALONG LINE 04 ============ */
+/* ============ TQ-0417 PATH THROUGH THE CLEANROOM ============ */
+// The bottle rests where the illustrated line hands it over, rides the spine belt the length of the room and stops at the
+// cartoner's pick position (x = 116.9). From there the packaging timeline (PK below) moves it.
+const HERO_X0 = 53.0, HERO_X1 = 116.9;
+const ss = t => { const u = cl(t, 0, 1); return u * u * u * (u * (u * 6 - 15) + 10); };   // smootherstep: gentler starts and stops
+const seg = (b, a, c) => cl((b - a) / (c - a), 0, 1);
 function getHeroX(b) {
-  if (b <= 0.72) return lerp(-38.0, -37.2, sm(b / 0.72));
-  if (b <= 2.62) return lerp(-37.2, 8.0, sm((b - 0.72) / 1.90));
-  if (b <= 3.42) return 8.0; // Paused directly beneath Diving Dosing Nozzle
-  if (b <= 4.06) return lerp(8.0, 26.0, sm((b - 3.42) / 0.64));
-  if (b <= 4.92) return 26.0; // Paused at Torque Spindle & Rotary Wrap Labeller
-  if (b <= 5.55) return lerp(26.0, 43.2, sm((b - 4.92) / 0.63));
-  if (b <= 6.45) return lerp(43.2, 44.8, (b - 5.55) / 0.90); // Slow scan glide through Vision Arch
-  return lerp(44.8, 120.0, sm(cl((b - 6.45) / 2.15, 0, 1)));
+  return lerp(HERO_X0, HERO_X1, sm(seg(b, 7.04, 8.24)));
 }
+// Cleanroom beats for the handoff, packaging, dispatch and home.
+const HOLD_END = 7.02;          // the cleanroom holds the line's framing until the crossfade is complete
+const REVEAL_END = 7.52;        // the crane-back reveal settles on the twelve-line panorama
+const HOME_B = 9.25;            // the daylight veil peaks and the windowsill replaces the factory
+const PK = {
+  gripDown: [8.19, 8.26], close: [8.26, 8.28], lift: [8.28, 8.36], blank: [8.29, 8.36], erect: [8.36, 8.43],
+  across: [8.36, 8.46], lower: [8.46, 8.55], open: [8.55, 8.57], up: [8.57, 8.63], back: [8.63, 8.72],
+  dust: [8.57, 8.63], tuck: [8.63, 8.71], out: [8.74, 9.16]
+};
 
 /* ============ WEBGL 3D WORLD ============ */
 function activateFallback() {
@@ -432,24 +551,24 @@ function activateFallback() {
 
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, MOB ? 1.5 : 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.14;
+  renderer.toneMapping = THREE.LinearToneMapping;   // flat, saturated palette like the illustrated line (no filmic desaturation)
+  renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = !MOB;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
   scene.environment = buildStudioEnv(renderer);
 
-  const cSkyNight = new THREE.Color(0x081e26);
-  const cSkyDay = new THREE.Color(0xdcebe7);
+  const cSkyNight = new THREE.Color(0x123b46);
+  const cSkyDay = new THREE.Color(0x6aa49d);
   const cSkyHome = new THREE.Color(0xf4e8d4);
-  const cGndNight = new THREE.Color(0x0b2630);
-  const cGndDay = new THREE.Color(0xc8e0db);
+  const cGndNight = new THREE.Color(0x10343e);
+  const cGndDay = new THREE.Color(0x8fbcae);
 
   const curSky = cSkyNight.clone();
   const curGnd = cGndNight.clone();
   scene.background = curSky;
-  scene.fog = new THREE.Fog(0x081e26, 30, 112);
+  scene.fog = new THREE.Fog(0x123b46, 30, 112);
 
   const cam = new THREE.PerspectiveCamera(31, 1, 0.1, 280);
 
@@ -485,12 +604,47 @@ function activateFallback() {
   ground.receiveShadow = true;
   factoryWorld.add(ground);
 
+  /* ---------- The hall behind the cleanroom ---------- */
+  // The line's hall (windows, columns, trusses and window light) continues behind the twelve lines, in the line's night colours and in a
+  // lifted day state, so the cleanroom is a brighter room of the same factory rather than a different place.
+  const HALL_X0 = -30, HALL_X1 = 230, HALL_Z = -34, HALL_HT = 30, HALL_TILE = 44;
+  const hallTexN = makeHallTexture(false), hallTexD = makeHallTexture(true);
+  [hallTexN, hallTexD].forEach(t => t.repeat.set((HALL_X1 - HALL_X0) / HALL_TILE, 1));
+  const hallGeo = new THREE.PlaneGeometry(HALL_X1 - HALL_X0, HALL_HT);
+  const hallN = new THREE.Mesh(hallGeo, new THREE.MeshBasicMaterial({ map: hallTexN, fog: false }));
+  const hallDMat = new THREE.MeshBasicMaterial({ map: hallTexD, fog: false, transparent: true, opacity: 0, depthWrite: false });
+  const hallD = new THREE.Mesh(hallGeo, hallDMat);
+  hallN.position.set((HALL_X0 + HALL_X1) / 2, HALL_HT / 2, HALL_Z);
+  hallD.position.set(hallN.position.x, hallN.position.y, HALL_Z + 0.03);
+  factoryWorld.add(hallN, hallD);
+  // window light falling across the floor
+  const shaftTex = makeShaftTexture();
+  const shaftMat = new THREE.MeshBasicMaterial({ map: shaftTex, color: 0xffe6c0, transparent: true, opacity: 0.1, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
+  for (let j = 0; j < 20; j++) {
+    const cx = HALL_X0 + j * HALL_TILE / 4 + HALL_TILE / 8;
+    if (cx < 30 || cx > 150) continue;
+    const g0 = new THREE.BufferGeometry();
+    const w0 = 2.6, w1 = 3.6, off = 9;
+    g0.setAttribute('position', new THREE.Float32BufferAttribute([cx - w0, 12.6, HALL_Z + 0.2, cx + w0, 12.6, HALL_Z + 0.2, cx + off - w1, 0.03, -13, cx + off + w1, 0.03, -13], 3));
+    g0.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 1, 0, 0, 1, 0], 2));
+    g0.setIndex([0, 1, 2, 1, 3, 2]);
+    factoryWorld.add(new THREE.Mesh(g0, shaftMat));
+  }
+  // dashed amber floor line, as on the line's floor
+  const dashTex = makeDashTexture(); dashTex.repeat.set(200 / 2.0, 1);
+  const dashMat = new THREE.MeshBasicMaterial({ map: dashTex, transparent: true, opacity: 0.32, depthWrite: false });
+  [-4.6, 4.6].forEach(dz => {
+    const ds = new THREE.Mesh(new THREE.PlaneGeometry(200, 0.14).rotateX(-Math.PI / 2), dashMat);
+    ds.position.set(28, 0.02, dz);
+    factoryWorld.add(ds);
+  });
+
   /* ---------- Studio Physically-Based Materials ---------- */
-  const matSteel = new THREE.MeshStandardMaterial({ color: 0xdbe6e4, roughness: 0.22, metalness: 0.78, envMapIntensity: 1.1 });
-  const matChrome = new THREE.MeshStandardMaterial({ color: 0xf2f7f6, roughness: 0.12, metalness: 0.9, envMapIntensity: 1.25 });
+  const matSteel = new THREE.MeshStandardMaterial({ color: 0xc9d4d4, roughness: 0.42, metalness: 0.5, envMapIntensity: 0.5 });
+  const matChrome = new THREE.MeshStandardMaterial({ color: 0xdfe8e8, roughness: 0.3, metalness: 0.65, envMapIntensity: 0.6 });
   const matAnodized = new THREE.MeshStandardMaterial({ color: 0x13353f, roughness: 0.36, metalness: 0.35, envMapIntensity: 0.6, side: THREE.DoubleSide });
-  const matChassis = new THREE.MeshStandardMaterial({ color: 0xf2efe7, roughness: 0.34, metalness: 0.08, envMapIntensity: 0.45, side: THREE.DoubleSide });
-  const matTeal = new THREE.MeshStandardMaterial({ color: 0x1d5560, roughness: 0.26, metalness: 0.18, envMapIntensity: 0.7 });
+  const matChassis = new THREE.MeshStandardMaterial({ color: 0xc3cfcf, roughness: 0.48, metalness: 0.12, envMapIntensity: 0.3, side: THREE.DoubleSide });
+  const matTeal = new THREE.MeshStandardMaterial({ color: 0x1d5560, roughness: 0.5, metalness: 0.08, envMapIntensity: 0.35 });
   const matDeepTeal = new THREE.MeshStandardMaterial({ color: 0x0b2730, roughness: 0.45, envMapIntensity: 0.3 });
   const matSpineBed = new THREE.MeshPhysicalMaterial({ color: 0x184954, roughness: 0.2, clearcoat: 0.9, clearcoatRoughness: 0.08, envMapIntensity: 0.8, side: THREE.DoubleSide });
   const matBridgeBed = new THREE.MeshPhysicalMaterial({ color: 0xd98a2b, roughness: 0.24, clearcoat: 0.85, envMapIntensity: 0.75, side: THREE.DoubleSide });
@@ -522,7 +676,8 @@ function activateFallback() {
 
   /* ---------- Geometry Helpers ---------- */
   function sweepChannel(curve, hw, h0, h1, segs, material) {
-    const pos = [], idx = [];
+    const pos = [], idx = [], uvs = [];
+    const len = curve.getLength();
     const profile = [[[-1, h1], [1, h1]], [[1, h1], [1, h0]], [[-1, h0], [-1, h1]]];
     for (let i = 0; i <= segs; i++) {
       const t = i / segs;
@@ -532,6 +687,7 @@ function activateFallback() {
       const nx = -tan.z / lenXZ, nz = tan.x / lenXZ;
       profile.forEach(face => face.forEach(([s, dy]) => {
         pos.push(p.x + nx * s * hw, p.y + dy, p.z + nz * s * hw);
+        uvs.push(t * len, (s + 1) / 2);
       }));
     }
     for (let i = 0; i < segs; i++) {
@@ -542,6 +698,7 @@ function activateFallback() {
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.setIndex(idx);
     geo.computeVertexNormals();
     const m = new THREE.Mesh(geo, material);
@@ -568,72 +725,118 @@ function activateFallback() {
   };
 
   /* ---------- Ultra-Smooth Cosine-Filleted Boston-Round Vessel ---------- */
-  const vesselPts = [];
-  vesselPts.push(new THREE.Vector2(0.0, 0.0));
-  vesselPts.push(new THREE.Vector2(0.285, 0.0));
-  // Smooth base heel fillet
-  for (let i = 0; i <= 5; i++) {
-    const a = (i / 5) * (Math.PI * 0.5);
-    vesselPts.push(new THREE.Vector2(0.285 + Math.sin(a) * 0.055, 0.055 - Math.cos(a) * 0.055));
-  }
-  vesselPts.push(new THREE.Vector2(0.34, 0.50));
-  // Silky 14-step cosine shoulder curve (zero polygonal faceting!)
-  for (let i = 1; i <= 14; i++) {
-    const t = i / 14;
-    const r = lerp(0.34, 0.146, sm(t));
-    const y = lerp(0.50, 0.79, t);
-    vesselPts.push(new THREE.Vector2(r, y));
-  }
-  vesselPts.push(new THREE.Vector2(0.146, 0.93));
-  vesselPts.push(new THREE.Vector2(0.166, 0.945));
-  vesselPts.push(new THREE.Vector2(0.166, 0.965));
-  vesselPts.push(new THREE.Vector2(0.132, 0.965));
-
+    /* ---------- Boston-round bottle, redrawn on the illustrated line's proportions ---------- */
+  // 1 bottle unit = 100 drawing units of the line: body radius .34, straight to y .98, shoulder to a .13 neck at y 1.30, neck to 1.50.
+  // A 28-unit cap (r .17) sits from 1.28 to 1.56, so the finished bottle is BOT_H = 1.56 tall and 2.2 times as tall as wide.
+  const BOT_H = 1.56;
+  const vesselPts = [new THREE.Vector2(0, 0), new THREE.Vector2(0.25, 0)];
+  for (let i = 1; i <= 6; i++) { const a = i / 6 * Math.PI / 2; vesselPts.push(new THREE.Vector2(0.25 + Math.sin(a) * 0.09, 0.09 - Math.cos(a) * 0.09)); }
+  vesselPts.push(new THREE.Vector2(0.34, 0.98));
+  const bez = (t, a, b, c, d) => { const u = 1 - t; return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d; };
+  for (let i = 1; i <= 16; i++) { const t = i / 16; vesselPts.push(new THREE.Vector2(bez(t, 0.34, 0.34, 0.20, 0.13), bez(t, 0.98, 1.17, 1.23, 1.30))); }
+  vesselPts.push(new THREE.Vector2(0.13, 1.50), new THREE.Vector2(0.105, 1.50));
   const vesselGeo = new THREE.LatheGeometry(vesselPts, 48);
-  const liqUnitGeo = new THREE.CylinderGeometry(0.302, 0.302, 0.51, 32).translate(0, 0.255, 0);
-  const capUnitGeo = new THREE.CylinderGeometry(0.184, 0.184, 0.17, 28).translate(0, 0.95, 0);
+  // Liquid fills to the line's fill mark (.92) and shades from honey at the surface to deep amber at the base.
+  const liqUnitGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.89, 32).translate(0, 0.445, 0);
+  {
+    const p = liqUnitGeo.attributes.position, col = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) { const k = 0.66 + 0.40 * (p.getY(i) / 0.89); col[i * 3] = k; col[i * 3 + 1] = k; col[i * 3 + 2] = k; }
+    liqUnitGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  }
+  const capUnitGeo = new THREE.CylinderGeometry(0.17, 0.17, 0.28, 24).translate(0, 1.42, 0);
+  const capBandGeo = new THREE.CylinderGeometry(0.174, 0.174, 0.045, 24).translate(0, 1.5375, 0);
+  const LABEL_R = 0.348;
+  const labelGeo = new THREE.CylinderGeometry(LABEL_R, LABEL_R, 0.64, 40, 1, true, -LABEL_ARC / 2, LABEL_ARC).translate(0, 0.5, 0);
+  const labelStripGeo = new THREE.CylinderGeometry(LABEL_R, LABEL_R, 0.64, 24, 1, true, -1.35, 2.7).translate(0, 0.5, 0);
+  const labelBandGeo = new THREE.CylinderGeometry(LABEL_R + 0.002, LABEL_R + 0.002, 0.09, 24, 1, true, -1.35, 2.7).translate(0, 0.775, 0);
+
+  // Glass: clear, with the dark ink edge the line draws around every bottle, made as a rim shader because the glass is transparent.
+  const makeBottleGlass = (rimEnd, opacity) => {
+    const m = new THREE.MeshPhysicalMaterial({ color: 0xd6eee9, transparent: true, opacity, roughness: 0.1, metalness: 0, clearcoat: 0.6, clearcoatRoughness: 0.12, envMapIntensity: 0.55, depthWrite: false });
+    m.onBeforeCompile = sh => {
+      sh.uniforms.uRimEnd = { value: rimEnd };
+      sh.fragmentShader = 'uniform float uRimEnd;\n' + sh.fragmentShader.replace('#include <opaque_fragment>', `
+        float ndv = abs(dot(normalize(normal), normalize(vViewPosition)));
+        float rimK = 1.0 - smoothstep(0.0, uRimEnd, ndv);
+        outgoingLight = mix(outgoingLight, vec3(0.039, 0.122, 0.149), rimK * 0.9);
+        diffuseColor.a = mix(diffuseColor.a, 0.97, rimK);
+        #include <opaque_fragment>`);
+    };
+    return m;
+  };
+  // Opaque parts get a real ink outline: an inverted hull pushed out by a constant number of screen pixels.
+  const outlineK = { value: 0.002 };           // world units per pixel per unit of distance, set from the camera each frame
+  const makeOutlineMat = pxWidth => {
+    const m = new THREE.MeshBasicMaterial({ color: 0x0a1f26, side: THREE.BackSide });
+    m.onBeforeCompile = sh => {
+      sh.uniforms.uK = outlineK; sh.uniforms.uPx = { value: pxWidth };
+      sh.vertexShader = 'uniform float uK; uniform float uPx;\n' + sh.vertexShader
+        .replace('#include <begin_vertex>', `
+          #ifdef USE_INSTANCING
+            mat4 om = modelMatrix * instanceMatrix;
+          #else
+            mat4 om = modelMatrix;
+          #endif
+          float oSc = length(om[0].xyz);
+          float oDist = max(0.2, -(viewMatrix * om * vec4(0.0, 0.0, 0.0, 1.0)).z);
+          vec3 transformed = position + normalize(normal) * (uPx * uK * oDist / max(oSc, 1e-5));`)
+        .replace('#include <project_vertex>', `
+          #include <project_vertex>
+          if (oSc < 0.02) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);`);
+    };
+    return m;
+  };
+  const capOutlineGeo = new THREE.CylinderGeometry(0.17, 0.17, 0.28, 24).translate(0, 1.42, 0);
+  const TRAFFIC_SCALE = 0.82;
 
   /* =========================================================================
      ZONE 0: LINE 04 — PRECISION ANODIZED & CHROME RAIL (x = -72 .. +128)
      ========================================================================= */
-  const line04Curve = new THREE.LineCurve3(new THREE.Vector3(-72, 0, 0), new THREE.Vector3(128, 0, 0));
+  const BELT_TILE = 1.6;
+  const beltTexBase = makeBeltTexture();
+  const makeBedTex = () => { const t = beltTexBase.clone(); t.needsUpdate = true; t.repeat.set(1 / BELT_TILE, 1); return t; };
+  const line04BedTex = makeBedTex();
+  const line04BedMat = new THREE.MeshStandardMaterial({ color: 0x1b5560, map: line04BedTex, roughness: 0.55, metalness: 0.1, side: THREE.DoubleSide });
+  const LINE04_END = 117.6;                       // the spine belt ends at cartoner K-06's infeed stop
+  const line04Curve = new THREE.LineCurve3(new THREE.Vector3(-72, 0, 0), new THREE.Vector3(LINE04_END, 0, 0));
   factoryWorld.add(
-    sweepChannel(line04Curve, 1.16, 0.62, 0.93, 160, matAnodized),
+    sweepChannel(line04Curve, 1.16, 0.62, 0.93, 160, new THREE.MeshStandardMaterial({ color: 0xb4c0c1, roughness: 0.42, metalness: 0.25, envMapIntensity: 0.4, side: THREE.DoubleSide })),
     sweepChannel(line04Curve, 1.19, 0.91, 0.955, 160, matChrome),
-    sweepChannel(line04Curve, 0.95, 0.945, 1.00, 160, matSpineBed)
+    sweepChannel(line04Curve, 0.95, 0.945, 1.00, 160, line04BedMat)
   );
   const line04BusMat = new THREE.MeshStandardMaterial({ color: 0xefb85c, emissive: 0xd98a2b, emissiveIntensity: 0.72, roughness: 0.25 });
   factoryWorld.add(sweepChannel(line04Curve, 0.075, 0.996, 1.018, 160, line04BusMat));
 
   // Brushed stainless twin guide-rails along Line 04
-  [-0.86, 0.86].forEach(zSide => {
-    const railLow = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 198, 14), matChrome);
+  [-0.86].forEach(zSide => {
+    const railLen = LINE04_END - 0.4 + 71, railMid = (LINE04_END - 0.4 - 71) / 2;
+    const railLow = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, railLen, 14), matChrome);
     railLow.rotation.z = Math.PI / 2;
-    railLow.position.set(28, 1.32, zSide);
+    railLow.position.set(railMid, 1.32, zSide);
     factoryWorld.add(railLow);
 
-    const railHigh = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 198, 14), matSteel);
+    const railHigh = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, railLen, 14), matSteel);
     railHigh.rotation.z = Math.PI / 2;
-    railHigh.position.set(28, 1.62, zSide);
+    railHigh.position.set(railMid, 1.62, zSide);
     factoryWorld.add(railHigh);
   });
 
   // Precision spoked drive wheels & stanchions underneath Line 04
-  const wheelCount = 82;
+  const stanchionPositions = [];
+  for (let i = 0; i < 82; i++) { const sx = -66 + i * 2.35; if (sx < LINE04_END - 0.8) stanchionPositions.push(sx); }
+  const wheelCount = stanchionPositions.length;
   const wheelGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.14, 22);
   wheelGeo.rotateX(Math.PI / 2);
   const wheelRimMat = new THREE.MeshStandardMaterial({ color: 0x163d47, roughness: 0.3, metalness: 0.55 });
   const wheelsInst = new THREE.InstancedMesh(wheelGeo, wheelRimMat, wheelCount);
   const hubInst = new THREE.InstancedMesh(new THREE.BoxGeometry(0.41, 0.038, 0.16), matChrome, wheelCount);
 
-  const stanchionPositions = [];
-  for (let i = 0; i < wheelCount; i++) stanchionPositions.push(-66 + i * 2.35);
 
-  const stanchionInst = new THREE.InstancedMesh(new THREE.BoxGeometry(0.055, 0.70, 0.055), matChrome, stanchionPositions.length * 2);
+  const stanchionInst = new THREE.InstancedMesh(new THREE.BoxGeometry(0.055, 0.70, 0.055), matChrome, stanchionPositions.length);
   const dummy = new THREE.Object3D();
   let stIdx = 0;
   stanchionPositions.forEach(sx => {
-    [-0.86, 0.86].forEach(sz => {
+    [-0.86].forEach(sz => {
       dummy.position.set(sx, 1.30, sz);
       dummy.rotation.set(0, 0, 0);
       dummy.scale.set(1, 1, 1);
@@ -667,23 +870,14 @@ function activateFallback() {
   /* =========================================================================
      HERO SPECIMEN: LOT TQ-0417
      ========================================================================= */
-  const HERO_SCALE = 2.12;
+    const HERO_SCALE = 1.4;
+  const HERO_H = BOT_H * HERO_SCALE;
   const heroBottle = new THREE.Group();
 
-  const hbOuter = new THREE.Mesh(vesselGeo, glassOuterMat);
-  const hbInner = new THREE.Mesh(vesselGeo, glassRimMat);
-  hbInner.scale.setScalar(0.95);
-  hbOuter.castShadow = !MOB;
+  const hbOuter = new THREE.Mesh(vesselGeo, makeBottleGlass(0.34, 0.2));
+  hbOuter.castShadow = false;
   hbOuter.renderOrder = 3;
-  heroBottle.add(hbInner, hbOuter);
-
-  // Precision neck threads
-  for (let ti = 0; ti < 3; ti++) {
-    const th = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.0085, 8, 36), glassOuterMat);
-    th.rotation.x = Math.PI / 2;
-    th.position.y = 0.835 + ti * 0.032;
-    heroBottle.add(th);
-  }
+  heroBottle.add(hbOuter);
 
   // Frosted laser-etched TQ-0417 base mark
   const etchMesh = new THREE.Mesh(
@@ -692,18 +886,11 @@ function activateFallback() {
   );
   etchMesh.position.y = 0.085;
   etchMesh.renderOrder = 4;
+  etchMesh.visible = false;
   heroBottle.add(etchMesh);
 
-  // Dynamic amber oral solution inside TQ-0417
-  const heroLiqMat = new THREE.MeshPhysicalMaterial({
-    color: 0xe89c2c,
-    emissive: 0x945206,
-    emissiveIntensity: 0.46,
-    roughness: 0.12,
-    clearcoat: 0.75,
-    transparent: true,
-    opacity: 0.93
-  });
+  // Amber oral solution inside TQ-0417 (same honey-to-amber shading as the line)
+  const heroLiqMat = new THREE.MeshStandardMaterial({ color: 0xe89c2c, vertexColors: true, emissive: 0x6b3a05, emissiveIntensity: 0.35, roughness: 0.3 });
   const heroLiq = new THREE.Mesh(liqUnitGeo, heroLiqMat);
   heroLiq.position.y = 0.03;
   heroLiq.scale.set(1, 0.0001, 1);
@@ -711,10 +898,9 @@ function activateFallback() {
   heroLiq.renderOrder = 1;
   heroBottle.add(heroLiq);
 
-  // Shimmering surface meniscus disc + rising micro-bubbles during dosing!
   const meniscusDisc = new THREE.Mesh(
-    new THREE.CircleGeometry(0.301, 36),
-    new THREE.MeshBasicMaterial({ color: 0xffe29e, transparent: true, opacity: 0.82, side: THREE.DoubleSide })
+    new THREE.CircleGeometry(0.309, 36),
+    new THREE.MeshBasicMaterial({ color: 0xf6c773, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
   );
   meniscusDisc.rotation.x = -Math.PI / 2;
   meniscusDisc.visible = false;
@@ -732,45 +918,50 @@ function activateFallback() {
     return bm;
   });
 
-  // Dynamic deep-teal ribbed closure + gold tamper band
+  // Child-resistant cap as drawn on the line: teal body, ivory top band, darker tamper ring, light ribs, ink outline.
+  // The group is centred on the cap; the render loop slides it down onto the neck.
   const heroCapGrp = new THREE.Group();
-  const capBody = new THREE.Mesh(new THREE.CylinderGeometry(0.186, 0.189, 0.16, 32), matTeal);
-  const tamperBand = new THREE.Mesh(new THREE.CylinderGeometry(0.192, 0.192, 0.028, 32), matGold);
-  tamperBand.position.y = -0.088;
-  heroCapGrp.add(capBody, tamperBand);
-  for (let ri = 0; ri < 20; ri++) {
-    const a = (ri / 20) * Math.PI * 2;
-    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.013, 0.14, 0.016), matChassis);
-    rib.position.set(Math.cos(a) * 0.188, 0.005, Math.sin(a) * 0.188);
-    rib.rotation.y = -a;
+  const capBody = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.28, 32), new THREE.MeshStandardMaterial({ color: 0x1f5a64, roughness: 0.5, metalness: 0.05 }));
+  const capTop = new THREE.Mesh(new THREE.CylinderGeometry(0.174, 0.174, 0.045, 32), new THREE.MeshStandardMaterial({ color: 0xf4eee2, roughness: 0.45 }));
+  capTop.position.y = 0.1175;
+  const tamperBand = new THREE.Mesh(new THREE.CylinderGeometry(0.173, 0.173, 0.05, 32), new THREE.MeshStandardMaterial({ color: 0x123f47, roughness: 0.55 }));
+  tamperBand.position.y = -0.115;
+  const capOutline = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.28, 32), makeOutlineMat(1.7));
+  heroCapGrp.add(capBody, capTop, tamperBand, capOutline);
+  for (let ri = 0; ri < 18; ri++) {
+    const a = (ri / 18) * Math.PI * 2;
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.15, 0.012), new THREE.MeshStandardMaterial({ color: 0x2f7a80, roughness: 0.5 }));
+    rib.position.set(Math.sin(a) * 0.171, -0.005, Math.cos(a) * 0.171);
+    rib.rotation.y = a;
     heroCapGrp.add(rib);
   }
   heroCapGrp.visible = false;
   heroBottle.add(heroCapGrp);
 
-  // Dynamic wrap-around Velmira pharmaceutical label
-  const heroLabelMat = new THREE.MeshStandardMaterial({
-    map: makeLabelTexture(),
-    roughness: 0.34,
-    side: THREE.DoubleSide
-  });
-  const heroLabel = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.345, 0.345, 0.31, 48, 1, true, -Math.PI * 0.86, Math.PI * 1.72),
-    heroLabelMat
-  );
-  heroLabel.position.y = 0.325;
+  // Wrapped label, the same artwork as the line's label
+  const heroLabelMat = new THREE.MeshStandardMaterial({ map: makeLabelTexture(), roughness: 0.55, side: THREE.DoubleSide });
+  const heroLabel = new THREE.Mesh(labelGeo, heroLabelMat);
+  heroLabel.position.y = 0;
   heroLabel.visible = false;
   heroLabel.renderOrder = 4;
   heroBottle.add(heroLabel);
 
-  // Subtle base reticle / tracking halo
+  // Tracking halo and glow on the belt, the same honey ring the line draws under TQ-0417
   const heroHaloMat = new THREE.MeshBasicMaterial({ color: 0xefb85c, transparent: true, opacity: 0.25, depthWrite: false });
-  const heroHalo = new THREE.Mesh(new THREE.RingGeometry(0.44, 0.50, 48), heroHaloMat);
+  const heroHalo = new THREE.Mesh(new THREE.RingGeometry(0.47, 0.53, 64), heroHaloMat);
   heroHalo.rotation.x = -Math.PI / 2;
   heroHalo.position.y = 0.012;
   heroBottle.add(heroHalo);
+  const heroGlowMat = new THREE.MeshBasicMaterial({ map: makeGlowTexture(), transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending });
+  const heroGlow = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6).rotateX(-Math.PI / 2), heroGlowMat);
+  heroGlow.position.y = 0.01;
+  heroBottle.add(heroGlow);
+  const shadowTex = makeShadowTexture();
+  const heroShadow = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 1.05).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, opacity: 0.6, depthWrite: false }));
+  heroShadow.position.y = 0.008;
+  heroBottle.add(heroShadow);
 
-  const heroGlowLight = new THREE.PointLight(0xffe5b0, 1.25, 11);
+  const heroGlowLight = new THREE.PointLight(0xffe5b0, 0.9, 9);
   heroGlowLight.position.set(0.8, 0.85, 1.1);
   heroBottle.add(heroGlowLight);
 
@@ -985,47 +1176,45 @@ function activateFallback() {
 
   // Reject spur + defective unlabelled bottle
   const rejectSpurCurve = mkCurve([[45.8, 0, 0.3], [47.8, 0, 1.8], [50.8, 0, 4.6], [53.5, 0, 5.4]]);
-  factoryWorld.add(
-    sweepChannel(rejectSpurCurve, 0.72, 0.58, 0.90, 28, matAnodized),
-    sweepChannel(rejectSpurCurve, 0.55, 0.89, 0.98, 28, matCoral)
-  );
+  // (the reject spur is not built: it would cross the cleanroom handoff framing)
   const rejectBottle = new THREE.Group();
   const rbGlass = new THREE.Mesh(vesselGeo, glassOuterMat);
   const rbLowLiq = new THREE.Mesh(liqUnitGeo, new THREE.MeshStandardMaterial({ color: 0xd98a2b, roughness: 0.3 }));
   rbLowLiq.scale.set(0.96, 0.40, 0.96);
   rejectBottle.add(rbGlass, rbLowLiq);
   rejectBottle.scale.setScalar(HERO_SCALE * 0.92);
+  rejectBottle.visible = false;
   factoryWorld.add(rejectBottle);
 
   /* =========================================================================
      STATION 05 (x = +57 .. +126): THE 12-RAIL SUNLIT CLEANROOM ATRIUM
      Dual-sided West Airlock Wall: dark cleanroom cladding on west, bright white on east!
      ========================================================================= */
+  // The cleanroom's west partition stands behind Line 04 only. Its south half and the header over the line used to sit
+  // beside the handoff camera (a black slab in the crossfade) and across the crane-back, so the line enters through an
+  // open pass-through, marked by a honey threshold stripe on the floor.
   addBox(0.45, 13, 20, matDeepTeal, 56.25, 6.5, -13.5);
-  addBox(0.45, 13, 20, matDeepTeal, 56.25, 6.5, 13.5);
-  addBox(0.45, 7.2, 7.2, matDeepTeal, 56.25, 9.4, 0);
-
   addBox(0.55, 13, 20, matChassis, 56.8, 6.5, -13.5);
-  addBox(0.55, 13, 20, matChassis, 56.8, 6.5, 13.5);
-  addBox(0.55, 7.2, 7.2, matChassis, 56.8, 9.4, 0);
-  addBox(1.15, 0.30, 7.2, matGold, 56.55, 5.75, 0);
+  addBox(0.66, 5.8, 0.12, matGold, 56.55, 2.9, -3.44);
+  addBox(0.9, 0.02, 7.0, new THREE.MeshStandardMaterial({ color: 0xefb85c, roughness: 0.5, emissive: 0x6b4a14, emissiveIntensity: 0.3 }), 56.55, 0.02, 0);
 
   // East Golden Dispatch Threshold Wall (x = 126)
   addBox(1.2, 16, 28, matChassis, 126.5, 8, -17.5);
   addBox(1.2, 16, 28, matChassis, 126.5, 8, 17.5);
   addBox(1.2, 10, 7.2, matChassis, 126.5, 11, 0);
-  const portalGlow = new THREE.Mesh(
-    new THREE.PlaneGeometry(6.8, 5.8),
-    new THREE.MeshBasicMaterial({ color: 0xfff5dc, side: THREE.DoubleSide })
-  );
+  const portalGlowMat = new THREE.MeshBasicMaterial({ color: 0xfff5dc, side: THREE.DoubleSide, fog: false });
+  const portalGlow = new THREE.Mesh(new THREE.PlaneGeometry(40, 22), portalGlowMat);
   portalGlow.rotation.y = -Math.PI / 2;
-  portalGlow.position.set(125.8, 2.9, 0);
+  portalGlow.position.set(150, 10, 0);
   factoryWorld.add(portalGlow);
 
   // 8 Atrium Conveyor Rails + Line 04 + 3 Glass Sky-Tubes = 12 Synchronized Atrium Lines
+  // Each wave starts inside a filling monoblock against the west wall and ends inside a cartoner against the east wall.
+  const CELL_W = 59.5, CELL_E = 123.5;
   const mkAtriumWave = (zBase, y0, amp, ph, dir) => {
     const pts = [];
-    for (let x = 57; x <= 126; x += 5.5) {
+    for (let k = 0; k <= 11; k++) {
+      const x = CELL_W + (CELL_E - CELL_W) * k / 11;
       pts.push([x, y0, zBase + amp * Math.sin((x - 57) * 0.21 + ph)]);
     }
     return { c: mkCurve(pts), dir };
@@ -1045,11 +1234,11 @@ function activateFallback() {
     { ...mkAtriumWave(8.2, 0.0, 2.2, 1.4, -1),    group: 'topical', amber: true,  hw: 0.98, speed: 1.02 },
     { ...mkAtriumWave(15.5, 0.65, 2.6, 3.0, 1),   group: 'topical', amber: true,  hw: 0.98, speed: 1.15 },
     {
-      c: mkCurve([[57, 2.5, 19], [76, 3.1, 8], [94, 3.2, -4], [112, 2.9, -14], [126, 2.5, -19]]),
+      c: mkCurve([[CELL_W, 2.5, 18.4], [76, 3.1, 8], [94, 3.2, -4], [112, 2.9, -14], [CELL_E, 2.5, -19.6]]),
       dir: 1, bridge: true, group: 'oral', amber: true, hw: 0.92, speed: 1.24
     },
     {
-      c: mkCurve([[57, 2.5, -19], [76, 3.0, -9], [94, 3.2, 4], [112, 2.9, 14], [126, 2.5, 19]]),
+      c: mkCurve([[CELL_W, 2.5, -18.4], [76, 3.0, -9], [94, 3.2, 4], [112, 2.9, 14], [CELL_E, 2.5, 19.6]]),
       dir: -1, bridge: true, group: 'sterile', amber: false, hw: 0.92, speed: 1.20
     },
     { ...mkAtriumLoop(78, -11.8, 6.2, 3.8, 1),    group: 'sterile', amber: false, hw: 0.9, speed: 0.92 },
@@ -1059,7 +1248,7 @@ function activateFallback() {
   const trafficRails = [
     ...feederCurves.map((fc, fi) => ({ c: fc, dir: 1, amber: fi === 1, feederIdx: fi, hw: 0.76, speed: 0.85, group: 'feeder' })),
     {
-      c: new THREE.LineCurve3(new THREE.Vector3(58, 0, 0), new THREE.Vector3(125, 0, 0)),
+      c: new THREE.LineCurve3(new THREE.Vector3(58, 0, 0), new THREE.Vector3(LINE04_END - 0.2, 0, 0)),
       dir: 1, amber: true, hw: 1.1, speed: 1.0, group: 'oral', atriumSpine: true, skipMesh: true
     },
     ...atriumDefs
@@ -1079,11 +1268,13 @@ function activateFallback() {
         emissiveIntensity: 0.45,
         roughness: 0.26
       });
-      atriumBusMats.push({ group: r.group, mat: busMat });
+      atriumBusMats.push({ group: r.group, mat: busMat, rail: r });
 
+      r.bedTex = makeBedTex();
+      const bedMat = new THREE.MeshStandardMaterial({ color: r.bridge ? 0xd98a2b : 0x1b5560, map: r.bedTex, roughness: 0.55, metalness: 0.1, side: THREE.DoubleSide });
       factoryWorld.add(
         sweepChannel(r.c, r.hw, 0.58, 0.90, segs, matChassis),
-        sweepChannel(r.c, r.hw * 0.78, 0.89, 1.00, segs, r.bridge ? matBridgeBed : matSpineBed),
+        sweepChannel(r.c, r.hw * 0.78, 0.89, 1.00, segs, bedMat),
         sweepChannel(r.c, 0.085, 0.995, 1.025, segs, busMat)
       );
       for (let d = 2.4; d < r.len; d += r.bridge ? 7.2 : 5.4) {
@@ -1103,47 +1294,165 @@ function activateFallback() {
   });
   factoryWorld.add(atriumPierInst);
 
-  const totalTraffic = trafficRails.reduce((s, r) => s + r.n, 0);
-  const instGlass = new THREE.InstancedMesh(
-    vesselGeo,
-    new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.38, roughness: 0.06, clearcoat: 1.0, envMapIntensity: 1.3 }),
-    totalTraffic
-  );
-  const instLiq = new THREE.InstancedMesh(
-    liqUnitGeo,
-    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.22 }),
-    totalTraffic
-  );
-  const instCap = new THREE.InstancedMesh(
-    capUnitGeo,
-    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.28 }),
-    totalTraffic
-  );
-  const colAmber = new THREE.Color(0xefb85c), colTeal = new THREE.Color(0x28a4a0);
+  /* ---------- Machine cells: every belt has a machine at each end ---------- */
+  // A cell is a stainless cabinet with a teal skin, a framed infeed/outfeed port with a strip curtain where the belt passes
+  // through, an HMI, a nameplate and a stack light whose green lamp comes on when its line comes online.
+  const cells = [];
+  const matPort = new THREE.MeshStandardMaterial({ color: 0x061519, roughness: 0.9 });
+  const matStrip = new THREE.MeshStandardMaterial({ color: 0xcfe6da, transparent: true, opacity: 0.32, roughness: 0.2, depthWrite: false, side: THREE.DoubleSide });
+  const matScreen = new THREE.MeshStandardMaterial({ color: 0x0b1f25, emissive: 0x1b9c72, emissiveIntensity: 0.35, roughness: 0.3 });
+  const matRedLamp = new THREE.MeshStandardMaterial({ color: 0x5a2a22, roughness: 0.4 });
+  const matAmberLamp = new THREE.MeshStandardMaterial({ color: 0x5b4422, roughness: 0.4 });
+  function addCell({ x, z, w, d, h, face, portY, portW = 2.1, portH = 1.85, plate, sub, power = -1 }) {
+    const grp = new THREE.Group();
+    grp.position.set(x, 0, z);
+    factoryWorld.add(grp);
+    addBox(w, 0.22, d, matDeepTeal, 0, 0.11, 0, grp);                         // plinth
+    addBox(w, h - 0.42, d, matChassis, 0, 0.22 + (h - 0.42) / 2, 0, grp);      // stainless body
+    addBox(w + 0.04, 0.2, d + 0.04, matTeal, 0, h - 0.1, 0, grp);              // teal top band
+    addBox(w * 0.62, Math.min(1.1, h * 0.32), 0.04, matDeepTeal, -w * 0.08, h * 0.62, d / 2 + 0.02, grp);   // window
+    // port where the belt passes through, on the face the belt arrives from
+    if (face) {
+      const px = face * (w / 2 + 0.03);
+      addBox(0.06, portH, portW, matPort, px, portY, 0, grp);
+      addBox(0.12, 0.12, portW + 0.24, matChrome, px + face * 0.03, portY + portH / 2 + 0.06, 0, grp);
+      [-1, 1].forEach(sd => addBox(0.12, portH + 0.12, 0.12, matChrome, px + face * 0.03, portY, sd * (portW / 2 + 0.06), grp));
+      for (let k = 0; k < 7; k++) addBox(0.02, portH * 0.82, portW / 7 - 0.03, matStrip, px + face * 0.1, portY + portH * 0.09, -portW / 2 + (k + 0.5) * portW / 7, grp);
+    }
+    // HMI on the front, nameplate on the top band, stack light on the corner
+    addBox(0.62, 0.42, 0.06, matScreen, w * 0.3, h * 0.6, d / 2 + 0.03, grp);
+    if (plate) {
+      const pl = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.35), new THREE.MeshBasicMaterial({ map: makePlateTexture(plate, sub), fog: true }));
+      pl.position.set(-w * 0.1, h - 0.1, d / 2 + 0.035);
+      grp.add(pl);
+    }
+    const sx = -face * (w / 2 - 0.2) || w / 2 - 0.2;
+    addCyl(0.03, 0.03, 0.5, matChrome, sx, h + 0.25, d / 2 - 0.2, grp, 8);
+    addCyl(0.07, 0.07, 0.12, matRedLamp, sx, h + 0.56, d / 2 - 0.2, grp, 12);
+    addCyl(0.07, 0.07, 0.12, matAmberLamp, sx, h + 0.69, d / 2 - 0.2, grp, 12);
+    const green = new THREE.MeshStandardMaterial({ color: 0x2b5a44, emissive: 0x5de2b0, emissiveIntensity: 0, roughness: 0.3 });
+    addCyl(0.07, 0.07, 0.12, green, sx, h + 0.82, d / 2 - 0.2, grp, 12);
+    cells.push({ green, power });
+    return grp;
+  }
+  const kraftMat = new THREE.MeshStandardMaterial({ color: 0xc8a273, roughness: 0.8 });
+  const tapeMat = new THREE.MeshStandardMaterial({ color: 0x1d5560, roughness: 0.6 });
+  const palletMat = new THREE.MeshStandardMaterial({ color: 0xb8936a, roughness: 0.85 });
+  function addPallet(x, z, layers) {
+    addBox(1.3, 0.16, 1.1, palletMat, x, 0.08, z);
+    for (let l = 0; l < layers; l++) for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+      const cx = x - 0.31 + i * 0.62, cz = z - 0.26 + j * 0.52, cy = 0.16 + 0.21 + l * 0.42;
+      addBox(0.6, 0.4, 0.5, kraftMat, cx, cy, cz);
+      addBox(0.61, 0.05, 0.12, tapeMat, cx, cy + 0.2, cz);
+    }
+  }
+
+  // Power-up order for the handoff: lines nearest the spine come online first, then outward.
+  const LINE_ORDER = { 0: 0, 2: 1, 1: 3, 3: 4, 6: 7, 7: 8, 4: 9, 5: 10 };   // atriumDefs index -> step (sky-tubes take 2, 5, 6)
+  atriumDefs.forEach((r, i) => {
+    r.power = LINE_ORDER[i];
+    if (r.closed) return;
+    const p0 = r.c.getPointAt(0), p1 = r.c.getPointAt(1);
+    const h = p0.y + 2.95, n = i + 1;
+    addCell({ x: CELL_W - 0.4, z: p0.z, w: 3.8, d: r.bridge ? 2.2 : 2.6, h, face: 1, portY: p0.y + 1.45, portW: r.hw * 2 + 0.2, plate: `F-${String(n).padStart(2, '0')}`, sub: 'FILL · CAP · LABEL', power: r.power });
+    addCell({ x: CELL_E + 0.3, z: p1.z, w: 4.0, d: r.bridge ? 2.2 : 2.6, h: p1.y + 2.95, face: -1, portY: p1.y + 1.45, portW: r.hw * 2 + 0.2, plate: `K-${String(n + 10).padStart(2, '0')}`, sub: 'CARTON · CASE', power: r.power });
+  });
+  // finished cases palletised beside the east cartoners
+  addPallet(123.4, -11.2, 3);
+  addPallet(123.4, 16.4, 2);
+  addPallet(120.9, -11.2, 1);
+
+  // The two closed loops are rotary accumulation tables: a turning table in the middle buffers bottles between machines.
+  const accTables = [];
+  atriumDefs.filter(r => r.closed).forEach((r, i) => {
+    const bb = new THREE.Box3().setFromPoints(r.c.getPoints(32));
+    const cx = (bb.min.x + bb.max.x) / 2, cz = (bb.min.z + bb.max.z) / 2;
+    addCyl(0.5, 0.62, 0.9, matChassis, cx, 0.45, cz, factoryWorld, 20);
+    const table = addCyl(2.3, 2.3, 0.1, matChrome, cx, 0.95, cz, factoryWorld, 40);
+    addCyl(2.34, 2.34, 0.05, matGold, cx, 1.01, cz, factoryWorld, 40);
+    for (let k = 0; k < 4; k++) { const sp = addBox(4.4, 0.03, 0.06, matSteel, cx, 1.03, cz, factoryWorld); sp.rotation.y = k * Math.PI / 4; table.userData.spokes = (table.userData.spokes || []).concat(sp); }
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.35), new THREE.MeshBasicMaterial({ map: makePlateTexture(`ACC-${i + 1}`, 'ROTARY BUFFER') }));
+    pl.rotation.x = -Math.PI / 2; pl.position.set(cx, 1.06, cz + 1.2); factoryWorld.add(pl);
+    accTables.push(table);
+  });
+
+    const totalTraffic = trafficRails.reduce((s, r) => s + r.n, 0);
+  // A set of instanced bottles (glass, liquid, cap, ivory cap band, ink cap outline, label, label band, contact shadow)
+  // that all share one matrix per bottle, so the belts carry the same bottle the line draws.
+  const stripTex = makeLabelStripTexture();
+  const contactShadowTex = makeShadowTexture();
+  const mkBottleSet = count => {
+    const mk = (geo, mat) => { const m = new THREE.InstancedMesh(geo, mat, count); m.frustumCulled = false; return m; };
+    const set = {
+      glass: mk(vesselGeo, makeBottleGlass(0.55, 0.22)),
+      liq: mk(liqUnitGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.3, emissive: 0x2a1704, emissiveIntensity: 0.3 })),
+      cap: mk(capUnitGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 })),
+      band: mk(capBandGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45 })),
+      capLine: mk(capOutlineGeo, makeOutlineMat(1.2)),
+      label: mk(labelStripGeo, new THREE.MeshStandardMaterial({ map: stripTex, roughness: 0.6, side: THREE.DoubleSide })),
+      labelBand: mk(labelBandGeo, new THREE.MeshStandardMaterial({ color: 0x1d5560, roughness: 0.6, side: THREE.DoubleSide })),
+      shadow: mk(new THREE.PlaneGeometry(1.05, 1.05).rotateX(-Math.PI / 2).translate(0, 0.014, 0), new THREE.MeshBasicMaterial({ map: contactShadowTex, transparent: true, opacity: 0.5, depthWrite: false }))
+    };
+    set.all = [set.glass, set.liq, set.cap, set.band, set.capLine, set.label, set.labelBand, set.shadow];
+    set.glass.renderOrder = 3;
+    set.put = (i, m) => { for (const x of set.all) x.setMatrixAt(i, m); };
+    set.commit = () => { for (const x of set.all) x.instanceMatrix.needsUpdate = true; };
+    set.color = (i, liq, cap, band) => { set.liq.setColorAt(i, liq); set.cap.setColorAt(i, cap); set.band.setColorAt(i, band); };
+    set.commitColors = () => { set.liq.instanceColor.needsUpdate = true; set.cap.instanceColor.needsUpdate = true; set.band.instanceColor.needsUpdate = true; };
+    set.addTo = grp => set.all.forEach(x => grp.add(x));
+    return set;
+  };
+  const colAmber = new THREE.Color(0xf2a840), colTeal = new THREE.Color(0x46b3aa);
   const colCapTeal = new THREE.Color(0x1d5560), colCapIvory = new THREE.Color(0xf5efe3);
+  const traffic = mkBottleSet(totalTraffic);
   let tCursor = 0;
   trafficRails.forEach(r => {
     for (let j = 0; j < r.n; j++) {
-      const amb = r.amber ? (j % 4 !== 0) : (j % 4 === 0);
-      instLiq.setColorAt(tCursor, amb ? colAmber : colTeal);
-      instCap.setColorAt(tCursor, amb ? colCapTeal : colCapIvory);
+      // One product everywhere: amber Velmira, teal child-resistant cap, ivory cap band, the line's label.
+      traffic.color(tCursor, colAmber, colCapTeal, colCapIvory);
       tCursor++;
     }
   });
-  instLiq.instanceColor.needsUpdate = true;
-  instCap.instanceColor.needsUpdate = true;
-  factoryWorld.add(instGlass, instLiq, instCap);
+  traffic.commitColors();
+  traffic.addTo(factoryWorld);
+
+  // The bottles queued beside TQ-0417 on Line 04, at the hero's own size and spacing: they are what the illustrated line shows at
+  // the two ends of the cleanroom shot, and they fade into the cleanroom's wider traffic as the camera pulls back.
+  const CONVOY_K = [-8, -7, -6, -5, -4, -3, -2, -1, 1, 3];
+  const CONVOY_GAP = 1.96;
+  const convoy = mkBottleSet(CONVOY_K.length);
+  CONVOY_K.forEach((k, i) => convoy.color(i, colAmber, colCapTeal, colCapIvory));
+  convoy.commitColors();
+  convoy.addTo(factoryWorld);
 
   // 3 Overhead Clearcoat Glass Pneumatic Capsule Sky-Tubes
   const skyTubeMat = new THREE.MeshPhysicalMaterial({
     color: 0xffffff, transparent: true, opacity: 0.28, roughness: 0.04, clearcoat: 1.0, envMapIntensity: 1.4
   });
-  const skyCurves = [
-    mkCurve([[57, 4.8, -6], [78, 6.8, -12], [102, 6.5, 4], [126, 4.8, 8]]),
-    mkCurve([[57, 5.2, 7],  [80, 7.2, 11],  [104, 6.6, -5], [126, 5.0, -7]]),
-    mkCurve([[57, 5.6, 0],  [84, 7.6, -2],  [106, 7.2, 2],  [126, 5.4, 0]])
+  // Each tube rises out of a capsule filler's hopper on the west side and drops into a blister packer's receiver near the cartoner.
+  const SKY = [
+    { src: 62.4, dst: 106.6, mid: [[69, 6.9, -9.5], [84, 7.0, -12], [98, 6.8, -7]] },
+    { src: 66.6, dst: 110.8, mid: [[73, 7.3, 4.5], [88, 7.5, 9.5], [102, 7.2, 3]] },
+    { src: 70.8, dst: 115.0, mid: [[77, 7.9, -1.5], [92, 8.1, 1.5], [106, 7.8, -0.5]] }
   ];
-  skyCurves.forEach(sc => factoryWorld.add(new THREE.Mesh(new THREE.TubeGeometry(sc, 56, 0.28, 14, false), skyTubeMat)));
+  const SKY_Z = -3.6, SKY_TOP = 3.42;
+  const skyCurves = SKY.map(t => mkCurve([[t.src, SKY_TOP, SKY_Z], [t.src, SKY_TOP + 1.3, SKY_Z], ...t.mid, [t.dst, SKY_TOP + 1.3, SKY_Z], [t.dst, SKY_TOP, SKY_Z]]));
+  skyCurves.forEach(sc => factoryWorld.add(new THREE.Mesh(new THREE.TubeGeometry(sc, 96, 0.28, 14, false), skyTubeMat)));
+  SKY.forEach((t, i) => {
+    const pw = [2, 5, 6][i];
+    // capsule filler with its product hopper; the tube leaves from the hopper lid
+    addCell({ x: t.src, z: SKY_Z, w: 2.4, d: 1.6, h: 2.4, face: 0, plate: `CF-0${i + 1}`, sub: 'CAPSULE FILL', power: pw });
+    addCyl(0.5, 0.5, 0.62, matSteel, t.src, 2.75, SKY_Z, factoryWorld, 24);
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.36, 24), matSteel); cone.rotation.x = Math.PI; cone.position.set(t.src, 2.3, SKY_Z); factoryWorld.add(cone);
+    addCyl(0.36, 0.5, 0.18, matChrome, t.src, SKY_TOP - 0.25, SKY_Z, factoryWorld, 24);
+    addCyl(0.34, 0.34, 0.12, matGold, t.src, SKY_TOP, SKY_Z, factoryWorld, 20);
+    // blister packer with a cyclone receiver on its roof
+    addCell({ x: t.dst, z: SKY_Z, w: 2.6, d: 1.6, h: 2.0, face: 0, plate: `BP-0${i + 1}`, sub: 'BLISTER PACK', power: pw });
+    addCyl(0.42, 0.42, 0.62, matSteel, t.dst, 2.88, SKY_Z, factoryWorld, 24);
+    const cyc = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.55, 24), matSteel); cyc.rotation.x = Math.PI; cyc.position.set(t.dst, 2.3, SKY_Z); factoryWorld.add(cyc);
+    addCyl(0.34, 0.34, 0.12, matGold, t.dst, SKY_TOP, SKY_Z, factoryWorld, 20);
+    [-0.34, 0.34].forEach(o => addCyl(0.03, 0.03, 1.0, matChrome, t.dst + o, 2.5, SKY_Z + 0.34, factoryWorld, 8));
+  });
 
   const CAPS_COUNT = 54;
   const capGeo = THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.15, 0.22, 6, 12) : new THREE.SphereGeometry(0.2, 12, 10);
@@ -1190,14 +1499,149 @@ function activateFallback() {
   const robSouth = buildAtriumRobot(98, 3.2, 1);
 
   const cartonFrontMat = new THREE.MeshStandardMaterial({ map: makeCartonTexture(), roughness: 0.38 });
-  const cartonSideMat = new THREE.MeshStandardMaterial({ color: 0x16444e, roughness: 0.44 });
+  const cartonSideMat = new THREE.MeshStandardMaterial({ color: 0x123f47, roughness: 0.44 });   // the line's carton side colour
   const cartonMats = [cartonSideMat, cartonSideMat, cartonSideMat, cartonSideMat, cartonFrontMat, cartonSideMat];
-  for (let ci = 0; ci < 8; ci++) {
-    const dc = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.45, 1.0), cartonMats);
-    dc.position.set(114 + (ci % 4) * 1.6, 0.75 + (ci > 3 ? 1.48 : 0), -4.2);
-    dc.castShadow = !MOB;
-    factoryWorld.add(dc);
+  /* =========================================================================
+     PACKAGING CELL K-06 (x = 115.4 .. 121.8): where Line 04 ends and TQ-0417 meets its carton
+     A pick-and-place gripper lifts the bottle off the spine's stop, a blank drops from the magazine and opens into a carton,
+     the bottle is lowered in, the flaps fold, and the carton leaves on the outfeed through the dispatch door.
+     ========================================================================= */
+  const PICK_X = 116.9, CARTON_X = 119.6, OUTFEED_END = 133.5, GANTRY_Y = 6.75, PARK_Y = 6.0;
+  const cellK = new THREE.Group();
+  factoryWorld.add(cellK);
+  // frame: four posts, top rails and the gantry beam the gripper carriage runs on
+  [[115.45, -1.95], [115.45, 1.95], [121.75, -1.95], [121.75, 1.95]].forEach(([fx, fz]) => addBox(0.14, GANTRY_Y + 0.2, 0.14, matChrome, fx, (GANTRY_Y + 0.2) / 2, fz, cellK));
+  [-1.95, 1.95].forEach(fz => addBox(6.44, 0.14, 0.14, matChrome, 118.6, GANTRY_Y + 0.2, fz, cellK));
+  [115.45, 121.75].forEach(fx => addBox(0.14, 0.14, 4.04, matChrome, fx, GANTRY_Y + 0.2, 0, cellK));
+  addBox(6.3, 0.3, 0.4, matTeal, 118.6, GANTRY_Y, 0, cellK);
+  addBox(6.34, 0.06, 0.44, matGold, 118.6, GANTRY_Y - 0.17, 0, cellK);
+  // back cabinet (the line's tall teal cartoner) with HMI and nameplate
+  addBox(6.4, 4.6, 0.5, matTeal, 118.6, 2.3, -2.3, cellK);
+  addBox(6.44, 0.18, 0.54, matChrome, 118.6, 4.62, -2.3, cellK);
+  addBox(1.1, 0.72, 0.06, matScreen, 116.6, 3.1, -2.02, cellK);
+  {
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.55), new THREE.MeshBasicMaterial({ map: makePlateTexture('CARTONER K-06', 'LINE 04 · ORAL LIQUIDS') }));
+    pl.position.set(119.4, 4.1, -2.03); cellK.add(pl);
   }
+  // guard: low polycarbonate panels on the aisle side so the cell can be watched while it runs
+  const guardMat = new THREE.MeshPhysicalMaterial({ color: 0xe8f6f3, transparent: true, opacity: 0.1, roughness: 0.05, clearcoat: 1, envMapIntensity: 1.2, depthWrite: false, side: THREE.DoubleSide });
+  const guard = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 1.5), guardMat); guard.position.set(118.6, 1.55, 1.97); guard.renderOrder = 5; cellK.add(guard);
+  addBox(6.3, 0.06, 0.06, matChrome, 118.6, 2.32, 1.97, cellK);
+  addBox(6.3, 0.06, 0.06, matChrome, 118.6, 0.8, 1.97, cellK);
+  // stack light
+  addCyl(0.03, 0.03, 0.5, matChrome, 121.75, GANTRY_Y + 0.52, 1.95, cellK, 8);
+  addCyl(0.08, 0.08, 0.13, matRedLamp, 121.75, GANTRY_Y + 0.84, 1.95, cellK, 12);
+  const kAmber = new THREE.MeshStandardMaterial({ color: 0x5b4422, emissive: 0xefb85c, emissiveIntensity: 0, roughness: 0.4 });
+  addCyl(0.08, 0.08, 0.13, kAmber, 121.75, GANTRY_Y + 0.98, 1.95, cellK, 12);
+  const kGreen = new THREE.MeshStandardMaterial({ color: 0x2b5a44, emissive: 0x5de2b0, emissiveIntensity: 0.9, roughness: 0.3 });
+  addCyl(0.08, 0.08, 0.13, kGreen, 121.75, GANTRY_Y + 1.12, 1.95, cellK, 12);
+  // the spine's stop gate: TQ-0417 waits here to be picked
+  addBox(0.12, 0.5, 1.5, matChrome, LINE04_END - 0.06, 1.24, 0, cellK);
+  addBox(0.14, 0.08, 1.54, matGold, LINE04_END - 0.06, 1.5, 0, cellK);
+
+  // outfeed belt: carton position -> through the dispatch door -> case packer outside
+  const outfeedCurve = new THREE.LineCurve3(new THREE.Vector3(LINE04_END + 0.5, 0, 0), new THREE.Vector3(OUTFEED_END, 0, 0));
+  const outfeedBedTex = makeBedTex();
+  factoryWorld.add(
+    sweepChannel(outfeedCurve, 1.0, 0.62, 0.93, 40, matChassis),
+    sweepChannel(outfeedCurve, 1.03, 0.91, 0.955, 40, matChrome),
+    sweepChannel(outfeedCurve, 0.8, 0.945, 1.0, 40, new THREE.MeshStandardMaterial({ color: 0x1b5560, map: outfeedBedTex, roughness: 0.55, metalness: 0.1, side: THREE.DoubleSide })),
+    sweepChannel(outfeedCurve, 0.07, 0.996, 1.018, 40, line04BusMat)
+  );
+  for (let lx = LINE04_END + 1.2; lx < OUTFEED_END; lx += 2.4) [-0.8, 0.8].forEach(lz => addCyl(0.05, 0.06, 0.62, matChrome, lx, 0.31, lz, factoryWorld, 10));
+
+  // carton magazine: a stainless tray bolted to the cabinet face, flat blanks standing in it, leaning back
+  const magazine = new THREE.Group();
+  magazine.position.set(120.9, 3.05, -1.75);
+  magazine.rotation.set(-0.16, 0, 0);
+  cellK.add(magazine);
+  const blankMat = [cartonSideMat, cartonSideMat, cartonSideMat, cartonSideMat, cartonFrontMat, cartonSideMat];
+  for (let i = 0; i < 7; i++) {
+    const bl = new THREE.Mesh(new THREE.BoxGeometry(1.26, 2.34, 0.035), blankMat);
+    bl.position.set(0, 1.2, 0.05 - 0.045 * i); magazine.add(bl);
+  }
+  addBox(1.46, 0.08, 0.5, matChrome, 0, 0.0, -0.12, magazine);           // floor of the tray
+  addBox(1.46, 0.3, 0.05, matChrome, 0, 0.12, 0.12, magazine);           // front lip that holds the stack
+  [-0.72, 0.72].forEach(sx => addBox(0.05, 2.5, 0.5, matChrome, sx, 1.25, -0.12, magazine));   // side guides
+  addBox(1.46, 0.08, 0.08, matChrome, 0, 2.48, -0.3, magazine);
+  [-0.6, 0.6].forEach(sx => addBox(0.12, 0.12, 0.42, matSteel, sx, 1.0, -0.42, magazine));    // brackets to the cabinet
+
+  // The carton: open-topped box with two dust flaps and a tuck flap, hinged at the top edges.
+  // Built once as a factory so the windowsill gets exactly the same carton.
+  const CW = 1.26, CH = 2.36, CD = 1.06;
+  const cartonFlapMat = new THREE.MeshStandardMaterial({ color: 0x2a6b74, roughness: 0.45, side: THREE.DoubleSide });
+  const cartonInnerMat = new THREE.MeshStandardMaterial({ color: 0x123f47, roughness: 0.5, side: THREE.DoubleSide });
+  const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
+  function makeCarton() {
+    const root = new THREE.Group();
+    const body = new THREE.Group();          // scaled while the blank opens
+    root.add(body);
+    const box = new THREE.Mesh(new THREE.BoxGeometry(CW, CH, CD), [cartonInnerMat, cartonInnerMat, hiddenMat, cartonInnerMat, cartonFrontMat, cartonInnerMat]);
+    box.position.y = CH / 2; box.castShadow = !MOB; box.receiveShadow = true;
+    body.add(box);
+    const outline = new THREE.Mesh(new THREE.BoxGeometry(CW, CH, CD), makeOutlineMat(1.2));
+    outline.position.y = CH / 2; body.add(outline);
+    const hinge = (px, py, pz) => { const h = new THREE.Group(); h.position.set(px, py, pz); body.add(h); return h; };
+    const dustL = hinge(-CW / 2, CH, 0), dustR = hinge(CW / 2, CH, 0), tuck = hinge(0, CH, -CD / 2);
+    const fl = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.46, CD * 0.94), cartonFlapMat); fl.position.y = 0.23; dustL.add(fl);
+    const fr = fl.clone(); dustR.add(fr);
+    const tk = new THREE.Mesh(new THREE.BoxGeometry(CW * 0.98, CD, 0.02), cartonFlapMat); tk.position.y = CD / 2; tuck.add(tk);
+    // f1: dust flaps 0 (standing) .. 1 (folded in); f2: tuck flap 0 (standing) .. 1 (closed over the top)
+    root.userData.setFlaps = (f1, f2) => {
+      dustL.rotation.z = -f1 * Math.PI / 2 * 0.98;
+      dustR.rotation.z = f1 * Math.PI / 2 * 0.98;
+      tuck.rotation.x = f2 * Math.PI / 2;
+      tuck.position.y = CH + 0.012 * f2;
+    };
+    // e: 0 = flat blank .. 1 = square carton
+    root.userData.setErect = e => { body.scale.set(0.96 + 0.04 * e, 1, Math.max(0.035, e)); };
+    root.userData.setErect(1); root.userData.setFlaps(0, 0);
+    return root;
+  }
+  const carton3d = makeCarton();
+  carton3d.visible = false;
+  factoryWorld.add(carton3d);
+
+  // gripper: carriage on the gantry, telescopic rod, head and two jaws that close on the cap
+  const gripper = new THREE.Group();
+  factoryWorld.add(gripper);
+  const gCarriage = addBox(0.62, 0.36, 0.62, matChassis, 0, GANTRY_Y, 0, gripper);
+  const gRod = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 12).translate(0, -0.5, 0), matChrome);
+  gripper.add(gRod);
+  const gHead = new THREE.Group(); gripper.add(gHead);
+  addBox(0.62, 0.2, 0.46, matTeal, 0, 0.32, 0, gHead);
+  addBox(0.66, 0.05, 0.5, matGold, 0, 0.2, 0, gHead);
+  const jawL = addBox(0.07, 0.36, 0.3, matSteel, -0.36, 0.05, 0, gHead);
+  const jawR = addBox(0.07, 0.36, 0.3, matSteel, 0.36, 0.05, 0, gHead);
+
+  /* ---------- Dispatch: the door the finished carton leaves by ---------- */
+  const dispatchFrameMat = matGold;
+  addBox(0.34, 6.1, 0.34, matChassis, 125.75, 3.05, -3.62); addBox(0.34, 6.1, 0.34, matChassis, 125.75, 3.05, 3.62);
+  addBox(0.12, 6.1, 0.1, dispatchFrameMat, 125.56, 3.05, -3.45); addBox(0.12, 6.1, 0.1, dispatchFrameMat, 125.56, 3.05, 3.45);
+  addBox(0.4, 0.4, 7.6, matChassis, 125.75, 6.0, 0);
+  // roller shutter, rolled up into its drum with a few slats still showing
+  const drum = addCyl(0.36, 0.36, 7.2, matChassis, 125.6, 6.5, 0, factoryWorld, 20); drum.rotation.x = Math.PI / 2;
+  for (let i = 0; i < 4; i++) addBox(0.06, 0.2, 7.0, i % 2 ? matChassis : matSteel, 125.6, 5.66 - i * 0.21, 0);
+  // dock bumpers and a warning-striped threshold
+  [-2.9, 2.9].forEach(bz => addBox(0.3, 0.5, 0.4, matDeepTeal, 125.6, 0.3, bz));
+  addBox(0.9, 0.02, 6.8, new THREE.MeshStandardMaterial({ color: 0xefb85c, roughness: 0.5, emissive: 0x6b4a14, emissiveIntensity: 0.3 }), 125.4, 0.02, 0);
+  {
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.62), new THREE.MeshBasicMaterial({ map: makePlateTexture('DISPATCH', 'BAY 2 · OUTBOUND') }));
+    sign.rotation.y = -Math.PI / 2; sign.position.set(125.52, 7.05, 0); factoryWorld.add(sign);
+  }
+  // daylight outside: a bright yard and the case packer the outfeed delivers to
+  const yardMat = new THREE.MeshBasicMaterial({ color: 0xfff1d8, fog: false });
+  const yard = new THREE.Mesh(new THREE.PlaneGeometry(40, 40).rotateX(-Math.PI / 2), yardMat); yard.position.set(147, 0.01, 0); factoryWorld.add(yard);
+  const casePacker = addBox(2.2, 2.6, 2.4, new THREE.MeshStandardMaterial({ color: 0xe9e2d2, roughness: 0.6, emissive: 0x8a7a60, emissiveIntensity: 0.4 }), OUTFEED_END + 1.0, 1.3, 0);
+  const lightSpillMat = new THREE.MeshBasicMaterial({ map: makeShaftTexture(), color: 0xffe9c4, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  {
+    const g0 = new THREE.BufferGeometry();
+    g0.setAttribute('position', new THREE.Float32BufferAttribute([125.5, 0.03, -3.4, 125.5, 0.03, 3.4, 116.5, 0.03, -5.5, 116.5, 0.03, 5.5], 3));
+    g0.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 1, 0, 0, 1, 0], 2));
+    g0.setIndex([0, 2, 1, 1, 2, 3]);
+    factoryWorld.add(new THREE.Mesh(g0, lightSpillMat));
+  }
+
 
   /* =========================================================================
      STATION 06 (homeWorld at x = 175): SUNLIT MORNING WINDOWSILL AT HOME
@@ -1235,13 +1679,13 @@ function activateFallback() {
 
   // Window opening spans x = [0.65 .. 5.15], y = [1.44 .. 4.15] at z = -1.8
   // Left plaster wall (-14 .. +0.65) sits cleanly behind #b-home text!
-  addBox(14.65, 12, 0.36, matSunlitPlaster, -6.675, 5.5, -1.8, homeWorld);
+  addBox(14.65, 16, 0.36, matSunlitPlaster, -6.675, 3.5, -1.8, homeWorld);
   // Right plaster wall (+5.15 .. +14) — leaves warm plaster margin on right of window too!
-  addBox(8.85, 12, 0.36, matSunlitPlaster, 9.575, 5.5, -1.8, homeWorld);
+  addBox(8.85, 16, 0.36, matSunlitPlaster, 9.575, 3.5, -1.8, homeWorld);
   // Lower & upper wall aprons framing the window cleanly below the top navbar
-  addBox(4.50, 1.52, 0.36, matSunlitPlaster, 2.90, 0.68, -1.8, homeWorld);
+  addBox(4.50, 5.52, 0.36, matSunlitPlaster, 2.90, -1.32, -1.8, homeWorld);
   addBox(4.50, 7.30, 0.36, matSunlitPlaster, 2.90, 7.80, -1.8, homeWorld);
-  addBox(28, 0.2, 18, matSunlitPlaster, 0, -0.1, 0, homeWorld);
+  addBox(28, 0.2, 18, matSunlitPlaster, 0, -4.2, 0, homeWorld);
 
   // Painted morning sunrise sky, misty hills & town outside the window!
   const skyBackdrop = new THREE.Mesh(
@@ -1265,7 +1709,7 @@ function activateFallback() {
   // Soft diagonal warm morning sunbeam plane
   const sunBeam = new THREE.Mesh(
     new THREE.PlaneGeometry(5.2, 3.8),
-    new THREE.MeshBasicMaterial({ color: 0xfff7dd, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false })
+    new THREE.MeshBasicMaterial({ color: 0xfff7dd, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false })
   );
   sunBeam.position.set(2.75, 2.65, -0.85);
   sunBeam.rotation.y = -0.24;
@@ -1284,36 +1728,32 @@ function activateFallback() {
     homeWorld.add(leaf);
   });
 
-  // 2) Folded 3D Tiryaq · Velmira Carton (x = 1.92)
-  const homeCarton = new THREE.Mesh(new THREE.BoxGeometry(0.72, 1.32, 0.60), cartonMats);
-  homeCarton.position.set(1.92, 1.405 + 0.66, -1.14);
+  // 2) The carton TQ-0417 left the cleanroom in, opened (x = 1.92). Same factory as the packaging cell, same artwork.
+  const HOME_BOTTLE = 0.98, HOME_K = HOME_BOTTLE / HERO_SCALE;   // windowsill bottle scale; the carton keeps the cleanroom's proportion to it
+  const homeCarton = makeCarton();
+  homeCarton.userData.setFlaps(0.15, 0.08);
+  homeCarton.scale.setScalar(HOME_K);
+  homeCarton.position.set(1.98, 1.405, -1.16);
   homeCarton.rotation.y = 0.12;
-  homeCarton.castShadow = !MOB;
   homeWorld.add(homeCarton);
-  const openFlap = addBox(0.70, 0.26, 0.035, cartonSideMat, 1.92, 1.405 + 1.43, -1.41, homeWorld);
-  openFlap.rotation.y = 0.12;
-  openFlap.rotation.x = -0.22;
 
-  // 3) Completed 3D Bottle Lot TQ-0417 (x = 2.92 — hero centerpiece on the sill!)
+  // 3) Lot TQ-0417 itself (x = 2.92): built from the cleanroom bottle's own parts, so glass, solution, cap and label match.
   const homeBottle = new THREE.Group();
-  const hbHomeGlass = new THREE.Mesh(vesselGeo, glassOuterMat);
-  const hbHomeInner = new THREE.Mesh(vesselGeo, glassRimMat);
-  hbHomeInner.scale.setScalar(0.95);
+  const hbHomeGlass = new THREE.Mesh(vesselGeo, hbOuter.material);
+  hbHomeGlass.renderOrder = 3;
   const hbHomeLiq = new THREE.Mesh(liqUnitGeo, heroLiqMat);
-  hbHomeLiq.position.y = 0.03;
+  hbHomeLiq.position.y = 0.03; hbHomeLiq.renderOrder = 1;
+  const hbHomeMen = meniscusDisc.clone(); hbHomeMen.visible = true; hbHomeMen.position.y = 0.92;
   const hbHomeCap = heroCapGrp.clone();
   hbHomeCap.visible = true;
-  hbHomeCap.position.y = 0.94;
-  const hbHomeLbl = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.345, 0.345, 0.31, 48, 1, true, -Math.PI * 0.86, Math.PI * 1.72),
-    heroLabelMat
-  );
-  hbHomeLbl.position.y = 0.325;
-  hbHomeGlass.renderOrder = 3;
+  hbHomeCap.position.y = 1.42;
+  const hbHomeLbl = new THREE.Mesh(labelGeo, heroLabelMat);
   hbHomeLbl.renderOrder = 4;
-  homeBottle.add(hbHomeInner, hbHomeGlass, hbHomeLiq, hbHomeCap, hbHomeLbl);
-  homeBottle.scale.setScalar(1.20);
-  homeBottle.position.set(2.92, 1.405, -1.06);
+  const hbHomeShadow = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 1.05).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, opacity: 0.35, depthWrite: false }));
+  hbHomeShadow.position.y = 0.006;
+  homeBottle.add(hbHomeGlass, hbHomeLiq, hbHomeMen, hbHomeCap, hbHomeLbl, hbHomeShadow);
+  homeBottle.scale.setScalar(HOME_BOTTLE);
+  homeBottle.position.set(2.92, 1.405, -1.02);
   homeBottle.rotation.y = 0.06;
   homeWorld.add(homeBottle);
 
@@ -1332,47 +1772,50 @@ function activateFallback() {
   /* =========================================================================
      SCROLL-DRIVEN CAMERA KEYFRAMES (7-BEAT CINEMATIC SPLINE)
      ========================================================================= */
-  const CAM_KF = [
-    // Beat 0: Macro Studio Portrait — shows full crystal bottle, chrome rails & spoked drive wheels!
-    { b: 0.00, pos: [-38.0, 2.15, 7.15],  tgt: [-38.0, 1.88, 0.0],  shiftX: 0.18,  fov: 31 },
-    { b: 0.72, pos: [-37.2, 2.22, 7.25],  tgt: [-37.2, 1.90, 0.0],  shiftX: 0.18,  fov: 31 },
-    // Beat 1: Sourcing Convergence — 3 supplier streams & Twin-Bridge 4-Tower Gate
-    { b: 1.62, pos: [-21.5, 6.6, 13.8],   tgt: [-15.2, 1.95, -1.0], shiftX: 0.16,  fov: 34 },
-    // Beat 2: Formulation & CNC Diving Nozzle Filling
-    { b: 2.65, pos: [6.4, 3.05, 8.4],     tgt: [7.5, 2.25, -0.5],   shiftX: -0.17, fov: 33 },
-    { b: 3.40, pos: [7.2, 2.98, 8.2],     tgt: [7.8, 2.20, -0.4],   shiftX: -0.17, fov: 33 },
-    // Beat 3: Torque Sealing & Rotary Wrap Label
-    { b: 4.10, pos: [27.4, 2.95, 8.0],    tgt: [26.0, 2.15, -0.25], shiftX: 0.17,  fov: 33 },
-    { b: 4.90, pos: [27.8, 2.90, 7.9],    tgt: [26.1, 2.12, -0.20], shiftX: 0.17,  fov: 33 },
-    // Beat 4: Dark-Field 5-Check Vision Portal & HUD Screen
-    { b: 5.65, pos: [42.6, 3.00, 8.7],    tgt: [44.1, 2.28, 0.10],  shiftX: -0.17, fov: 34 },
-    { b: 6.45, pos: [43.4, 3.08, 8.8],    tgt: [44.8, 2.28, 0.20],  shiftX: -0.17, fov: 34 },
-    // Beat 5: Daylight Bloom & 12-Rail Cleanroom Atrium Crane Panorama
-    { b: 7.25, pos: [65.5, 16.5, 24.5],   tgt: [89.0, 2.0, -0.5],   shiftX: 0.0,   fov: 37 },
-    { b: 8.25, pos: [76.0, 14.5, 21.5],   tgt: [98.0, 2.2, 0.0],    shiftX: 0.0,   fov: 36 },
-    // Golden Dispatch Portal -> Sunlit Home Windowsill (framed cleanly on right, warm plaster on left!)
-    { b: 8.58, pos: [118.5, 3.0, 4.2],    tgt: [126.0, 2.8, 0.0],   shiftX: 0.0,   fov: 35 },
-    { b: 8.85, pos: [175.85, 2.58, 7.85], tgt: [175.85, 2.52, -1.2],shiftX: 0.0,   fov: 33 },
-    { b: 10.0, pos: [175.85, 2.55, 7.55], tgt: [175.85, 2.50, -1.2],shiftX: 0.0,   fov: 32 }
+    // Cleanroom camera: continuous splines, one per act, each eased as a whole so the camera accelerates and settles
+  // instead of stopping at every keyframe. The reveal's first point is replaced by the illustrated line's own framing of
+  // TQ-0417 (see "Camera" in the render loop), so the bottle stays the same size and in the same place across the handoff.
+  const GL_B0 = 6.9;
+  const LINE_BEAT_OUT_OF_LINE = 7.34;       // beat at which the illustrated line hands TQ-0417 to the cleanroom
+  const V3 = a => new THREE.Vector3(a[0], a[1], a[2]);
+  const mkPath = pts => new THREE.CatmullRomCurve3(pts.map(V3), false, 'centripetal');
+  const CAM_ACTS = [
+    // 1. the reveal: rise and pull back from the bottle, out over the floor, to the whole room
+    { b0: HOLD_END, b1: REVEAL_END, ease: ss,
+      pos: mkPath([[53.0, 2.1, 7.7], [54.0, 4.4, 10.0], [57.4, 9.6, 16.4], [65.5, 16.5, 24.5]]),
+      tgt: mkPath([[53.0, 2.1, 0.0], [57.0, 2.0, -0.2], [70.5, 1.9, -0.5], [89.0, 2.0, -0.5]]),
+      fov: [31, 37], shift: [0.17, 0.0] },
+    // 2. the twelve-line panorama drifts east
+    { b0: REVEAL_END, b1: 7.84, ease: sm,
+      pos: mkPath([[65.5, 16.5, 24.5], [80.0, 14.5, 21.5]]), tgt: mkPath([[89.0, 2.0, -0.5], [100.0, 2.2, 0.0]]),
+      fov: [37, 36], shift: [0, 0] },
+    // 3. down to the packaging cell, landing side-on like the line's own framing
+    { b0: 7.84, b1: 8.2, ease: ss,
+      pos: mkPath([[80.0, 14.5, 21.5], [101.0, 10.2, 20.0], [112.5, 6.4, 16.4], [118.3, 4.3, 13.8]]),
+      tgt: mkPath([[100.0, 2.2, 0.0], [109.0, 2.8, 0.0], [115.5, 3.4, 0.0], [118.3, 3.6, 0.0]]),
+      fov: [36, 31], shift: [0, -0.16] },
+    // 4. packaging: a slow push while the cell works
+    { b0: 8.2, b1: 8.74, ease: sm,
+      pos: mkPath([[118.3, 4.3, 13.8], [118.6, 4.1, 12.9]]), tgt: mkPath([[118.3, 3.6, 0.0], [118.7, 3.5, 0.0]]),
+      fov: [31, 31], shift: [-0.16, -0.16] },
+    // 5. dispatch: turn to follow the carton out through the door into the daylight
+    { b0: 8.74, b1: HOME_B, ease: ss,
+      pos: mkPath([[118.6, 4.1, 12.9], [117.2, 3.7, 8.6], [119.8, 3.1, 4.9]]), tgt: mkPath([[118.7, 3.5, 0.0], [125.0, 2.7, 0.0], [133.0, 2.4, 0.0]]),
+      fov: [31, 33], shift: [-0.16, 0] },
+    // 6. the windowsill at home: a slow settle
+    { b0: HOME_B, b1: 10.0, ease: sm,
+      pos: mkPath([[176.4, 2.85, 10.6], [176.25, 2.8, 9.8]]), tgt: mkPath([[176.4, 2.78, -1.8], [176.25, 2.75, -1.8]]),
+      fov: [28, 28], shift: [0, 0] }
   ];
-
+  const camOut = { pos: new THREE.Vector3(), tgt: new THREE.Vector3(), fov: 31, shiftX: 0 };
   function sampleCamera(b) {
-    if (b <= CAM_KF[0].b) return { ...CAM_KF[0] };
-    const lastIdx = CAM_KF.length - 1;
-    if (b >= CAM_KF[lastIdx].b) return { ...CAM_KF[lastIdx] };
-    for (let i = 0; i < lastIdx; i++) {
-      const a = CAM_KF[i], c = CAM_KF[i + 1];
-      if (b >= a.b && b <= c.b) {
-        const k = sm((b - a.b) / Math.max(0.0001, c.b - a.b));
-        return {
-          pos: [lerp(a.pos[0], c.pos[0], k), lerp(a.pos[1], c.pos[1], k), lerp(a.pos[2], c.pos[2], k)],
-          tgt: [lerp(a.tgt[0], c.tgt[0], k), lerp(a.tgt[1], c.tgt[1], k), lerp(a.tgt[2], c.tgt[2], k)],
-          shiftX: lerp(a.shiftX, c.shiftX, k),
-          fov: lerp(a.fov, c.fov, k)
-        };
-      }
-    }
-    return { ...CAM_KF[0] };
+    let act = CAM_ACTS[0];
+    if (b <= act.b0) { act.pos.getPoint(0, camOut.pos); act.tgt.getPoint(0, camOut.tgt); camOut.fov = act.fov[0]; camOut.shiftX = act.shift[0]; return camOut; }
+    for (const a of CAM_ACTS) if (b >= a.b0) act = a;
+    const e = act.ease(seg(b, act.b0, act.b1));
+    act.pos.getPoint(e, camOut.pos); act.tgt.getPoint(e, camOut.tgt);
+    camOut.fov = lerp(act.fov[0], act.fov[1], e); camOut.shiftX = lerp(act.shift[0], act.shift[1], e);
+    return camOut;
   }
 
   /* ---------- Interactive Pointer Drag-Orbit & Subtle Hover Parallax ---------- */
@@ -1429,11 +1872,14 @@ function activateFallback() {
   const vPos = new THREE.Vector3();
   const vTgt = new THREE.Vector3();
   const vOff = new THREE.Vector3();
+  const vMatchPos = new THREE.Vector3(), vMatchTgt = new THREE.Vector3(), vThread = new THREE.Vector3();
   const cGold = new THREE.Color(0xefb85c);
   const cMint = new THREE.Color(0x5de2b0);
   const cDim = new THREE.Color(0x2d545c);
 
-  let curBeat = 0, tgtBeat = 0, time = 0, lastNow = performance.now(), renderErrors = 0;
+  let curBeat = 0, tgtBeat = 0, time = 0, lastNow = performance.now(), renderErrors = 0, creepAcc = 0;
+  const threadPt = new THREE.Vector3(HERO_X0, 1.0 + BOT_H * 1.4 / 2, 0);
+  let threadH = BOT_H * 1.4, threadV = 1, threadS = '';
 
   function onResize() {
     const w = innerWidth, h = innerHeight;
@@ -1485,10 +1931,11 @@ function activateFallback() {
     heroScrim?.classList.toggle('is-off', curBeat > 0.80);
     orbitHint?.classList.toggle('is-dim', curBeat > 0.45);
 
-    const veilAlpha = Math.max(0, 1 - Math.abs((curBeat - 8.61) / 0.23));
-    if (sunVeil) sunVeil.style.opacity = (sm(veilAlpha) * 0.94).toFixed(3);
+    // The dispatch door's daylight fills the frame and becomes the morning at home; the swap happens under the full veil.
+    const veilAlpha = cl(1 - Math.abs(curBeat - HOME_B) / 0.2, 0, 1);
+    if (sunVeil) sunVeil.style.opacity = ss(veilAlpha).toFixed(3);
 
-    const inHome = curBeat >= 8.61;
+    const inHome = curBeat >= HOME_B;
     factoryWorld.visible = !inHome;
     homeWorld.visible = inHome;
 
@@ -1549,7 +1996,13 @@ function activateFallback() {
     });
 
     try {
-      const dayMix = sm(cl((curBeat - 6.62) / 0.55, 0, 1));
+      // Dark like the line while TQ-0417 is framed tight, lifting as the camera pulls back, easing back as it lands on the packaging cell.
+      // Dark like the line while TQ-0417 is framed tight; the room lifts into day as the camera cranes back and the lines
+      // come online one after another, nearest the spine first.
+      const dayMix = sm(seg(curBeat, 7.06, 7.46));
+      const online = sm(seg(curBeat, 7.05, 7.4));
+      const power = i => sm(seg(curBeat, 7.07 + i * 0.027, 7.14 + i * 0.027));
+      if (!RM) creepAcc += dt * 0.14 * online;
       if (inHome) {
         curSky.copy(cSkyHome);
         scene.fog.color.copy(cSkyHome);
@@ -1579,18 +2032,67 @@ function activateFallback() {
 
         // Update Hero Specimen TQ-0417 on Line 04
         const hx = getHeroX(curBeat);
-        heroBottle.position.set(hx, 1.0, 0);
+
+        // ---- Packaging cell K-06: pick, carton, place, close, out through dispatch ----
+        const pk = k => seg(curBeat, PK[k][0], PK[k][1]);
+        const BASE_Y = 1.0, LIFT_Y = BASE_Y + CH + 0.56, IN_Y = BASE_Y + 0.04, CAP_Y = 1.42 * HERO_SCALE;
+        const outT = ss(pk('out'));
+        const cartonX = lerp(CARTON_X, 129.6, outT);
+        let bx = hx, by = BASE_Y;
+        if (curBeat >= PK.lift[0]) {
+          bx = curBeat >= PK.out[0] ? cartonX : lerp(PICK_X, CARTON_X, ss(pk('across')));
+          by = curBeat < PK.lower[0] ? lerp(BASE_Y, LIFT_Y, ss(pk('lift'))) : lerp(LIFT_Y, IN_Y, ss(pk('lower')));
+        }
+        heroBottle.position.set(bx, by, 0);
+        // the belt halo, glow and contact shadow stay with the bottle only while it stands on the belt
+        const onBelt = curBeat < PK.lift[0] + 0.004;
+        heroHalo.visible = heroGlow.visible = heroShadow.visible = onBelt;
+
+        // gripper: down to the cap, close, lift, across, down into the carton, open, up, back for the next bottle
+        let gx = PICK_X, gy = PARK_Y;
+        if (curBeat < PK.lift[0]) gy = lerp(PARK_Y, BASE_Y + CAP_Y, ss(pk('gripDown')));
+        else if (curBeat < PK.open[1]) { gx = bx; gy = by + CAP_Y; }
+        else { gx = lerp(CARTON_X, PICK_X, ss(pk('back'))); gy = lerp(IN_Y + CAP_Y, PARK_Y, ss(pk('up'))); }
+        gripper.position.x = gx;
+        gHead.position.y = gy - 0.05;
+        gRod.position.y = GANTRY_Y - 0.18;
+        gRod.scale.y = Math.max(0.01, (GANTRY_Y - 0.18) - (gy + 0.37));
+        const jawOpen = cl(1 - ss(pk('close')) + ss(pk('open')), 0, 1);
+        jawL.position.x = -lerp(0.29, 0.38, jawOpen); jawR.position.x = lerp(0.29, 0.38, jawOpen);
+        kAmber.emissiveIntensity = curBeat > PK.gripDown[0] && curBeat < PK.tuck[1] ? 0.9 + 0.3 * Math.sin(time * 6) : 0;
+
+        // carton: a blank drops from the magazine, opens, receives the bottle, folds shut and rides out
+        carton3d.visible = curBeat >= PK.blank[0];
+        if (curBeat < PK.out[0]) {
+          const bt = ss(pk('blank'));
+          carton3d.position.set(lerp(120.9, CARTON_X, bt), lerp(3.1, BASE_Y, bt), lerp(-1.62, 0, bt));
+          carton3d.rotation.set(lerp(-0.16, 0, bt), 0, 0);
+        } else {
+          carton3d.position.set(cartonX, BASE_Y, 0);
+          carton3d.rotation.set(0, 0, 0);
+        }
+        carton3d.userData.setErect(ss(pk('erect')));
+        carton3d.userData.setFlaps(ss(pk('dust')), ss(pk('tuck')));
+        outfeedBedTex.offset.x = -(cartonX - CARTON_X) / BELT_TILE;
+
+        // lot tag: the bottle until its carton closes, then the carton
+        const boxed = curBeat >= PK.dust[1];
+        if (boxed) { threadPt.set(carton3d.position.x, BASE_Y + CH / 2, 0); threadH = CH; }
+        else { threadPt.set(bx, by + HERO_H / 2, 0); threadH = HERO_H; }
+        threadV = 1 - sm(seg(curBeat, 9.0, 9.12));
+        threadS = curBeat < 7.9 ? 'Line 04 spine · unboxed' : curBeat < PK.lift[0] ? 'To cartoner K-06 · unboxed'
+          : !boxed ? 'Packaging · K-06' : 'Boxed · out to dispatch';
         // Sweeps Velmira front typography smoothly INTO camera view as label wraps!
         heroBottle.rotation.y = (labelFrac > 0 && labelFrac < 1) ? (1 - labelFrac) * Math.PI * 0.65 : 0;
 
-        keyLight.position.set(hx + 8, 28, 18);
-        keyLight.target.position.set(hx, 1.5, 0);
+        keyLight.position.set(bx + 8, 28, 18);
+        keyLight.target.position.set(bx, 1.5, 0);
         keyLight.target.updateMatrixWorld();
 
         heroLiq.visible = fillFrac > 0.004;
         heroLiq.scale.set(1, Math.max(0.001, fillFrac), 1);
         meniscusDisc.visible = fillFrac > 0.01;
-        meniscusDisc.position.y = 0.032 + fillFrac * 0.51;
+        meniscusDisc.position.y = 0.03 + fillFrac * 0.89;
 
         // Rising effervescent micro-bubbles during dosing!
         dosingBubbles.forEach((bm, bi) => {
@@ -1608,18 +2110,21 @@ function activateFallback() {
         });
 
         heroCapGrp.visible = capFrac > 0.01;
-        heroCapGrp.position.y = lerp(1.36, 0.94, capFrac);
+        heroCapGrp.position.y = lerp(1.9, 1.42, capFrac);
         heroCapGrp.rotation.y = capFrac * Math.PI * 4;
 
         heroLabel.visible = labelFrac > 0.02;
         heroLabel.scale.set(1, Math.max(0.02, labelFrac), 1);
 
-        const originReticle = (1 - sm(cl(curBeat / 0.75, 0, 1))) * 0.24;
-        heroHaloMat.opacity = originReticle + dayMix * 0.85;
-        heroHalo.scale.setScalar(1 + 0.08 * Math.sin(time * 3.8));
+        // The honey ring and glow under TQ-0417 are always on in the cleanroom: they are the thread the eye follows from the line.
+        heroHaloMat.opacity = 0.9;
+        heroGlowMat.opacity = 0.35 + dayMix * 0.2;
+        heroHalo.scale.setScalar(1 + (RM ? 0 : 0.05 * Math.sin(time * 3.8)));
+        // while the cleanroom still holds the line's framing, a warm key light breathes on the bottle: the room is about to open
+        heroGlowLight.intensity = 0.9 + (1 - online) * (0.35 + (RM ? 0 : 0.15 * Math.sin(time * 2.2)));
 
         // Drive wheels turning beneath Line 04
-        const wheelSpin = hx * 1.4 + time * (curBeat > 6.6 ? 2.8 : 0.35);
+        const wheelSpin = hx * 1.4 + time * 0.35;
         stanchionPositions.forEach((wx, wi) => {
           dummy.position.set(wx, 0.43, 0);
           dummy.rotation.set(0, 0, -wheelSpin);
@@ -1666,45 +2171,61 @@ function activateFallback() {
         const rejPt = rejectSpurCurve.getPointAt(rejU);
         rejectBottle.position.set(rejPt.x, rejPt.y + 1.0, rejPt.z);
 
-        // Station 05: 12-Rail Atrium Traffic, Differentiated Feeder Cargo & Sky-Tubes
-        const flow = time * 3.2 + Math.abs(curBeat - prevBeat) * 45;
+        // Station 05: the twelve-line cleanroom. Belts are driven by the scroll like the line's belt (the spine carries TQ-0417
+        // and the bottles around it in lock-step); the other rails add only a slow creep so the room is never frozen.
+        const spineTravel = hx - HERO_X0;
+        // Bottles beside TQ-0417 at the hero's own size while the camera is close (the line's framing at the start, the
+        // packaging cell at the end); the room's wider traffic takes over while the camera is far.
+        const startPres = 1 - sm(seg(curBeat, 7.05, 7.27));
+        const endPres = sm(seg(curBeat, 7.92, 8.12));
+        const flow = spineTravel + creepAcc;
         let vCur = 0;
         trafficRails.forEach(r => {
+          const rf = r.atriumSpine ? spineTravel : flow;
           for (let j = 0; j < r.n; j++) {
-            let u = (j / r.n + (r.dir * flow * r.speed) / r.len) % 1;
+            let u = (j / r.n + (r.dir * rf * r.speed) / r.len) % 1;
             if (u < 0) u += 1;
             const p = r.c.getPointAt(u);
-            let sc = r.closed ? 1.15 : cl(Math.min(u, 1 - u) / 0.04, 0, 1) * 1.15;
-            if (r.atriumSpine && Math.abs(p.x - hx) < 2.2) sc = 0;
-
+            // bottles appear and disappear only inside the machines at each end of their belt
+            let sc = (r.closed ? 1 : cl(Math.min(u, 1 - u) * r.len / 0.9, 0, 1)) * TRAFFIC_SCALE;
+            if (r.atriumSpine) {
+              const dx = p.x - hx;
+              if (Math.abs(dx) < 2.4) sc = 0;
+              else if (dx < 0 && dx > -18) sc *= 1 - Math.max(startPres, endPres);
+              else if (dx > 0 && dx < 8) sc *= 1 - startPres;
+              if (dx > 0) sc *= 1 - endPres;
+            }
             dummy.position.set(p.x, p.y + 1.0, p.z);
             dummy.rotation.set(0, 0, 0);
             dummy.scale.setScalar(sc || 0.0001);
             dummy.updateMatrix();
-            instGlass.setMatrixAt(vCur, dummy.matrix);
-
-            // Differentiate Supplier Stream 0 (pure empty glass vessels!) vs Active/Closure streams
-            if (r.feederIdx === 0) {
-              dummy.scale.setScalar(0.0001);
-              dummy.updateMatrix();
-              instLiq.setMatrixAt(vCur, dummy.matrix);
-              instCap.setMatrixAt(vCur, dummy.matrix);
-            } else {
-              instLiq.setMatrixAt(vCur, dummy.matrix);
-              instCap.setMatrixAt(vCur, dummy.matrix);
-            }
+            traffic.put(vCur, dummy.matrix);
             vCur++;
           }
+          if (r.bedTex) r.bedTex.offset.x = -(r.dir * rf * r.speed) / BELT_TILE;
         });
-        instGlass.instanceMatrix.needsUpdate = true;
-        instLiq.instanceMatrix.needsUpdate = true;
-        instCap.instanceMatrix.needsUpdate = true;
+        traffic.commit();
+        line04BedTex.offset.x = -hx / BELT_TILE;
+
+        CONVOY_K.forEach((k, i) => {
+          const pres = k < 0 ? Math.max(startPres, endPres) : startPres;
+          dummy.position.set(hx + k * CONVOY_GAP, 1.0, 0);
+          dummy.rotation.set(0, 0, 0);
+          dummy.scale.setScalar(Math.max(0.0001, HERO_SCALE * pres));
+          dummy.updateMatrix();
+          convoy.put(i, dummy.matrix);
+        });
+        convoy.commit();
+
+        hallDMat.opacity = dayMix;
+        shaftMat.opacity = 0.07 + dayMix * 0.12;
+        dashMat.opacity = 0.26 + dayMix * 0.1;
 
         atriumBusMats.forEach(item => {
           const match = item.group === state.formFocus;
           item.mat.color.copy(match ? cGold : cDim);
           item.mat.emissive.copy(match ? cGold : cMint);
-          item.mat.emissiveIntensity = match ? 1.08 : 0.22;
+          item.mat.emissiveIntensity = (match ? 1.08 : 0.22) * (0.06 + 0.94 * power(item.rail.power || 0));
         });
         line04BusMat.color.copy(state.formFocus === 'oral' || curBeat < 6.8 ? cGold : cDim);
         skyCapsMat.emissiveIntensity = state.formFocus === 'solid' ? 0.65 : 0.16;
@@ -1712,16 +2233,19 @@ function activateFallback() {
         for (let i = 0; i < CAPS_COUNT; i++) {
           const sc = skyCurves[i % skyCurves.length];
           const slot = Math.floor(i / skyCurves.length) / (CAPS_COUNT / skyCurves.length);
-          const u = (((slot + flow * 0.016) % 1) + 1) % 1;
+          const u = (((slot + flow * 0.006) % 1) + 1) % 1;
+          const capEdge = cl(Math.min(u, 1 - u) / 0.03, 0, 1);       // capsules enter and leave inside the hopper and receiver
           const pt = sc.getPointAt(u), tan = sc.getTangentAt(u);
           dummy.position.copy(pt);
           dummy.quaternion.setFromUnitVectors(upVec, tan);
-          dummy.scale.setScalar(1);
+          dummy.scale.setScalar(Math.max(0.0001, capEdge));
           dummy.updateMatrix();
           skyCapsInst.setMatrixAt(i, dummy.matrix);
         }
         skyCapsInst.instanceMatrix.needsUpdate = true;
 
+        cells.forEach(c => { c.green.emissiveIntensity = 1.1 * (c.power < 0 ? 1 : power(c.power)); });
+        accTables.forEach((t, ti) => { const a = flow * 0.06 * (ti ? -1 : 1); t.userData.spokes.forEach((sp, k) => { sp.rotation.y = k * Math.PI / 4 + a; }); });
         atrCarousel.rotation.y = time * 1.8;
         atrNozzles.forEach((nz, ni) => {
           nz.position.y = -0.72 + 0.24 * Math.sin(time * 4.5 + ni);
@@ -1732,20 +2256,26 @@ function activateFallback() {
         });
       }
 
-      // Camera Spline + Atrium Rig Override + Orbit + Portrait Mobile Framing
+      // Camera: a spline through the cleanroom whose two ends are locked to the illustrated line's own framing of TQ-0417,
+      // so the bottle stays the same size and in the same place on screen across both handoffs.
       const kf = sampleCamera(curBeat);
-      vPos.set(kf.pos[0], kf.pos[1], kf.pos[2]);
-      vTgt.set(kf.tgt[0], kf.tgt[1], kf.tgt[2]);
+      vPos.copy(kf.pos);
+      vTgt.copy(kf.tgt);
       let shiftX = kf.shiftX;
+      // Phones: the ending card sits at the top, so the windowsill is centred lower in the frame.
+      if (inHome && cam.aspect < 1) {
+        vPos.set(177.9, 4.0 + (kf.pos.y - 2.8), 12.0 + (kf.pos.z - 9.8));
+        vTgt.set(177.9, 4.0, -1.8);
+      }
+      const hxc = getHeroX(curBeat);
 
-      const atrWeight = sm(cl((curBeat - 6.85) / 0.35, 0, 1)) * (1 - sm(cl((curBeat - 8.20) / 0.28, 0, 1)));
+      const atrWeight = inHome ? 0 : sm(seg(curBeat, 7.36, 7.52)) * (1 - sm(seg(curBeat, 7.8, 7.95)));
       if (atrWeight > 0.001 && state.atriumCam !== 'crane') {
-        const hx = getHeroX(curBeat);
         const altPos = state.atriumCam === 'chase'
-          ? new THREE.Vector3(hx - 8.5, 4.2, 5.8)
+          ? new THREE.Vector3(hxc - 8.5, 4.2, 5.8)
           : new THREE.Vector3(91.5, 58.0, 4.5);
         const altTgt = state.atriumCam === 'chase'
-          ? new THREE.Vector3(hx + 2.5, 1.9, 0)
+          ? new THREE.Vector3(hxc + 2.5, 1.9, 0)
           : new THREE.Vector3(91.5, 0.5, 0);
         vPos.lerp(altPos, atrWeight);
         vTgt.lerp(altTgt, atrWeight);
@@ -1753,8 +2283,9 @@ function activateFallback() {
       }
 
       vOff.copy(vPos).sub(vTgt);
-      const totalYaw = curYaw + (RM ? 0 : hoverX * 0.020);
-      const totalPitch = curPitch + (RM ? 0 : hoverY * 0.014);
+      const orbitK = inHome ? 0.25 : 1;
+      const totalYaw = (curYaw + (RM ? 0 : hoverX * 0.020)) * orbitK;
+      const totalPitch = (curPitch + (RM ? 0 : hoverY * 0.014)) * orbitK;
       if (Math.abs(totalYaw) > 0.0004 || Math.abs(totalPitch) > 0.0004) {
         const radiusXZ = Math.hypot(vOff.x, vOff.z);
         const ang = Math.atan2(vOff.z, vOff.x) + totalYaw;
@@ -1762,28 +2293,49 @@ function activateFallback() {
         vOff.z = Math.sin(ang) * radiusXZ;
         vOff.y = Math.max(1.35, vOff.y + totalPitch * Math.max(4, radiusXZ * 0.35));
       }
-
-      cam.position.copy(vTgt).add(vOff);
-      cam.lookAt(vTgt);
+      vPos.copy(vTgt).add(vOff);
 
       const isPortrait = cam.aspect < 1;
-      const targetFov = isPortrait ? kf.fov + 15 : kf.fov;
-      if (Math.abs(cam.fov - targetFov) > 0.05) {
-        cam.fov = targetFov;
-        cam.updateProjectionMatrix();
+      const w = innerWidth, h = innerHeight;
+      let fovNow = isPortrait ? kf.fov + 15 : kf.fov;
+      let offX = isPortrait ? 0 : -shiftX * w;
+      let offY = isPortrait && !inHome ? 0.13 * h : 0;
+      const heroMidY = 1.0 + HERO_H / 2;
+      // Locked to the illustrated line's framing of TQ-0417 (including its push-in) until the crossfade is complete, then
+      // released gradually into the reveal spline, so the handoff has no cut and no jump.
+      const lockW = curBeat <= HOLD_END ? 1 : 1 - ss(seg(curBeat, HOLD_END, 7.27));
+      if (lockW > 0.001 && !inHome) {
+        const fr = homeStage && homeStage.lineFraming ? homeStage.lineFraming(LINE_BEAT_OUT_OF_LINE) : null;
+        if (fr) {
+          const D = HERO_H * h / (2 * Math.max(8, fr.h) * Math.tan(31 * Math.PI / 360));
+          vPos.lerp(vMatchPos.set(hxc, heroMidY, D), lockW);
+          vTgt.lerp(vMatchTgt.set(hxc, heroMidY, 0), lockW);
+          fovNow = lerp(fovNow, 31, lockW);
+          offX = lerp(offX, w / 2 - fr.x, lockW);
+          offY = lerp(offY, h / 2 - fr.y, lockW);
+        }
       }
 
-      const w = innerWidth, h = innerHeight;
-      if (!isPortrait && Math.abs(shiftX) > 0.001) {
-        cam.setViewOffset(w, h, -shiftX * w, 0, w, h);
-      } else if (isPortrait && !inHome) {
-        // Shift 3D focal subject into the upper open half above bottom mobile cards!
-        cam.setViewOffset(w, h, 0, 0.13 * h, w, h);
-      } else if (isPortrait && inHome) {
-        // Shift windowsill cleanly into lower half below top mobile finale headline!
-        cam.setViewOffset(w, h, 0.22 * w, -0.20 * h, w, h);
-      } else {
-        cam.clearViewOffset();
+      cam.position.copy(vPos);
+      cam.lookAt(vTgt);
+      cam.fov = fovNow;
+      cam.updateProjectionMatrix();
+      if (Math.abs(offX) > 0.5 || Math.abs(offY) > 0.5) cam.setViewOffset(w, h, offX, offY, w, h);
+      else cam.clearViewOffset();
+      outlineK.value = 2 * Math.tan(fovNow * Math.PI / 360) / h;
+
+      // Where TQ-0417 is on screen, for the lot tag (the line writes the same thing for its own frames).
+      if (homeStage && homeStage.thread3d) {
+        cam.updateMatrixWorld();
+        vThread.copy(threadPt);
+        const dist = cam.position.distanceTo(vThread);
+        vThread.project(cam);
+        const t3 = homeStage.thread3d;
+        t3.x = (vThread.x * 0.5 + 0.5) * w;
+        t3.y = (1 - (vThread.y * 0.5 + 0.5)) * h;
+        t3.h = threadH * h / (2 * dist * Math.tan(fovNow * Math.PI / 360));
+        t3.v = inHome ? 0 : threadV;
+        t3.s = threadS;
       }
 
       // Skip GPU work while the illustrated line covers the stage.
