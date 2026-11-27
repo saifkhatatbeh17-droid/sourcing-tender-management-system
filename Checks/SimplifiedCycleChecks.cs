@@ -8,6 +8,7 @@ using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website.
 public static class SimplifiedCycleChecks
 {
     public static async Task RunAsync(IServiceProvider services)

@@ -16,6 +16,7 @@ using SourcingTenderManagement.Services.Intelligence;
 using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website. Run it with: dotnet run -- --vllm-ai-checks
 
 public static class VllmAiChecks
 {

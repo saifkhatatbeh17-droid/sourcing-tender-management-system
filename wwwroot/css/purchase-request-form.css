@@ -1,3 +1,4 @@
+/* purchase-request-form.css: Used by: Department/RequestForm. */
 .rq-page {
     --rq-ink: var(--color-text); --rq-muted: var(--color-text-secondary); --rq-line: var(--color-border); --rq-error: var(--pharma-danger-text); --rq-input-border: var(--color-input-border, #767676);
     max-width: 1040px; padding-bottom: 1rem; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-optical-sizing: auto; font-size: 1rem; line-height: 1.5;

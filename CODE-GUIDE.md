@@ -1,7 +1,12 @@
 # Code guide for new developers
 
 This guide explains how the TIRYAQ code is organised, so you can find your way around even if you are new to ASP.NET Core.
-Every C# and JavaScript file also starts with a short comment that says what it is for.
+
+Every file starts with a short comment that says what it is for:
+
+- C# and JavaScript files: a `// ...` line above the class or at the top.
+- Views (`.cshtml`): an `@* ... *@` line at the top saying which page it is and which controller action shows it. Razor comments are never sent to the browser.
+- Stylesheets (`.css`): a `/* ... */` line saying which pages use it.
 
 ## 1. What the app does, in one paragraph
 

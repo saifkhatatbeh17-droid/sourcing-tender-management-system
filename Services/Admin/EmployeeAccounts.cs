@@ -70,7 +70,7 @@ public sealed class EmployeeAccounts(ApplicationDbContext db, UserManager<Applic
     }
 
     /// <summary>
-    /// Creates the account and its roles in one serializable transaction. If the committee position is
+    /// Creates the account and its roles in one strict (serializable) database transaction, so all steps succeed or none do. If the committee position is
     /// already held by an active account, nothing is created and <see cref="EmployeeAccountResult.PositionHolder"/> is set.
     /// </summary>
     public async Task<EmployeeAccountResult> CreateAsync(

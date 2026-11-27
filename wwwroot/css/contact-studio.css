@@ -1,3 +1,4 @@
+/* contact-studio.css: Used by: Home/Contact. */
 .contact-studio { max-width:1180px;margin:40px auto 72px;color:var(--color-text,#111); }
 .contact-intro { max-width:650px;margin-bottom:32px; }
 .contact-intro h1 { font-size:clamp(36px,5vw,56px);letter-spacing:-.045em;line-height:1.1;margin:0 0 16px;color:inherit; }

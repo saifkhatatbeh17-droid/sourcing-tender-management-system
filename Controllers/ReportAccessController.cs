@@ -57,7 +57,7 @@ public sealed class ReportAccessController(ApplicationDbContext db, ReportRegist
                 return BadRequest("A report and role can appear only once per submission.");
         }
 
-        // Serialize the read/update/insert batch so concurrent saves cannot create duplicate rules.
+        // Run the read, update and insert steps one at a time, so two saves at the same moment cannot create duplicate rules.
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         try
         {

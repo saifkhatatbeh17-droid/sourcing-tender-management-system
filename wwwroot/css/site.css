@@ -1,3 +1,4 @@
+/* site.css: Loaded on every page (from the shared layout). */
 :root { --ink: #172b3a; --muted: #566775; --line: #dce3e9; --surface: #f4f7f9; --accent: #145da0; --focus: #a35b00; }
 body { color: var(--ink); background: white; font-family: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif; font-size: 1rem; }
 a { color: var(--accent); }

@@ -1,3 +1,4 @@
+/* site-theme.css: Loaded on every page (from the shared layout). */
 .site-theme-toggle {
     display: inline-grid;
     place-items: center;

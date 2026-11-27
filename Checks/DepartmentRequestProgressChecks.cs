@@ -2,6 +2,7 @@ using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website.
 
 public static class DepartmentRequestProgressChecks
 {

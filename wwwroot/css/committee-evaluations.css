@@ -1,3 +1,4 @@
+/* committee-evaluations.css: Used by: EvaluationCommittee/Evaluations. */
 body:has(.evaluation-page) > header:not(.workspace-navbar) nav > a { text-decoration: none; color: var(--color-text-secondary); }
 body:has(.evaluation-page) > header:not(.workspace-navbar) nav > a:hover { color: var(--color-link); }
 body:has(.evaluation-page) > header:not(.workspace-navbar) nav > a:first-child { font-size: var(--font-size-body); color: var(--color-text) !important; }

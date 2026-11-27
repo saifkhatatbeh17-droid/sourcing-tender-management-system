@@ -6,6 +6,7 @@ using SourcingTenderManagement.Data;
 using SourcingTenderManagement.Models.TopCommittee;
 using SourcingTenderManagement.Services.TopCommittee;
 namespace SourcingTenderManagement.Checks;
+// Part of the --top-committee-foundation-check self-test (called by TopCommitteeFoundationChecks).
 
 public static class TopCommitteePhase7Checks
 {

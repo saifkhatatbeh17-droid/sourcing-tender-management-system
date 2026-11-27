@@ -14,6 +14,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website. Run it with: dotnet run -- --reports-data-checks
 
 public static class ReportsDataChecks
 {

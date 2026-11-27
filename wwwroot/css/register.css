@@ -1,3 +1,4 @@
+/* register.css: Used by: Account/Register. */
 .main-content:has(.registration-page) {
     padding: 0 !important;
     background: #f4f8fa;

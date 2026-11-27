@@ -1,3 +1,4 @@
+@* Partial view (a reusable piece of a page). Used by: Shared/_Layout. *@
 @inject Microsoft.AspNetCore.Identity.UserManager<SourcingTenderManagement.Data.ApplicationUser> UserManager
 @{ var account = await UserManager.GetUserAsync(User); var displayName = string.IsNullOrWhiteSpace(account?.FullName) ? User.Identity?.Name : account.FullName; }
 <header class="admin-navbar workspace-navbar">

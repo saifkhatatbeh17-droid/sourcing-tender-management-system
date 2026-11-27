@@ -9,6 +9,7 @@ using SourcingTenderManagement.Services.FaceEnrollment;
 using SourcingTenderManagement.Services.FaceVerification;
 
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website.
 
 public static class FaceVerificationChecks
 {

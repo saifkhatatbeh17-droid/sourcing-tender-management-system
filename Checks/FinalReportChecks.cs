@@ -5,6 +5,7 @@ using SourcingTenderManagement.Models;
 using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.Evaluation;
 namespace SourcingTenderManagement.Checks;
+// Part of the --vllm-ai-checks self-test (called by VllmAiChecks).
 public static class FinalReportChecks
 {
     public static async Task RunAsync()

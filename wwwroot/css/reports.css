@@ -1,3 +1,4 @@
+/* reports.css: Used by: Reports/Access, Reports/Index, Reports/Show, Reports/Unavailable. */
 .reports-page {
     --rpt-ink: var(--color-text, #142f36);
     --rpt-muted: var(--color-text-secondary, #53686e);

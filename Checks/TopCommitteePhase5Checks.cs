@@ -8,6 +8,7 @@ using SourcingTenderManagement.Contracts.TopCommittee;
 using SourcingTenderManagement.Models.TopCommittee;
 using SourcingTenderManagement.Services.TopCommittee;
 namespace SourcingTenderManagement.Checks;
+// Part of the --top-committee-foundation-check self-test (called by TopCommitteeFoundationChecks).
 public static class TopCommitteePhase5Checks
 {
  public static async Task RunAsync(IServiceProvider services)

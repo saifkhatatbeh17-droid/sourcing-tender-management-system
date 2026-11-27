@@ -1,3 +1,4 @@
+/* guarantees.css: Used by: Guarantees/Verify, Shared/Components/OfferGuarantees/Default, Supplier/CreateOffer. */
 .guarantee-section { margin:24px 0; color:var(--color-text,#152c32); font-size:14px; line-height:1.7; }
 .guarantee-section h2,.guarantee-section h3,.guarantee-section h4 { color:inherit; margin:0 0 8px; font-weight:600; }
 .guarantee-section h2 { font-size:21px; }

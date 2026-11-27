@@ -4,6 +4,7 @@ using SourcingTenderManagement.Services.Evaluation;
 using SourcingTenderManagement.Services.Reports;
 
 namespace SourcingTenderManagement.Checks;
+// Part of the --vllm-ai-checks self-test (called by CommitteeApprovalOrderChecks).
 
 public static class ReportContentChecks
 {

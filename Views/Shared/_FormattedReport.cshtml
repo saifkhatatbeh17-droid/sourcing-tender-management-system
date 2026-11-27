@@ -1,3 +1,4 @@
+@* Partial view (a reusable piece of a page). Used by: EvaluationCommittee/_AiBidRecommendation, SourcingManager/Submissions, SourcingOfficer/Evaluations, SourcingOfficer/Reports and more. *@
 @model string
 <div class="formatted-report">
 @foreach (var block in SourcingTenderManagement.Services.Reports.ReportContent.Parse(Model))

@@ -10,6 +10,7 @@ using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Models.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
+// Part of the --top-committee-foundation-check self-test (called by TopCommitteeFoundationChecks).
 
 public static class TopCommitteeNotificationNavigationChecks
 {

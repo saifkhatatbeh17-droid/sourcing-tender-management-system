@@ -1,3 +1,4 @@
+@* Partial view (a reusable piece of a page). Used by: EvaluationCommittee/Evaluations. *@
 @model CommitteeEvaluationPage
 @using SourcingTenderManagement.Services.Evaluation
 <section class="ev-shared-evaluation"><div class="ev-weights-summary"><div><h3>Evaluate every offer</h3><p>Each member submits both marks for every eligible offer. Submitted marks are locked.</p></div><div class="ev-weight-value"><span>Financial</span><strong>@Model.FinancialWeight.ToString("0")%</strong></div><div class="ev-weight-value"><span>Technical</span><strong>@Model.TechnicalWeight.ToString("0")%</strong></div></div></section>

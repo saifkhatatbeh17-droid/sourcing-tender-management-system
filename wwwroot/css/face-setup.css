@@ -1,3 +1,4 @@
+/* face-setup.css: Used by: Account/Login, FaceSetup/Index. */
 .face-setup-modal .modal-dialog { --bs-modal-width: 54rem; }
 .face-setup-modal .modal-header { align-items: flex-start; gap: 1rem; padding: 1.125rem 1.5rem; }
 .face-setup-modal .modal-header p { margin-top: .25rem; }

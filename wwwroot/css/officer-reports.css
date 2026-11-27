@@ -1,3 +1,4 @@
+/* officer-reports.css: Used by: SourcingOfficer/Reports. */
 .reports-page { --rp-positive-bg:#edf6f0;--rp-positive-text:#286345;--rp-review-bg:#fff3e3;--rp-review-text:#815515;--rp-progress-bg:#edf3fc;--rp-progress-text:#365d94; }
 .rp-library,.rp-panel { background:var(--so-surface);border:1px solid var(--so-line);border-radius:14px; }
 .rp-library { overflow:hidden; }.rp-library-heading { padding:24px 26px 18px;display:flex;justify-content:space-between;align-items:center;gap:20px; }.rp-library-heading h2 { display:flex;align-items:center;gap:10px;font-size:20px;margin:0;font-weight:600; }.rp-library-heading p { font-size:13px;color:var(--so-muted);margin:6px 0 0; }.rp-count { padding:3px 8px;border-radius:6px;background:var(--so-surface-alt);font-size:12px;font-weight:500;color:var(--so-muted); }.rp-review-count { color:var(--so-muted);font-size:13px; }

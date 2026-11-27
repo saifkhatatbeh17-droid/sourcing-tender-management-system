@@ -14,6 +14,7 @@ using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website.
 
 public static class ManagerReferralChecks
 {

@@ -12,6 +12,7 @@ using SourcingTenderManagement.Services.FaceVerification;
 using SourcingTenderManagement.Services.TopCommittee;
 
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website.
 
 public static class FaceVerificationHttpChecks
 {

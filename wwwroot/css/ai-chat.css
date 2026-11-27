@@ -1,3 +1,4 @@
+/* ai-chat.css: Loaded on every page (from the shared layout). */
 .ai-chat {
     --ai-chat-edge: 1rem;
     --ai-chat-bottom: max(var(--ai-chat-edge), env(safe-area-inset-bottom));

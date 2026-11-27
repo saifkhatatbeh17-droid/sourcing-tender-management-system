@@ -11,6 +11,7 @@ using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website.
 
 public static class ReportsNavigationChecks
 {

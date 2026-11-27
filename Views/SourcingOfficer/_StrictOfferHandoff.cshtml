@@ -1,3 +1,4 @@
+@* Partial view (a reusable piece of a page). Used by: SourcingOfficer/Offers. *@
 @using SourcingTenderManagement.Models.Entities
 @{var tender=ViewBag.SelectedTender as Tender;var bids=ViewData.Model as List<Bid> ?? [];var round=(tender?.OfferExtensions.Count ?? 0)+1;var compliant=bids.Where(b=>b.Status!="Withdrawn" && b.ComplianceStatus=="Compliant").Select(b=>b.Invitation.SupplierProfileId).Distinct().Count();var sent=ViewBag.WorkspaceReport is EvaluationReport;var closed=tender!=null&&tender.ClosesAt<=DateTime.UtcNow&&(tender.Status is "Published" or "Open" or "Closed")&&ViewBag.RoundRejected!=true;var pending=bids.Any(b=>b.Status!="Withdrawn" && b.ComplianceStatus is not ("Compliant" or "NonCompliant"));}
 @if (tender!=null && !sent && closed)

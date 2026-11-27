@@ -12,6 +12,7 @@ using SourcingTenderManagement.Models.Reports;
 using SourcingTenderManagement.Services.Reports.Hub;
 
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website.
 
 public static class ReportsAccessChecks
 {

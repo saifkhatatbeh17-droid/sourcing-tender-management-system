@@ -1,3 +1,4 @@
+/* officer-dashboard.css: Used by: SourcingOfficer/Dashboard. */
 .officer-dashboard { --so-chart-active: #245bda; --so-chart-draft: #a2b7eb; --so-chart-awarded: #237653; --so-chart-cancelled: #9a6571; --so-chart-track: #e9eef7; }
 html[data-theme="dark"] .officer-dashboard { --so-chart-active: #8caeff; --so-chart-draft: #526eaa; --so-chart-awarded: #77c8a1; --so-chart-cancelled: #c693a1; --so-chart-track: #303b46; }
 

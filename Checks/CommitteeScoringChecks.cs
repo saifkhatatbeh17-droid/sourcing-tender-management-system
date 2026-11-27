@@ -3,6 +3,7 @@ using SourcingTenderManagement.Models.Entities;
 using SourcingTenderManagement.Services.Evaluation;
 
 namespace SourcingTenderManagement.Checks;
+// Self-test helper used by RankedReportChecks, ReportContentChecks.
 
 public static class CommitteeScoringChecks
 {

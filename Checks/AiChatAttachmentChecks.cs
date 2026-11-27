@@ -10,6 +10,7 @@ using UglyToad.PdfPig.Fonts.Standard14Fonts;
 using UglyToad.PdfPig.Writer;
 
 namespace SourcingTenderManagement.Checks;
+// Part of the --vllm-ai-checks self-test (called by VllmAiChecks).
 
 internal static class AiChatAttachmentChecks
 {

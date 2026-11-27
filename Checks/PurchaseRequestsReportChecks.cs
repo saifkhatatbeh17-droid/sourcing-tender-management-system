@@ -8,6 +8,7 @@ using SourcingTenderManagement.Services.Reports.Hub;
 using PdfDocument = UglyToad.PdfPig.PdfDocument;
 
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website.
 
 public static class PurchaseRequestsReportChecks
 {

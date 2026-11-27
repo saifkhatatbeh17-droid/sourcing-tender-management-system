@@ -13,7 +13,7 @@ public sealed record OfficerSpecMatchPage(SpecMatchInput Input, SpecMatchResult?
 
 public partial class SourcingOfficerController
 {
-    // Serialize concurrent runs for the same tender in this application instance.
+    // Let only one spec match run per tender at a time (within this running app).
     private static readonly SemaphoreSlim[] SpecMatchLocks =
         Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1)).ToArray();
 

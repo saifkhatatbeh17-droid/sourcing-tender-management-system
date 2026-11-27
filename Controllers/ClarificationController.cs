@@ -184,7 +184,7 @@ public class ClarificationController(ApplicationDbContext db, UserManager<Applic
              (officer && c.PurchaseRequest != null &&
               c.PurchaseRequest.Status != "Draft" && c.PurchaseRequest.ReviewedByUserId == actor.Id &&
               c.SenderUserId == c.PurchaseRequest.RequestedByUserId)));
-        // Serialize changes to a conversation, including confirmations that keep the same status.
+        // Handle one change to a conversation at a time, including confirmations that keep the same status.
         if (await query.ExecuteUpdateAsync(setters => setters.SetProperty(c => c.Status, c => c.Status), ct) == 0)
             return NotFound();
         var thread = await query.AsNoTracking().Include(c => c.PurchaseRequest)

@@ -1,6 +1,7 @@
 using SourcingTenderManagement.Controllers;
 using SourcingTenderManagement.Models.Entities;
 namespace SourcingTenderManagement.Checks;
+// Self-test, not part of the website.
 public static class OfferReviewChecks
 {
     public static Task RunAsync()

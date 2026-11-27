@@ -1,3 +1,4 @@
+@* Partial view (a reusable piece of a page). Used by: EvaluationCommittee/_EvaluationReport. *@
 @model CommitteeEvaluationPage
 @using SourcingTenderManagement.Services.Evaluation
 @{ var ranking = AllOfferScoring.Ranking(Model); var leaders = AllOfferScoring.Leaders(Model); var winnerId = AllOfferScoring.Winner(Model); var winner = ranking.FirstOrDefault(r => r.BidId == winnerId); var shortlistIds = AllOfferScoring.Shortlist(Model).Select(r => r.BidId).ToHashSet(); }
